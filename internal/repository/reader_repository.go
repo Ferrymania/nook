@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/truewhile/MeBox/internal/model"
 )
@@ -13,6 +14,17 @@ import (
 // ReaderRepository 阅读子系统 GORM 封装。
 type ReaderRepository struct {
 	db *gorm.DB
+}
+
+// readerOrderBy 组装方言安全的 ORDER BY。
+//
+// 用 clause.Column 让 GORM 按当前方言给列名加引号（SQLite 反引号 / PostgreSQL 双引号），
+// 而不是把引号硬编码进排序字符串。reader_books.order、reader_chapters.index、
+// reader_replace_rules.order 都撞上了 SQL 关键字（order 在 PostgreSQL 里是保留字）：
+// 之前写成 .Order("`order` ASC")，SQLite 下正常，PostgreSQL 下反引号被词法分析成
+// 运算符，直接报 `syntax error at or near "order"`，书架 / 目录 / 替换规则整页 500。
+func readerOrderBy(columns ...clause.OrderByColumn) clause.OrderBy {
+	return clause.OrderBy{Columns: columns}
 }
 
 // ListSources 用户的书源列表（书源按用户独立，按 customOrder 排序）。
@@ -153,7 +165,11 @@ func (r *ReaderRepository) SaveSourceState(ctx context.Context, st *model.Reader
 // ListBooks 用户书架（按 order 排序）。
 func (r *ReaderRepository) ListBooks(ctx context.Context, userID string) ([]model.ReaderBook, error) {
 	var out []model.ReaderBook
-	err := r.db.WithContext(ctx).Where("user_id = ?", userID).Order("`order` ASC, updated_at DESC").Find(&out).Error
+	err := r.db.WithContext(ctx).Where("user_id = ?", userID).
+		Order(readerOrderBy(
+			clause.OrderByColumn{Column: clause.Column{Name: "order"}},
+			clause.OrderByColumn{Column: clause.Column{Name: "updated_at"}, Desc: true},
+		)).Find(&out).Error
 	return out, err
 }
 
@@ -231,7 +247,10 @@ func (r *ReaderRepository) SwitchBookOrigin(ctx context.Context, book *model.Rea
 // ListChapters 按序取章节。
 func (r *ReaderRepository) ListChapters(ctx context.Context, bookID string) ([]model.ReaderChapter, error) {
 	var out []model.ReaderChapter
-	err := r.db.WithContext(ctx).Where("book_id = ?", bookID).Order("`index` ASC").Find(&out).Error
+	err := r.db.WithContext(ctx).Where("book_id = ?", bookID).
+		Order(readerOrderBy(
+			clause.OrderByColumn{Column: clause.Column{Name: "index"}},
+		)).Find(&out).Error
 	return out, err
 }
 
@@ -433,7 +452,11 @@ func (r *ReaderRepository) SaveBookGroups(ctx context.Context, row *model.Reader
 // ListReplaceRules 用户替换规则（按 order 排序）。
 func (r *ReaderRepository) ListReplaceRules(ctx context.Context, userID string) ([]model.ReaderReplaceRule, error) {
 	var out []model.ReaderReplaceRule
-	err := r.db.WithContext(ctx).Where("user_id = ?", userID).Order("`order` DESC, created_at ASC").Find(&out).Error
+	err := r.db.WithContext(ctx).Where("user_id = ?", userID).
+		Order(readerOrderBy(
+			clause.OrderByColumn{Column: clause.Column{Name: "order"}, Desc: true},
+			clause.OrderByColumn{Column: clause.Column{Name: "created_at"}},
+		)).Find(&out).Error
 	return out, err
 }
 
