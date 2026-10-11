@@ -115,7 +115,12 @@ func (r *MediaRepository) upsertWithDB(ctx context.Context, db *gorm.DB, m *mode
 		return m.ID, nil
 	}
 
-	updates := mediaUpsertUpdates(existing, *m)
+	// 孤儿行回收：原库已被删除时（DeleteLibrary 硬删库行；扫描与删除并发时扫描也会
+	// 把行写回已删库），这条行会钉死在不存在的 library_id 上。media.path 是全局唯一
+	// 索引，重扫既插不进同路径新行，又因 LibraryID 非空而拒绝迁移归属，于是新库/重建库
+	// 永远查不到这些条目（表现为"扫描明明有文件，库却是空的"）。这里显式识别并允许迁移。
+	reclaimLibrary := r.mediaRowLibraryIsOrphaned(ctx, db, existing.LibraryID, m.LibraryID, m.Path)
+	updates := mediaUpsertUpdates(existing, *m, reclaimLibrary)
 	if adopted {
 		updates["path"] = m.Path
 		if existing.DeletedAt.Valid {
@@ -137,6 +142,42 @@ func (r *MediaRepository) upsertWithDB(ctx context.Context, db *gorm.DB, m *mode
 	}
 	*m = existing
 	return existing.ID, nil
+}
+
+// mediaRowLibraryIsOrphaned reports whether a media row is still pinned to a
+// library that no longer exists.
+//
+// 删除媒体库会硬删库行（见 MediaService.DeleteLibrary），但扫描与删除并发时，
+// 已在途的扫描仍可能把这批文件写回已删库的 library_id；历史数据里也可能留下
+// 指向早已消失的库的行。因为 media.path 是全局唯一索引，这些行一旦存在：
+//  1. 重扫无法插入同路径的新行（唯一约束冲突）；
+//  2. addMediaPlacementUpdates 又因为 existing.LibraryID 非空而拒绝迁移归属。
+//
+// 结果就是新库 / 重建的同名库永远查不到这些条目，扫描报告有文件而库显示为空。
+// 这里把"原库已不存在"这种情况单独判定出来，交给扫描把归属迁移到当前库。
+func (r *MediaRepository) mediaRowLibraryIsOrphaned(ctx context.Context, db *gorm.DB, existingLibraryID, incomingLibraryID, incomingPath string) bool {
+	existingLibraryID = strings.TrimSpace(existingLibraryID)
+	incomingLibraryID = strings.TrimSpace(incomingLibraryID)
+	// 归属未变或原行为空（后者走既有的回填分支）时无需查库。
+	if existingLibraryID == "" || existingLibraryID == incomingLibraryID {
+		return false
+	}
+	// 云盘媒体的归属迁移由 addMediaPlacementUpdates 无条件处理，无需再查库。
+	if strings.HasPrefix(strings.ToLower(strings.TrimSpace(incomingPath)), "cloud://") {
+		return false
+	}
+	if db == nil || !db.Migrator().HasTable(&model.Library{}) {
+		return false
+	}
+	var count int64
+	// 刻意不加 Unscoped：软删除的库同样不再出现在库里，挂在它下面的媒体行
+	// 也属于"查不到"的孤儿，一并允许回收。查询失败时保守处理：宁可保留旧
+	// 归属，也不要把仍有效的库误判成孤儿。
+	if err := db.WithContext(ctx).Model(&model.Library{}).
+		Where("id = ?", existingLibraryID).Count(&count).Error; err != nil {
+		return false
+	}
+	return count == 0
 }
 
 func (r *MediaRepository) findOrCreateMediaByPath(ctx context.Context, db *gorm.DB, m *model.Media, aliasPaths []string) (model.Media, bool, bool, error) {
@@ -194,14 +235,14 @@ func (r *MediaRepository) findMediaByAlias(ctx context.Context, db *gorm.DB, cur
 	return existing, err
 }
 
-func mediaUpsertUpdates(existing, incoming model.Media) map[string]any {
+func mediaUpsertUpdates(existing, incoming model.Media, reclaimLibrary bool) map[string]any {
 	updates := map[string]any{}
 	addMediaFileScanUpdates(updates, existing, incoming)
 	addMediaTitleUpdates(updates, existing, incoming)
 	addMediaExternalIDUpdates(updates, existing, incoming)
 	addMatchedMediaMetadataUpdates(updates, existing, incoming)
 	addMediaArtworkUpdates(updates, existing, incoming)
-	addMediaPlacementUpdates(updates, existing, incoming)
+	addMediaPlacementUpdates(updates, existing, incoming, reclaimLibrary)
 	addMediaSTRMUpdate(updates, existing, incoming)
 	return updates
 }
@@ -308,13 +349,15 @@ func addMediaArtworkUpdates(updates map[string]any, existing, incoming model.Med
 	}
 }
 
-func addMediaPlacementUpdates(updates map[string]any, existing, incoming model.Media) {
+func addMediaPlacementUpdates(updates map[string]any, existing, incoming model.Media, reclaimLibrary bool) {
 	// 云盘媒体：同一 cloud:// 文件可能先被父目录库扫描入库，之后用户按二级
 	// 分类重新挂载/扫描到更精确的分类库。此时让 library_id 迁移到当前扫描库，
 	// 否则媒体被钉死在旧库、新分类库里看不到(表现为"媒体部分消失")。
-	// 本地媒体物理位置固定：仅在原 library_id 为空时回填，不迁移。
+	// 本地媒体物理位置固定：仅在原 library_id 为空、或原库已不存在（孤儿行，
+	// reclaimLibrary）时才回填/迁移，既避免把仍属于其他库的本地媒体抢走，
+	// 又能让扫描回收被删除库遗留的行。
 	if isCloudMediaPath := strings.HasPrefix(strings.ToLower(strings.TrimSpace(incoming.Path)), "cloud://"); incoming.LibraryID != "" && incoming.LibraryID != existing.LibraryID {
-		if isCloudMediaPath || existing.LibraryID == "" {
+		if isCloudMediaPath || existing.LibraryID == "" || reclaimLibrary {
 			updates["library_id"] = incoming.LibraryID
 		}
 	}
