@@ -106,11 +106,8 @@ func (r *MediaRepository) searchFilteredLIKE(ctx context.Context, query string, 
 	q := r.db.WithContext(ctx).Model(&model.Media{})
 	q = applyMediaQueryFilter(q, filter)
 	// SQLite 的 LIKE 对 ASCII 不区分大小写；Postgres 的 LIKE 区分大小写，
-	// 需用 ILIKE 保持两端搜索行为一致。
-	likeOp := "LIKE"
-	if r.db.Dialector != nil && r.db.Dialector.Name() == "postgres" {
-		likeOp = "ILIKE"
-	}
+	// 需用 ILIKE 保持两端搜索行为一致（见 dialect.go 的 likeOperator）。
+	likeOp := likeOperator(r.db)
 	terms := mediaSearchTerms(query)
 	for _, term := range terms {
 		like := "%" + escapeLike(term) + "%"

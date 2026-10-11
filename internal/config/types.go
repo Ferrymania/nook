@@ -86,6 +86,10 @@ type DatabaseConfig struct {
 	CacheSize    int    `mapstructure:"cache_size"`
 	MaxOpenConns int    `mapstructure:"max_open_conns"`
 	MaxIdleConns int    `mapstructure:"max_idle_conns"`
+	// PostgresTrgmIndex 决定是否用 pg_trgm 的 GIN 三元组索引替代 SQLite 的
+	// FTS5 全文索引。开启后 ILIKE '%term%' 搜索能走索引而不是整表扫描，代价是
+	// media 表写入时要多维护 4 个 GIN 索引。仅对 PostgreSQL 生效。
+	PostgresTrgmIndex bool `mapstructure:"postgres_trgm_index"`
 }
 
 // SecretsConfig 保存 JWT / 第三方 API 密钥（不要提交值）。

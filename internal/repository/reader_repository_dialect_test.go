@@ -38,16 +38,19 @@ func (l *sqlCaptureLogger) all() string {
 
 // newPostgresDryRunRepos 返回使用 PostgreSQL 方言的 repository 容器：
 // DryRun 只构建 SQL 不执行，DisableAutomaticPing 让它无需真实数据库也能离线运行，
-// 于是可以直接断言生成语句在 PostgreSQL 下是否合法。
+// SkipDefaultTransaction 则挡掉 GORM 默认事务包装——那一步会真的去开事务连接，
+// 在 DryRun 下同样会拨号（ToSQL 内部也是这么绕开的）。于是可以直接断言生成语句
+// 在 PostgreSQL 下是否合法。
 func newPostgresDryRunRepos(t *testing.T) (*Container, *sqlCaptureLogger) {
 	t.Helper()
 	rec := &sqlCaptureLogger{}
 	db, err := gorm.Open(postgres.New(postgres.Config{
 		DSN: "postgres://mebox:mebox@127.0.0.1:5432/mebox?sslmode=disable",
 	}), &gorm.Config{
-		DryRun:               true,
-		DisableAutomaticPing: true,
-		Logger:               rec,
+		DryRun:                 true,
+		DisableAutomaticPing:   true,
+		SkipDefaultTransaction: true,
+		Logger:                 rec,
 	})
 	if err != nil {
 		t.Fatalf("open dry-run postgres: %v", err)

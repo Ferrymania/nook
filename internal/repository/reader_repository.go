@@ -384,9 +384,17 @@ func (r *ReaderRepository) CountChaptersByBook(ctx context.Context, bookIDs []st
 }
 
 // GetChapter 取指定章节。
+//
+// index 在 PostgreSQL 里是保留字，必须让 GORM 按方言加引号（SQLite 反引号 /
+// PostgreSQL 双引号）。此前写成硬编码的 "book_id = ? AND `index` = ?"，
+// PostgreSQL 会把反引号词法分析成运算符并报 syntax error at or near "`"。
 func (r *ReaderRepository) GetChapter(ctx context.Context, bookID string, index int) (*model.ReaderChapter, error) {
 	var out model.ReaderChapter
-	if err := r.db.WithContext(ctx).First(&out, "book_id = ? AND `index` = ?", bookID, index).Error; err != nil {
+	err := r.db.WithContext(ctx).
+		Where(clause.Eq{Column: clause.Column{Name: "book_id"}, Value: bookID}).
+		Where(clause.Eq{Column: clause.Column{Name: "index"}, Value: index}).
+		First(&out).Error
+	if err != nil {
 		return nil, err
 	}
 	return &out, nil

@@ -33,6 +33,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("database.cache_size", -40000)
 	v.SetDefault("database.max_open_conns", defaultDatabaseMaxOpenConns)
 	v.SetDefault("database.max_idle_conns", defaultDatabaseMaxIdleConns)
+	v.SetDefault("database.postgres_trgm_index", true)
 
 	v.SetDefault("secrets.jwt_secret", "")
 

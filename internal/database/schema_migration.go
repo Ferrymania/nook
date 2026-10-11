@@ -1,13 +1,25 @@
 package database
 
 import (
+	"fmt"
+	"strings"
+
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 
+	"github.com/truewhile/MeBox/internal/config"
 	"github.com/truewhile/MeBox/internal/model"
 )
 
 // AutoMigrate creates tables for every model registered in the model package.
 func AutoMigrate(db *gorm.DB) error {
+	return AutoMigrateWithConfig(db, nil, nil)
+}
+
+// AutoMigrateWithConfig 与 AutoMigrate 相同，另外接受配置与日志：
+// 配置用来决定可选的 PostgreSQL 搜索索引，日志用来记录耗时步骤
+// （首次在已有大库上重建索引可能需要数十秒）。两者都可以为 nil。
+func AutoMigrateWithConfig(db *gorm.DB, cfg *config.Config, log *zap.Logger) error {
 	// 必须先于 AutoMigrate：旧库中可能已有重复的 (user_id, media_id) 历史行，
 	// 不去重会导致唯一索引 uniq_user_history 创建失败。
 	if err := dedupePlaybackHistories(db); err != nil {
@@ -32,6 +44,9 @@ func AutoMigrate(db *gorm.DB) error {
 	if err := ensurePerformanceIndexes(db); err != nil {
 		return err
 	}
+	if err := ensureMediaPathIndex(db); err != nil {
+		return err
+	}
 	if err := ensureLibraryRootsCompatibility(db); err != nil {
 		return err
 	}
@@ -43,6 +58,111 @@ func AutoMigrate(db *gorm.DB) error {
 			return err
 		}
 		return ensureSQLiteQueryOptimizer(db)
+	}
+	return ensurePostgresSearchIndexes(db, cfg, log)
+}
+
+// ensureMediaPathIndex 建立 media.path 的唯一约束与等值查找索引。
+//
+// 模型上不再用 gorm:"uniqueIndex"（见 model.Media.Path 的注释）：PostgreSQL 的
+// btree 单条索引项上限是 2704 字节，varchar(1024) 在中文路径下可达 3072 字节，
+// 对整列建唯一索引会让这类行插入时报
+//
+//	index row size ... exceeds btree version 4 maximum 2704
+//
+// 所以 PostgreSQL 改用 md5(path) 的表达式唯一索引（定长 32 字节，永远塞得下），
+// 同时保留一条普通索引 idx_media_path 供 path = ? 等值查找（扫描与 upsert 的
+// 热路径）使用。SQLite 没有这个长度限制，沿用整列唯一索引。
+func ensureMediaPathIndex(db *gorm.DB) error {
+	if db == nil || !db.Migrator().HasTable("media") {
+		return nil
+	}
+	if !isPostgres(db) {
+		return db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_media_path ON media(path)`).Error
+	}
+	// 先建哈希唯一索引：此时旧索引还在，唯一性不会出现空窗。
+	if err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_media_path_hash ON media(md5(path))`).Error; err != nil {
+		return err
+	}
+	unique, found, err := postgresIndexIsUnique(db, "idx_media_path")
+	if err != nil {
+		return err
+	}
+	if found && unique {
+		if err := db.Exec(`DROP INDEX IF EXISTS idx_media_path`).Error; err != nil {
+			return err
+		}
+	}
+	return db.Exec(`CREATE INDEX IF NOT EXISTS idx_media_path ON media(path)`).Error
+}
+
+// postgresIndexIsUnique 报告当前 schema 下是否存在该索引、以及它是否唯一。
+func postgresIndexIsUnique(db *gorm.DB, indexName string) (unique bool, found bool, err error) {
+	// 用指针接 bool：没有匹配行时 Scan 不报错，nil 即代表索引不存在。
+	var row struct {
+		IsUnique *bool
+	}
+	if err := db.Raw(`
+SELECT i.indisunique AS is_unique
+FROM pg_class c
+JOIN pg_index i ON i.indexrelid = c.oid
+JOIN pg_namespace n ON n.oid = c.relnamespace
+WHERE n.nspname = current_schema() AND c.relname = ?
+`, indexName).Scan(&row).Error; err != nil {
+		return false, false, err
+	}
+	if row.IsUnique == nil {
+		return false, false, nil
+	}
+	return *row.IsUnique, true, nil
+}
+
+// ensurePostgresSearchIndexes 给 PostgreSQL 补上 SQLite FTS5 的替代品。
+//
+// 全文检索只在 SQLite 下存在（FTS5 虚表 + 触发器），PostgreSQL 下
+// media_search_repository 会退回 title/original_name/path/genres 的 ILIKE
+// 全表扫描。pg_trgm 的 GIN 三元组索引能让这类 '%term%' 模式（≥3 字符）走索引，
+// 把搜索从整表扫描降到索引扫描。
+//
+// 之所以可关闭：media 表写入非常频繁（每次扫描批量入库），多 4 个 GIN 索引会
+// 明显放大写入成本。默认开启以对齐 SQLite 的搜索能力，写入压力大的部署可以关掉。
+//
+// 整个过程是尽力而为：没有建扩展的权限、Postgres 版本不支持等情况下只记一条
+// 警告并继续启动，绝不让一个搜索加速项把服务挡在门外。
+func ensurePostgresSearchIndexes(db *gorm.DB, cfg *config.Config, log *zap.Logger) error {
+	if !isPostgres(db) {
+		return nil
+	}
+	if cfg != nil && !cfg.Database.PostgresTrgmIndex {
+		if log != nil {
+			log.Info("postgres trigram search index disabled; media search falls back to sequential scan")
+		}
+		return nil
+	}
+	if err := db.Exec(`CREATE EXTENSION IF NOT EXISTS pg_trgm`).Error; err != nil {
+		if log != nil {
+			log.Warn("create pg_trgm extension failed; media search falls back to sequential scan", zap.Error(err))
+		}
+		return nil
+	}
+	// 首次在已有大库上执行会重建索引（服务尚未开始接受请求），之后每次启动都因
+	// IF NOT EXISTS 直接跳过。
+	if log != nil {
+		log.Info("ensuring postgres trigram search indexes")
+	}
+	for _, stmt := range []string{
+		`CREATE INDEX IF NOT EXISTS idx_media_title_trgm ON media USING gin (title gin_trgm_ops)`,
+		`CREATE INDEX IF NOT EXISTS idx_media_original_name_trgm ON media USING gin (original_name gin_trgm_ops)`,
+		`CREATE INDEX IF NOT EXISTS idx_media_path_trgm ON media USING gin (path gin_trgm_ops)`,
+		`CREATE INDEX IF NOT EXISTS idx_media_genres_trgm ON media USING gin (genres gin_trgm_ops)`,
+	} {
+		if err := db.Exec(stmt).Error; err != nil {
+			if log != nil {
+				log.Warn("create trigram index failed; media search may fall back to sequential scan",
+					zap.String("statement", stmt), zap.Error(err))
+			}
+			return nil
+		}
 	}
 	return nil
 }
@@ -176,21 +296,69 @@ func ensurePostgresColumnCompatibility(db *gorm.DB) error {
 	if !isPostgres(db) {
 		return nil
 	}
-	statements := []string{
-		`ALTER TABLE media ALTER COLUMN container TYPE varchar(128)`,
-		`ALTER TABLE media ALTER COLUMN genres TYPE text`,
-		`ALTER TABLE media ALTER COLUMN series_id TYPE varchar(128)`,
-		`ALTER TABLE media ALTER COLUMN duplicate_of TYPE varchar(128)`,
-		`ALTER TABLE playback_histories ALTER COLUMN media_id TYPE varchar(128)`,
-		`ALTER TABLE favorites ALTER COLUMN media_id TYPE varchar(128)`,
-		`ALTER TABLE playlist_items ALTER COLUMN media_id TYPE varchar(128)`,
+	// 只在类型确实不匹配时才 ALTER。
+	//
+	// PostgreSQL 的 ALTER COLUMN ... TYPE 只要类型声明与目标不同就会整表重写并
+	// 重建相关索引，执行期间持有 ACCESS EXCLUSIVE 锁。此前这里每次启动都无条件
+	// 发这 7 条语句：类型其实早已一致，但几十万行的 media 表仍然被反复重写，
+	// 启动会卡住数分钟，且期间这张表连读都被阻塞。
+	changes := []struct {
+		table  string
+		column string
+		target string
+	}{
+		{"media", "container", "varchar(128)"},
+		{"media", "genres", "text"},
+		{"media", "series_id", "varchar(128)"},
+		{"media", "duplicate_of", "varchar(128)"},
+		{"playback_histories", "media_id", "varchar(128)"},
+		{"favorites", "media_id", "varchar(128)"},
+		{"playlist_items", "media_id", "varchar(128)"},
 	}
-	for _, stmt := range statements {
+	for _, change := range changes {
+		current, found, err := postgresColumnType(db, change.table, change.column)
+		if err != nil {
+			return err
+		}
+		if !found || current == change.target {
+			continue
+		}
+		stmt := "ALTER TABLE " + quoteIdent(change.table) +
+			" ALTER COLUMN " + quoteIdent(change.column) + " TYPE " + change.target
 		if err := db.Exec(stmt).Error; err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// postgresColumnType 返回列在当前 schema 下的规范化类型描述，例如
+// "varchar(128)" / "text"。列不存在时 found 为 false。
+func postgresColumnType(db *gorm.DB, table, column string) (value string, found bool, err error) {
+	var row struct {
+		DataType  string
+		MaxLength *int64
+	}
+	if err := db.Raw(`
+SELECT data_type AS data_type, character_maximum_length AS max_length
+FROM information_schema.columns
+WHERE table_schema = current_schema() AND table_name = ? AND column_name = ?
+`, table, column).Scan(&row).Error; err != nil {
+		return "", false, fmt.Errorf("inspect postgres column %s.%s: %w", table, column, err)
+	}
+	dataType := strings.ToLower(strings.TrimSpace(row.DataType))
+	if dataType == "" {
+		return "", false, nil
+	}
+	// information_schema 用的是 SQL 标准名，映射回 GORM 标签里的写法再比较。
+	switch dataType {
+	case "character varying", "varchar":
+		dataType = "varchar"
+	}
+	if row.MaxLength != nil && *row.MaxLength > 0 {
+		dataType = fmt.Sprintf("%s(%d)", dataType, *row.MaxLength)
+	}
+	return dataType, true, nil
 }
 
 func ensurePerformanceIndexes(db *gorm.DB) error {
