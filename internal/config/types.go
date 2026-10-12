@@ -50,7 +50,8 @@ type AppConfig struct {
 	DataDir string `mapstructure:"data_dir"`
 	WebDir  string `mapstructure:"web_dir"`
 	// HTTPSEnabled 是否仅通过 HTTPS 提供访问。启用时必须同时配置
-	// SSLCert / SSLKey（或 SSLCertPath / SSLKeyPath），保存后服务会热切换到 HTTPS。
+	// SSLCert / SSLKey（或 SSLCertPath / SSLKeyPath），保存后服务会热切换到 HTTPS；
+	// 同一端口上的明文 HTTP 请求会被跳转到 HTTPS，而不是直接拒绝。
 	HTTPSEnabled bool `mapstructure:"https_enabled"`
 	// SSLCert 是 PEM 编码的 SSL 证书内容。
 	SSLCert string `mapstructure:"ssl_cert"`

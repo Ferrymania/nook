@@ -84,12 +84,15 @@ ENV MEBOX_APP_PORT=8080 \
 
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-    CMD busybox wget -q --spider http://127.0.0.1:8080/api/health || exit 1
+# 探测协议不能写死：开启 HTTPS 后 8080 只接受 TLS。脚本按数据目录里的
+# .http_scheme 选择协议并在失败时回退，无需用户改配置。
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD ["/usr/local/bin/mebox-healthcheck"]
 
 # Tiny entrypoint that lets us run as a NAS host UID/GID via PUID/PGID without
 # rewriting /etc/passwd or /etc/group on every container start.
 COPY docker-entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY docker-healthcheck.sh /usr/local/bin/mebox-healthcheck
+RUN chmod +x /entrypoint.sh /usr/local/bin/mebox-healthcheck
 
 CMD ["/entrypoint.sh"]
