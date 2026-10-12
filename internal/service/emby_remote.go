@@ -1587,7 +1587,22 @@ func (r *EmbyRemoteService) proxyVideoStreamOnLine(ctx context.Context, w http.R
 	defer resp.Body.Close()
 	if resp.StatusCode >= 400 {
 		data, _ := io.ReadAll(io.LimitReader(resp.Body, 256))
-		return redactSensitiveError(fmt.Errorf("远程 Emby 视频流失败(%d): %s", resp.StatusCode, strings.TrimSpace(string(data))))
+		detail := strings.TrimSpace(string(data))
+		// 远程 Emby 对「整部剧/目录」这类自身没有媒体源的条目会直接 500，正文是
+		// 一句 .NET 异常（如 Unable to cast object of type 'Series' to type
+		// 'IHasMediaSources'）。原样丢给用户没人看得懂，也没有排查线索——细节进日志，
+		// 给用户一句能照着做的提示。
+		if r.log != nil {
+			r.log.Warn("remote emby video stream rejected",
+				zap.String("remote_id", remoteID),
+				zap.Int("status", resp.StatusCode),
+				zap.String("detail", detail),
+			)
+		}
+		if resp.StatusCode >= 500 {
+			return redactSensitiveError(fmt.Errorf("远程 Emby 无法播放该条目（HTTP %d）：请在详情页选择具体集数后重试", resp.StatusCode))
+		}
+		return redactSensitiveError(fmt.Errorf("远程 Emby 视频流失败(%d): %s", resp.StatusCode, detail))
 	}
 	for _, header := range []string{"Content-Type", "Content-Length", "Content-Range", "Accept-Ranges", "ETag", "Cache-Control"} {
 		if value := resp.Header.Get(header); value != "" {

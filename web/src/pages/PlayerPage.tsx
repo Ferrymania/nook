@@ -20,7 +20,7 @@ import { useAuthStore } from '../stores/auth'
 import type { Media, PlaybackInfo, PlaybackQuality, PlaybackSegment, PlaybackSegmentKind } from '../types'
 import { getSeriesKey, seriesTitleFromPath } from '../utils/groupSeries'
 import { formatEpisodeLabel } from '../utils/episodeNumber'
-import { mediaVersionMatches, mediaVersionsOf } from '../utils/mediaVersion'
+import { autoPlayEpisodeFor, mediaVersionMatches, mediaVersionsOf } from '../utils/mediaVersion'
 import { DEFAULT_PLAYBACK_RATE, normalizePlaybackRate } from '../utils/playbackRate'
 import { resolveActiveSkip, skippedNoticeText, toSkipSegments, type SkipPrompt } from '../utils/skipSegments'
 import { isRemoteEmbyID } from '../utils/remoteEmby'
@@ -1680,6 +1680,17 @@ export function PlayerPage() {
     if (!media || playlistEpisodes.length === 0) return -1
     return playlistEpisodes.findIndex((e) => mediaVersionMatches(e, media.id))
   }, [media, playlistEpisodes])
+
+  // 用剧集 ID 打开播放器时（首页轮播、剧集库卡片、剧集详情页的播放按钮），先落到第一集：
+  // 这类条目没有可播文件，直接请求 /api/stream/<剧集ID> 会被远程 Emby 以 500 打回。
+  useEffect(() => {
+    const target = autoPlayEpisodeFor(media, id, playlistEpisodes)
+    if (!target) return
+    navigate(
+      { pathname: `/play/${target.id}`, search: location.search },
+      { replace: true, state: location.state },
+    )
+  }, [media, id, playlistEpisodes, navigate, location.search, location.state])
 
   const prevEpisode = useMemo(() => {
     if (currentEpisodeIndex > 0) {
