@@ -37,7 +37,8 @@ import {
   type SubtitleStylePreset,
 } from '../utils/subtitleDisplay'
 import { pickPlayerMode, needsTranscodeForBrowser, isDirectStreamMedia, isStrmMedia, type PlayerMode } from './playerPageModel'
-import { classifyDirectPlayError, DIRECT_SEEK_GRACE_MS } from './directPlayError'
+import { classifyDirectPlayError, directPlayFailureCopy, directStallTimeoutMs, DIRECT_SEEK_GRACE_MS } from './directPlayError'
+import type { DirectPlayFailureReason } from './directPlayError'
 import { canSeekDirectNow, DIRECT_SEEK_WAIT_MS } from './directPlaySeek'
 import { apiErrorMessage } from './StrmManagePage'
 import { PlayerTopBar } from './PlayerTopBar'
@@ -200,6 +201,13 @@ export function PlayerPage() {
   // 必须在切换前先记下来，等直连 loadedmetadata 后再跳。
   const pendingDirectStartRef = useRef(0)
   const hlsSourceRef = useRef<'cloud' | 'local'>('local')
+  // 起播看门狗要等到 20 秒后才判定，判定时用 ref 读最新的「直连解码」开关，避免
+  // 把回调塞进播放 effect 的依赖里反复重建。
+  const directOnlyRef = useRef(false)
+  // 当前挂在画面上的「播放失败」横幅文案。这类提示描述的是「刚才那一下没起来」，
+  // 画面真正播起来之后必须撤掉：上游冷启动慢 10 秒就会先误报一次，而播放随后
+  // 是正常的，留在画面上就成了「编码不兼容」的假结论。
+  const transientPlayErrorRef = useRef('')
 
   // 弹幕控制：状态来自 /api/danmaku/config 初始值，用户在面板里实时调整。
   const [danmakuOpen, setDanmakuOpen] = useState(false)
@@ -519,6 +527,7 @@ export function PlayerPage() {
     directRetryRef.current = false
     retryingDirectRef.current = false
     directSeekGraceUntilRef.current = 0
+    transientPlayErrorRef.current = ''
     pendingDirectSeekRef.current = null
     directSeekWaitCleanupRef.current?.()
     directSeekWaitCleanupRef.current = null
@@ -551,6 +560,24 @@ export function PlayerPage() {
       clearTimeout(fallbackTimerRef.current)
       fallbackTimerRef.current = null
     }
+  }, [])
+
+  /**
+   * 挂一条「播放起不来」的横幅。走这个入口的提示都会记下来，一旦画面真的开始
+   * 播放（playing）就被撤掉；切媒体、切线路时也会清空。信息类提示（例如「可能
+   * 只有画面没有声音」）不走这里，它们播起来之后依然成立。
+   */
+  const showPlayFailure = useCallback((message: string) => {
+    transientPlayErrorRef.current = message
+    setPlayerError(message)
+  }, [])
+
+  const clearPlayFailure = useCallback(() => {
+    const stale = transientPlayErrorRef.current
+    if (!stale) return
+    transientPlayErrorRef.current = ''
+    // 只撤掉自己挂的那条：期间可能已经换了别的提示。
+    setPlayerError((prev) => (prev === stale ? '' : prev))
   }, [])
 
   const clearDirectSeekWait = useCallback(() => {
@@ -742,6 +769,7 @@ export function PlayerPage() {
         if (cancelled) return
         setMedia(m)
         setPlayerError('')
+        transientPlayErrorRef.current = ''
         setLoadError('')
         const isDirect = isDirectStreamMedia(m)
         const auto = pickPlayerMode(m)
@@ -1145,24 +1173,30 @@ export function PlayerPage() {
   const mediaRef = useRef(media)
   useEffect(() => {
     mediaRef.current = media
-  }, [media])
+    directOnlyRef.current = directOnly
+  }, [directOnly, media])
 
   /**
    * 直连失败后的统一回退：按当前源与设置决定切 115 云转码 / 本地转码 / 明确报错。
    * error 分支与起播看门狗（armDirectStallWatchdog）共用同一套判定。
+   *
+   * reason：'stall' = 看门狗等到期还没数据；'error' = 媒体元素报了 error（重试过
+   * 一次仍然失败）。两者文案必须分开——超时的真实原因多半是上游慢，不是编码不兼容。
    */
-  const fallbackDirectPlay = useCallback(() => {
+  const fallbackDirectPlay = useCallback((reason: DirectPlayFailureReason = 'error') => {
     if (modeRef.current !== 'direct') return
     // 宽限期内又触发的迟到 fallback 定时器：直接丢掉。
     if (Date.now() < directSeekGraceUntilRef.current) return
     const current = ref.current
     if (current && current.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) return
     if (isRemoteEmbyID(mediaRef.current?.id) || isDirectStreamMedia(mediaRef.current)) {
-      setPlayerError('直接播放失败。该媒体为远程 Emby 挂载直连播放（不进行转码）；当前浏览器可能不支持该视频编码或音频格式，建议使用外部播放器（如 PotPlayer / VLC / IINA）播放。')
-      toast.error('直接播放失败，建议使用外部播放器')
+      const copy = directPlayFailureCopy('remote-emby', reason)
+      showPlayFailure(copy.banner)
+      toast.error(copy.toast)
     } else if (directOnly) {
-      setPlayerError('直接播放失败。当前为「客户端直连解码」模式，宿主机不转码；请使用支持该编码/封装的播放器（如 Infuse / VLC / Emby 客户端）播放，或关闭直连解码模式。')
-      toast.error('直接播放失败（客户端直连解码模式）')
+      const copy = directPlayFailureCopy('direct-only', reason)
+      showPlayFailure(copy.banner)
+      toast.error(copy.toast)
     } else if (playbackInfo?.provider === 'cloud115') {
       const preferred =
         findPlaybackQualityById(playbackInfo, selectedQuality) ??
@@ -1180,7 +1214,7 @@ export function PlayerPage() {
         switchToLocalHLS(current?.currentTime || 0)
       }
     } else if (hlsUnavailable) {
-      setPlayerError('直接播放失败，且 HLS 转码不可用。请检查文件是否存在，或配置本机 ffmpeg 后使用 HLS 转码播放。')
+      showPlayFailure('直接播放失败，且 HLS 转码不可用。请检查文件是否存在，或配置本机 ffmpeg 后使用 HLS 转码播放。')
       toast.error('直接播放失败，HLS 转码不可用')
     } else {
       toast.error('直接播放失败，切换到 HLS 转码')
@@ -1192,23 +1226,25 @@ export function PlayerPage() {
     playbackInfo,
     selectedQuality,
     setPlaybackMode,
+    showPlayFailure,
     startCloudTranscode,
     switchToLocalHLS,
   ])
 
   /**
    * 安排一次直连回退判定。STRM/115 直链冷启动比本地文件慢，给足缓冲时间再判失败。
+   * 只由 handleVideoError（媒体元素真的报了 error）触发，所以原因按 'error' 记。
    */
   const scheduleDirectFallback = useCallback(() => {
     clearFallbackTimer()
     const fallbackDelayMs = isStrmMedia(mediaRef.current) ? 4000 : 1500
-    fallbackTimerRef.current = setTimeout(fallbackDirectPlay, fallbackDelayMs)
+    fallbackTimerRef.current = setTimeout(() => fallbackDirectPlay('error'), fallbackDelayMs)
   }, [clearFallbackTimer, fallbackDirectPlay])
 
   // 看门狗定时器可能比一次渲染活得更久：始终调用最新一版回退逻辑，避免用
   // 「起播那一刻」捕获的 playbackInfo（那时可能还是 null）去判定，把本该走
   // 115 云转码的条目误判成本地转码。
-  const fallbackDirectPlayRef = useRef<() => void>(() => {})
+  const fallbackDirectPlayRef = useRef<(reason?: DirectPlayFailureReason) => void>(() => {})
   useEffect(() => {
     fallbackDirectPlayRef.current = fallbackDirectPlay
   }, [fallbackDirectPlay])
@@ -1222,17 +1258,27 @@ export function PlayerPage() {
    * 只能退出重进或手动切播放方式）。这里给每次直连起播挂一个兜底定时器：
    * 到点仍是 readyState=0（连元数据都没解析到）就按失败处理；只要已经拿到
    * metadata 就说明链路是通的，只是慢，交给 playing 事件收尾。
+   *
+   * 期限本身要按「失败之后还有没有补救动作」来定：能切 HLS 的源早点换线路对
+   * 用户有利；远程 Emby / 直连解码没有可退的线路，等不到数据时唯一的产出是
+   * 一条提示，所以必须容忍跨网上游的冷启动（见 directStallTimeoutMs）。
    */
   const armDirectStallWatchdog = useCallback(() => {
     clearFallbackTimer()
-    const timeoutMs = isStrmMedia(mediaRef.current) ? 12000 : 6000
+    const currentMedia = mediaRef.current
+    const canFallback = !isDirectStreamMedia(currentMedia) && !directOnlyRef.current
+    const timeoutMs = directStallTimeoutMs({
+      isStrm: isStrmMedia(currentMedia),
+      canFallback,
+    })
     fallbackTimerRef.current = setTimeout(() => {
       fallbackTimerRef.current = null
       if (modeRef.current !== 'direct') return
       if (Date.now() < directSeekGraceUntilRef.current) return
       const current = ref.current
       if (current && current.readyState >= HTMLMediaElement.HAVE_METADATA) return
-      fallbackDirectPlayRef.current()
+      // 这里只可能是「一直没数据」，按超时文案报，不要说成编码不兼容。
+      fallbackDirectPlayRef.current('stall')
     }, timeoutMs)
   }, [clearFallbackTimer])
 
@@ -1313,10 +1359,12 @@ export function PlayerPage() {
               }
               setHlsUnavailable(true)
               if (playbackProvider === 'cloud115') {
-                setPlayerError('115 云端和本地转码均不可用，请检查账号授权或稍后重试。')
+                showPlayFailure('115 云端和本地转码均不可用，请检查账号授权或稍后重试。')
                 toast.error('115 云端和本地转码均不可用')
                 return
               }
+              // 这条同时是「为什么可能没声音」的说明，播起来之后依然成立，
+              // 所以不走 showPlayFailure（不随 playing 撤掉）。
               setPlayerError('HLS 转码不可用，正在尝试直接播放原始文件。若出现有画面无声音，通常是 MKV/AC3/EAC3 音轨需要配置本机 ffmpeg 转码为 AAC。')
               toast.error('HLS 转码失败，尝试切换到直接播放')
               setPlaybackMode('direct')
@@ -1337,14 +1385,14 @@ export function PlayerPage() {
           void video.play().catch(() => undefined)
         } else {
           setHlsUnavailable(true)
-          setPlayerError('当前浏览器不支持 HLS，正在尝试直接播放。')
+          showPlayFailure('当前浏览器不支持 HLS，正在尝试直接播放。')
           toast.error('当前浏览器不支持 HLS，降级到直接播放')
           setPlaybackMode('direct')
         }
       }).catch(() => {
         if (cancelled) return
         setHlsUnavailable(true)
-        setPlayerError('HLS 播放组件加载失败，正在尝试直接播放。')
+        showPlayFailure('HLS 播放组件加载失败，正在尝试直接播放。')
         setPlaybackMode('direct')
       })
     } else {
@@ -1393,7 +1441,11 @@ export function PlayerPage() {
         setPlayerError('当前正在直连播放原始文件；此封装或音轨浏览器兼容性有限，可能只有画面没有声音。请配置本机 ffmpeg 后切回 HLS 转码播放。')
       }
     }
-    const onPlaying = () => clearFallbackTimer()
+    const onPlaying = () => {
+      clearFallbackTimer()
+      // 画面真的动了：之前挂的「起不来」提示一律作废。
+      clearPlayFailure()
+    }
     video.addEventListener('playing', onPlaying)
     return () => {
       cancelled = true
@@ -1404,6 +1456,7 @@ export function PlayerPage() {
     activeBurnedSubtitleStream,
     armDirectStallWatchdog,
     clearFallbackTimer,
+    clearPlayFailure,
     cloudReloadNonce,
     cloudWaiting,
     hlsSource,
@@ -1416,6 +1469,7 @@ export function PlayerPage() {
     seekStrmDirectTo,
     selectedQuality,
     setPlaybackMode,
+    showPlayFailure,
     switchToLocalHLS,
     teardownHls,
     vr360DirectProxy,
@@ -2253,7 +2307,7 @@ export function PlayerPage() {
   const handleVideoError = useCallback(() => {
     const video = ref.current
     if (mode !== 'direct') {
-      setPlayerError('视频播放失败，请检查文件是否存在，或确认 ffmpeg 已正确配置。')
+      showPlayFailure('视频播放失败，请检查文件是否存在，或确认 ffmpeg 已正确配置。')
       toast.error('视频播放失败，请检查文件是否存在')
       return
     }
@@ -2300,7 +2354,7 @@ export function PlayerPage() {
     }
 
     scheduleDirectFallback()
-  }, [mediaId, mode, scheduleDirectFallback, seekStrmDirectTo])
+  }, [mediaId, mode, scheduleDirectFallback, seekStrmDirectTo, showPlayFailure])
 
   const changeSubtitlePosition = useCallback((nextPosition: SubtitlePosition) => {
     setSubtitlePosition(nextPosition)
