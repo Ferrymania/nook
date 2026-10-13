@@ -903,6 +903,13 @@ export function PlayerPage() {
   // 加载统一播放能力：115 云端清晰度 + 本地 HLS 清晰度。
   useEffect(() => {
     if (!mediaId) return
+    // 远程 Emby 条目只存在于远程库里，本地 media 表没有它的伪 ID，问这个接口只会
+    // 拿到 404（控制台里就是一条红字）；而它的播放方式恒为「远程直连、不转码」，
+    // 也没有任何可切换的档位。播放地址由 /api/stream/:id 负责解析。
+    if (isRemoteEmbyID(mediaId)) {
+      setPlaybackInfo(null)
+      return
+    }
     let cancelled = false
     mediaAPI
       .playbackInfo(mediaId)
