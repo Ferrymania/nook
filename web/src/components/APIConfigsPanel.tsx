@@ -28,7 +28,7 @@ export function APIConfigsPanel() {
         <div>
           <p className="font-display text-lg font-semibold text-ink-600">外部 API 配置</p>
           <p className="text-xs text-ink-50">
-            TMDb / Bangumi / TheTVDB / Fanart / OpenAI / Douban / Adult 密钥与源管理
+            TMDb / Bangumi / TheTVDB / Fanart / OpenAI / Douban 密钥与源管理
             · AES-GCM 加密存储
           </p>
         </div>
@@ -73,17 +73,14 @@ export function APIConfigsPanel() {
                       )}
                     </td>
                     <td className="px-4 py-3 font-mono text-xs">
-                      {apiConfigConfigured(item) ? (
+                      {item.has_key ? (
                         <span className="text-brand-500">{item.masked_key}</span>
                       ) : (
                         <span className="text-gray-500">未配置</span>
                       )}
-                      {item.provider === 'adult' && apiConfigSourceCount(item) > 0 ? (
-                        <span className="text-brand-500">{apiConfigSourceCount(item)} 个源</span>
-                      ) : null}
                     </td>
                     <td className="px-4 py-3">
-                      {apiConfigConfigured(item) ? (
+                      {item.has_key ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 px-2 py-0.5 text-xs text-emerald-400">
                           已配置
                         </span>
@@ -151,17 +148,14 @@ function EditingRow({
 }) {
   const [apiKey, setAPIKey] = useState('')
   const [baseURL, setBaseURL] = useState(item.base_url ?? '')
-  const [extra, setExtra] = useState(item.extra ?? '')
   const [enabled, setEnabled] = useState(item.enabled)
   const [saving, setSaving] = useState(false)
-  const isAdult = item.provider === 'adult'
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setSaving(true)
     try {
       const patch: Record<string, unknown> = { base_url: baseURL, enabled }
-      if (isAdult) patch.extra = extra
       if (apiKey.trim()) patch.api_key = apiKey.trim()
       await apiConfigsAPI.update(item.provider, patch)
       toast.success(`${item.provider} 已保存`)
@@ -182,43 +176,24 @@ function EditingRow({
         <form onSubmit={submit} className="flex flex-wrap items-end gap-3">
           <span className="text-sm font-medium text-ink-600">{item.provider}</span>
           <label className="flex-1 text-xs text-ink-50">
-            {isAdult ? 'Cookie 凭据 (可选)' : 'API Key'}
+            API Key
             <input
               className="input-base mt-1"
               type="password"
-              placeholder={
-                isAdult
-                  ? item.has_key
-                    ? '•••••••••••• (已配置，留空保留)'
-                    : '可选，默认已内置年龄验证 Cookie'
-                  : item.has_key
-                    ? '•••••••••••• (留空保留原值)'
-                    : '输入密钥'
-              }
+              placeholder={item.has_key ? '•••••••••••• (留空保留原值)' : '输入密钥'}
               value={apiKey}
               onChange={(e) => setAPIKey(e.target.value)}
             />
           </label>
           <label className="flex-1 text-xs text-ink-50">
-            {isAdult ? '主源 URL' : 'Base URL'}
+            Base URL
             <input
               className="input-base mt-1"
-              placeholder={isAdult ? 'https://javdb.com' : 'https://api.themoviedb.org/3'}
+              placeholder="https://api.themoviedb.org/3"
               value={baseURL}
               onChange={(e) => setBaseURL(e.target.value)}
             />
           </label>
-          {isAdult && (
-            <label className="min-w-64 flex-1 text-xs text-ink-50">
-              备用源 URL
-              <textarea
-                className="input-base mt-1 min-h-20 resize-y"
-                placeholder={'https://javbus.sbs\nhttps://www.javbus.com'}
-                value={extra}
-                onChange={(e) => setExtra(e.target.value)}
-              />
-            </label>
-          )}
           <label className="flex items-center gap-2 text-xs text-ink-50">
             <input
               type="checkbox"
@@ -241,20 +216,4 @@ function EditingRow({
       </td>
     </tr>
   )
-}
-
-function apiConfigConfigured(item: APIConfig): boolean {
-  if (item.provider === 'adult') {
-    return Boolean(item.has_key || item.base_url?.trim() || item.extra?.trim())
-  }
-  return item.has_key
-}
-
-function apiConfigSourceCount(item: APIConfig): number {
-  if (item.provider !== 'adult') return 0
-  return [item.base_url, item.extra]
-    .join('\n')
-    .split(/[\s,;]+/)
-    .map((value) => value.trim())
-    .filter(Boolean).length
 }

@@ -30,7 +30,7 @@ export function APIConfigsPage() {
         <div>
           <h1 className="font-display text-3xl font-bold text-ink-600">外部 API 配置</h1>
           <p className="text-sm text-ink-50">
-            管理 TMDb / Bangumi / TheTVDB / Fanart / OpenAI / Douban / Adult 的密钥与源。
+            管理 TMDb / Bangumi / TheTVDB / Fanart / OpenAI / Douban 的密钥与源。
             后端使用 AES-GCM 加密存储,数据库泄漏时密钥仍然安全。
           </p>
         </div>
@@ -50,18 +50,15 @@ export function APIConfigsPage() {
 function ProviderCard({ item, onUpdated }: { item: APIConfig; onUpdated: () => void }) {
   const [apiKey, setAPIKey] = useState('')
   const [baseURL, setBaseURL] = useState(item.base_url ?? '')
-  const [extra, setExtra] = useState(item.extra ?? '')
   const [enabled, setEnabled] = useState(item.enabled)
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
-  const isAdult = item.provider === 'adult'
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setSaving(true)
     try {
       const patch: Record<string, unknown> = { base_url: baseURL, enabled }
-      if (isAdult) patch.extra = extra
       if (apiKey.trim()) patch.api_key = apiKey.trim()
       await apiConfigsAPI.update(item.provider, patch)
       toast.success(`${item.provider} 已保存`)
@@ -111,54 +108,32 @@ function ProviderCard({ item, onUpdated }: { item: APIConfig; onUpdated: () => v
           <p className="text-xs text-ink-50">{item.description}</p>
         )}
         <p className="mt-2 text-xs text-sand-500">
-          状态: {apiConfigConfigured(item) ? <span className="text-emerald-400">已配置</span> : <span className="text-sand-500">未配置</span>}
+          状态: {item.has_key ? <span className="text-emerald-400">已配置</span> : <span className="text-sand-500">未配置</span>}
           {item.has_key && (
             <span className="ml-2 font-mono text-brand-500">{item.masked_key}</span>
-          )}
-          {isAdult && apiConfigSourceCount(item) > 0 && (
-            <span className="ml-2 text-brand-500">{apiConfigSourceCount(item)} 个源</span>
           )}
         </p>
       </div>
       <div className="space-y-2">
         <label className="block text-xs text-ink-50">
-          {isAdult ? 'Cookie 凭据 (可选，留空保留原值)' : 'API Key (留空保留原值)'}
+          API Key (留空保留原值)
           <input
             className="input-base mt-1"
             type="password"
-            placeholder={
-              isAdult
-                ? item.has_key
-                  ? '•••••••••••• (已配置)'
-                  : '可选，默认内置年龄验证，可填自定义 Cookie'
-                : item.has_key
-                  ? '••••••••••••'
-                  : '尚未配置'
-            }
+            placeholder={item.has_key ? '•••••••••••• (留空保留原值)' : '输入密钥'}
             value={apiKey}
             onChange={(e) => setAPIKey(e.target.value)}
           />
         </label>
         <label className="block text-xs text-ink-50">
-          {isAdult ? '主源 URL' : 'Base URL (可选)'}
+          Base URL (可选)
           <input
             className="input-base mt-1"
-            placeholder={isAdult ? 'https://javdb.com' : 'https://api.themoviedb.org/3'}
+            placeholder="https://api.themoviedb.org/3"
             value={baseURL}
             onChange={(e) => setBaseURL(e.target.value)}
           />
         </label>
-        {isAdult && (
-          <label className="block text-xs text-ink-50">
-            备用源 URL
-            <textarea
-              className="input-base mt-1 min-h-24 resize-y"
-              placeholder={'https://javbus.sbs\nhttps://www.javbus.com'}
-              value={extra}
-              onChange={(e) => setExtra(e.target.value)}
-            />
-          </label>
-        )}
         <label className="inline-flex items-center gap-2 text-xs text-ink-50">
           <input
             type="checkbox"
@@ -192,20 +167,4 @@ function ProviderCard({ item, onUpdated }: { item: APIConfig; onUpdated: () => v
       </div>
     </form>
   )
-}
-
-function apiConfigConfigured(item: APIConfig): boolean {
-  if (item.provider === 'adult') {
-    return Boolean(item.has_key || item.base_url?.trim() || item.extra?.trim())
-  }
-  return item.has_key
-}
-
-function apiConfigSourceCount(item: APIConfig): number {
-  if (item.provider !== 'adult') return 0
-  return [item.base_url, item.extra]
-    .join('\n')
-    .split(/[\s,;]+/)
-    .map((value) => value.trim())
-    .filter(Boolean).length
 }

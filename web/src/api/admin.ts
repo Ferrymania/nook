@@ -113,24 +113,6 @@ export const adminAPI = {
 
   systemUpdateApply: () => api.post<SystemUpdateStatus>('/admin/system/update/apply').then((r) => r.data),
 
-	  testAdultScraper: (payload: {
-	    engine?: string
-	    server_url?: string
-	    token?: string
-	    javdb_url?: string
-	    javbus_url?: string
-	    cookie?: string
-	  }) =>
-	    api
-	      .post<{
-	        success: boolean
-	        latency_ms?: number
-	        providers?: string[]
-	        message?: string
-	        error?: string
-	      }>('/admin/adult/test-scraper', payload)
-	      .then((r) => r.data),
-
 	  getDatabaseStatus: () =>
 	    api.get<DatabaseStatus>('/admin/database/status').then((r) => r.data),
 

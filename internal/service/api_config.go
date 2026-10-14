@@ -11,6 +11,7 @@ package service
 import (
 	"context"
 	"errors"
+	"sort"
 	"strings"
 	"time"
 
@@ -41,8 +42,6 @@ func (s *APIConfigService) SeedDefaults(ctx context.Context) error {
 		{Provider: "thetvdb", BaseURL: "https://api4.thetvdb.com/v4", Description: "TheTVDB (tv)", Enabled: true},
 		{Provider: "fanart", BaseURL: "https://webservice.fanart.tv/v3", Description: "Fanart.tv (artwork)", Enabled: true},
 		{Provider: "douban", Description: "Douban cookie (zh metadata)", Enabled: true},
-		{Provider: "adult", BaseURL: "https://javdb.com", Extra: "https://javbus.sbs,https://www.javbus.com,https://www.cdnbus.cyou,https://www.javsee.cyou,https://www.busjav.cyou", Description: "Adult / 番号元数据（JavDB/JavBus）", Enabled: true},
-		{Provider: "metatube", BaseURL: "http://127.0.0.1:7700", Description: "MetaTube Server 番号刮削后端", Enabled: true},
 		{Provider: "openai", BaseURL: "https://api.openai.com/v1", Description: "OpenAI-compatible (smart search)", Enabled: true},
 	}
 	for i := range defaults {
@@ -78,16 +77,21 @@ type PublicView struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-// List returns every API config row (with masked keys).
+// List returns visible API configurations, with configured keys first.
 func (s *APIConfigService) List(ctx context.Context) ([]PublicView, error) {
 	var rows []model.APIConfig
-	if err := s.repo.DB.WithContext(ctx).Order("provider asc").Find(&rows).Error; err != nil {
+	if err := s.repo.DB.WithContext(ctx).
+		Where("provider NOT IN ?", []string{"adult", "metatube"}).
+		Order("provider asc").Find(&rows).Error; err != nil {
 		return nil, err
 	}
 	out := make([]PublicView, 0, len(rows))
 	for _, r := range rows {
 		out = append(out, s.toPublic(&r))
 	}
+	sort.SliceStable(out, func(i, j int) bool {
+		return out[i].HasKey && !out[j].HasKey
+	})
 	return out, nil
 }
 

@@ -11,7 +11,6 @@ export const manualSearchProviders: ManualSearchProvider[] = [
   { value: 'douban', label: '豆瓣' },
   { value: 'bangumi', label: 'Bangumi' },
   { value: 'thetvdb', label: 'TheTVDB' },
-  { value: 'adult', label: 'Adult / 番号' },
 ]
 
 export function candidateKey(item: ManualScrapeCandidate): string {
@@ -59,7 +58,6 @@ export function isEpisodeArtworkTarget(media: Media, mediaType?: string, targetC
 export function candidateIDText(item: ManualScrapeCandidate): string {
   const parts = [
     item.tmdb_id ? `TMDb ${item.tmdb_id}` : '',
-    item.original_name && item.source === 'adult' ? `番号 ${item.original_name}` : '',
     item.douban_id ? `豆瓣 ${item.douban_id}` : '',
     item.bangumi_id ? `Bangumi ${item.bangumi_id}` : '',
     item.thetvdb_id ? `TheTVDB ${item.thetvdb_id}` : '',
@@ -81,9 +79,6 @@ function providerFromQueryPrefix(query: string): string {
     case 'thetvdb':
     case 'tvdb':
       return 'thetvdb'
-    case 'adult':
-    case 'jav':
-      return 'adult'
     default:
       return ''
   }
