@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // TestHistoryProgressUpsertQualifiesConflictWhereColumns 守住 PostgreSQL 下进度上报

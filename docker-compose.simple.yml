@@ -1,4 +1,4 @@
-# MeBox 单镜像部署模板（SQLite）
+# Nook 单镜像部署模板（SQLite）
 #
 # 适合：新手、单人使用、低配 NAS / 小主机。
 # 特点：只有一个镜像，不需要 PostgreSQL / Redis / .env。
@@ -12,10 +12,10 @@
 # 首次登录后请立刻修改密码。
 
 services:
-  mebox:
-    image: ${MEBOX_IMAGE:-ghcr.io/ferrymania/nook:latest}
+  nook:
+    image: ${NOOK_IMAGE:-ghcr.io/ferrymania/nook:latest}
 
-    container_name: mebox
+    container_name: nook
     restart: unless-stopped
     init: true
 
@@ -46,28 +46,28 @@ services:
       PUID: "0"
       PGID: "0"
 
-      MEBOX_APP_HOST: 0.0.0.0
-      MEBOX_APP_PORT: 8080
-      MEBOX_APP_WEB_DIR: /app/web/dist
-      MEBOX_APP_DATA_DIR: /data
-      MEBOX_UPDATE_IMAGE: ${MEBOX_IMAGE:-ghcr.io/ferrymania/nook:latest}
+      NOOK_APP_HOST: 0.0.0.0
+      NOOK_APP_PORT: 8080
+      NOOK_APP_WEB_DIR: /app/web/dist
+      NOOK_APP_DATA_DIR: /data
+      NOOK_UPDATE_IMAGE: ${NOOK_IMAGE:-ghcr.io/ferrymania/nook:latest}
 
-      # 单镜像档固定使用 SQLite。主数据库文件：./data/mebox.db。
-      MEBOX_DATABASE_TYPE: sqlite
-      MEBOX_DATABASE_DB_PATH: /data/mebox.db
-      MEBOX_CACHE_CACHE_DIR: /cache
+      # 单镜像档固定使用 SQLite。主数据库文件：./data/nook.db。
+      NOOK_DATABASE_TYPE: sqlite
+      NOOK_DATABASE_DB_PATH: /data/nook.db
+      NOOK_CACHE_CACHE_DIR: /cache
 
       # 路径映射保持容器内统一，网页和下载器里优先使用 /media、/downloads。
-      MEBOX_MEDIA_DIR: /media
-      MEBOX_MEDIA_CONTAINER_DIR: /media
+      NOOK_MEDIA_DIR: /media
+      NOOK_MEDIA_CONTAINER_DIR: /media
 
       # 完整应用日志默认写入 ./data/logs/app.log；排查复杂问题时可临时改成 debug。
-      MEBOX_LOGGING_LEVEL: info
-      MEBOX_LOGGING_FORMAT: console
-      MEBOX_LOGGING_OUTPUT_PATH: /data/logs
-      MEBOX_LOGGING_MAX_SIZE_MB: "20"
-      MEBOX_LOGGING_MAX_BACKUPS: "5"
-      MEBOX_LOGGING_MAX_AGE_DAYS: "30"
+      NOOK_LOGGING_LEVEL: info
+      NOOK_LOGGING_FORMAT: console
+      NOOK_LOGGING_OUTPUT_PATH: /data/logs
+      NOOK_LOGGING_MAX_SIZE_MB: "20"
+      NOOK_LOGGING_MAX_BACKUPS: "5"
+      NOOK_LOGGING_MAX_AGE_DAYS: "30"
 
     extra_hosts:
       # 容器访问宿主机服务（如下载器等）用: http://host.docker.internal:8085
@@ -76,7 +76,7 @@ services:
     healthcheck:
       # 不能写死 http://：开启 HTTPS 后 8080 只接受 TLS，固定明文探测会
       # 每轮刷一条 TLS handshake error 并让容器一直 unhealthy。
-      test: ["CMD", "/usr/local/bin/mebox-healthcheck"]
+      test: ["CMD", "/usr/local/bin/nook-healthcheck"]
       interval: 30s
       timeout: 10s
       retries: 5

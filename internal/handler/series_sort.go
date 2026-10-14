@@ -4,7 +4,7 @@ import (
 	"slices"
 	"time"
 
-	"github.com/truewhile/MeBox/internal/service"
+	"github.com/Ferrymania/nook/internal/service"
 )
 
 // sortRemoteSeriesCards keeps the DateLastContentAdded order returned by the

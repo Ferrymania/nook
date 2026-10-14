@@ -8,7 +8,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // SweepInactiveUsers is kept for compatibility with the existing scheduler; it

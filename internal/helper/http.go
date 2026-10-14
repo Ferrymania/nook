@@ -129,7 +129,7 @@ func NewSiteHTTPClient(timeoutSeconds int, useProxy bool) *http.Client {
 // 很多书源接口是 DRF（Django REST framework）一类会做内容协商的后端：当 Accept
 // 首选 text/html 时，它按浏览器语义返回「可浏览的 HTML 页面」（HTTP 200），
 // 而不是 JSON。引擎再把这份 HTML 交给 JSONPath 解析，结果永远是 0 条——表现为
-// 「同一个源在手机 App 里能搜到，在 MeBox 里搜不到」（拷贝系列源就是这个坑）。
+// 「同一个源在手机 App 里能搜到，在 Nook 里搜不到」（拷贝系列源就是这个坑）。
 // 手机端阅读 App 走 OkHttp，不显式设置 Accept，等价于 `*/*`；这里对齐该行为。
 // 需要页面型 Accept 的书源可以在自身 header 里显式声明覆盖。
 func HTTPHeaderPresets() map[string]string {

@@ -21,11 +21,11 @@ interface Props {
 }
 
 /** 请求 iframe 回传 DOM 的消息标识（与 browser_panel.go 注入的脚本一致）。 */
-const DOM_REQUEST = '__mebox_dom__'
+const DOM_REQUEST = '__nook_dom__'
 
 /** iframe 内页面的 fetch/XHR 代理消息（同浏览器 bridge 脚本）。 */
 interface ProxyRequest {
-  __mebox_proxy__?: boolean
+  __nook_proxy__?: boolean
   reqId?: string
   url?: string
   method?: string
@@ -67,10 +67,10 @@ export default function BrowserPanel({ page, onClose }: Props) {
   // 接收 iframe 的消息：① 回传 DOM；② 代发页面自己的接口请求
   useEffect(() => {
     const onMessage = (ev: MessageEvent) => {
-      const data = ev.data as ProxyRequest & { __mebox_dom__?: boolean; html?: string } | null
+      const data = ev.data as ProxyRequest & { __nook_dom__?: boolean; html?: string } | null
       if (!data) return
 
-      if (data.__mebox_dom__ === true) {
+      if (data.__nook_dom__ === true) {
         if (!awaitingRef.current) return
         awaitingRef.current = false
         setAwaiting(false)
@@ -79,10 +79,10 @@ export default function BrowserPanel({ page, onClose }: Props) {
         return
       }
 
-      if (data.__mebox_proxy__ === true && data.reqId) {
+      if (data.__nook_proxy__ === true && data.reqId) {
         const win = iframeRef.current?.contentWindow
         const reply = (payload: Record<string, unknown>) => {
-          win?.postMessage({ __mebox_proxy_res__: true, reqId: data.reqId, ...payload }, '*')
+          win?.postMessage({ __nook_proxy_res__: true, reqId: data.reqId, ...payload }, '*')
         }
         void readerAPI
           .browserXHR({

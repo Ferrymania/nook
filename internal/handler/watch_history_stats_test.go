@@ -13,10 +13,10 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"github.com/truewhile/MeBox/internal/middleware"
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/repository"
-	"github.com/truewhile/MeBox/internal/service"
+	"github.com/Ferrymania/nook/internal/middleware"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
+	"github.com/Ferrymania/nook/internal/service"
 )
 
 func newHistoryStatsEnv(t *testing.T) (*gin.Engine, *service.Container, string) {

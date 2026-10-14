@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/config"
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/service/cloud115"
+	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/service/cloud115"
 )
 
 func TestCloud115QualityOptionsDefault1080AndTranscode(t *testing.T) {

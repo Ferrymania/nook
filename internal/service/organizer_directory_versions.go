@@ -11,7 +11,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // existingVersionPaths returns existing destination files that represent the

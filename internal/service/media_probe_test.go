@@ -12,8 +12,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/repository"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
 )
 
 // stubProber 是 mediaProber 的测试桩：可以拦住探测（gate）用来验证并发去重，

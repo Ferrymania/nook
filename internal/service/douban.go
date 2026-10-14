@@ -27,7 +27,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/config"
+	"github.com/Ferrymania/nook/internal/config"
 )
 
 // DoubanProvider talks to the unofficial Douban movie API.

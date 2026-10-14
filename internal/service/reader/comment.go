@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/truewhile/MeBox/internal/service/reader/rule"
+	"github.com/Ferrymania/nook/internal/service/reader/rule"
 )
 
 // 本文件：正文里的「段评」锚点解析（对齐 legado 的段评机制）。
@@ -26,7 +26,7 @@ import (
 //     legado 识别的是地址后面的这份配置（ReadBookActivity.oldClickImg），点击时把
 //     配置里的 click/js 当 JS 执行（showCmt 内部再调 java.showBrowser 打开评论页）。
 //
-// MeBox 没有 Android 的 Canvas 排版，正文按行渲染，因此这里把两种形态都归一成
+// Nook 没有 Android 的 Canvas 排版，正文按行渲染，因此这里把两种形态都归一成
 // 「某一行的段评气泡」：只摘掉标记本身，正文文字一个字都不动，并把评论地址 / 评论数
 // 结构化下发给前端；点击气泡时前端复用宿主浏览器（带书源 Cookie）打开评论地址。
 //
@@ -425,7 +425,7 @@ func isBlankMarkup(s string) bool {
 // OpenContentComment 在宿主浏览器里打开一条段评。
 //
 // 书源点击段评气泡时执行的是它自己的 showCmt(...)：先 java.ajax 取评论页，
-// 再 java.showBrowser 展示。MeBox 不跑书源 JS，而是把 showCmt 的第一个参数
+// 再 java.showBrowser 展示。Nook 不跑书源 JS，而是把 showCmt 的第一个参数
 // （评论地址）解析出来（见本文件），复用承载登录页的那套宿主浏览器打开：
 // 服务端带书源 Cookie 抓取评论页，前端 iframe 展示。这样评论接口需要的登录态
 // 仍然生效——前端直接 window.open 会以未登录身份访问。

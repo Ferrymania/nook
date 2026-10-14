@@ -7,7 +7,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // EmbyMountRepository 持久化远程 Emby 媒体库挂载。

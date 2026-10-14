@@ -7,8 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 
-	"github.com/truewhile/MeBox/internal/middleware"
-	"github.com/truewhile/MeBox/internal/service"
+	"github.com/Ferrymania/nook/internal/middleware"
+	"github.com/Ferrymania/nook/internal/service"
 )
 
 func embySessionsHandler(svc *service.Container) gin.HandlerFunc {
@@ -29,7 +29,7 @@ func embySessionsHandler(svc *service.Container) gin.HandlerFunc {
 			}
 			row := gin.H{
 				"Id":                    sess.ID,
-				"ServerId":              "mebox-001",
+				"ServerId":              "nook-001",
 				"Client":                sess.Client,
 				"DeviceId":              sess.DeviceID,
 				"DeviceName":            sess.DeviceName,

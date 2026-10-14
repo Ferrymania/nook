@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/Ferrymania/nook/internal/config"
 )
 
 type systemUpdateComposeTarget struct {
@@ -32,7 +34,7 @@ func (s *SystemUpdateService) resolveComposeTarget(ctx context.Context) (systemU
 }
 
 func (s *SystemUpdateService) composeTargetFromConfiguredDir(ctx context.Context) systemUpdateComposeTarget {
-	configured := s.setting(ctx, SystemUpdateComposeDirSettingKey, firstNonEmpty(os.Getenv("MEBOX_UPDATE_COMPOSE_DIR"), os.Getenv("MEBOX_UPDATE_WORKDIR")))
+	configured := s.setting(ctx, SystemUpdateComposeDirSettingKey, firstNonEmpty(config.Env("NOOK_UPDATE_COMPOSE_DIR"), config.Env("NOOK_UPDATE_WORKDIR")))
 	return composeTargetInDir(configured)
 }
 
@@ -143,7 +145,7 @@ func composeFileMatches(file string) bool {
 		return false
 	}
 	content := strings.ToLower(string(raw))
-	return strings.Contains(content, "mebox") || strings.Contains(content, strings.ToLower(DefaultSystemUpdateImage))
+	return strings.Contains(content, "nook") || strings.Contains(content, "mebox") || strings.Contains(content, strings.ToLower(DefaultSystemUpdateImage))
 }
 
 func preferredComposeCommand() string {

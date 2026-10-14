@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/truewhile/MeBox/internal/service"
+	"github.com/Ferrymania/nook/internal/service"
 )
 
 func systemUpdateStatusHandler(svc *service.Container) gin.HandlerFunc {

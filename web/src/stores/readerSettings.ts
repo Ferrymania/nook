@@ -211,7 +211,7 @@ export const useReaderSettingsStore = create<ReaderSettingsState>()(
       setAudioTimerMinutes: (audioTimerMinutes) =>
         set({ audioTimerMinutes: Math.min(180, Math.max(0, Math.round(audioTimerMinutes))) }),
     }),
-    { name: 'mebox-reader-settings' },
+    { name: 'nook-reader-settings' },
   ),
 )
 

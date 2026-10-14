@@ -1,4 +1,4 @@
-const ARTWORK_CACHE_PREFIX = 'mebox-artwork-'
+const ARTWORK_CACHE_PREFIX = 'nook-artwork-'
 const ARTWORK_CACHE = `${ARTWORK_CACHE_PREFIX}v3`
 const MIN_CACHEABLE_ARTWORK_BYTES = 128
 const STRIP_QUERY_KEYS = ['token', 'profile_id', 'profile_pin_token']
@@ -117,7 +117,7 @@ async function runArtworkTrim(cache) {
   await Promise.all(evicted.map((key) => cache.delete(key)))
 }
 
-// cacheableResponseSize 用 Content-Length 估算体积。MeBox 的图片响应由
+// cacheableResponseSize 用 Content-Length 估算体积。Nook 的图片响应由
 // ServeContent 生成，始终带该头；缺失时按 0 计（只是少算，不会误删）。
 function cacheableResponseSize(response) {
   if (!response) return 0
@@ -155,7 +155,7 @@ async function cloneCacheableArtworkResponse(response) {
 async function deleteOldArtworkCaches() {
   const names = await caches.keys()
   await Promise.all(names.map((name) => {
-    if (!name.startsWith(ARTWORK_CACHE_PREFIX) || name === ARTWORK_CACHE) return undefined
+    if ((!name.startsWith(ARTWORK_CACHE_PREFIX) && !name.startsWith('mebox-artwork-')) || name === ARTWORK_CACHE) return undefined
     return caches.delete(name)
   }))
 }

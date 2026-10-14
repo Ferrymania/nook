@@ -26,7 +26,7 @@ import (
 
 	"golang.org/x/sync/singleflight"
 
-	"github.com/truewhile/MeBox/internal/helper"
+	"github.com/Ferrymania/nook/internal/helper"
 )
 
 // audioTranscodeFlight 同一章节并发命中时只跑一次 ffmpeg（按缓存路径去重）。

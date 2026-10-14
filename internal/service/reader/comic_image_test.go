@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // 漫画源（聚合类漫画源就是这么写的）正文规则直接给 <img src="…"> 的 HTML。

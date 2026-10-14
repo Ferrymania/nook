@@ -8,8 +8,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/repository"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
 )
 
 // seedEpisode 插入一集，并把播放历史指向 `watched`（nil 表示没有历史）。

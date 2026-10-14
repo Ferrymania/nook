@@ -7,8 +7,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/config"
-	"github.com/truewhile/MeBox/internal/repository"
+	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/repository"
 )
 
 func ApplyRuntimeSettings(ctx context.Context, cfg *config.Config, repos *repository.Container, log *zap.Logger) {

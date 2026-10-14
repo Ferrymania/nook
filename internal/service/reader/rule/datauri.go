@@ -22,7 +22,7 @@ import (
 //
 // 书源随后用 `java.hexDecodeToString(result)` 把 hex 还原成 JSON 取回参数，
 // 再自行发出真正的请求。所以「type」不是内容类型，而是一个「请以 hex 返回
-// 原始字节」的开关；MeBox 早期把它当成不支持的能力直接拒绝了，导致这类书源
+// 原始字节」的开关；Nook 早期把它当成不支持的能力直接拒绝了，导致这类书源
 // 在搜索第一步就报「书源 URL 声明了不支持的 type」。
 
 // dataURIPayloadRe 对应 legado AppPattern.dataUriRegex：`^data:.*?;base64,(.*)`。

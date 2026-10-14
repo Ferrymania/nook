@@ -7,7 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/truewhile/MeBox/internal/service"
+	"github.com/Ferrymania/nook/internal/service"
 )
 
 // Emby 发现类接口的 handler：NextUp / Similar / Genres。

@@ -12,7 +12,7 @@ import (
 func runProgram() {
 	app, err := newApplication()
 	if err != nil {
-		reportError("MeBox 启动失败", err)
+		reportError("Nook 启动失败", err)
 		os.Exit(1)
 	}
 
@@ -21,7 +21,7 @@ func runProgram() {
 	<-stop
 
 	if err := app.Shutdown(); err != nil {
-		reportError("MeBox 退出失败", err)
+		reportError("Nook 退出失败", err)
 	}
 }
 

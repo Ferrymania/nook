@@ -19,14 +19,14 @@
 - 长按书 → 跳转书籍详情页；长按分组 → 重命名/删除对话框；style1 长按 tab 删除分组。
 - 右上菜单：搜索、Wi-Fi 传书、刷新目录、书架布局切换、分组管理、导出/导入书架、下载离线、本地导入、网址添加、日志。
 
-**MeBox 的「影视 / 阅读」首页模式**（`stores/readerSettings.homeMode` + 顶栏 `LayoutReaderModeToggle`）
+**Nook 的「影视 / 阅读」首页模式**（`stores/readerSettings.homeMode` + 顶栏 `LayoutReaderModeToggle`）
 - 切换入口在**顶栏**，位于搜索框与账号菜单之间，**只显示图标不显示文字**：影视模式显示场记板图标，阅读模式显示书图标（并带品牌色高亮），点一下切到另一个模块、图标随之变化。悬停提示写明「当前是 X 模式，点击切换到 Y」，不在首页时点击会先跳回 `/`。
 - 两种模式共用一个首页路由 `/`：影视模式渲染媒体首页，阅读模式渲染书架（`ReaderHomeContent embedded`）。首页内容区不再放分段式「影视 / 阅读」开关（原 `ReaderModeSwitch` 仅留给独立布局的 `/reader` 首页兜底）。
 - 切到阅读模式时，顶部搜索框换成**书搜索**（`LayoutHeaderBookSearch`，占位「搜索书籍…」）：聚焦即下拉书架（本地即时过滤书名/作者，点条目进阅读器），回车优先打开书架首条；下拉底部固定一行「在书源中搜索「xxx」」，带 `?key=` 跳到 `/reader/search` 由多源聚合搜索页自动开搜。账号/主题菜单照常显示。
 - 阅读模式下移动端底部导航（首页/媒体库/收藏/列表/更多）隐藏，避免影视导航混进书架。
 - `/reader/*` 本来就是独立全屏布局（不套影视 Layout），不受影响。
 
-**MeBox 书架已实现的布局与信息（`ReaderHomeContent.tsx` + `BookshelfCard.tsx` + `BookshelfSettingsDialog.tsx`）**
+**Nook 书架已实现的布局与信息（`ReaderHomeContent.tsx` + `BookshelfCard.tsx` + `BookshelfSettingsDialog.tsx`）**
 - 三套布局，设置在顶栏「书架设置」弹窗里（对应 legado dialog_bookshelf_config），存 `stores/readerSettings.ts`：
   - 网格：封面宫格，列数 2–6 或「自适应」；窄屏自动降到 2–3 列兜底。卡片含封面 + 本地角标 + 未读章数徽标 + 双行书名 + 详情/移出按钮。
   - 列表：66×90 封面 + 书名 + 作者 + 更新时间 + 读到（当前章）+ 最新章节；对应 legado `item_bookshelf_list.xml` 的四行信息。
@@ -46,7 +46,7 @@
 
 **阅读器偏好按账号同步（跨设备）**
 - 主题 / 夜间模式 / 排版（字号、行距、段距）/ 翻页或滚动模式 / 听书倍速与定时 / 书架布局·排序·显示项，原先只存浏览器 localStorage（设备级，换设备就丢），现在按用户落库到 `reader_profiles`（`model.ReaderProfile`，`user_id` 唯一索引），接口 `GET|PUT /reader/profile`。
-- 服务端是权威来源，localStorage（zustand persist 的 `mebox-reader-settings`）退化成首屏缓存：登录后 `hydrateReaderSettings()` 拉一次覆盖本地，之后本地改动防抖 600ms 回写（`utils/readerSettingsSync.ts`）。
+- 服务端是权威来源，localStorage（zustand persist 的 `nook-reader-settings`）退化成首屏缓存：登录后 `hydrateReaderSettings()` 拉一次覆盖本地，之后本地改动防抖 600ms 回写（`utils/readerSettingsSync.ts`）。
 - 账号还没有偏好记录时 `GET` 返回 `null`，前端把本地现值推上去「播种」，升级前在本机调好的设置不会被重置。
 - 服务端只做存储 + 范围收敛（数值夹区间、枚举未知回落默认、主题标识限长），不做语义解释；前端另有本地 clamp，两处范围需同步（见 `service/reader/profile.go` 顶部注释）。
 - 首页的「影视 / 阅读」模式（homeMode）是设备级偏好，故意不参与同步。
@@ -92,7 +92,7 @@
 
 默认排版：textSize 20、letterSpacing 0.1、lineSpacingExtra 12、paragraphSpacing 2、缩进「　　」、padding 上下6/左右16、页脚线 true。未选样式时默认：bg #EEEEEE / 夜 #000000 / E-Ink #FFFFFF，文字 #3E3D3B / 夜 #ADADAD，强调 #E53935 / 夜 #FE4D55。
 
-**MeBox 文本阅读器已实现的排版/菜单细节**（`ReaderViewPage.tsx`）
+**Nook 文本阅读器已实现的排版/菜单细节**（`ReaderViewPage.tsx`）
 - 正文留边：左右 16px、上下 8px（对齐 legado 默认左右16/上下6），分页列宽按留边后的视口宽计算，正文不贴屏幕边。
 - 菜单打开时正文整体下移一个顶栏高度（用 `transform`，不改视口高度、不触发重新分页），顶栏不再压住开头 1–2 行。
 - 界面面板的字号/行距/段距三个调节组用 `flex-wrap`，窄屏自动折行，不会把「段距」挤出屏幕。

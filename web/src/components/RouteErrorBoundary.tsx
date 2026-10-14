@@ -43,7 +43,7 @@ export class RouteErrorBoundary extends Component<{ children: ReactNode }, { has
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('MeBox route crashed', error, info)
+    console.error('Nook route crashed', error, info)
   }
 
   render() {

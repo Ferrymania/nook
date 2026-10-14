@@ -72,12 +72,12 @@ function LayoutSidebarHeader({
       <Link to="/" className="flex items-center gap-3">
         <img
           src="/brand/logo-192.png"
-          alt="MeBox"
+          alt="Nook"
           className="h-10 w-10 shrink-0 rounded-xl object-contain shadow-sm"
         />
         {sidebarExpanded && (
           <span className="font-display text-lg font-extrabold tracking-tight text-[var(--app-text)] animate-fade-slide-in">
-            MeBox
+            Nook
           </span>
         )}
       </Link>

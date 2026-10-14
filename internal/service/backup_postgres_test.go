@@ -10,8 +10,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/config"
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 func newBackupTestService(t *testing.T) (*BackupService, *config.Config) {
@@ -187,7 +187,7 @@ func TestRestorePostgresBackupKeepsDataOnCorruptFile(t *testing.T) {
 	zw := gzip.NewWriter(file)
 	// 头部完整、正文半截：解码在清空表之后才会失败。
 	if _, err := zw.Write([]byte(
-		`{"format":"mebox-postgres-logical","version":1,"created_at":"2026-01-01T00:00:00Z"}` + "\n" +
+		`{"format":"nook-postgres-logical","version":1,"created_at":"2026-01-01T00:00:00Z"}` + "\n" +
 			`{"table":"media","rows":[`)); err != nil {
 		t.Fatal(err)
 	}
@@ -215,7 +215,7 @@ func TestRestorePostgresBackupKeepsDataOnCorruptFile(t *testing.T) {
 // 错误，而不是把 SQLite 文件写到 PostgreSQL 部署的库路径上（那是原实现的隐患）。
 func TestRestoreRejectsBackupFromOtherDialect(t *testing.T) {
 	svc, _ := newBackupTestService(t)
-	pgStyle := filepath.Join(svc.backupDir(), "mebox_20260101_000000.json.gz")
+	pgStyle := filepath.Join(svc.backupDir(), "nook_20260101_000000.json.gz")
 	if err := os.WriteFile(pgStyle, []byte("not-gzip"), 0o600); err != nil {
 		t.Fatal(err)
 	}

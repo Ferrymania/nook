@@ -11,8 +11,8 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/repository"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
 )
 
 func TestAdultProviderRouting(t *testing.T) {

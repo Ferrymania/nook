@@ -19,8 +19,8 @@ export type LibraryTagTab = {
   isAll: boolean
 }
 
-const STORAGE_KEY = 'mebox_library_tags'
-const SELECTED_KEY = 'mebox_library_tag_selected'
+const STORAGE_KEY = 'nook_library_tags'
+const SELECTED_KEY = 'nook_library_tag_selected'
 
 /** 标签名去空白并按字符数截断，与后端清洗规则一致。 */
 export function normalizeTagName(name: string): string {

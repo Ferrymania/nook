@@ -1,6 +1,6 @@
 import { useLayoutEffect } from 'react'
 
-const SCROLL_STORAGE_PREFIX = 'mebox.scroll.'
+const SCROLL_STORAGE_PREFIX = 'nook.scroll.'
 const scrollPositions = new Map<string, number>()
 
 /**

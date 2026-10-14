@@ -42,7 +42,7 @@ func compileCached(js string) (*goja.Program, error) {
 	return p, nil
 }
 
-// JSFetcher 由服务层注入：桥接函数发起网络请求用（走 MeBox 的 HTTP 客户端，
+// JSFetcher 由服务层注入：桥接函数发起网络请求用（走 Nook 的 HTTP 客户端，
 // 自动携带书源级请求头、UA、代理与重定向）。
 type JSFetcher func(req *Request) (body string, finalURL string, code int, err error)
 

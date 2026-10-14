@@ -6,8 +6,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/service/reader/rule"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/service/reader/rule"
 )
 
 // 本文件：把书源会话状态（变量 / 登录信息 / 登录请求头 / Cookie）落到 DB。

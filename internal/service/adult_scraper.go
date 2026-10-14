@@ -14,7 +14,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/repository"
+	"github.com/Ferrymania/nook/internal/repository"
 )
 
 var (

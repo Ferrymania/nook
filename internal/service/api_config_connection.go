@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // TestConnection 测试 API 连接。

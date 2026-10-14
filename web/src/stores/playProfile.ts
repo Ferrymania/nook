@@ -22,7 +22,7 @@ export const usePlayProfileStore = create<PlayProfileState>()(
         })),
     }),
     {
-      name: 'mebox-play-profile',
+      name: 'nook-play-profile',
       storage: createJSONStorage(() => sessionStorage),
     },
   ),

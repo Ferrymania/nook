@@ -11,9 +11,9 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/repository"
-	"github.com/truewhile/MeBox/internal/service/cloud115"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
+	"github.com/Ferrymania/nook/internal/service/cloud115"
 )
 
 func TestCloud115PlaybackInfoTriggersTranscodeOnce(t *testing.T) {

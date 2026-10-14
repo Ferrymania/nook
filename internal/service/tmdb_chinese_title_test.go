@@ -9,7 +9,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/config"
+	"github.com/Ferrymania/nook/internal/config"
 )
 
 func TestApplyTMDbChineseTitlePrefersMainlandAlternative(t *testing.T) {

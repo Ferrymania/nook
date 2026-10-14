@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/service/cloud115"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/service/cloud115"
 )
 
 // PlaybackQuality 是返回给播放器的统一画质选项。
@@ -15,7 +15,7 @@ import (
 // Source:
 //   - cloud:    115 云端转码清晰度
 //   - original: 115 原文件（直连，可能仍是 MKV/HEVC/PGS）
-//   - local:    MeBox 本地 HLS 重新编码清晰度
+//   - local:    Nook 本地 HLS 重新编码清晰度
 type PlaybackQuality struct {
 	ID                string `json:"id"`
 	Label             string `json:"label"`
@@ -210,7 +210,7 @@ func DefaultCloud115Quality(options []PlaybackQuality) string {
 	return "4"
 }
 
-// LocalQualityOptions 返回 MeBox 本地 HLS 可用的画质档位。
+// LocalQualityOptions 返回 Nook 本地 HLS 可用的画质档位。
 //
 // transcodeAvailable 为 false（未装 ffmpeg、或转码被全局关闭）时档位仍然返回，
 // 但 Available 为 false：播放器据此直接走直连播放，而不是先请求 /api/hls 拿到

@@ -15,10 +15,10 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/truewhile/MeBox/internal/config"
-	"github.com/truewhile/MeBox/internal/helper"
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/repository"
+	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/helper"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
 )
 
 type temporaryPasswordEntry struct {

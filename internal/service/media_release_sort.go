@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 func mediaReleaseSortTime(media model.Media) time.Time {

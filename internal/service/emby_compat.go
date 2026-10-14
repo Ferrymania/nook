@@ -3,7 +3,7 @@
 // EmbyService produces JSON envelopes shaped like the most-consumed
 // Emby-API endpoints so existing players (Infuse / Yamby / Hills /
 // Senplayer / Kodi NextPVR extension / iOS native clients) can talk to
-// MeBox without a custom plugin.
+// Nook without a custom plugin.
 //
 // The shim is read-mostly: items, images, playback are fully covered;
 // 播放进度上报 / 收藏切换 是写路径但走我们自己的 PlaybackHistory /
@@ -17,16 +17,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/truewhile/MeBox/internal/config"
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/repository"
+	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 )
 
 // 用一个固定的 ServerId 字符串。Emby 客户端会缓存这个 id，第一次见到
 // 该 id 后会把所有派生数据（cookie/收藏/历史）和它绑定。
-const embyServerID = "mebox-001"
+const embyServerID = "nook-001"
 
 // embyCompatVersion deliberately reports an Emby 4.x server. Official Emby
 // clients reject Jellyfin-style 10.x identities as unsupported/too old during
@@ -233,7 +233,7 @@ func (e *EmbyService) Items(ctx context.Context, p ItemsParams) (map[string]any,
 			if containsEmbyFilter(p.Filters, "IsFavorite") {
 				return e.favoriteItems(ctx, p)
 			}
-			// 继续观看必须走 MeBox 本地 PlaybackHistory，不能转发到远程共用账号。
+			// 继续观看必须走 Nook 本地 PlaybackHistory，不能转发到远程共用账号。
 			if containsEmbyFilter(p.Filters, "IsResumable") {
 				return e.resumableItems(ctx, p)
 			}

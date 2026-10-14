@@ -13,11 +13,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/truewhile/MeBox/internal/helper"
-	"github.com/truewhile/MeBox/internal/middleware"
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/repository"
-	"github.com/truewhile/MeBox/internal/service"
+	"github.com/Ferrymania/nook/internal/helper"
+	"github.com/Ferrymania/nook/internal/middleware"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
+	"github.com/Ferrymania/nook/internal/service"
 )
 
 type createLibraryReq struct {
@@ -795,7 +795,7 @@ func streamHandler(svc *service.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
 		id := c.Param("id")
-		// 远程 Emby 条目：按挂载代理配置分流——代理走 MeBox 反代，否则 302 直连。
+		// 远程 Emby 条目：按挂载代理配置分流——代理走 Nook 反代，否则 302 直连。
 		if svc.EmbyRemote != nil && service.IsEmbyRemoteID(id) {
 			if !enforceScopedPlaybackToken(c, id) {
 				return

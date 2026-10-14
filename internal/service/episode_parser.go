@@ -188,7 +188,7 @@ func FormatEpisodeNumber(episode int, fraction float64) string {
 // in path — e.g. 1920x1080 -> (20, 108), 3840x2160 -> (40, 216). Reports ok=false
 // when the name carries no such token.
 //
-// MeBox used to persist these pairs into sidecar NFOs, so on rescan the NFO
+// Nook used to persist these pairs into sidecar NFOs, so on rescan the NFO
 // would inject the wrong identity back even after the parser was fixed.
 func resolutionEpisodeArtifact(path string) (season, episode int, ok bool) {
 	name := mediaSidecarBase(path)

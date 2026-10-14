@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // 本文件：「更新目录」的结果分档回归测试。

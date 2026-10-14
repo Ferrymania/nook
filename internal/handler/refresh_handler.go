@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/service"
+	"github.com/Ferrymania/nook/internal/service"
 )
 
 // RefreshHandler 令牌刷新 HTTP 处理。

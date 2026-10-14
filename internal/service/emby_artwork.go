@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/repository"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
 )
 
 // ImageURL returns artwork for a media/series/season item id.
@@ -121,7 +121,7 @@ func (e *EmbyService) PersonImageURL(ctx context.Context, idOrName, imageType, t
 	return e.ImageURL(ctx, idOrName, imageType)
 }
 
-// imageInfoTypes 是 GET /Items/{Id}/Images 会报告的图片类型。只列 MeBox
+// imageInfoTypes 是 GET /Items/{Id}/Images 会报告的图片类型。只列 Nook
 // 真正存储的两类：ImageURL 对 Thumb / Logo / Banner 等其余类型会回退到
 // 主图，若一并列出会让客户端以为存在这些图并去请求，实际拿到的却是主图。
 var imageInfoTypes = []string{"Primary", "Backdrop"}

@@ -22,7 +22,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/truewhile/MeBox/internal/service/cloud115"
+	"github.com/Ferrymania/nook/internal/service/cloud115"
 )
 
 // OpenAPI115Provider 暴露 115 开放平台驱动接口。
@@ -133,7 +133,7 @@ func (p *openAPI115Provider) PutLocalFile(ctx context.Context, parentCID, localP
 // 为防止多并发上传线程在同一临时目录下发生同名文件（如 poster.jpg）碰撞覆盖与误删，
 // 为每个上传任务分配专属临时子目录。
 func (p *openAPI115Provider) PutFileNamed(ctx context.Context, parentCID, fileName string, r io.Reader) error {
-	tmpDir, err := os.MkdirTemp("", "mebox-upload-*")
+	tmpDir, err := os.MkdirTemp("", "nook-upload-*")
 	if err != nil {
 		return fmt.Errorf("115: 创建临时目录失败：%w", err)
 	}

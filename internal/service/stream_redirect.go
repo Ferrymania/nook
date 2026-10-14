@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/truewhile/MeBox/internal/config"
-	"github.com/truewhile/MeBox/internal/repository"
+	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/repository"
 )
 
 // normalizeCloudPlayTarget 把存库的云盘播放 URL 规范化为相对路径。
@@ -19,7 +19,7 @@ import (
 // provider+ref，重建为相对 /api/cloud/play 或 /api/strm/play 路径，由
 // absoluteInternalRedirect 基于「当前请求」补全 host，从而对历史脏数据免疫。
 //
-// 反过来，指向**别的 MeBox / MediaStationGo 实例**的地址不能按本机账号解析：
+// 反过来，指向**别的 Nook / MediaStationGo 实例**的地址不能按本机账号解析：
 // 别人 .strm 里的 acct 是他那台机器的账号 ID，拿到本机来查只会得到
 // 「网盘账号不存在」。这种地址按普通第三方直链原样透传，让客户端跟着 302 去
 // 对方实例取流（/api/strm/play 是公开端点，不需要本机凭据），或直接去对方的
@@ -54,11 +54,11 @@ func normalizeCloudPlayTarget(ctx context.Context, repo *repository.Container, c
 //  1. 相对路径一定是本机存库的常规形态；
 //  2. 绝对地址的 host 与本机配置的 strm.base_url、各同步目录覆盖的 base_url、
 //     当前请求 host 之一相同 → 就是本机（老 .strm 里固化的旧 host 属于这一类）；
-//  3. host 对不上时，再看地址里带的网盘账号 ID 是不是本机账号：MeBox /
+//  3. host 对不上时，再看地址里带的网盘账号 ID 是不是本机账号：Nook /
 //     MediaStationGo 会把本机账号 ID 写进 acct，而账号 ID 由各实例自行生成，
 //     跨实例几乎不可能撞号。这条用于「换了域名/IP 之后」认领自己的老 .strm。
 //
-// 三条都不满足（典型是另一台 MeBox 生成的 .strm）→ 视为第三方直链。
+// 三条都不满足（典型是另一台 Nook 生成的 .strm）→ 视为第三方直链。
 func isInternalPlaybackTarget(ctx context.Context, repo *repository.Container, cfg *config.Config, r *http.Request, raw string) bool {
 	u, err := url.Parse(strings.TrimSpace(raw))
 	if err != nil || u == nil {

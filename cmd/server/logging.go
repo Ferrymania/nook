@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/truewhile/MeBox/internal/config"
+	"github.com/Ferrymania/nook/internal/config"
 )
 
 // newLogger 根据 cfg.Logging 构建 Zap。

@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/repository"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
 )
 
 // Bot / 设备管控相关的设置键。全部存储在 settings 表，由管理员通过

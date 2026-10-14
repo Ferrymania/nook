@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // 段评解析单测：覆盖 legado 的两种正文形态（<comment /> 与「图片地址 + JSON 配置」），

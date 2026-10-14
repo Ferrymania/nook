@@ -14,10 +14,10 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	"github.com/truewhile/MeBox/internal/config"
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/repository"
-	"github.com/truewhile/MeBox/internal/service"
+	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
+	"github.com/Ferrymania/nook/internal/service"
 )
 
 // TestStrmAdminRoutes 冒烟测试 STRM 管理端点注册与 401 拦截。

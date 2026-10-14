@@ -16,7 +16,7 @@ import (
 //
 // 背景：DRF（Django REST framework）等会做内容协商的后端，在 Accept 首选
 // text/html 时返回「可浏览 HTML 页面」而不是 JSON，书源 JSONPath 因此永远
-// 解析出 0 条（拷贝轻小说源在 MeBox 搜不到、在阅读 App 能搜到的根因）。
+// 解析出 0 条（拷贝轻小说源在 Nook 搜不到、在阅读 App 能搜到的根因）。
 func TestHeaderPresetsAcceptIsWildcard(t *testing.T) {
 	got := HTTPHeaderPresets()["Accept"]
 	if got != "*/*" {

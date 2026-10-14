@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // TestAudioSourceExt 音频地址取扩展名：本地路径、带 query 的远端地址、
@@ -160,14 +160,14 @@ func TestBuildFFmpegAudioArgs(t *testing.T) {
 	}
 
 	withHeaders := buildFFmpegAudioArgs("u", "o", map[string]string{
-		"User-Agent": "mebox", "Cookie": "a=1",
+		"User-Agent": "nook", "Cookie": "a=1",
 	})
 	idx := indexOf(withHeaders, "-headers")
 	if idx < 0 {
 		t.Fatalf("应带上 -headers: %v", withHeaders)
 	}
 	headers := withHeaders[idx+1]
-	if !strings.HasPrefix(headers, "Cookie: a=1\r\n") || !strings.Contains(headers, "User-Agent: mebox\r\n") {
+	if !strings.HasPrefix(headers, "Cookie: a=1\r\n") || !strings.Contains(headers, "User-Agent: nook\r\n") {
 		t.Fatalf("请求头内容或顺序不对: %q", headers)
 	}
 }

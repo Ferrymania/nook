@@ -13,9 +13,9 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"github.com/truewhile/MeBox/internal/config"
-	"github.com/truewhile/MeBox/internal/database"
-	"github.com/truewhile/MeBox/internal/repository"
+	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/database"
+	"github.com/Ferrymania/nook/internal/repository"
 )
 
 // 本文件：登录类书源的服务层链路测试。

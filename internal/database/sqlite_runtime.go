@@ -11,7 +11,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/truewhile/MeBox/internal/config"
+	"github.com/Ferrymania/nook/internal/config"
 )
 
 // sqliteGateHoldLimit 是写闸持有者的最长合法持有时长。语句级写闸在 SQL
@@ -24,7 +24,7 @@ func installSQLiteWriteGate(db *gorm.DB) {
 	if db == nil {
 		return
 	}
-	const lockedKey = "mebox:sqlite_write_locked"
+	const lockedKey = "nook:sqlite_write_locked"
 	gate := newSQLiteWriteGate()
 	lock := func(tx *gorm.DB) {
 		ctx := context.Background()
@@ -51,14 +51,14 @@ func installSQLiteWriteGate(db *gorm.DB) {
 		}
 		lock(tx)
 	}
-	_ = db.Callback().Create().Before("gorm:create").Register("mebox:sqlite_write_lock", lock)
-	_ = db.Callback().Create().After("gorm:create").Register("mebox:sqlite_write_unlock", unlock)
-	_ = db.Callback().Update().Before("gorm:update").Register("mebox:sqlite_write_lock", lock)
-	_ = db.Callback().Update().After("gorm:update").Register("mebox:sqlite_write_unlock", unlock)
-	_ = db.Callback().Delete().Before("gorm:delete").Register("mebox:sqlite_write_lock", lock)
-	_ = db.Callback().Delete().After("gorm:delete").Register("mebox:sqlite_write_unlock", unlock)
-	_ = db.Callback().Raw().Before("gorm:raw").Register("mebox:sqlite_write_lock", rawLock)
-	_ = db.Callback().Raw().After("gorm:raw").Register("mebox:sqlite_write_unlock", unlock)
+	_ = db.Callback().Create().Before("gorm:create").Register("nook:sqlite_write_lock", lock)
+	_ = db.Callback().Create().After("gorm:create").Register("nook:sqlite_write_unlock", unlock)
+	_ = db.Callback().Update().Before("gorm:update").Register("nook:sqlite_write_lock", lock)
+	_ = db.Callback().Update().After("gorm:update").Register("nook:sqlite_write_unlock", unlock)
+	_ = db.Callback().Delete().Before("gorm:delete").Register("nook:sqlite_write_lock", lock)
+	_ = db.Callback().Delete().After("gorm:delete").Register("nook:sqlite_write_unlock", unlock)
+	_ = db.Callback().Raw().Before("gorm:raw").Register("nook:sqlite_write_lock", rawLock)
+	_ = db.Callback().Raw().After("gorm:raw").Register("nook:sqlite_write_unlock", unlock)
 }
 
 func isReadOnlySQL(sql string) bool {

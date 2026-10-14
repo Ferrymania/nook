@@ -13,8 +13,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/service"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/service"
 )
 
 // ─── 网盘账号 ──────────────────────────────────────────────────────────────────
@@ -32,7 +32,7 @@ type strmAccountView struct {
 	ProviderLabel string `json:"provider_label"`
 	// ConfigPreview 非敏感配置字段，供编辑表单回显。
 	ConfigPreview service.StrmAccountConfigPreview `json:"config_preview,omitempty"`
-	// ProxyPlay 仅远程 Emby 挂载账号返回：播放流量是否经过 MeBox 代理（编辑回显用）。
+	// ProxyPlay 仅远程 Emby 挂载账号返回：播放流量是否经过 Nook 代理（编辑回显用）。
 	ProxyPlay *bool `json:"proxy_play,omitempty"`
 	// EmbyLines 仅远程 Emby 挂载账号返回：多线路配置（不含凭据）。
 	EmbyLines      []service.EmbyRemoteLine `json:"emby_lines,omitempty"`

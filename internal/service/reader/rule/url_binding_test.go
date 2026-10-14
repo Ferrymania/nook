@@ -9,7 +9,7 @@ import (
 //
 // 背景（光遇聚合）：
 //   - 书源把参数拼进 query 后交给 java.ajax，且 POST 也把参数放在 query 里；
-//     MeBox 早期只对 GET 重编码 query，POST 的原生中文/引号会直接写进请求行，
+//     Nook 早期只对 GET 重编码 query，POST 的原生中文/引号会直接写进请求行，
 //     服务端回 400/空响应，书源判定「线路报错」并把全部线路试一遍。
 //   - 书源用 String(baseUrl).startsWith("data:") 判断当前层是不是自搭的参数信封，
 //     所以规则 JS 的 baseUrl 必须是「当前处理的页面地址」，不能固定成书源地址。

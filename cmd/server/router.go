@@ -11,12 +11,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/config"
-	"github.com/truewhile/MeBox/internal/handler"
-	"github.com/truewhile/MeBox/internal/middleware"
-	"github.com/truewhile/MeBox/internal/service"
+	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/handler"
+	"github.com/Ferrymania/nook/internal/middleware"
+	"github.com/Ferrymania/nook/internal/service"
 
-	"github.com/truewhile/MeBox/web"
+	"github.com/Ferrymania/nook/web"
 )
 
 func buildRouter(cfg *config.Config, logger *zap.Logger, embyCompatLogger *zap.Logger, svc *service.Container) *gin.Engine {
@@ -92,7 +92,7 @@ func serveSPA(r *gin.Engine, root fs.FS) {
 		setNoCacheHeaders(c)
 		data, err := fs.ReadFile(root, "index.html")
 		if err != nil {
-			c.String(http.StatusNotFound, "MeBox web UI not found")
+			c.String(http.StatusNotFound, "Nook web UI not found")
 			return
 		}
 		c.Data(http.StatusOK, "text/html; charset=utf-8", data)

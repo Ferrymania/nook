@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/repository"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
 )
 
 // ServeFile streams the file backing the given media ID using
@@ -63,7 +63,7 @@ func (s *StreamService) ServeFileWithCloudMode(w http.ResponseWriter, r *http.Re
 			return nil
 		}
 		// 云盘播放 URL 先规范化为相对路径，免疫扫描时固化的旧 host；
-		// 指向别的 MeBox 实例的地址保持原样，按第三方直链透传。
+		// 指向别的 Nook 实例的地址保持原样，按第三方直链透传。
 		target := normalizeCloudPlayTarget(r.Context(), s.repo, s.cfg, r, strmURL)
 		target = withAuthTokenForInternalRedirect(target, r, PublicServerURL(r.Context(), s.repo, s.cfg))
 		setCloudRedirectNoStore(w)

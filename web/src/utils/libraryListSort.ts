@@ -17,8 +17,8 @@ export const LIBRARY_LIST_SORT_OPTIONS: LibraryListSortOption[] = [
 export const DEFAULT_LIBRARY_LIST_SORT_FIELD: LibraryListSortField = 'name'
 export const DEFAULT_LIBRARY_LIST_SORT_ORDER: LibraryListSortOrder = 'desc'
 
-const FIELD_KEY = 'mebox_libraries_sort_field'
-const ORDER_KEY = 'mebox_libraries_sort_order'
+const FIELD_KEY = 'nook_libraries_sort_field'
+const ORDER_KEY = 'nook_libraries_sort_order'
 
 export function readLibraryListSort(): { field: LibraryListSortField; order: LibraryListSortOrder } {
   if (typeof window === 'undefined') {

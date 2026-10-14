@@ -30,8 +30,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/service/reader/rule"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/service/reader/rule"
 )
 
 // LocalBookMaxBytes 单个本地书籍文件大小上限。

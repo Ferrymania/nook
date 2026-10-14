@@ -3,10 +3,10 @@
   <assemblyIdentity
     version="1.0.0.0"
     processorArchitecture="*"
-    name="MeBox"
+    name="Nook"
     type="win32"
   />
-  <description>MeBox media server</description>
+  <description>Nook media server</description>
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
     <security>
       <requestedPrivileges>

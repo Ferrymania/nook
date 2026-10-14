@@ -13,10 +13,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/repository"
-	"github.com/truewhile/MeBox/internal/service/cloud"
-	"github.com/truewhile/MeBox/internal/service/cloud115"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
+	"github.com/Ferrymania/nook/internal/service/cloud"
+	"github.com/Ferrymania/nook/internal/service/cloud115"
 	"go.uber.org/zap"
 )
 

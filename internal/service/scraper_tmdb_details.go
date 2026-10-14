@@ -7,7 +7,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 func (s *ScraperService) fetchAndSaveTMDbExtendedMetadata(ctx context.Context, mediaID string, tmdbID int, mediaType string) {

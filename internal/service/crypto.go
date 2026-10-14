@@ -17,7 +17,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/helper"
+	"github.com/Ferrymania/nook/internal/helper"
 )
 
 // encPrefix tags ciphertext rows so we can tell them apart from legacy

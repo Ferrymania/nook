@@ -45,7 +45,7 @@ func newPostgresDryRunRepos(t *testing.T) (*Container, *sqlCaptureLogger) {
 	t.Helper()
 	rec := &sqlCaptureLogger{}
 	db, err := gorm.Open(postgres.New(postgres.Config{
-		DSN: "postgres://mebox:mebox@127.0.0.1:5432/mebox?sslmode=disable",
+		DSN: "postgres://nook:nook@127.0.0.1:5432/nook?sslmode=disable",
 	}), &gorm.Config{
 		DryRun:                 true,
 		DisableAutomaticPing:   true,

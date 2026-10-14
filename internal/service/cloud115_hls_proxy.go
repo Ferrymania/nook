@@ -16,7 +16,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/service/cloud115"
+	"github.com/Ferrymania/nook/internal/service/cloud115"
 )
 
 var (
@@ -56,7 +56,7 @@ func cloud115HLSKeyForURL(upstream string) string {
 	return hex.EncodeToString(sum[:12])
 }
 
-// Cloud115HLSProxy 把 115 云端 HLS 转成 MeBox 同源 HLS。
+// Cloud115HLSProxy 把 115 云端 HLS 转成 Nook 同源 HLS。
 //
 // 浏览器不能直接请求 115 的 m3u8：master/variant/分片的 CORS 只允许
 // https://115.com，且 master 还是 HTTP。代理在服务端拉取并重写播放列表，

@@ -149,7 +149,7 @@ export function TelegramBindPanel() {
         <div className="space-y-3">
           <ol className="list-decimal space-y-1 pl-5 text-sm text-ink-50">
             <li>点击下方按钮生成 6 位绑定码（5 分钟内有效）。</li>
-            <li>在 Telegram 里打开 MeBox Bot，发送 <code className="font-mono">/bind 绑定码</code>。</li>
+            <li>在 Telegram 里打开 Nook Bot，发送 <code className="font-mono">/bind 绑定码</code>。</li>
             <li>收到「绑定成功」回复即完成，本页会自动刷新状态。</li>
           </ol>
 

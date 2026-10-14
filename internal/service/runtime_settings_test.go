@@ -3,7 +3,7 @@ package service
 import (
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/config"
+	"github.com/Ferrymania/nook/internal/config"
 )
 
 func TestApplyRuntimeSettingTranscodeSwitches(t *testing.T) {

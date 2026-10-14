@@ -15,8 +15,9 @@ func (c *Config) normalize() error {
 		c.App.DataDir = "./data"
 	}
 	if c.Database.DBPath == "" {
-		c.Database.DBPath = filepath.Join(c.App.DataDir, "mebox.db")
+		c.Database.DBPath = filepath.Join(c.App.DataDir, "nook.db")
 	}
+	c.Database.DBPath = existingSQLitePath(c.Database.DBPath)
 	if c.Database.Type == "" {
 		c.Database.Type = "auto"
 	}
@@ -57,7 +58,7 @@ func (c *Config) normalize() error {
 		c.Cache.MemoryMaxSizeMB = DefaultCacheMemoryMaxSizeMB
 	}
 	if c.Cache.RedisPrefix == "" {
-		c.Cache.RedisPrefix = "mebox"
+		c.Cache.RedisPrefix = "nook"
 	}
 	if c.Cache.MediaTTLSeconds < 1 {
 		c.Cache.MediaTTLSeconds = 90
@@ -73,7 +74,7 @@ func (c *Config) normalize() error {
 	}
 	c.Search.Backend = strings.ToLower(strings.TrimSpace(c.Search.Backend))
 	if c.Search.Index == "" {
-		c.Search.Index = "mebox_media"
+		c.Search.Index = "nook_media"
 	}
 	if c.Secrets.JWTSecret == "" {
 		// 持久化自动生成的密钥以在操作员忘记配置时保持会话稳定。

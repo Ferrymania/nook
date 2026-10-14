@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/truewhile/MeBox/internal/config"
+	"github.com/Ferrymania/nook/internal/config"
 )
 
 const defaultLogMaxSizeMB = 20

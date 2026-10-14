@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/truewhile/MeBox/internal/config"
+	"github.com/Ferrymania/nook/internal/config"
 )
 
 type transcodeInput struct {

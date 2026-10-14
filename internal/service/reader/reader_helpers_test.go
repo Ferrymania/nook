@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // TestRewriteContentImageMarkers 文本型漫画源正文里的 <img> 要转成前端认识的 [img] 标记，

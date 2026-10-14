@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // importTestSource 导入一个测试书源并按书源 URL 找到它（同包测试可能导入多个源）。

@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 func mediaYearHint(m *model.Media) int {

@@ -6,12 +6,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // TestGetTocFollowsNextTocUrl 长书目录按 offset/limit 分页时必须翻页取全。
 // 这是「目录少章」的根因：nextTocUrl 没实现时只会拿到第一页
-// （实测某漫画站点 total=399/limit=100，MeBox 只得到 100 章）。
+// （实测某漫画站点 total=399/limit=100，Nook 只得到 100 章）。
 func TestGetTocFollowsNextTocUrl(t *testing.T) {
 	pages := map[string]string{
 		"0": `{"count":4,"list":[{"name":"第1话","url":"/c/1"},{"name":"第2话","url":"/c/2"}]}`,

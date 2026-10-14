@@ -3,7 +3,7 @@ package service
 import (
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 func TestImageURLFallsBackToLibraryCoverURL(t *testing.T) {

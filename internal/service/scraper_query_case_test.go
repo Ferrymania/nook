@@ -59,7 +59,7 @@ func equalFoldASCII(a, b string) bool {
 }
 
 // A filename with no case information (all lowercase, as many release names are)
-// must stay as-is rather than being title-cased: MeBox cannot invent casing.
+// must stay as-is rather than being title-cased: Nook cannot invent casing.
 func TestCleanQueryKeepsLowercaseInputLowercase(t *testing.T) {
 	title, _ := CleanQuery("the.matrix.1999.1080p.mkv")
 	if title != "the matrix" {

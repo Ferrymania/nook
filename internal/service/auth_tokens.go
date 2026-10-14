@@ -9,7 +9,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // IssueToken signs a JWT for the given user (60min validity, includes tier).
@@ -21,7 +21,7 @@ func (s *AuthService) IssueToken(u *model.User) (string, error) {
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(60 * time.Minute)),
-			Issuer:    "mebox",
+			Issuer:    "nook",
 			Subject:   u.ID,
 		},
 	}
@@ -68,7 +68,7 @@ func (s *AuthService) IssueExternalPlaybackToken(u *model.User, mediaID string, 
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(ExternalPlaybackTokenDurationForMedia(durationSec))),
-			Issuer:    "mebox",
+			Issuer:    "nook",
 			Subject:   u.ID,
 		},
 	}
@@ -95,7 +95,7 @@ func (s *AuthService) IssueEmbyToken(u *model.User) (string, error) {
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(EmbyTokenDuration)),
-			Issuer:    "mebox",
+			Issuer:    "nook",
 			Subject:   u.ID,
 		},
 	}

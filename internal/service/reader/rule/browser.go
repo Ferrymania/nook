@@ -18,7 +18,7 @@ import (
 // 切换」「用户后台」「书源设置」都建在这两个函数上，因此服务端必须提供
 // 等价能力，否则这些按钮只会走到书源自己的 catch 分支。
 //
-// MeBox 没有 WebView，改由服务层把页面交给前端网页承载：
+// Nook 没有 WebView，改由服务层把页面交给前端网页承载：
 //   - AwaitBrowser：阻塞等待前端回传 DOM（对应 startBrowserAwait）
 //   - OpenBrowser： 只展示不等待（对应 startBrowser / showBrowser）
 

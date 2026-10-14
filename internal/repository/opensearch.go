@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/truewhile/MeBox/internal/config"
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 type OpenSearchMediaBackend struct {
@@ -29,7 +29,7 @@ func NewOpenSearchMediaBackend(cfg config.SearchConfig) *OpenSearchMediaBackend 
 	}
 	index := strings.TrimSpace(cfg.Index)
 	if index == "" {
-		index = "mebox_media"
+		index = "nook_media"
 	}
 	return &OpenSearchMediaBackend{
 		baseURL:  strings.TrimRight(strings.TrimSpace(cfg.OpenSearchURL), "/"),

@@ -13,9 +13,9 @@ import (
 
 	"golang.org/x/text/encoding/htmlindex"
 
-	"github.com/truewhile/MeBox/internal/helper"
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/service/reader/rule"
+	"github.com/Ferrymania/nook/internal/helper"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/service/reader/rule"
 )
 
 // 本文件覆盖规则稳定性修复的回归：

@@ -4,7 +4,7 @@
 //  1. 内置默认值
 //  2. 工作目录中的 config.yaml（嵌套格式）
 //  3. config/*.yaml 分片文件（按模块）
-//  4. 以 MEBOX_ 为前缀的环境变量
+//  4. 以 NOOK_ 为前缀的环境变量
 package config
 
 import (
@@ -18,7 +18,7 @@ import (
 )
 
 // EnvPrefix 是所有环境变量驱动的覆盖使用的前缀。
-const EnvPrefix = "MeBox"
+const EnvPrefix = "Nook"
 
 // RuntimeMu 保护运行时热更新配置字段的并发读写：ApplyRuntimeSetting 在
 // HTTP goroutine 中写字段，serverManager 的证书轮询等后台协程在无锁读取
@@ -66,6 +66,12 @@ func Load() (*Config, error) {
 	v.SetEnvPrefix(EnvPrefix)
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
+	for _, key := range v.AllKeys() {
+		name := strings.ToUpper(EnvPrefix + "_" + strings.ReplaceAll(key, ".", "_"))
+		if err := v.BindEnv(key, name, legacyEnvName(name)); err != nil {
+			return nil, fmt.Errorf("bind environment %s: %w", key, err)
+		}
+	}
 
 	cfg := &Config{}
 	if err := v.Unmarshal(cfg); err != nil {

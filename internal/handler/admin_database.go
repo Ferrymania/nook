@@ -8,7 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/truewhile/MeBox/internal/service"
+	"github.com/Ferrymania/nook/internal/service"
 )
 
 type DatabaseConnectionPayload struct {
@@ -38,7 +38,7 @@ func (p *DatabaseConnectionPayload) BuildDSN() string {
 	user := strings.TrimSpace(p.User)
 	dbname := strings.TrimSpace(p.DBName)
 	if dbname == "" {
-		dbname = "mebox"
+		dbname = "nook"
 	}
 	sslmode := strings.TrimSpace(p.SSLMode)
 	if sslmode == "" {

@@ -23,11 +23,11 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/truewhile/MeBox/internal/config"
-	"github.com/truewhile/MeBox/internal/helper"
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/repository"
-	"github.com/truewhile/MeBox/internal/service/reader/rule"
+	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/helper"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
+	"github.com/Ferrymania/nook/internal/service/reader/rule"
 )
 
 const (
@@ -1037,7 +1037,7 @@ func mergeSearchResults(hits []searchHit, key string) []SearchBook {
 		if existing, ok := merged[k]; ok {
 			existing.Origins = append(existing.Origins, b.Origins...)
 			// 同书多源时补齐缺失字段：legado 是「一源一行」，各源自己显示拿到的
-			// 信息；MeBox 合并成一行，若不补齐，先到的空值会挡掉后面源的有效值。
+			// 信息；Nook 合并成一行，若不补齐，先到的空值会挡掉后面源的有效值。
 			fillMissingSearchBookFields(existing, &b)
 			continue
 		}
@@ -1316,12 +1316,12 @@ type TocChapter struct {
 	UpdateTime string `json:"update_time"`
 }
 
-// normalizeBookType 把 legado BookType 的位掩码归一成 MeBox 内部使用的
+// normalizeBookType 把 legado BookType 的位掩码归一成 Nook 内部使用的
 // 0 文本 / 1 音频 / 2 图片 / 3 视频。
 //
 // legado 的 BookType 是按位区分的常量（4=视频、8=文本、32=音频、64=图片），
 // 书源在目录规则里直接给 book.type 赋这些值（听书源写 32 表示音频），
-// 而 MeBox 的 ReaderBook.Type 沿用书源 bookSourceType 的 0/1/2/3 约定，
+// 而 Nook 的 ReaderBook.Type 沿用书源 bookSourceType 的 0/1/2/3 约定，
 // 两者必须转换，否则音频书会被当成文本来渲染。
 func normalizeBookType(t int) int {
 	switch {

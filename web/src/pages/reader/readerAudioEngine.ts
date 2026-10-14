@@ -670,9 +670,9 @@ class ReaderAudioEngine {
       : []
     try {
       session.metadata = new MediaMetadata({
-        title: chapterTitle || bookName || 'MeBox 听书',
-        artist: bookName || 'MeBox',
-        album: 'MeBox 听书',
+        title: chapterTitle || bookName || 'Nook 听书',
+        artist: bookName || 'Nook',
+        album: 'Nook 听书',
         artwork,
       })
     } catch {

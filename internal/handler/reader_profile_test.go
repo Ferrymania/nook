@@ -9,10 +9,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/truewhile/MeBox/internal/middleware"
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/service"
-	"github.com/truewhile/MeBox/internal/service/reader"
+	"github.com/Ferrymania/nook/internal/middleware"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/service"
+	"github.com/Ferrymania/nook/internal/service/reader"
 )
 
 // 阅读器偏好接口（/reader/profile）的 HTTP 契约测试。

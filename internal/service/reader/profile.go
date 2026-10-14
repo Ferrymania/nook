@@ -6,7 +6,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // 阅读器偏好（每个用户一条，见 model.ReaderProfile）。

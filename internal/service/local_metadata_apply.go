@@ -1,6 +1,6 @@
 package service
 
-import "github.com/truewhile/MeBox/internal/model"
+import "github.com/Ferrymania/nook/internal/model"
 
 func applyLocalMetadata(m *model.Media, local *LocalMetadata) {
 	applyLocalIdentityMetadata(m, local)

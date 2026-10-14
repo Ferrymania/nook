@@ -11,7 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/truewhile/MeBox/internal/service"
+	"github.com/Ferrymania/nook/internal/service"
 )
 
 // 书源宿主浏览器的 HTTP 层测试：轮询待办 → 承载页面 → 回传 DOM。
@@ -134,7 +134,7 @@ func TestReaderBrowserPanelRoutes(t *testing.T) {
 		t.Fatalf("承载页面内容异常: %s", w.Body.String())
 	}
 	// 服务端注入的 DOM 回传脚本必须在（父窗口靠它取回用户操作后的页面）
-	if !strings.Contains(w.Body.String(), "data-mebox-browser-bridge") {
+	if !strings.Contains(w.Body.String(), "data-nook-browser-bridge") {
 		t.Fatalf("承载页面缺少 DOM 回传脚本: %s", w.Body.String())
 	}
 	w = httptest.NewRecorder()

@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/config"
+	"github.com/Ferrymania/nook/internal/config"
 )
 
 func TestBackupFilePathRejectsTraversal(t *testing.T) {
@@ -15,7 +15,7 @@ func TestBackupFilePathRejectsTraversal(t *testing.T) {
 			t.Fatalf("backupFilePath(%q) allowed traversal or non-backup file", name)
 		}
 	}
-	path, err := svc.backupFilePath("mebox_20260611_010203.db")
+	path, err := svc.backupFilePath("nook_20260611_010203.db")
 	if err != nil {
 		t.Fatalf("backupFilePath(valid) = %v", err)
 	}

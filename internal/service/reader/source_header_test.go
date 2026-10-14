@@ -3,8 +3,8 @@ package reader
 import (
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/service/reader/rule"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/service/reader/rule"
 )
 
 // TestApplyHeadersEvaluatesJSHeader 覆盖拷贝漫画（优++）这类书源：

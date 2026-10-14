@@ -5,11 +5,11 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/truewhile/MeBox/internal/config"
-	"github.com/truewhile/MeBox/internal/repository"
+	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/repository"
 )
 
-// PublicServerURL returns the operator-configured public MeBox base
+// PublicServerURL returns the operator-configured public Nook base
 // URL. It is intentionally read from Setting first so Docker users only need to
 // fill one domain in the admin settings page after deployment.
 func PublicServerURL(ctx context.Context, repo *repository.Container, cfg *config.Config) string {

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/truewhile/MeBox/internal/service/reader/rule"
+	"github.com/Ferrymania/nook/internal/service/reader/rule"
 )
 
 // 本文件：书源宿主浏览器面板的服务层测试（browser_panel.go）。
@@ -278,10 +278,10 @@ func TestBrowserPanelInjectsSourceCookies(t *testing.T) {
 		t.Fatalf("站外链接不应改写: %q", snap.HTML)
 	}
 	// 注入脚本要带齐三样：DOM 回传、请求代理、以及书源登录态
-	if !strings.Contains(snap.HTML, "data-mebox-browser-bridge") {
+	if !strings.Contains(snap.HTML, "data-nook-browser-bridge") {
 		t.Fatalf("缺少注入脚本: %q", snap.HTML)
 	}
-	if !strings.Contains(snap.HTML, "__mebox_proxy__") {
+	if !strings.Contains(snap.HTML, "__nook_proxy__") {
 		t.Fatal("注入脚本缺少请求代理（页面自己的 fetch/XHR 会因不透明源被 CORS 拦）")
 	}
 	// 页面常用 document.cookie 判断登录态；真实 Cookie 在服务端，

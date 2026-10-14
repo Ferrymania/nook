@@ -15,7 +15,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // PostgreSQL 逻辑备份 / 恢复。
@@ -32,7 +32,7 @@ import (
 // 读到一半损坏）都整体回滚，不会留下半清空的库。因此恢复不需要重启服务。
 const (
 	postgresBackupSuffix   = ".json.gz"
-	postgresBackupFormat   = "mebox-postgres-logical"
+	postgresBackupFormat   = "nook-postgres-logical"
 	postgresBackupVersion  = 1
 	backupDumpChunkSize    = 1000
 	backupRestoreBatchSize = 500
@@ -85,7 +85,7 @@ func postgresBackupModelSchemas(db *gorm.DB) (map[string]*schema.Schema, map[str
 
 // createPostgresBackup 把全库导出成一个 gzip 压缩的 JSON Lines 文件。
 func (b *BackupService) createPostgresBackup(ctx context.Context, stamp string) (string, error) {
-	dst := filepath.Join(b.backupDir(), "mebox_"+stamp+postgresBackupSuffix)
+	dst := filepath.Join(b.backupDir(), "nook_"+stamp+postgresBackupSuffix)
 	file, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
 	if err != nil {
 		return "", err
@@ -230,7 +230,7 @@ func (b *BackupService) restorePostgresBackup(ctx context.Context, src string) e
 	if err := dec.Decode(&header); err != nil {
 		return fmt.Errorf("备份头损坏: %w", err)
 	}
-	if header.Format != postgresBackupFormat || header.Version != postgresBackupVersion {
+	if (header.Format != postgresBackupFormat && header.Format != "mebox-postgres-logical") || header.Version != postgresBackupVersion {
 		return fmt.Errorf("不支持的备份格式 %q (v%d)", header.Format, header.Version)
 	}
 	schemas, modelTypes, err := postgresBackupModelSchemas(b.db)

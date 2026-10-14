@@ -1,7 +1,7 @@
-# MeBox 第二档完整 Docker Compose 部署文件
+# Nook 第二档完整 Docker Compose 部署文件
 #
 # 组件：
-#   MeBox + PostgreSQL + Redis
+#   Nook + PostgreSQL + Redis
 #
 # 使用方式二选一：
 #   1. 保存为 docker-compose.yml 后执行：
@@ -16,8 +16,8 @@
 #   admin / admin123
 
 services:
-  mebox:
-    image: ${MEBOX_IMAGE:-ghcr.io/ferrymania/nook:latest}
+  nook:
+    image: ${NOOK_IMAGE:-ghcr.io/ferrymania/nook:latest}
 
     restart: unless-stopped
     init: true
@@ -52,44 +52,44 @@ services:
       PUID: "0"
       PGID: "0"
 
-      MEBOX_APP_HOST: 0.0.0.0
-      MEBOX_APP_PORT: 8080
-      MEBOX_APP_WEB_DIR: /app/web/dist
-      MEBOX_APP_DATA_DIR: /data
-      MEBOX_LOGGING_LEVEL: info
-      MEBOX_LOGGING_FORMAT: console
-      MEBOX_LOGGING_OUTPUT_PATH: /data/logs
-      MEBOX_LOGGING_MAX_SIZE_MB: "20"
-      MEBOX_LOGGING_MAX_BACKUPS: "5"
-      MEBOX_LOGGING_MAX_AGE_DAYS: "30"
+      NOOK_APP_HOST: 0.0.0.0
+      NOOK_APP_PORT: 8080
+      NOOK_APP_WEB_DIR: /app/web/dist
+      NOOK_APP_DATA_DIR: /data
+      NOOK_LOGGING_LEVEL: info
+      NOOK_LOGGING_FORMAT: console
+      NOOK_LOGGING_OUTPUT_PATH: /data/logs
+      NOOK_LOGGING_MAX_SIZE_MB: "20"
+      NOOK_LOGGING_MAX_BACKUPS: "5"
+      NOOK_LOGGING_MAX_AGE_DAYS: "30"
 
-      MEBOX_DATABASE_TYPE: postgres
-      MEBOX_DATABASE_DSN: postgres://mebox:mebox@postgres:5432/mebox?sslmode=disable
-      MEBOX_DATABASE_DB_PATH: /data/mebox.db
+      NOOK_DATABASE_TYPE: postgres
+      NOOK_DATABASE_DSN: postgres://nook:nook@postgres:5432/nook?sslmode=disable
+      NOOK_DATABASE_DB_PATH: /data/nook.db
 
       # Redis 只做热缓存，源数据仍在 PostgreSQL；Redis 丢失可自动重建。
-      MEBOX_CACHE_REDIS_URL: redis://redis:6379/0
-      MEBOX_CACHE_CACHE_DIR: /cache
+      NOOK_CACHE_REDIS_URL: redis://redis:6379/0
+      NOOK_CACHE_CACHE_DIR: /cache
 
-      MEBOX_UPDATE_IMAGE: ${MEBOX_IMAGE:-ghcr.io/ferrymania/nook:latest}
+      NOOK_UPDATE_IMAGE: ${NOOK_IMAGE:-ghcr.io/ferrymania/nook:latest}
 
       # 路径换算配置。左边宿主机真实路径要和 volumes 左边保持一致。
-      MEBOX_MEDIA_DIR: /media
-      MEBOX_MEDIA_CONTAINER_DIR: /media
-      MEBOX_DOWNLOAD_DIR: /downloads
-      MEBOX_DOWNLOAD_CONTAINER_DIR: /downloads
+      NOOK_MEDIA_DIR: /media
+      NOOK_MEDIA_CONTAINER_DIR: /media
+      NOOK_DOWNLOAD_DIR: /downloads
+      NOOK_DOWNLOAD_CONTAINER_DIR: /downloads
 
-      MEBOX_TRANSCODER_ENABLED: "true"
-      MEBOX_TRANSCODER_HARDWARE_ACCEL: "false"
-      MEBOX_TRANSCODER_REALTIME: "true"
-      MEBOX_TRANSCODER_THREADS: "2"
-      MEBOX_TRANSCODER_MAX_CONCURRENT: "1"
-      MEBOX_TRANSCODER_IDLE_TIMEOUT_SECONDS: "120"
+      NOOK_TRANSCODER_ENABLED: "true"
+      NOOK_TRANSCODER_HARDWARE_ACCEL: "false"
+      NOOK_TRANSCODER_REALTIME: "true"
+      NOOK_TRANSCODER_THREADS: "2"
+      NOOK_TRANSCODER_MAX_CONCURRENT: "1"
+      NOOK_TRANSCODER_IDLE_TIMEOUT_SECONDS: "120"
 
     healthcheck:
       # 不能写死 http://：开启 HTTPS 后 8080 只接受 TLS，固定明文探测会
       # 每轮刷一条 TLS handshake error 并让容器一直 unhealthy。
-      test: ["CMD", "/usr/local/bin/mebox-healthcheck"]
+      test: ["CMD", "/usr/local/bin/nook-healthcheck"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -103,18 +103,18 @@ services:
 
   postgres:
     image: postgres:16-alpine
-    # 首次部署允许拉取；日常更新请只 pull mebox。
+    # 首次部署允许拉取；日常更新请只 pull nook。
     pull_policy: missing
     restart: unless-stopped
     environment:
-      POSTGRES_DB: mebox
-      POSTGRES_USER: mebox
-      POSTGRES_PASSWORD: mebox
+      POSTGRES_DB: nook
+      POSTGRES_USER: nook
+      POSTGRES_PASSWORD: nook
       TZ: Asia/Shanghai
     volumes:
       - ./postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U mebox -d mebox"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U nook -d nook"]
       interval: 10s
       timeout: 5s
       retries: 10

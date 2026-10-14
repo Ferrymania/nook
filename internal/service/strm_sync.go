@@ -19,10 +19,10 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/helper"
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/service/cloud"
-	"github.com/truewhile/MeBox/internal/service/cloud115"
+	"github.com/Ferrymania/nook/internal/helper"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/service/cloud"
+	"github.com/Ferrymania/nook/internal/service/cloud115"
 )
 
 var errFallbackToWalkRemote = errors.New("fallback to walk remote")
@@ -612,7 +612,7 @@ func (st *strmSyncState) isVideoExt(ext string, size int64) bool {
 }
 
 func (st *strmSyncState) isMetaExt(ext string) bool {
-	// Legacy MeBox installs may have persisted strm.meta_ext without img.
+	// Legacy Nook installs may have persisted strm.meta_ext without img.
 	// .img is emitted by the artwork writer as a fallback image container, so
 	// keep accepting existing sidecars without requiring a settings migration.
 	if strings.EqualFold(ext, ".img") {

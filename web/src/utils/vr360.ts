@@ -193,7 +193,7 @@ export function detectVr360Profile(input: Vr360DetectInput): Vr360Detection {
   return { profile: { projection, stereo }, confident }
 }
 
-const VR360_PREF_KEY = 'mebox.player.vr360'
+const VR360_PREF_KEY = 'nook.player.vr360'
 
 export type Vr360Preference = {
   /** 是否按文件名/画幅自动进入 VR 模式；用户可以关掉，避免误判干扰正常播放。 */

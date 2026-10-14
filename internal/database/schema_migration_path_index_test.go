@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // TestAutoMigrateCreatesMediaPathUniqueIndex 守住 media.path 的唯一约束。
@@ -19,7 +19,7 @@ import (
 // 这类行插入直接失败），改由 AutoMigrate 里的 ensureMediaPathIndex 按方言显式
 // 建立。一旦这个调用被漏掉，扫描会静默产生重复的媒体行（同一文件被入库多次）。
 func TestAutoMigrateCreatesMediaPathUniqueIndex(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(filepath.Join(t.TempDir(), "mebox.db")), &gorm.Config{
+	db, err := gorm.Open(sqlite.Open(filepath.Join(t.TempDir(), "nook.db")), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	if err != nil {

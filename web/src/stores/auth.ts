@@ -34,11 +34,11 @@ interface AuthState {
   tokenRefresh: () => Promise<boolean>
 }
 
-export const AUTH_STORAGE_KEY = 'mebox-auth'
+export const AUTH_STORAGE_KEY = 'nook-auth'
 
 // 跨标签页互斥：多个标签页共享同一份 refresh token，
 // 只允许其中一个真正发起刷新。
-const runRefreshExclusive = createBrowserExclusiveRunner('mebox-auth-refresh')
+const runRefreshExclusive = createBrowserExclusiveRunner('nook-auth-refresh')
 
 export const useAuthStore = create<AuthState>()(
   persist(

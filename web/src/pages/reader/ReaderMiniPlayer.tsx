@@ -47,7 +47,7 @@ export function ReaderMiniPlayer() {
         </span>
         <span className="min-w-0">
           <span className="block truncate text-xs font-bold text-[var(--app-text)]">{title || bookName}</span>
-          <span className="block truncate text-[10px] text-[var(--app-muted)]">{bookName || 'MeBox 听书'}</span>
+          <span className="block truncate text-[10px] text-[var(--app-muted)]">{bookName || 'Nook 听书'}</span>
         </span>
       </button>
 

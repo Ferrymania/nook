@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // EmbyRemoteLine 表示同一 Emby 服务器的一条接入线路（内网/外网/CDN 等）。

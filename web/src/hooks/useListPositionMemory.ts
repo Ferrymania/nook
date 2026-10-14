@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 // 列表分页位置（媒体库入口当前页、媒体库已加载页数、货架解锁数量）需要在
 // 进入详情页再返回后依然生效，所以用 sessionStorage 记录，并在内存里留一份
 // 兜底缓存；同一标签页内刷新也仍然记得。
-const LIST_POSITION_PREFIX = 'mebox.listpos.'
+const LIST_POSITION_PREFIX = 'nook.listpos.'
 const positions = new Map<string, number>()
 
 /**

@@ -50,11 +50,11 @@ export function LibraryPage() {
 
   // 排序状态（支持按库记忆）
   const [sortField, setSortField] = useState<SortField>(() => {
-    const saved = localStorage.getItem(`mebox_lib_sort_field_${id}`) || localStorage.getItem('mebox_lib_sort_field')
+    const saved = localStorage.getItem(`nook_lib_sort_field_${id}`) || localStorage.getItem('nook_lib_sort_field')
     return (saved as SortField) || 'title'
   })
   const [sortOrder, setSortOrder] = useState<SortOrder>(() => {
-    const saved = localStorage.getItem(`mebox_lib_sort_order_${id}`) || localStorage.getItem('mebox_lib_sort_order')
+    const saved = localStorage.getItem(`nook_lib_sort_order_${id}`) || localStorage.getItem('nook_lib_sort_order')
     return (saved as SortOrder) || 'asc'
   })
   const [randomSeed, setRandomSeed] = useState(() => Date.now())
@@ -163,11 +163,11 @@ export function LibraryPage() {
     setSortField(field)
     setSortOrder(order)
     if (id) {
-      localStorage.setItem(`mebox_lib_sort_field_${id}`, field)
-      localStorage.setItem(`mebox_lib_sort_order_${id}`, order)
+      localStorage.setItem(`nook_lib_sort_field_${id}`, field)
+      localStorage.setItem(`nook_lib_sort_order_${id}`, order)
     }
-    localStorage.setItem('mebox_lib_sort_field', field)
-    localStorage.setItem('mebox_lib_sort_order', order)
+    localStorage.setItem('nook_lib_sort_field', field)
+    localStorage.setItem('nook_lib_sort_order', order)
   }, [id, loadAll, sortField, sortOrder])
 
   const handleLoadMore = useCallback(() => {

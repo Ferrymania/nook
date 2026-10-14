@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // 正文持久缓存（reader_content_cache.go）的端到端测试：

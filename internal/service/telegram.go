@@ -16,8 +16,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/helper"
-	"github.com/truewhile/MeBox/internal/repository"
+	"github.com/Ferrymania/nook/internal/helper"
+	"github.com/Ferrymania/nook/internal/repository"
 )
 
 // Telegram 通知相关的设置键。全部存在 settings 表，由管理员在「设备与通知」
@@ -472,7 +472,7 @@ func (s *TelegramService) handleUpdate(ctx context.Context, token string, u tele
 	if strings.HasPrefix(strings.ToLower(text), "/start") {
 		if err := s.call(ctx, token, "sendMessage", map[string]any{
 			"chat_id":    chatID,
-			"text":       "MeBox 通知绑定：在网页「个人资料 → Telegram 通知」生成 6 位绑定码，然后发送 <code>/bind 绑定码</code>。",
+			"text":       "Nook 通知绑定：在网页「个人资料 → Telegram 通知」生成 6 位绑定码，然后发送 <code>/bind 绑定码</code>。",
 			"parse_mode": "HTML",
 		}, nil); err != nil {
 			s.warn("telegram /start reply failed", chatID, err)
@@ -484,7 +484,7 @@ func (s *TelegramService) replyBind(ctx context.Context, token, chatID, code str
 	message := ""
 	switch err := s.CompleteBind(ctx, code, chatID); {
 	case err == nil:
-		message = "✅ 绑定成功，之后 MeBox 的账号与设备通知会发到这里。"
+		message = "✅ 绑定成功，之后 Nook 的账号与设备通知会发到这里。"
 	case errors.Is(err, ErrTelegramBindExpired):
 		message = "⌛️ 绑定码已过期，请在网页重新生成。"
 	case errors.Is(err, ErrTelegramBindInvalid):

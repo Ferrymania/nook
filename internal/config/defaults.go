@@ -26,7 +26,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("app.server_url", "")
 
 	v.SetDefault("database.type", "auto")
-	v.SetDefault("database.db_path", "./data/mebox.db")
+	v.SetDefault("database.db_path", "")
 	v.SetDefault("database.dsn", "")
 	v.SetDefault("database.wal_mode", true)
 	v.SetDefault("database.busy_timeout", 5000)
@@ -50,7 +50,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("cache.images_originals_ttl_hours", 168)
 	v.SetDefault("cache.memory_max_size_mb", DefaultCacheMemoryMaxSizeMB)
 	v.SetDefault("cache.redis_url", "")
-	v.SetDefault("cache.redis_prefix", "mebox")
+	v.SetDefault("cache.redis_prefix", "nook")
 	v.SetDefault("cache.media_ttl_seconds", 90)
 	v.SetDefault("cache.emby_latest_ttl_seconds", 300)
 	v.SetDefault("cache.reader_content_max_size_mb", 1024)
@@ -59,7 +59,7 @@ func setDefaults(v *viper.Viper) {
 
 	v.SetDefault("search.backend", "")
 	v.SetDefault("search.opensearch_url", "")
-	v.SetDefault("search.index", "mebox_media")
+	v.SetDefault("search.index", "nook_media")
 	v.SetDefault("search.username", "")
 	v.SetDefault("search.password", "")
 
@@ -72,7 +72,7 @@ func setDefaults(v *viper.Viper) {
 
 	v.SetDefault("flaresolverr.enabled", false)
 	v.SetDefault("flaresolverr.url", "http://localhost:8191")
-	v.SetDefault("flaresolverr.session", "mebox")
+	v.SetDefault("flaresolverr.session", "nook")
 	v.SetDefault("flaresolverr.timeout", 60)
 
 	v.SetDefault("downloads.smart_classify", true)

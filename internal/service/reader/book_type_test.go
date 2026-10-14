@@ -14,10 +14,10 @@ import (
 //   - ruleBookInfo.init 是 `<js>…</js>$.data` 组合规则，它的结果会成为后续
 //     name/author/tocUrl 的解析内容（对应 legado
 //     `analyzeRule.setContent(analyzeRule.getElement(infoRule.init))`）。
-//     MeBox 早期把 init 结果当成 JSON 解析 map 再按写死的键名取值，导致
+//     Nook 早期把 init 结果当成 JSON 解析 map 再按写死的键名取值，导致
 //     详情页「书名/作者为空、目录 0 章」。
 //   - 书源在目录规则里用 legado 的 BookType 位掩码给 book.type 赋值
-//     （8=文本 32=音频 64=图片 4=视频），而 MeBox 用 0/1/2/3，必须换算，
+//     （8=文本 32=音频 64=图片 4=视频），而 Nook 用 0/1/2/3，必须换算，
 //     否则听书源会被当成文本，正文渲染成一串裸 URL。
 
 // TestBookInfoInitResultBecomesContent init 的结果要成为后续字段的解析内容。
@@ -67,7 +67,7 @@ func TestBookInfoInitResultBecomesContent(t *testing.T) {
 	}
 }
 
-// TestNormalizeBookType 把 legado 的 BookType 位掩码换算成 MeBox 的 0/1/2/3。
+// TestNormalizeBookType 把 legado 的 BookType 位掩码换算成 Nook 的 0/1/2/3。
 func TestNormalizeBookType(t *testing.T) {
 	cases := map[int]int{
 		0:  0, // 未知/默认 → 文本

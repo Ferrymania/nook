@@ -29,12 +29,12 @@ import (
 
 // dandanplayObfuscationKey 是解开内置凭据的 XOR 混淆密钥。它与密文
 // 同处一个二进制，仅作提取门槛，不作安全边界。
-const dandanplayObfuscationKey = "MeBox-Danmaku#2026!v2"
+const dandanplayObfuscationKey = "Nook-Danmaku#2026!v2"
 
 // 内置回退凭据（XOR 混淆后的 hex 编码）。
 const (
-	danmakuEmbeddedAppIDHex  = "350432560a153452095e"
-	danmakuEmbeddedAppKeyHex = "74111b564d5b1256141907594149677a5c717721550535331c0e4327071d0b2c"
+	danmakuEmbeddedAppIDHex  = "360e1f525f7c115d0a52"
+	danmakuEmbeddedAppKeyHex = "771b36521832375917150d47175865785866206529273f1a5e320f0d0b120d38"
 )
 
 // danmakuEmbeddedCredentials 解出内置回退凭据。

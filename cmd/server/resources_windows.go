@@ -7,5 +7,5 @@ package main
 //
 //	go generate ./cmd/server
 //
-//go:generate go run github.com/akavel/rsrc@v0.10.2 -arch amd64 -ico ../../internal/brand/logo.ico -manifest winres/mebox.manifest -o rsrc_windows_amd64.syso
-//go:generate go run github.com/akavel/rsrc@v0.10.2 -arch arm64 -ico ../../internal/brand/logo.ico -manifest winres/mebox.manifest -o rsrc_windows_arm64.syso
+//go:generate go run github.com/akavel/rsrc@v0.10.2 -arch amd64 -ico ../../internal/brand/logo.ico -manifest winres/nook.manifest -o rsrc_windows_amd64.syso
+//go:generate go run github.com/akavel/rsrc@v0.10.2 -arch arm64 -ico ../../internal/brand/logo.ico -manifest winres/nook.manifest -o rsrc_windows_arm64.syso

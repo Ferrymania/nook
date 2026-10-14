@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // Emby 发现类接口：NextUp / Similar / Genres。
@@ -99,7 +99,7 @@ func (e *EmbyService) nextUpForSeries(ctx context.Context, userID, seriesID stri
 	}, nil
 }
 
-// nextUpForRemoteSeries 用 MeBox 本地播放历史在远程剧的分集里找「下一集」。
+// nextUpForRemoteSeries 用 Nook 本地播放历史在远程剧的分集里找「下一集」。
 // 不透传远程账号的 NextUp，避免多用户共用挂载账号时串进度。
 func (e *EmbyService) nextUpForRemoteSeries(ctx context.Context, userID, seriesID string, limit int) (map[string]any, error) {
 	if e == nil || e.remote == nil || strings.TrimSpace(userID) == "" {

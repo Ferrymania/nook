@@ -23,8 +23,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/repository"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
 )
 
 // NFOService is the entry point used by the admin "导出 NFO" action.
@@ -49,7 +49,7 @@ type movieNFO struct {
 	Poster   string   `xml:"thumb,omitempty"`
 	Fanart   string   `xml:"fanart,omitempty"`
 	TMDb     int      `xml:"tmdbid,omitempty"`
-	// UniqueIDs 让 sidecar 能把 MeBox 自己用的外部 ID 原样带回来。缺了它，
+	// UniqueIDs 让 sidecar 能把 Nook 自己用的外部 ID 原样带回来。缺了它，
 	// 「在线刮削 → 写 NFO → 重扫读 NFO」会丢掉 douban/thetvdb（成人条目借用
 	// 这两个字段存番号/provider），同一部片的两条来源就会算出不同的版本键。
 	UniqueIDs []nfoUniqueID `xml:"uniqueid,omitempty"`
@@ -251,7 +251,7 @@ func splitNFOList(value string) []string {
 	return out
 }
 
-// nfoExternalUniqueIDs 把 MeBox 使用的外部 ID 写进 sidecar，供自己重扫时读回
+// nfoExternalUniqueIDs 把 Nook 使用的外部 ID 写进 sidecar，供自己重扫时读回
 // （metadataFromDoc 会按 type 还原成 bangumi/douban/thetvdb 字段）。
 // TMDb 走 <tmdbid>，单集 NFO 不写唯一 ID：单集 ID 属于单集，写进整剧身份会把
 // 同一部剧拆成多张卡（见 mergeEpisodeMetadata 的约束说明）。

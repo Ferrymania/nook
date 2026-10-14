@@ -14,8 +14,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/service/cloud"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/service/cloud"
 )
 
 // ErrStrmPlayNotFound 表示 strm 播放目标不存在（handler 返回 404）。
@@ -121,7 +121,7 @@ func (s *StrmService) resolveLocalPlay(ctx context.Context, rawPath string) (*St
 // 支持：
 //   - /api/strm/play/{provider}/video{ext}?acct=..&pickcode=.. （常规格式，含账号）
 //   - /api/cloud/play/{type}?ref=.. （旧格式，无账号 → 取该类型第一个启用账号）
-//   - 绝对 http(s) 链接（直接透传，包含别的 MeBox / MediaStationGo 实例的播放端点）
+//   - 绝对 http(s) 链接（直接透传，包含别的 Nook / MediaStationGo 实例的播放端点）
 //   - 其余协议（webdav:// 等）返回错误，由调用方决定是否静默跳过
 func (s *StrmService) ResolvePlayTarget(ctx context.Context, raw string) (*StrmPlayResult, error) {
 	return s.ResolvePlayTargetWithUA(ctx, raw, "")
@@ -142,7 +142,7 @@ func (s *StrmService) ResolvePlayTargetWithUA(ctx context.Context, raw, userAgen
 	if err != nil {
 		return nil, fmt.Errorf("解析播放目标失败: %w", err)
 	}
-	// 别的 MeBox / MediaStationGo 实例的播放端点：本机没有对应账号，按普通外部
+	// 别的 Nook / MediaStationGo 实例的播放端点：本机没有对应账号，按普通外部
 	// 直链处理——客户端与 ffmpeg 直接跟随 302 去对方实例取流（/api/strm/play 是
 	// 公开端点，不需要本机凭据），不能拿本机账号去查别人的 pickcode。
 	if isPlaybackAPIPath(u.Path) && !s.isLocalPlaybackTarget(ctx, raw) {

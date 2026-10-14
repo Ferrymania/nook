@@ -83,11 +83,11 @@ export function LayoutHeader({
         <Link to="/" className={`flex items-center gap-2.5 transition-transform hover:scale-105 ${showSidebar ? 'lg:hidden' : 'hidden sm:flex'}`}>
           <img
             src="/brand/logo-192.png"
-            alt="MeBox"
+            alt="Nook"
             className="h-9 w-9 rounded-xl object-contain shadow-sm"
           />
           <span className="hidden font-display text-lg font-black tracking-tight text-[var(--app-text)] sm:inline-block">
-            MeBox
+            Nook
           </span>
         </Link>
       </div>

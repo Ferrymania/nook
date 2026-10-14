@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // TestNormalizeCloudPlayTarget 验证存库的云盘播放 URL（可能携带扫描时的旧 host）
@@ -51,7 +51,7 @@ func TestNormalizeCloudPlayTarget(t *testing.T) {
 	}
 }
 
-// TestNormalizeCloudPlayTargetKeepsForeignInstanceURL 验证别的 MeBox /
+// TestNormalizeCloudPlayTargetKeepsForeignInstanceURL 验证别的 Nook /
 // MediaStationGo 实例生成的 .strm 内容不被本机账号解析，而是按第三方直链透传。
 func TestNormalizeCloudPlayTargetKeepsForeignInstanceURL(t *testing.T) {
 	svc := testStrmService(t)
@@ -66,10 +66,10 @@ func TestNormalizeCloudPlayTargetKeepsForeignInstanceURL(t *testing.T) {
 	if err := svc.repo.StrmAccount.Create(ctx, own); err != nil {
 		t.Fatal(err)
 	}
-	req := httptest.NewRequest(http.MethodGet, "http://mebox.local/api/stream/media-1", nil)
+	req := httptest.NewRequest(http.MethodGet, "http://nook.local/api/stream/media-1", nil)
 
 	// host 不认识 + acct 不是本机账号 → 另一个实例的 .strm，原样透传。
-	foreign := "http://other-mebox.example:18080/api/strm/play/cloud115/video.mkv?acct=acct-other&pickcode=xyz"
+	foreign := "http://other-nook.example:18080/api/strm/play/cloud115/video.mkv?acct=acct-other&pickcode=xyz"
 	if got := normalizeCloudPlayTarget(ctx, svc.repo, nil, req, foreign); got != foreign {
 		t.Fatalf("foreign instance url should pass through, got %q", got)
 	}
@@ -82,7 +82,7 @@ func TestNormalizeCloudPlayTargetKeepsForeignInstanceURL(t *testing.T) {
 	}
 
 	// acct 撞上本机账号 ID 但账号类型与路径 provider 不一致：不算本机。
-	wrongProvider := "http://other-mebox.example/api/strm/play/openlist/video.mkv?acct=acct-own-115&pickcode=123"
+	wrongProvider := "http://other-nook.example/api/strm/play/openlist/video.mkv?acct=acct-own-115&pickcode=123"
 	if got := normalizeCloudPlayTarget(ctx, svc.repo, nil, req, wrongProvider); got != wrongProvider {
 		t.Fatalf("provider mismatch should pass through, got %q", got)
 	}
@@ -94,7 +94,7 @@ func TestNormalizeCloudPlayTargetKeepsForeignInstanceURL(t *testing.T) {
 func TestNormalizeCloudPlayTargetLegacyCloudURL(t *testing.T) {
 	svc := testStrmService(t)
 	ctx := context.Background()
-	req := httptest.NewRequest(http.MethodGet, "http://mebox.local/api/stream/media-1", nil)
+	req := httptest.NewRequest(http.MethodGet, "http://nook.local/api/stream/media-1", nil)
 	ref := "/Movies/Movie.mkv"
 	legacy := "http://old-host:9011/api/cloud/play/openlist?ref=" + url.QueryEscape(ref)
 

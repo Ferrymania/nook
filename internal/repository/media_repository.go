@@ -9,7 +9,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // MediaRepository persists model.Media records.
@@ -371,7 +371,7 @@ func (r *MediaRepository) listByLibrariesFiltered(ctx context.Context, libraryID
 
 type rankedMediaRow struct {
 	model.Media
-	MmtlRN int `gorm:"column:mebox_rn"`
+	MmtlRN int `gorm:"column:nook_rn"`
 }
 
 // ListRecentByLibraries returns up to perLibrary recent items for each library
@@ -403,11 +403,11 @@ func (r *MediaRepository) ListRecentByLibraries(ctx context.Context, libraryIDs 
 			SELECT *, ROW_NUMBER() OVER (
 				PARTITION BY library_id
 				ORDER BY release_date DESC, year DESC, updated_at DESC, created_at DESC, id DESC
-			) AS mebox_rn
+			) AS nook_rn
 			FROM media
 			WHERE %s
 		) ranked
-		WHERE mebox_rn <= ?
+		WHERE nook_rn <= ?
 	`, where)
 
 	var rows []rankedMediaRow

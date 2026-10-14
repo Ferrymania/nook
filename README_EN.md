@@ -1,7 +1,7 @@
-# MeBox
+# Nook
 
 <p align="center">
-  <img src="web/public/brand/logo-192.png" width="96" height="96" alt="MeBox Logo" />
+  <img src="web/public/brand/logo-192.png" width="96" height="96" alt="Nook Logo" />
 </p>
 
 <h3 align="center">A self-hosted media center for NAS and home theater</h3>
@@ -17,7 +17,7 @@
   <a href="#deployment-tiers">Deployment</a> ·
   <a href="#acknowledgements">Acknowledgements</a> ·
   <a href="#development">Development</a> ·
-  <a href="https://t.me/MeBoxGroup">Telegram</a>
+  <a href="https://github.com/Ferrymania/nook">Project home</a>
 </p>
 
 <p align="center">
@@ -31,9 +31,9 @@
 
 ## Overview
 
-**MeBox** is a self-hosted private media management system for NAS, mini PCs, family sharing, and multi-device playback. This repository is a maintained fork of [MediaStationGo](https://github.com/ShukeBta/MediaStationGo), extended with stronger cloud playback, task queues, remote mounts, and permission controls.
+**Nook** is a self-hosted private media management system for NAS, mini PCs, family sharing, and multi-device playback. This repository is a maintained fork of [MediaStationGo](https://github.com/ShukeBta/MediaStationGo), extended with stronger cloud playback, task queues, remote mounts, and permission controls.
 
-In practice, MeBox gives you:
+In practice, Nook gives you:
 
 - A modern **web media library**
 - An **Emby/Jellyfin-compatible protocol gateway** for third-party players
@@ -46,8 +46,8 @@ In practice, MeBox gives you:
 | **Libraries** | Movies, TV, anime, variety, music, custom libraries; multi-root scanning; poster wall; continue watching |
 | **Metadata** | TMDb, Bangumi, Douban, TheTVDB, Fanart, NFO import, manual matching, scrape queue |
 | **Playback** | Web player, HLS transcoding, danmaku, subtitles, play profiles, history and favourites |
-| **Emby/Jellyfin client compatible** | Full Emby server protocol implementation: Infuse, SenPlayer, Fileball, and official Emby/Jellyfin clients can add MeBox as an Emby server and sign in with MeBox accounts — poster walls, watch progress, and multi-user work out of the box |
-| **Remote Emby mounts** | Browse remote Emby libraries inside MeBox without a separate Emby client |
+| **Emby/Jellyfin client compatible** | Full Emby server protocol implementation: Infuse, SenPlayer, Fileball, and official Emby/Jellyfin clients can add Nook as an Emby server and sign in with Nook accounts — poster walls, watch progress, and multi-user work out of the box |
+| **Remote Emby mounts** | Browse remote Emby libraries inside Nook without a separate Emby client |
 | **Cloud & STRM** | OpenList, CloudDrive2, 115, WebDAV; STRM sync; upload/download queues; direct or 302 playback |
 | **Downloads & organize** | Scheduled download-folder organization (smart classification, auto library registration), file manager (copy/move/hardlink/symlink) |
 | **Users & permissions** | Admin/regular users, expiry, NSFW toggle, play-profile PIN, granular permissions |
@@ -66,13 +66,13 @@ In practice, MeBox gives you:
 Docker Compose is the recommended path. The repo ships four **standalone** templates; no `.env` is required.
 
 ```bash
-mkdir -p MeBox && cd MeBox
+mkdir -p Nook && cd Nook
 
 # Simplest: one container with built-in SQLite
-curl -fsSL https://raw.githubusercontent.com/truewhile/MeBox/main/docker-compose.simple.yml -o docker-compose.yml
+curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose.simple.yml -o docker-compose.yml
 
 # Or PostgreSQL tier for multi-user setups
-# curl -fsSL https://raw.githubusercontent.com/truewhile/MeBox/main/docker-compose.yml -o docker-compose.yml
+# curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose.yml -o docker-compose.yml
 
 docker compose up -d
 ```
@@ -85,13 +85,15 @@ http://SERVER_IP:18080
 
 Default login: `admin` / `admin123` — change the password immediately.
 
-> 💡 **Seamless for Emby users**: MeBox fully implements the Emby/Jellyfin client protocol. Infuse, SenPlayer, Fileball, and official Emby/Jellyfin apps on phones, TVs, and tablets can add it as an Emby server at `http://SERVER_IP:18080` and sign in with MeBox accounts — no change to your existing workflow.
+> 💡 **Seamless for Emby users**: Nook fully implements the Emby/Jellyfin client protocol. Infuse, SenPlayer, Fileball, and official Emby/Jellyfin apps on phones, TVs, and tablets can add it as an Emby server at `http://SERVER_IP:18080` and sign in with Nook accounts — no change to your existing workflow.
 
 Image:
 
 ```text
-ghcr.io/truewhile/mebox:latest
+ghcr.io/ferrymania/nook:latest
 ```
+
+For existing installations, keep the PostgreSQL credentials and data directories. Legacy `MEBOX_*` settings remain supported; see the [upgrade notes](docs/fork-media-fixes.md#nook-命名与旧安装升级).
 
 ---
 
@@ -101,22 +103,22 @@ Pick one compose file. Do **not** stack multiple `-f` files.
 
 | Tier | File | Stack | Best for |
 | --- | --- | --- | --- |
-| Single image | `docker-compose.simple.yml` | MeBox + SQLite | Beginners, single-user, low-resource NAS |
-| Tier 1 | `docker-compose.yml` | MeBox + PostgreSQL | Most home NAS deployments |
+| Single image | `docker-compose.simple.yml` | Nook + SQLite | Beginners, single-user, low-resource NAS |
+| Tier 1 | `docker-compose.yml` | Nook + PostgreSQL | Most home NAS deployments |
 | Tier 2 | `docker-compose.standard.yml` | + Redis | Multi-user, frequent Emby client refreshes |
 | Tier 3 | `docker-compose.search.yml` | + OpenSearch | Very large libraries, advanced full-text search |
 
 ### Single-image notes
 
-- Only one MeBox container; database lives in `./data/mebox.db`
-- Do **not** set `MEBOX_DATABASE_DSN` or it switches to PostgreSQL
+- Only one Nook container; database lives in `./data/nook.db`
+- Do **not** set `NOOK_DATABASE_DSN` or it switches to PostgreSQL
 - Back up `./data`; `./cache` can be rebuilt
 
 ### PostgreSQL notes
 
 - Primary DB: `./postgres`; secrets and runtime files: `./data`
-- Existing `./data/mebox.db` migrates automatically on first start
-- After migration, point `MEBOX_DATABASE_DB_PATH` at a non-existent file to disable re-checks
+- Existing `./data/nook.db` migrates automatically on first start
+- After migration, point `NOOK_DATABASE_DB_PATH` at a non-existent file to disable re-checks
 
 ### Backup
 
@@ -129,8 +131,8 @@ Pick one compose file. Do **not** stack multiple `-f` files.
 ### Update
 
 ```bash
-docker compose pull mebox
-docker compose up -d --no-deps mebox
+docker compose pull nook
+docker compose up -d --no-deps nook
 ```
 
 ---
@@ -141,7 +143,7 @@ The most common Docker mistake is mixing host paths with container paths.
 
 - Left side of `volumes` = real host/NAS path
 - Right side = container path; use `/media/...` in the web UI
-- Keep `MEBOX_MEDIA_DIR` / `MEBOX_DOWNLOAD_DIR` aligned with mounts when organizing or ingesting downloads
+- Keep `NOOK_MEDIA_DIR` / `NOOK_DOWNLOAD_DIR` aligned with mounts when organizing or ingesting downloads
 
 Example:
 
@@ -150,10 +152,10 @@ volumes:
   - /vol1/1000/Media:/media
   - /vol1/1000/Downloads:/downloads
 environment:
-  MEBOX_MEDIA_DIR: /vol1/1000/Media
-  MEBOX_MEDIA_CONTAINER_DIR: /media
-  MEBOX_DOWNLOAD_DIR: /vol1/1000/Downloads
-  MEBOX_DOWNLOAD_CONTAINER_DIR: /downloads
+  NOOK_MEDIA_DIR: /vol1/1000/Media
+  NOOK_MEDIA_CONTAINER_DIR: /media
+  NOOK_DOWNLOAD_DIR: /vol1/1000/Downloads
+  NOOK_DOWNLOAD_CONTAINER_DIR: /downloads
 ```
 
 ---
@@ -164,7 +166,7 @@ environment:
 2. Add metadata providers (TMDb, Bangumi, etc.) in system settings
 3. Optionally set up download-folder auto-organization under file management so finished downloads land in the right library
 4. Optionally configure cloud accounts under STRM management
-5. Add the server in Emby-compatible players at `http://SERVER_IP:18080` using MeBox credentials
+5. Add the server in Emby-compatible players at `http://SERVER_IP:18080` using Nook credentials
 
 ---
 
@@ -174,13 +176,13 @@ environment:
 Check path mapping and DB tier. Cloud scans also depend on API limits and folder size.
 
 **Downloaded files are not organized**  
-Ensure the download directory is mounted into the container and env vars match. MeBox handles folder organization; run qBittorrent or any downloader yourself as a regular app.
+Ensure the download directory is mounted into the container and env vars match. Nook handles folder organization; run qBittorrent or any downloader yourself as a regular app.
 
 **Hardlink fails with cross-device link**  
 Hardlinks require the same filesystem/subvolume; use copy or symlink across disks or cloud mounts.
 
 **External player cannot connect**  
-Use `http://IP:18080` and a MeBox user account; reverse proxies need correct external URL and HTTPS headers.
+Use `http://IP:18080` and a Nook user account; reverse proxies need correct external URL and HTTPS headers.
 
 ---
 
@@ -205,13 +207,13 @@ Build the Windows executable locally:
 .\scripts\build-windows.ps1 -Version dev
 ```
 
-The Windows executable uses the project logo and runs without a console window. It stays in the notification area, with menu actions for opening MeBox, toggling auto-start, viewing logs, restarting, and exiting.
+The Windows executable uses the project logo and runs without a console window. It stays in the notification area, with menu actions for opening Nook, toggling auto-start, viewing logs, restarting, and exiting.
 
 ---
 
 ## Acknowledgements
 
-MeBox is forked from and continues to evolve [MediaStationGo](https://github.com/ShukeBta/MediaStationGo). Thank you to the upstream project for the media-library architecture, Emby-protocol compatibility, and self-hosted foundation.
+Nook is maintained as a fork of [MeBox](https://github.com/truewhile/MeBox), which builds on [MediaStationGo](https://github.com/ShukeBta/MediaStationGo). Thank you to the upstream project for the media-library architecture, Emby-protocol compatibility, and self-hosted foundation.
 
 Many cloud sync, STRM, and media-organization ideas in this project were also informed by [qmediasync](https://github.com/qicfan/qmediasync). Thank you for the reference implementation and design patterns.
 
@@ -225,11 +227,11 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md) before ope
 
 ## Star History
 
-<a href="https://www.star-history.com/?repos=truewhile%2FMeBox&type=date&legend=top-left">
+<a href="https://www.star-history.com/?repos=Ferrymania%2Fnook&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=truewhile/MeBox&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=truewhile/MeBox&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=truewhile/MeBox&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=Ferrymania/nook&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=Ferrymania/nook&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=Ferrymania/nook&type=date&legend=top-left" />
  </picture>
 </a>
 
@@ -238,18 +240,3 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md) before ope
 ## License
 
 This project is licensed under [GPL-3.0](LICENSE).
-
----
-
-## Support & Donate
-
-If MeBox makes your home theater life easier, feel free to buy the maintainer a coffee ☕
-
-<p align="center">
-  <img src="docs/images/donation-qr.png" width="320" alt="WhileTrue donation QR" />
-</p>
-
-<p align="center">
-  <strong>Telegram group</strong>: <a href="https://t.me/MeBoxGroup">https://t.me/MeBoxGroup</a><br/>
-  Questions, feature requests, and release news — come chat with us
-</p>

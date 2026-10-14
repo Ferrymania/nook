@@ -1,5 +1,5 @@
 blank_issues_enabled: true
 contact_links:
-  - name: Telegram MeBox 交流群
-    url: https://t.me/MeBox
-    about: 适合快速交流部署经验、使用问题和排查线索。
+  - name: Nook 项目主页
+    url: https://github.com/Ferrymania/nook
+    about: 查看代码、发布版本和维护说明。

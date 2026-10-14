@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/service/cloud"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/service/cloud"
 )
 
 func TestManualProbeResolvesSTRMAndExposesMetadata(t *testing.T) {

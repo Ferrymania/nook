@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // newTocFallbackBook 建一本书架记录：只存 book_url，toc_url 留空，

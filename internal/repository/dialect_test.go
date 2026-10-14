@@ -36,7 +36,7 @@ func TestSegmentPrewarmQueryBindsBooleanFound(t *testing.T) {
 // 搜索词在两种方言下必须给出同样的结果集，PostgreSQL 必须走 ILIKE。
 func TestLikeOperatorMatchesSQLiteCaseInsensitivity(t *testing.T) {
 	pg, err := gorm.Open(postgres.New(postgres.Config{
-		DSN: "postgres://mebox:mebox@127.0.0.1:5432/mebox?sslmode=disable",
+		DSN: "postgres://nook:nook@127.0.0.1:5432/nook?sslmode=disable",
 	}), &gorm.Config{
 		DryRun:                 true,
 		DisableAutomaticPing:   true,

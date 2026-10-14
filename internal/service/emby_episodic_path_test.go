@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // TestLikelyEpisodicPathSQLNormalisesSeparator 守住剧集路径判定的转义差异。

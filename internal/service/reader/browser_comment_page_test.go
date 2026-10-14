@@ -9,7 +9,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/service/reader/rule"
+	"github.com/Ferrymania/nook/internal/service/reader/rule"
 )
 
 // 本文件：段落评论翻页适配（browser_comment_page.go）的测试。

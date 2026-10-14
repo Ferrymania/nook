@@ -11,7 +11,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/config"
+	"github.com/Ferrymania/nook/internal/config"
 )
 
 // 远程 Emby 的并发闸门必须真的把在途请求数压在上限之内：第三方客户端首页会为

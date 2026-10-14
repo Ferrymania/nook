@@ -13,7 +13,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/config"
+	"github.com/Ferrymania/nook/internal/config"
 )
 
 func newUpstreamImageProxy(t *testing.T, allowedHosts ...string) *ImageProxy {
@@ -123,7 +123,7 @@ func clientNames(clients []remoteImageFetchClient) []string {
 }
 
 // TestServeRemoteImageForwardsResizeAndCachesPerSize is the regression test for
-// sluggish artwork on mounted Emby libraries: MeBox used to download the remote
+// sluggish artwork on mounted Emby libraries: Nook used to download the remote
 // original and scale it locally for every requested size. The size must now be
 // forwarded to the mount, and each size must get its own cache entry.
 func TestServeRemoteImageForwardsResizeAndCachesPerSize(t *testing.T) {

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.6
 # =============================================================================
-# Multi-architecture build for MeBox.
+# Multi-architecture build for Nook.
 #
 # Stage 1 (frontend) :  Node 20.19+ -> static SPA bundle
 # Stage 2 (backend)  :  Go 1.26  -> single static binary (CGO_ENABLED=0)
@@ -8,7 +8,7 @@
 #
 # Build:
 #   docker buildx build --platform linux/amd64,linux/arm64 \
-#     --build-arg VERSION=MeBox-v0.1.16 -t mebox:latest --push .
+#     --build-arg VERSION=nook-v0.0.2 -t nook:latest --push .
 #
 # Optional Intel VAAPI/QSV runtime packages:
 #   docker buildx build --build-arg WITH_VAAPI=true ...
@@ -39,7 +39,7 @@ COPY . .
 COPY --from=frontend /app/web/dist ./web/dist
 RUN --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
-    go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o mebox ./cmd/server
+    go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o nook ./cmd/server
 
 # ---- Stage 3: runtime ------------------------------------------------------
 FROM alpine:3.23
@@ -64,35 +64,29 @@ RUN apk add --no-cache \
     && rm -rf /var/cache/apk/*
 
 # Non-root user for the long-running process.
-RUN addgroup -S mebox && adduser -S mebox -G mebox
+RUN addgroup -S nook && adduser -S nook -G nook
 
 WORKDIR /app
-COPY --from=backend /app/mebox /usr/local/bin/mebox
+COPY --from=backend /app/nook /usr/local/bin/nook
 COPY --from=frontend /app/web/dist /app/web/dist
 
 RUN mkdir -p /data /cache /media \
-    && chown -R mebox:mebox /data /cache /media
+    && chown -R nook:nook /data /cache /media
 
-# Default environment (overridable via docker-compose / `docker run -e`).
-ENV MEBOX_APP_PORT=8080 \
-    MEBOX_APP_DATA_DIR=/data \
-    MEBOX_APP_WEB_DIR=/app/web/dist \
-    MEBOX_DATABASE_DB_PATH=/data/mebox.db \
-    MEBOX_CACHE_CACHE_DIR=/cache \
-    MEBOX_LOGGING_LEVEL=info \
-    TZ=Asia/Shanghai
+# Entrypoint supplies defaults after resolving new and legacy variables.
+ENV TZ=Asia/Shanghai
 
 EXPOSE 8080
 
 # 探测协议不能写死：开启 HTTPS 后 8080 只接受 TLS。脚本按数据目录里的
 # .http_scheme 选择协议并在失败时回退，无需用户改配置。
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD ["/usr/local/bin/mebox-healthcheck"]
+    CMD ["/usr/local/bin/nook-healthcheck"]
 
 # Tiny entrypoint that lets us run as a NAS host UID/GID via PUID/PGID without
 # rewriting /etc/passwd or /etc/group on every container start.
 COPY docker-entrypoint.sh /entrypoint.sh
-COPY docker-healthcheck.sh /usr/local/bin/mebox-healthcheck
-RUN chmod +x /entrypoint.sh /usr/local/bin/mebox-healthcheck
+COPY docker-healthcheck.sh /usr/local/bin/nook-healthcheck
+RUN chmod +x /entrypoint.sh /usr/local/bin/nook-healthcheck
 
 CMD ["/entrypoint.sh"]

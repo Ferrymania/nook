@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/config"
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/service/cloud"
+	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/service/cloud"
 )
 
 func TestBuildFFmpegArgs(t *testing.T) {
@@ -171,13 +171,13 @@ func TestBuildFFmpegArgsHTTPInputReconnect(t *testing.T) {
 	cfg.Transcoder.SegmentSeconds = 4
 	args := buildFFmpegArgsForInput(cfg, transcodeInput{
 		Source:  "https://cdn.example.com/a.wmv",
-		Headers: map[string]string{"User-Agent": "MeBox", "Referer": "https://cdn.example.com/"},
+		Headers: map[string]string{"User-Agent": "Nook", "Referer": "https://cdn.example.com/"},
 	}, "/o/x.m3u8", "/o/seg_%05d.ts")
 	joined := strings.Join(args, " ")
 	if !strings.Contains(joined, "-reconnect") || !strings.Contains(joined, "-headers") {
 		t.Fatalf("expected http reconnect/headers, got: %s", joined)
 	}
-	if !strings.Contains(joined, "User-Agent: MeBox") || !strings.Contains(joined, "Referer: https://cdn.example.com/") {
+	if !strings.Contains(joined, "User-Agent: Nook") || !strings.Contains(joined, "Referer: https://cdn.example.com/") {
 		t.Fatalf("expected request headers, got: %s", joined)
 	}
 	idxI, idxH := -1, -1

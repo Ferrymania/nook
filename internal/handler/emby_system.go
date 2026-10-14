@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/truewhile/MeBox/internal/service"
+	"github.com/Ferrymania/nook/internal/service"
 )
 
 func embySystemInfoHandler(svc *service.Container) gin.HandlerFunc {
@@ -84,9 +84,9 @@ func embyPublicSystemInfoPayload(c *gin.Context, svc *service.Container) map[str
 		return embyWithRequestAddress(c, svc.Emby.SystemInfoPublic())
 	}
 	return embyWithRequestAddress(c, map[string]any{
-		"Id":                     "mebox-001",
-		"ServerId":               "mebox-001",
-		"ServerName":             "MeBox",
+		"Id":                     "nook-001",
+		"ServerId":               "nook-001",
+		"ServerName":             "Nook",
 		"Version":                "4.8.10.0",
 		"ServerVersion":          "4.8.10.0",
 		"ProductName":            "Emby Server",

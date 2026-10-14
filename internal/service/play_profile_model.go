@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // PlayProfileInput is the create/update payload accepted by the API.

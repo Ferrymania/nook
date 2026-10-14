@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/service/reader/rule"
+	"github.com/Ferrymania/nook/internal/service/reader/rule"
 )
 
 // 本文件：响应 Set-Cookie 回写会话的回归测试（cookies.go）。

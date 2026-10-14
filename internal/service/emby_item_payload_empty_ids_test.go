@@ -3,7 +3,7 @@ package service
 import (
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // Emby/Jellyfin 对「不适用」的字段不下发（JSON 里没有该键），而不是下发空串。

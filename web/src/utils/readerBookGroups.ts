@@ -23,8 +23,8 @@ export type BookGroupTab = {
   kind: 'all' | 'ungrouped' | 'group'
 }
 
-const STORAGE_KEY = 'mebox_reader_book_groups'
-const SELECTED_KEY = 'mebox_reader_book_group_selected'
+const STORAGE_KEY = 'nook_reader_book_groups'
+const SELECTED_KEY = 'nook_reader_book_group_selected'
 
 /** 分组名去空白并按字符数截断，与后端清洗规则一致。 */
 export function normalizeBookGroupName(name: string): string {

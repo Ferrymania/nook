@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // 同源转发必须原样保留 Range 语义：把 206 改写成 200 会让浏览器误判响应长度，
@@ -33,7 +33,7 @@ func TestProxyMediaDirectForwardsRangeAndStatus(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/stream/media-1?proxy=1", nil)
 	req.Header.Set("Range", "bytes=10-19")
-	req.Header.Set("User-Agent", "MeBoxTest/1.0")
+	req.Header.Set("User-Agent", "NookTest/1.0")
 
 	if err := svc.ProxyMediaDirect(context.Background(), rec, req, media); err != nil {
 		t.Fatalf("ProxyMediaDirect: %v", err)
@@ -44,8 +44,8 @@ func TestProxyMediaDirectForwardsRangeAndStatus(t *testing.T) {
 	if gotRange != "bytes=10-19" {
 		t.Fatalf("upstream Range = %q, want bytes=10-19", gotRange)
 	}
-	if gotUA != "MeBoxTest/1.0" {
-		t.Fatalf("upstream User-Agent = %q, want MeBoxTest/1.0", gotUA)
+	if gotUA != "NookTest/1.0" {
+		t.Fatalf("upstream User-Agent = %q, want NookTest/1.0", gotUA)
 	}
 	if rec.Header().Get("Content-Range") != "bytes 10-19/100" {
 		t.Fatalf("Content-Range = %q", rec.Header().Get("Content-Range"))

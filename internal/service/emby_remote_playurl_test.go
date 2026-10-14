@@ -3,7 +3,7 @@ package service
 import (
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // rewriteSubtitleDeliveryURLs 只应改动字幕轨道的 DeliveryUrl，其余媒体流不动。

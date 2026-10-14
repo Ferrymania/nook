@@ -35,7 +35,7 @@ type SystemInfo = {
   cache_dir: string
 }
 
-const GITHUB_REPO_URL = 'https://github.com/truewhile/MeBox'
+const GITHUB_REPO_URL = 'https://github.com/Ferrymania/nook'
 
 const MODULE_GUIDES = [
   {
@@ -120,7 +120,7 @@ export function AboutSettingsPanel() {
       .info()
       .then((res) => {
         setInfo({
-          name: res.name || 'MeBox',
+          name: res.name || 'Nook',
           version: res.version || '0.1.0',
           go: res.go || '',
           os: res.os || '',
@@ -131,7 +131,7 @@ export function AboutSettingsPanel() {
       })
       .catch(() => {
         setInfo({
-          name: 'MeBox',
+          name: 'Nook',
           version: '0.1.0',
           go: '',
           os: '',
@@ -162,7 +162,7 @@ export function AboutSettingsPanel() {
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-3">
               <h2 className="font-display text-2xl sm:text-3xl font-bold text-ink-600">
-                MeBox 影音管理系统
+                Nook 影音管理系统
               </h2>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-500/10 px-3 py-1 text-xs font-semibold text-brand-600 border border-brand-500/20">
                 <Tag size={13} />
@@ -170,7 +170,7 @@ export function AboutSettingsPanel() {
               </span>
             </div>
             <p className="max-w-2xl text-sm leading-relaxed text-sand-600">
-              MeBox 是一款专为个人与家庭设计的现代化开源媒体库管理与流媒体点播系统。
+              Nook 是一款专为个人与家庭设计的现代化开源媒体库管理与流媒体点播系统。
               集媒体资源归纳、智能多源刮削、弹幕交互、海量云盘 STRM 转存与多端播放于一体，让观影体验更轻快自由。
             </p>
           </div>

@@ -8,8 +8,8 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/repository"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
 )
 
 func TestWatcherRefreshMapsHostLibraryPathToContainerPath(t *testing.T) {
@@ -20,8 +20,8 @@ func TestWatcherRefreshMapsHostLibraryPathToContainerPath(t *testing.T) {
 	if err := os.MkdirAll(containerLibrary, 0o755); err != nil {
 		t.Fatalf("mkdir container library: %v", err)
 	}
-	t.Setenv("MEBOX_MEDIA_DIR", hostMedia)
-	t.Setenv("MEBOX_MEDIA_CONTAINER_DIR", containerMedia)
+	t.Setenv("NOOK_MEDIA_DIR", hostMedia)
+	t.Setenv("NOOK_MEDIA_CONTAINER_DIR", containerMedia)
 
 	db := newServiceTestDB(t, &model.Library{})
 	repos := repository.New(db)

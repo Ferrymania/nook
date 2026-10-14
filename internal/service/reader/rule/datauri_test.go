@@ -12,7 +12,7 @@ import (
 // 背景：聚合类书源把上一阶段的结果打包成
 //   `data:;base64,<base64(参数JSON)>,{"type":"gysearch"}`
 // 当 URL 用。legado 对它的处理是：① 本地 base64 解码取字节；② 因为声明了 type，
-// 把字节按 hex 返回。MeBox 早期把带 type 的 URL 直接判为「不支持的能力」，
+// 把字节按 hex 返回。Nook 早期把带 type 的 URL 直接判为「不支持的能力」，
 // 导致这类书源第一步就报「书源 URL 声明了不支持的 type」。
 
 func TestDecodeDataURI(t *testing.T) {

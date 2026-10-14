@@ -15,7 +15,7 @@ func newGzipTestRouter() *gin.Engine {
 	api := router.Group("/api")
 	api.Use(GzipAPI())
 	api.GET("/libraries", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"items": strings.Repeat("mebox", 200)})
+		c.JSON(http.StatusOK, gin.H{"items": strings.Repeat("nook", 200)})
 	})
 	api.GET("/stream/:id", func(c *gin.Context) {
 		c.String(http.StatusOK, strings.Repeat("video-bytes", 200))
@@ -40,7 +40,7 @@ func TestGzipAPICompressesJSONWhenAccepted(t *testing.T) {
 	if got := w.Header().Get("Content-Encoding"); got != "gzip" {
 		t.Fatalf("Content-Encoding = %q, want gzip", got)
 	}
-	if raw := strings.Repeat("mebox", 200); w.Body.Len() >= len(raw) {
+	if raw := strings.Repeat("nook", 200); w.Body.Len() >= len(raw) {
 		t.Fatalf("body not compressed: len = %d, raw = %d", w.Body.Len(), len(raw))
 	}
 }

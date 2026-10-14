@@ -5,8 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/truewhile/MeBox/internal/middleware"
-	"github.com/truewhile/MeBox/internal/service"
+	"github.com/Ferrymania/nook/internal/middleware"
+	"github.com/Ferrymania/nook/internal/service"
 )
 
 // registerEmbyRoutes 在 r 上挂双前缀（"" + "/emby"）的 Emby 兼容路由。
@@ -226,7 +226,7 @@ func registerEmbyAuthenticatedPlaybackRoutes(auth *gin.RouterGroup, prefix strin
 	auth.POST("/Users/:userId/Items/:id/PlaybackInfo", embyPlaybackInfoHandler(svc))
 
 	registerEmbyVideoStreamRoutes(auth, svc, "/Videos")
-	// Emby 官方接口：附加片段清单。MeBox 不提供附加片段，但必须返回空数组
+	// Emby 官方接口：附加片段清单。Nook 不提供附加片段，但必须返回空数组
 	// 而不是 404 —— 部分客户端（RodelPlayer）在详情页无条件请求它，404 会
 	// 让它们把条目判定为不完整。必须注册成静态段，否则会被
 	// /Videos/:id/:seg 的 HLS 兜底路由抢先匹配并返回空 404。

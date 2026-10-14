@@ -6,12 +6,12 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/repository"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
 )
 
 // SyncUserFavorite keeps favourite state in the local favourites table, keyed
-// by MeBox user_id. Remote Emby mounts share one upstream account, so favourite
+// by Nook user_id. Remote Emby mounts share one upstream account, so favourite
 // state is intentionally not proxied upstream.
 func SyncUserFavorite(ctx context.Context, repo *repository.Container, _ *EmbyRemoteService, userID, mediaID string, favorite bool) error {
 	if repo == nil || userID == "" || mediaID == "" {

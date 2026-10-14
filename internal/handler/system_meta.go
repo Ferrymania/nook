@@ -16,7 +16,7 @@ import (
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/mem"
 
-	"github.com/truewhile/MeBox/internal/service"
+	"github.com/Ferrymania/nook/internal/service"
 )
 
 // startedAt is captured at first call so /system/status can report uptime
@@ -36,7 +36,7 @@ var startedAt = time.Now()
 				version = "dev"
 			}
 			c.JSON(http.StatusOK, gin.H{
-				"name":             "MeBox",
+				"name":             "Nook",
 				"version":          version,
 				"go":               runtime.Version(),
 				"os":               runtime.GOOS,

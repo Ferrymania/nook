@@ -23,7 +23,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/config"
+	"github.com/Ferrymania/nook/internal/config"
 )
 
 // BangumiProvider talks to https://api.bgm.tv.
@@ -181,7 +181,7 @@ func (b *BangumiProvider) getJSON(ctx context.Context, u string, out any) error 
 	if err != nil {
 		return err
 	}
-	req.Header.Set("User-Agent", "MeBox/0.1 (https://github.com/truewhile/MeBox)")
+	req.Header.Set("User-Agent", "Nook/0.1 (https://github.com/Ferrymania/nook)")
 	if t := strings.TrimSpace(b.cfg.Secrets.BangumiToken); t != "" {
 		req.Header.Set("Authorization", "Bearer "+t)
 	}

@@ -3,7 +3,7 @@ package service
 import (
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // 系列路径的筛选在内存里复现 SQL 语义，必须与仓储侧一致，否则会出现

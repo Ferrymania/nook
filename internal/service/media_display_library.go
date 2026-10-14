@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/repository"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
 )
 
 func (s *MediaService) attachLibraryMetadata(ctx context.Context, items []model.Media) {

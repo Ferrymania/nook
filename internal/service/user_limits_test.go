@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 func TestLoadMaxUsersDefaultsToTwenty(t *testing.T) {

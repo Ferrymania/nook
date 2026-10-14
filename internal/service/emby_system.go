@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // SystemInfo returns the full Emby identity payload.
@@ -18,7 +18,7 @@ func (e *EmbyService) SystemInfo() map[string]any {
 	return map[string]any{
 		"Id":                     embyServerID,
 		"ServerId":               embyServerID,
-		"ServerName":             "MeBox",
+		"ServerName":             "Nook",
 		"Version":                embyCompatVersion,
 		"ServerVersion":          embyCompatVersion,
 		"ProductName":            "Emby Server",
@@ -51,7 +51,7 @@ func (e *EmbyService) SystemInfoPublic() map[string]any {
 	return map[string]any{
 		"Id":                     embyServerID,
 		"ServerId":               embyServerID,
-		"ServerName":             "MeBox",
+		"ServerName":             "Nook",
 		"Version":                embyCompatVersion,
 		"ServerVersion":          embyCompatVersion,
 		"ProductName":            "Emby Server",
@@ -94,7 +94,7 @@ func (e *EmbyService) userPayload(u *model.User) map[string]any {
 		"Id":                        u.ID,
 		"Name":                      u.Username,
 		"ServerId":                  embyServerID,
-		"ServerName":                "MeBox",
+		"ServerName":                "Nook",
 		"DateCreated":               u.CreatedAt,
 		"HasPassword":               true,
 		"HasConfiguredPassword":     true,

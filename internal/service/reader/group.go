@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // 书架分组（对应 legado BookGroup；存储见 model.ReaderBookGroups）。

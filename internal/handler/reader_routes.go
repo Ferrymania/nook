@@ -10,11 +10,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/truewhile/MeBox/internal/middleware"
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/service"
-	"github.com/truewhile/MeBox/internal/service/reader"
-	readerrule "github.com/truewhile/MeBox/internal/service/reader/rule"
+	"github.com/Ferrymania/nook/internal/middleware"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/service"
+	"github.com/Ferrymania/nook/internal/service/reader"
+	readerrule "github.com/Ferrymania/nook/internal/service/reader/rule"
 )
 
 func registerReaderRoutes(authed *gin.RouterGroup, svc *service.Container) {

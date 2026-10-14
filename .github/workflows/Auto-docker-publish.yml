@@ -47,7 +47,7 @@ jobs:
             VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "release_tag=mebox-v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "release_tag=nook-v${VERSION}" >> "$GITHUB_OUTPUT"
           echo "new_version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       # 2. 把新版本号写回 version 分支（clone 单分支写入，冲突时 rebase 重试）
@@ -208,16 +208,16 @@ jobs:
           fi
           CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
             go build -trimpath -ldflags="$LDFLAGS" \
-            -o "dist/mebox-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}" ./cmd/server
+            -o "dist/nook-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}" ./cmd/server
       - name: Package
         run: |
-          mkdir -p package/mebox
-          cp "dist/mebox-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}" package/mebox/mebox${{ matrix.ext }}
-          cp README.md package/mebox/ 2>/dev/null || true
+          mkdir -p package/nook
+          cp "dist/nook-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}" package/nook/nook${{ matrix.ext }}
+          cp README.md package/nook/ 2>/dev/null || true
           if [ "${{ matrix.goos }}" = "windows" ]; then
-            (cd package && zip -r "../mebox_${{ matrix.goos }}_${{ matrix.goarch }}.zip" mebox)
+            (cd package && zip -r "../nook_${{ matrix.goos }}_${{ matrix.goarch }}.zip" nook)
           else
-            tar -czf "mebox_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz" -C package mebox
+            tar -czf "nook_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz" -C package nook
           fi
       - name: Upload to GitHub Release
         env:
@@ -225,8 +225,8 @@ jobs:
           RELEASE_TAG: ${{ needs.build-image.outputs.release_tag }}
         run: |
           set -eu
-          PKG="mebox_${{ matrix.goos }}_${{ matrix.goarch }}.zip"
-          TAR="mebox_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz"
+          PKG="nook_${{ matrix.goos }}_${{ matrix.goarch }}.zip"
+          TAR="nook_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz"
           # 并发上传到同一 release 各自文件，--clobber 幂等覆盖
           ARCHIVE="$TAR"
           if [ -f "$PKG" ]; then ARCHIVE="$PKG"; fi

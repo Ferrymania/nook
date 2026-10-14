@@ -3,7 +3,7 @@ package reader
 import (
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // TestSaveAudioConfigPersistsCredits 听书跳过片头/片尾设置要落库，且只能改自己的书。

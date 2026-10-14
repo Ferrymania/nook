@@ -31,10 +31,10 @@
 
 此手动工作流不依赖 `version` 分支，也不自动连接服务器部署。只有 `ref=main` 才额外更新 `latest`，构建修复分支不会覆盖稳定标签。
 
-所有 Compose 模板的运行镜像与应用内更新目标共用 `MEBOX_IMAGE`，默认使用 `ghcr.io/ferrymania/nook:latest`。使用固定测试标签时，在部署目录的 `.env` 设置：
+所有 Compose 模板的运行镜像与应用内更新目标共用 `NOOK_IMAGE`，默认使用 `ghcr.io/ferrymania/nook:latest`。使用固定测试标签时，在部署目录的 `.env` 设置：
 
 ```dotenv
-MEBOX_IMAGE=ghcr.io/ferrymania/nook:fixes-20261014
+NOOK_IMAGE=ghcr.io/ferrymania/nook:fixes-20261014
 ```
 
 首次发布后，需要确认 GHCR 包对部署机器可见；私有包需要对应的拉取凭据。首次镜像发布完成前，上述 fork 镜像地址还不可用于拉取。
@@ -45,4 +45,14 @@ MEBOX_IMAGE=ghcr.io/ferrymania/nook:fixes-20261014
 docker build --platform linux/amd64 --build-arg VERSION=fixes-20261014 -t nook:fixes-20261014 .
 ```
 
-修改仓库名称不要求重命名 Go module、程序名或容器内路径；这些保持原有约定，便于继续合并上游更新。
+## Nook 命名与旧安装升级
+
+从 `0.0.2` 开始，界面、程序、Go 模块、Docker 服务、环境变量和发布包统一使用 Nook：
+
+- Go 模块为 `github.com/Ferrymania/nook`；程序为 `nook` / `nook.exe`。
+- Docker 服务为 `nook`，健康检查为 `/usr/local/bin/nook-healthcheck`。
+- 配置环境变量使用 `NOOK_*`，默认 SQLite 文件为 `nook.db`；发布标签为 `nook-v版本号`，安装包为 `nook_平台_架构`。
+
+已有安装可以先仅更换镜像，旧 `MEBOX_*` 环境变量仍可读取；同时配置时 `NOOK_*` 优先。旧 SQLite 文件、逻辑备份和浏览器偏好保持兼容，不自动重命名数据库文件或表，也不改变 `.jwt_secret`。
+
+已有 PostgreSQL 的用户、数据库名和密码属于实际部署数据，不能仅因改名就替换成默认的 `nook`。将配置键改为 `NOOK_DATABASE_DSN` 时，保留原 DSN 的连接参数和现有挂载目录。将 Compose 服务从 `mebox` 改为 `nook` 前，先停止原应用服务，避免两个应用同时访问相同数据；PostgreSQL 服务与数据卷保持原配置。

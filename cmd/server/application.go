@@ -9,14 +9,14 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/config"
-	"github.com/truewhile/MeBox/internal/database"
-	"github.com/truewhile/MeBox/internal/helper"
-	"github.com/truewhile/MeBox/internal/repository"
-	"github.com/truewhile/MeBox/internal/service"
+	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/database"
+	"github.com/Ferrymania/nook/internal/helper"
+	"github.com/Ferrymania/nook/internal/repository"
+	"github.com/Ferrymania/nook/internal/service"
 )
 
-// application owns the long-running MeBox server and all resources created
+// application owns the long-running Nook server and all resources created
 // during startup. Platform entry points decide how the application is
 // controlled: a console signal loop or a Windows notification-area icon.
 type application struct {
@@ -65,7 +65,7 @@ func (a *application) start() error {
 	a.addCloser(closeEmbyCompatLogger)
 
 	appVersion := effectiveVersion(version)
-	a.logger.Info("starting MeBox",
+	a.logger.Info("starting Nook",
 		zap.String("version", appVersion),
 		zap.Int("port", a.cfg.App.Port),
 		zap.String("data_dir", a.cfg.App.DataDir),
@@ -155,7 +155,7 @@ func (a *application) Shutdown() error {
 		if a.services != nil {
 			a.services.Close()
 		}
-		a.logger.Info("MeBox stopped")
+		a.logger.Info("Nook stopped")
 		_ = a.logger.Sync()
 		if a.embyCompatLogger != nil {
 			_ = a.embyCompatLogger.Sync()

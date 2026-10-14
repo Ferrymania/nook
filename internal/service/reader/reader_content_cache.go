@@ -13,8 +13,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/service/reader/rule"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/service/reader/rule"
 )
 
 // 本文件实现阅读正文的持久缓存（对应 legado BookHelp 的章节正文缓存 + CacheBook）。

@@ -21,8 +21,8 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/helper"
-	"github.com/truewhile/MeBox/internal/service/reader/rule"
+	"github.com/Ferrymania/nook/internal/helper"
+	"github.com/Ferrymania/nook/internal/service/reader/rule"
 )
 
 // 本文件：书源 JS 的宿主浏览器（java.startBrowser / java.startBrowserAwait）。
@@ -245,7 +245,7 @@ func (s *ReaderService) registerBrowser(ctx context.Context, sourceURL, sourceID
 // fetch / XMLHttpRequest 转交给父窗口代为请求，并补上沙箱里不可用的存储对象。
 //
 // 为什么不让父窗口直接读 contentDocument：那要求 iframe 同源，而书源页面是
-// 第三方 HTML，拿到同源权限就能读写 MeBox 自己的页面与 localStorage（JWT）。
+// 第三方 HTML，拿到同源权限就能读写 Nook 自己的页面与 localStorage（JWT）。
 // 改成 postMessage 后，iframe 可以只开 allow-scripts（不透明源）。
 //
 // 为什么要补存储对象：不透明源里访问 localStorage / sessionStorage / document.cookie
@@ -255,8 +255,8 @@ func (s *ReaderService) registerBrowser(ctx context.Context, sourceURL, sourceID
 //
 // 为什么要代发请求：iframe 是不透明源，页面自己的 XHR 既带不上书源 Cookie，
 // 也会被 CORS 拦掉——靠接口取数的页面会取不到数据。
-const browserBridgeScript = `<script data-mebox-browser-bridge="1">(function(){` +
-	`if(window.__meboxBridgeInstalled){return}window.__meboxBridgeInstalled=true;` +
+const browserBridgeScript = `<script data-nook-browser-bridge="1">(function(){` +
+	`if(window.__nookBridgeInstalled){return}window.__nookBridgeInstalled=true;` +
 	// ── 沙箱内存储兜底 ──
 	`function memStore(){var d={};return{` +
 	`getItem:function(k){k=String(k);return Object.prototype.hasOwnProperty.call(d,k)?d[k]:null},` +
@@ -270,31 +270,31 @@ const browserBridgeScript = `<script data-mebox-browser-bridge="1">(function(){`
 	// document.cookie 也要给：这类页面常用它判断是否已登录（真实 Cookie 在服务端，
 	// 浏览器里没有）。把书源在该站点的 Cookie 预置进去，页面才会正常渲染。
 	`var ck={};` +
-	`(function(seed){String(seed||'').split(';').forEach(function(p){var i=p.indexOf('=');if(i>0){ck[p.slice(0,i).trim()]=p.slice(i+1).trim()}})})` + "(`__MEBOX_COOKIE__`)" + `;` +
+	`(function(seed){String(seed||'').split(';').forEach(function(p){var i=p.indexOf('=');if(i>0){ck[p.slice(0,i).trim()]=p.slice(i+1).trim()}})})` + "(`__NOOK_COOKIE__`)" + `;` +
 	`try{Object.defineProperty(document,'cookie',{configurable:true,` +
 	`get:function(){var o=[];for(var k in ck){o.push(k+'='+ck[k])}return o.join('; ')},` +
 	`set:function(v){try{var p=String(v).split(';')[0].split('=');if(p[0]){ck[p[0].trim()]=p.slice(1).join('=')}}catch(e){}}})}catch(e){}` +
 	// 书源页面自身的基地址：相对地址要按它解析，而不是按承载地址（我们自己的源）
-	`var BASE=` + "`__MEBOX_BASE_URL__`" + `;` +
+	`var BASE=` + "`__NOOK_BASE_URL__`" + `;` +
 	`function abs(u){try{return new URL(u,BASE||location.href).href}catch(e){try{return new URL(u,location.href).href}catch(e2){return u}}}` +
 	// ── DOM 回传 ──
 	`window.addEventListener('message',function(e){` +
-	`if(!e||e.data!=='__mebox_dom__'){return}` +
-	`try{parent.postMessage({__mebox_dom__:true,html:document.documentElement.outerHTML},'*')}catch(err){}` +
+	`if(!e||e.data!=='__nook_dom__'){return}` +
+	`try{parent.postMessage({__nook_dom__:true,html:document.documentElement.outerHTML},'*')}catch(err){}` +
 	`},false);` +
 	// ── 请求代理（父窗口持有登录态，由它转交服务端补 Cookie） ──
 	`var seq=0,waiters={};` +
 	`window.addEventListener('message',function(e){` +
 	`var d=e&&e.data;` +
-	`if(!d||d.__mebox_proxy_res__!==true){return}` +
+	`if(!d||d.__nook_proxy_res__!==true){return}` +
 	`var w=waiters[d.reqId];` +
 	`if(!w){return}delete waiters[d.reqId];w(d);` +
 	`},false);` +
 	`function rpc(method,url,headers,body){` +
 	`return new Promise(function(resolve,reject){` +
 	`var id='r'+(++seq);waiters[id]=resolve;` +
-	`try{parent.postMessage({__mebox_proxy__:true,reqId:id,url:url,method:method,headers:headers||{},body:body||''},'*')}catch(e){delete waiters[id];reject(e);return}` +
-	`setTimeout(function(){if(waiters[id]){delete waiters[id];reject(new Error('mebox proxy timeout'))}},60000);` +
+	`try{parent.postMessage({__nook_proxy__:true,reqId:id,url:url,method:method,headers:headers||{},body:body||''},'*')}catch(e){delete waiters[id];reject(e);return}` +
+	`setTimeout(function(){if(waiters[id]){delete waiters[id];reject(new Error('nook proxy timeout'))}},60000);` +
 	`})}` +
 	`function decode(res){return res&&res.base64?atob(res.body||''):((res&&res.body)||'')}` +
 	`var origFetch=window.fetch;` +
@@ -331,11 +331,11 @@ const browserBridgeScript = `<script data-mebox-browser-bridge="1">(function(){`
 // 并把书源页面的基地址与 Cookie 填进脚本：前者供相对地址解析，后者供页面判断
 // 登录态（真实 Cookie 在服务端，页面看不到）。
 func injectBrowserBridge(html, baseURL, cookie string) string {
-	if strings.Contains(html, `data-mebox-browser-bridge`) {
+	if strings.Contains(html, `data-nook-browser-bridge`) {
 		return html
 	}
-	script := strings.ReplaceAll(browserBridgeScript, "__MEBOX_BASE_URL__", jsStringEscape(baseURL))
-	script = strings.ReplaceAll(script, "__MEBOX_COOKIE__", jsStringEscape(cookie))
+	script := strings.ReplaceAll(browserBridgeScript, "__NOOK_BASE_URL__", jsStringEscape(baseURL))
+	script = strings.ReplaceAll(script, "__NOOK_COOKIE__", jsStringEscape(cookie))
 	lower := strings.ToLower(html)
 	if i := strings.Index(lower, "<head>"); i >= 0 {
 		pos := i + len("<head>")

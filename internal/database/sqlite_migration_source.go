@@ -12,7 +12,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	"github.com/truewhile/MeBox/internal/config"
+	"github.com/Ferrymania/nook/internal/config"
 )
 
 func openSQLiteMigrationSource(cfg *config.Config, sqlitePath string) (*gorm.DB, error) {
@@ -38,6 +38,7 @@ func sqliteMigrationSourcePath(cfg *config.Config, log *zap.Logger) (string, err
 
 	// Prefer the new default filename, then fall back to legacy MMTL SQLite files.
 	candidates := []string{
+		filepath.Join(strings.TrimSpace(cfg.App.DataDir), "nook.db"),
 		filepath.Join(strings.TrimSpace(cfg.App.DataDir), "mebox.db"),
 		filepath.Join(strings.TrimSpace(cfg.App.DataDir), "mmtl.db"),
 	}

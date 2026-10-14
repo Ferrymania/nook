@@ -1,7 +1,7 @@
 import { profileAPI } from '../api/profile'
 
-const STORAGE_KEY = 'mebox_pinned_libraries'
-const MIGRATION_KEY = 'mebox_pinned_libraries_migrated'
+const STORAGE_KEY = 'nook_pinned_libraries'
+const MIGRATION_KEY = 'nook_pinned_libraries_migrated'
 
 function parsePinnedIds(raw: string | null): string[] {
   if (!raw) return []

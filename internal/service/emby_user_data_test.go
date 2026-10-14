@@ -3,7 +3,7 @@ package service
 import (
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 func TestMergedRemoteUserData(t *testing.T) {
@@ -68,8 +68,8 @@ func TestMergedRemoteUserData(t *testing.T) {
 	}
 }
 
-func TestApplyMeBoxUserDataClearsSharedRemoteState(t *testing.T) {
-	out := applyMeBoxUserData(map[string]any{
+func TestApplyNookUserDataClearsSharedRemoteState(t *testing.T) {
+	out := applyNookUserData(map[string]any{
 		"IsFavorite":            true,
 		"PlaybackPositionTicks": int64(42_000_000),
 		"Played":                true,
@@ -96,7 +96,7 @@ func TestApplyMeBoxUserDataClearsSharedRemoteState(t *testing.T) {
 		t.Fatalf("Key = %#v, want keep", out["Key"])
 	}
 
-	fav := applyMeBoxUserData(map[string]any{"IsFavorite": false}, nil, true)
+	fav := applyNookUserData(map[string]any{"IsFavorite": false}, nil, true)
 	if fav["IsFavorite"] != true {
 		t.Fatalf("favorite overlay IsFavorite = %#v, want true", fav["IsFavorite"])
 	}

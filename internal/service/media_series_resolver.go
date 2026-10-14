@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 type mediaSeriesKeyResolver struct {

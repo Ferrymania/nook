@@ -19,7 +19,7 @@ verify-downloads/
 .tmp_*
 .tmp-deploy-*
 .tmp-deploy-data/
-.mebox.pid
+.nook.pid
 *.db
 *.db-journal
 *.db-shm

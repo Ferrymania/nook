@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // GetPeople resolves adult cast/crew on demand from MetaTube. The provider and

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 func (e *EmbyService) seriesIDForMedia(ctx context.Context, m *model.Media) string {
@@ -115,7 +115,7 @@ const (
 	embySeasonGenericSpecial = 0
 )
 
-// embySeasonNumForMedia keeps MeBox's special categories distinct in the Emby
+// embySeasonNumForMedia keeps Nook's special categories distinct in the Emby
 // hierarchy. Databases may store every special as season 0 or -1, so the path
 // classification is authoritative when it identifies a special category.
 func embySeasonNumForMedia(m *model.Media) int {

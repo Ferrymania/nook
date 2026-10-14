@@ -7,7 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/truewhile/MeBox/internal/service"
+	"github.com/Ferrymania/nook/internal/service"
 )
 
 // ─── Users / Auth ────────────────────────────────────────────────────────────
@@ -82,7 +82,7 @@ func embyAuthByNameHandler(svc *service.Container) gin.HandlerFunc {
 		embyRememberCompatSession(c, accessToken)
 		c.JSON(http.StatusOK, gin.H{
 			"AccessToken": accessToken,
-			"ServerId":    "mebox-001",
+			"ServerId":    "nook-001",
 			"User":        userPayload,
 			"SessionInfo": gin.H{
 				"Id":                    resp.User.ID,
@@ -91,7 +91,7 @@ func embyAuthByNameHandler(svc *service.Container) gin.HandlerFunc {
 				"Client":                clientInfo.Client,
 				"DeviceId":              clientInfo.DeviceID,
 				"DeviceName":            clientInfo.DeviceName,
-				"ServerId":              "mebox-001",
+				"ServerId":              "nook-001",
 				"ApplicationVersion":    clientInfo.Version,
 				"LastActivityDate":      now,
 				"AdditionalUsers":       []any{},
@@ -180,12 +180,12 @@ func embyGetUserByIDHandler(svc *service.Container) gin.HandlerFunc {
 // 实际权限始终由服务端各路由的校验决定。
 func embyFallbackUser(id string) gin.H {
 	if strings.TrimSpace(id) == "" {
-		id = "mebox-user"
+		id = "nook-user"
 	}
 	return gin.H{
 		"Id":                        id,
-		"Name":                      "MeBox",
-		"ServerId":                  "mebox-001",
+		"Name":                      "Nook",
+		"ServerId":                  "nook-001",
 		"HasPassword":               true,
 		"HasConfiguredPassword":     true,
 		"HasConfiguredEasyPassword": false,

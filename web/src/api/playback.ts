@@ -38,7 +38,7 @@ export interface PlaybackProgressRequest {
 
 function publicOriginHeader() {
   if (typeof window === 'undefined' || !window.location?.origin) return undefined
-  return { 'X-MeBox-Public-Origin': window.location.origin }
+  return { 'X-Nook-Public-Origin': window.location.origin }
 }
 
 export const playbackAPI = {

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/service/reader/rule"
+	"github.com/Ferrymania/nook/internal/service/reader/rule"
 )
 
 const e2eBookHTML = `<!DOCTYPE html>

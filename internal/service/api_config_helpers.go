@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // GetEffectiveConfig 获取生效的 API 配置（数据库配置优先于配置文件）。

@@ -5,7 +5,7 @@
 // read so values stored on disk are useless without the JWT secret.
 //
 // On first read it seeds the table with the providers supported by
-// MeBox today (TMDb / Bangumi / TheTVDB / Fanart / OpenAI / Douban).
+// Nook today (TMDb / Bangumi / TheTVDB / Fanart / OpenAI / Douban).
 package service
 
 import (
@@ -17,8 +17,8 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/repository"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
 )
 
 // APIConfigService coordinates third-party API key storage.

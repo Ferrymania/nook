@@ -7,7 +7,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/helper"
+	"github.com/Ferrymania/nook/internal/helper"
 )
 
 // JobStatus is a snapshot suitable for the admin UI.

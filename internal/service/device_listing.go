@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // KickDevice marks a device as kicked so the next request from it is rejected

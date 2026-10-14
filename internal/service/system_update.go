@@ -3,16 +3,15 @@ package service
 import (
 	"context"
 	"errors"
-	"os"
 	"strings"
 	"sync"
 	"time"
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/config"
-	"github.com/truewhile/MeBox/internal/helper"
-	"github.com/truewhile/MeBox/internal/repository"
+	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/helper"
+	"github.com/Ferrymania/nook/internal/repository"
 )
 
 const (
@@ -21,7 +20,7 @@ const (
 	SystemUpdateCommandSettingKey         = "system.update.command"
 	SystemUpdateComposeDirSettingKey      = "system.update.compose_dir"
 
-	DefaultSystemUpdateImage           = "ghcr.io/truewhile/mebox:latest"
+	DefaultSystemUpdateImage           = "ghcr.io/ferrymania/nook:latest"
 	DefaultSystemUpdateWatchtowerImage = "containrrr/watchtower:latest"
 )
 
@@ -199,11 +198,11 @@ func (s *SystemUpdateService) startUpdateTask(status SystemUpdateStatus) *TaskHa
 }
 
 func (s *SystemUpdateService) baseStatus(ctx context.Context) SystemUpdateStatus {
-	image := s.setting(ctx, SystemUpdateImageSettingKey, os.Getenv("MEBOX_UPDATE_IMAGE"))
+	image := s.setting(ctx, SystemUpdateImageSettingKey, config.Env("NOOK_UPDATE_IMAGE"))
 	if image == "" {
 		image = DefaultSystemUpdateImage
 	}
-	watchtowerImage := s.setting(ctx, SystemUpdateWatchtowerImageSettingKey, os.Getenv("MEBOX_UPDATE_WATCHTOWER_IMAGE"))
+	watchtowerImage := s.setting(ctx, SystemUpdateWatchtowerImageSettingKey, config.Env("NOOK_UPDATE_WATCHTOWER_IMAGE"))
 	if watchtowerImage == "" {
 		watchtowerImage = DefaultSystemUpdateWatchtowerImage
 	}

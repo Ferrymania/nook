@@ -13,7 +13,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // Item 单条目详情。
@@ -596,7 +596,7 @@ func (e *EmbyService) resumableItems(ctx context.Context, p ItemsParams) (map[st
 					continue
 				}
 			}
-			item["UserData"] = applyMeBoxUserData(item["UserData"], &f.hist, favSet[f.hist.MediaID])
+			item["UserData"] = applyNookUserData(item["UserData"], &f.hist, favSet[f.hist.MediaID])
 			slots[i].item = item
 		}
 	}

@@ -8,9 +8,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/config"
-	"github.com/truewhile/MeBox/internal/middleware"
-	"github.com/truewhile/MeBox/internal/service"
+	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/middleware"
+	"github.com/Ferrymania/nook/internal/service"
 )
 
 // Register attaches every API route to the engine.
@@ -64,7 +64,7 @@ func healthCheck(c *gin.Context) {
 }
 
 func versionInfo(c *gin.Context) {
-	c.JSON(200, gin.H{"name": "MeBox", "version": "0.1.0"})
+	c.JSON(200, gin.H{"name": "Nook", "version": "0.1.0"})
 }
 
 // ─── 权限 Handler 包装 ────────────────────────────────────────────────────────

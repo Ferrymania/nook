@@ -17,8 +17,8 @@ export const SUBTITLE_STYLE_OPTIONS: Array<[SubtitleStylePreset, string]> = [
   ['box', '半透明底衬'],
 ]
 
-const POSITION_KEY = 'mebox.subtitle.position'
-const STYLE_KEY = 'mebox.subtitle.style'
+const POSITION_KEY = 'nook.subtitle.position'
+const STYLE_KEY = 'nook.subtitle.style'
 
 export function normalizeSubtitlePosition(value: unknown): SubtitlePosition {
   return value === 'bottom' || value === 'lower' || value === 'middle' || value === 'top'

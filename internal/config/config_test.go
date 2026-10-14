@@ -40,7 +40,7 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.Database.MaxOpenConns != defaultDatabaseMaxOpenConns {
 		t.Fatalf("expected default MaxOpenConns %d, got %d", defaultDatabaseMaxOpenConns, cfg.Database.MaxOpenConns)
 	}
-	if cfg.Cache.RedisPrefix != "mebox" {
+	if cfg.Cache.RedisPrefix != "nook" {
 		t.Fatalf("expected default redis prefix, got %q", cfg.Cache.RedisPrefix)
 	}
 	if cfg.Cache.MediaTTLSeconds != 90 {
@@ -49,7 +49,7 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.Cache.MemoryMaxSizeMB != DefaultCacheMemoryMaxSizeMB {
 		t.Fatalf("expected default runtime cache memory limit %d, got %d", DefaultCacheMemoryMaxSizeMB, cfg.Cache.MemoryMaxSizeMB)
 	}
-	if cfg.Search.Index != "mebox_media" {
+	if cfg.Search.Index != "nook_media" {
 		t.Fatalf("expected default search index, got %q", cfg.Search.Index)
 	}
 	if cfg.Database.MaxIdleConns != defaultDatabaseMaxIdleConns {
@@ -77,7 +77,7 @@ func TestLoadDefaults(t *testing.T) {
 	}
 }
 
-// TestEnvOverride checks that MEBOX_* env vars override the defaults.
+// TestEnvOverride checks that NOOK_* env vars override the defaults.
 func TestEnvOverride(t *testing.T) {
 	dir := t.TempDir()
 	wd, _ := os.Getwd()
@@ -86,17 +86,17 @@ func TestEnvOverride(t *testing.T) {
 		t.Fatalf("chdir: %v", err)
 	}
 
-	t.Setenv("MEBOX_APP_PORT", "9090")
-	t.Setenv("MEBOX_DATABASE_TYPE", "postgres")
-	t.Setenv("MEBOX_DATABASE_DSN", "postgres://mebox:secret@postgres:5432/mebox?sslmode=disable")
-	t.Setenv("MEBOX_CACHE_REDIS_URL", "redis://redis:6379/0")
-	t.Setenv("MEBOX_CACHE_MEDIA_TTL_SECONDS", "30")
-	t.Setenv("MEBOX_CACHE_MEMORY_MAX_SIZE_MB", "48")
-	t.Setenv("MEBOX_SEARCH_BACKEND", "opensearch")
-	t.Setenv("MEBOX_SEARCH_OPENSEARCH_URL", "http://opensearch:9200")
-	t.Setenv("MEBOX_LICENSE_SERVER_URL", "https://license.example.com")
-	t.Setenv("MEBOX_LICENSE_HMAC_SECRET", "override-secret")
-	t.Setenv("MEBOX_LICENSE_PUBLIC_KEY", "override-public-key")
+	t.Setenv("NOOK_APP_PORT", "9090")
+	t.Setenv("NOOK_DATABASE_TYPE", "postgres")
+	t.Setenv("NOOK_DATABASE_DSN", "postgres://nook:secret@postgres:5432/nook?sslmode=disable")
+	t.Setenv("NOOK_CACHE_REDIS_URL", "redis://redis:6379/0")
+	t.Setenv("NOOK_CACHE_MEDIA_TTL_SECONDS", "30")
+	t.Setenv("NOOK_CACHE_MEMORY_MAX_SIZE_MB", "48")
+	t.Setenv("NOOK_SEARCH_BACKEND", "opensearch")
+	t.Setenv("NOOK_SEARCH_OPENSEARCH_URL", "http://opensearch:9200")
+	t.Setenv("NOOK_LICENSE_SERVER_URL", "https://license.example.com")
+	t.Setenv("NOOK_LICENSE_HMAC_SECRET", "override-secret")
+	t.Setenv("NOOK_LICENSE_PUBLIC_KEY", "override-public-key")
 	cfg, err := Load()
 	if err != nil {
 		t.Fatalf("Load() error: %v", err)

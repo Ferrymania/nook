@@ -1,11 +1,11 @@
-# MeBox + MetaTube 一体部署 Docker Compose 部署文件
+# Nook + MetaTube 一体部署 Docker Compose 部署文件
 #
 # 组件：
-#   MeBox + PostgreSQL + Redis + MetaTube
+#   Nook + PostgreSQL + Redis + MetaTube
 #
 # 与 docker-compose.standard.yml 的区别：
 #   额外内置一个 MetaTube 后端（番号元数据刮削 / 封面人脸裁剪），
-#   并与 MeBox 共用同一个 PostgreSQL 实例，不需要再单独起一套数据库。
+#   并与 Nook 共用同一个 PostgreSQL 实例，不需要再单独起一套数据库。
 #
 # 使用方式二选一：
 #   1. 保存为 docker-compose.yml 后执行：
@@ -14,16 +14,16 @@
 #        docker compose -f docker-compose.metatube.yml up -d
 #
 # 首次启动后需要做一次配置（只有这一处是手动的）：
-#   登录 MeBox → 设置 → 番号刮削：
+#   登录 Nook → 设置 → 番号刮削：
 #     - 番号刮削引擎：MetaTube 后端服务，或 智能混合
 #     - MetaTube 服务端地址：http://metatube:8080
 #     - 访问 Token：留空（仅内部网络，未启用认证；如需认证两边填同一个值）
 #
 # 说明：
 #   - MetaTube 使用独立数据库 metatube，由 metatube-db-init 一次性容器自动创建；
-#     和 MeBox 的 mebox 库共用同一个 PostgreSQL 实例，只是分成两个库。
+#     和 Nook 的 nook 库共用同一个 PostgreSQL 实例，只是分成两个库。
 #   - MetaTube 不向宿主机映射端口，只在本 Compose 内部网络提供服务。
-#   - MeBox 故意不依赖 MetaTube：MetaTube 未就绪或挂掉时，智能混合模式会自动回退到内置刮削源。
+#   - Nook 故意不依赖 MetaTube：MetaTube 未就绪或挂掉时，智能混合模式会自动回退到内置刮削源。
 #   - 更新全部组件：
 #       docker compose -f docker-compose.metatube.yml pull
 #       docker compose -f docker-compose.metatube.yml up -d
@@ -34,8 +34,8 @@
 #   admin / admin123
 
 services:
-  mebox:
-    image: ${MEBOX_IMAGE:-ghcr.io/ferrymania/nook:latest}
+  nook:
+    image: ${NOOK_IMAGE:-ghcr.io/ferrymania/nook:latest}
 
     restart: unless-stopped
     init: true
@@ -70,44 +70,44 @@ services:
       PUID: "0"
       PGID: "0"
 
-      MEBOX_APP_HOST: 0.0.0.0
-      MEBOX_APP_PORT: 8080
-      MEBOX_APP_WEB_DIR: /app/web/dist
-      MEBOX_APP_DATA_DIR: /data
-      MEBOX_LOGGING_LEVEL: info
-      MEBOX_LOGGING_FORMAT: console
-      MEBOX_LOGGING_OUTPUT_PATH: /data/logs
-      MEBOX_LOGGING_MAX_SIZE_MB: "20"
-      MEBOX_LOGGING_MAX_BACKUPS: "5"
-      MEBOX_LOGGING_MAX_AGE_DAYS: "30"
+      NOOK_APP_HOST: 0.0.0.0
+      NOOK_APP_PORT: 8080
+      NOOK_APP_WEB_DIR: /app/web/dist
+      NOOK_APP_DATA_DIR: /data
+      NOOK_LOGGING_LEVEL: info
+      NOOK_LOGGING_FORMAT: console
+      NOOK_LOGGING_OUTPUT_PATH: /data/logs
+      NOOK_LOGGING_MAX_SIZE_MB: "20"
+      NOOK_LOGGING_MAX_BACKUPS: "5"
+      NOOK_LOGGING_MAX_AGE_DAYS: "30"
 
-      MEBOX_DATABASE_TYPE: postgres
-      MEBOX_DATABASE_DSN: postgres://mebox:mebox@postgres:5432/mebox?sslmode=disable
-      MEBOX_DATABASE_DB_PATH: /data/mebox.db
+      NOOK_DATABASE_TYPE: postgres
+      NOOK_DATABASE_DSN: postgres://nook:nook@postgres:5432/nook?sslmode=disable
+      NOOK_DATABASE_DB_PATH: /data/nook.db
 
       # Redis 只做热缓存，源数据仍在 PostgreSQL；Redis 丢失可自动重建。
-      MEBOX_CACHE_REDIS_URL: redis://redis:6379/0
-      MEBOX_CACHE_CACHE_DIR: /cache
+      NOOK_CACHE_REDIS_URL: redis://redis:6379/0
+      NOOK_CACHE_CACHE_DIR: /cache
 
-      MEBOX_UPDATE_IMAGE: ${MEBOX_IMAGE:-ghcr.io/ferrymania/nook:latest}
+      NOOK_UPDATE_IMAGE: ${NOOK_IMAGE:-ghcr.io/ferrymania/nook:latest}
 
       # 路径换算配置。左边宿主机真实路径要和 volumes 左边保持一致。
-      MEBOX_MEDIA_DIR: /media
-      MEBOX_MEDIA_CONTAINER_DIR: /media
-      MEBOX_DOWNLOAD_DIR: /downloads
-      MEBOX_DOWNLOAD_CONTAINER_DIR: /downloads
+      NOOK_MEDIA_DIR: /media
+      NOOK_MEDIA_CONTAINER_DIR: /media
+      NOOK_DOWNLOAD_DIR: /downloads
+      NOOK_DOWNLOAD_CONTAINER_DIR: /downloads
 
-      MEBOX_TRANSCODER_ENABLED: "true"
-      MEBOX_TRANSCODER_HARDWARE_ACCEL: "false"
-      MEBOX_TRANSCODER_REALTIME: "true"
-      MEBOX_TRANSCODER_THREADS: "2"
-      MEBOX_TRANSCODER_MAX_CONCURRENT: "1"
-      MEBOX_TRANSCODER_IDLE_TIMEOUT_SECONDS: "120"
+      NOOK_TRANSCODER_ENABLED: "true"
+      NOOK_TRANSCODER_HARDWARE_ACCEL: "false"
+      NOOK_TRANSCODER_REALTIME: "true"
+      NOOK_TRANSCODER_THREADS: "2"
+      NOOK_TRANSCODER_MAX_CONCURRENT: "1"
+      NOOK_TRANSCODER_IDLE_TIMEOUT_SECONDS: "120"
 
     healthcheck:
       # 不能写死 http://：开启 HTTPS 后 8080 只接受 TLS，固定明文探测会
       # 每轮刷一条 TLS handshake error 并让容器一直 unhealthy。
-      test: ["CMD", "/usr/local/bin/mebox-healthcheck"]
+      test: ["CMD", "/usr/local/bin/nook-healthcheck"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -121,20 +121,20 @@ services:
 
   postgres:
     image: postgres:16-alpine
-    # 首次部署允许拉取；日常更新请只 pull mebox。
-    # MetaTube 与 MeBox 共用本实例（不同数据库），无需第二套 PostgreSQL。
+    # 首次部署允许拉取；日常更新请只 pull nook。
+    # MetaTube 与 Nook 共用本实例（不同数据库），无需第二套 PostgreSQL。
     pull_policy: missing
     restart: unless-stopped
     environment:
-      POSTGRES_DB: mebox
-      POSTGRES_USER: mebox
-      POSTGRES_PASSWORD: mebox
+      POSTGRES_DB: nook
+      POSTGRES_USER: nook
+      POSTGRES_PASSWORD: nook
       TZ: Asia/Shanghai
     volumes:
-      # 同时存放 mebox 与 metatube 两个数据库，备份这一个目录即可。
+      # 同时存放 nook 与 metatube 两个数据库，备份这一个目录即可。
       - ./postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U mebox -d mebox"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U nook -d nook"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -155,11 +155,11 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      PGPASSWORD: mebox
+      PGPASSWORD: nook
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        psql -h postgres -U mebox -d mebox -tAc "SELECT 1 FROM pg_database WHERE datname='metatube'" | grep -q 1 || psql -h postgres -U mebox -d mebox -c "CREATE DATABASE metatube OWNER mebox"
+        psql -h postgres -U nook -d nook -tAc "SELECT 1 FROM pg_database WHERE datname='metatube'" | grep -q 1 || psql -h postgres -U nook -d nook -c "CREATE DATABASE metatube OWNER nook"
     logging:
       driver: json-file
       options:
@@ -177,11 +177,11 @@ services:
       # 需要走代理时在这里填写，例如 http://192.168.1.2:7890
       HTTP_PROXY: ""
       HTTPS_PROXY: ""
-    # 不需要 ports：MeBox 通过内部网络访问 http://metatube:8080。
+    # 不需要 ports：Nook 通过内部网络访问 http://metatube:8080。
     # 只有想让局域网内其他工具直连时才映射，且建议只映射到 127.0.0.1。
     command:
       - -dsn
-      - postgres://mebox:mebox@postgres:5432/metatube?sslmode=disable
+      - postgres://nook:nook@postgres:5432/metatube?sslmode=disable
       - -port
       - "8080"
       - -db-auto-migrate

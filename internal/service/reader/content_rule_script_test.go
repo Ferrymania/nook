@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // TestContentRuleJSReceivesJoinedString 覆盖拷贝漫画（优++）的正文规则写法：

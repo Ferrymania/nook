@@ -8,8 +8,8 @@ import (
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 
-	"github.com/truewhile/MeBox/internal/config"
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 func TestOpenRequiresConfig(t *testing.T) {
@@ -28,7 +28,7 @@ func TestOpenRequiresConfig(t *testing.T) {
 func TestOpenSQLiteWithNilLoggerConfiguresPool(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.Database.Type = "sqlite"
-	cfg.Database.DBPath = filepath.Join(t.TempDir(), "mebox.db")
+	cfg.Database.DBPath = filepath.Join(t.TempDir(), "nook.db")
 	cfg.Database.WALMode = true
 	cfg.Database.BusyTimeout = 5000
 	cfg.Database.CacheSize = -2000
@@ -278,7 +278,7 @@ func TestSQLiteMigrationCompleteMarker(t *testing.T) {
 
 func TestSQLiteMigrationFallsBackToDataDirDefaultPath(t *testing.T) {
 	dir := t.TempDir()
-	sqlitePath := filepath.Join(dir, "mebox.db")
+	sqlitePath := filepath.Join(dir, "nook.db")
 	src, err := gorm.Open(sqlite.Open(sqlitePath), &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
@@ -362,7 +362,7 @@ func TestSQLiteMigrationFallsBackToDataDirDefaultPath(t *testing.T) {
 
 func TestOpenSQLiteMigrationSourceUsesFallbackSourcePath(t *testing.T) {
 	dir := t.TempDir()
-	sqlitePath := filepath.Join(dir, "mebox.db")
+	sqlitePath := filepath.Join(dir, "nook.db")
 	src, err := gorm.Open(sqlite.Open(sqlitePath), &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // tocHitCounter 统计目录地址被上游请求的次数（目录抓取去重的回归用）。

@@ -19,7 +19,7 @@ func TestEmbyCompatLoggerRecordsClientAndUnimplementedRequest(t *testing.T) {
 		return strings.HasPrefix(path, "/emby/") || strings.HasPrefix(path, "/System/")
 	}))
 	router.GET("/emby/System/Info/Public", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"ServerName": "MeBox"})
+		c.JSON(http.StatusOK, gin.H{"ServerName": "Nook"})
 	})
 	router.NoRoute(func(c *gin.Context) {
 		c.Status(http.StatusNotFound)

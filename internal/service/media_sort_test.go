@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 func TestSortMediaItemsTitleAscEmptyLast(t *testing.T) {

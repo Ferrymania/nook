@@ -12,9 +12,9 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/config"
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/repository"
+	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
 )
 
 func TestWithAuthTokenPropagatesToInternalRedirect(t *testing.T) {
@@ -218,11 +218,11 @@ func TestServeFileRedirectsLocalSTRMFileTargetByDefault(t *testing.T) {
 	}
 }
 
-// 别的 MeBox / MediaStationGo 实例生成的 .strm：里面的 acct 是对方实例的账号，
+// 别的 Nook / MediaStationGo 实例生成的 .strm：里面的 acct 是对方实例的账号，
 // 本机不能拿自己的账号去解析，直接把 302 透传给客户端，由客户端去对方实例取流。
 func TestServeFilePassesThroughForeignInstanceSTRMURL(t *testing.T) {
 	repos := newStreamTestRepo(t)
-	target := "http://other-mebox.example:18080/api/strm/play/cloud115/video.mkv?acct=other-acct&pickcode=xyz"
+	target := "http://other-nook.example:18080/api/strm/play/cloud115/video.mkv?acct=other-acct&pickcode=xyz"
 	if err := repos.DB.Create(&model.Media{
 		Base:      model.Base{ID: "foreign-strm"},
 		Title:     "Foreign STRM",

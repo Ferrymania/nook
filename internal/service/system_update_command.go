@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"os"
 	"os/exec"
 	"runtime"
 	"strings"
+
+	"github.com/Ferrymania/nook/internal/config"
 )
 
 func (s *SystemUpdateService) updateCommand(ctx context.Context, status SystemUpdateStatus) string {
@@ -19,7 +20,7 @@ func (s *SystemUpdateService) updateCommand(ctx context.Context, status SystemUp
 }
 
 func (s *SystemUpdateService) rawUpdateCommand(ctx context.Context) string {
-	return s.setting(ctx, SystemUpdateCommandSettingKey, os.Getenv("MEBOX_UPDATE_COMMAND"))
+	return s.setting(ctx, SystemUpdateCommandSettingKey, config.Env("NOOK_UPDATE_COMMAND"))
 }
 
 func defaultSystemUpdateCommand() string {
@@ -33,7 +34,7 @@ func renderSystemUpdateCommand(template string, status SystemUpdateStatus) strin
 		"{{compose_dir}}":      shellQuote(status.ComposeDir),
 		"{{compose_file}}":     shellQuote(status.ComposeFile),
 		"{{compose_command}}":  firstNonEmpty(status.ComposeCommand, "docker compose"),
-		"{{container}}":        shellQuote(firstNonEmpty(status.ContainerName, status.ContainerID, "mebox")),
+		"{{container}}":        shellQuote(firstNonEmpty(status.ContainerName, status.ContainerID, "nook")),
 		"{{container_id}}":     shellQuote(status.ContainerID),
 		"{{container_name}}":   shellQuote(status.ContainerName),
 	}

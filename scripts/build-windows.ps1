@@ -1,5 +1,5 @@
 param(
-    [string]$Output = "dist\mebox-windows-amd64.exe",
+    [string]$Output = "dist\nook-windows-amd64.exe",
     [string]$Version = "dev",
     [switch]$SkipFrontend
 )

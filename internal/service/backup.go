@@ -23,7 +23,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"github.com/truewhile/MeBox/internal/config"
+	"github.com/Ferrymania/nook/internal/config"
 )
 
 // BackupService manages database backups.
@@ -112,7 +112,7 @@ func (b *BackupService) Create(ctx context.Context) (*BackupInfo, error) {
 }
 
 func (b *BackupService) createSQLiteBackup(ctx context.Context, stamp string) (string, error) {
-	dst := filepath.Join(b.backupDir(), fmt.Sprintf("mebox_%s.db", stamp))
+	dst := filepath.Join(b.backupDir(), fmt.Sprintf("nook_%s.db", stamp))
 	// VACUUM INTO creates a clean, non-WAL copy atomically.
 	if err := b.db.WithContext(ctx).Exec("VACUUM INTO ?", dst).Error; err != nil {
 		return "", fmt.Errorf("VACUUM INTO failed: %w", err)

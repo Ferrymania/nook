@@ -1,4 +1,4 @@
-// Package brand contains the embedded MeBox application artwork.
+// Package brand contains the embedded Nook application artwork.
 package brand
 
 import _ "embed"

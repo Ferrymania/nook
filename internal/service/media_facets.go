@@ -4,8 +4,8 @@ import (
 	"context"
 	"math/rand"
 
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/repository"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
 )
 
 // LibraryFacets 是媒体库筛选面板需要的元数据：可选类型与年份区间。

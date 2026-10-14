@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // 真实场景：同一部片的分片里只有第 4 个被刮削成功（nsfw=true），其余仍是 pending。

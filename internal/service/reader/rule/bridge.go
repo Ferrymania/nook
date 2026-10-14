@@ -594,7 +594,7 @@ func newJavaObject(vm *goja.Runtime, r *JSRunner, a *AnalyzeRule) *goja.Object {
 		})
 
 		// reLoginView / refreshExplore：请求宿主重新渲染登录表单。
-		// MeBox 每次登录动作后都会重新拉取 loginUi 并重建表单，因此这是真实
+		// Nook 每次登录动作后都会重新拉取 loginUi 并重建表单，因此这是真实
 		// 生效的信号，而不是静默空实现。
 		for _, name := range []string{"reLoginView", "refreshExplore"} {
 			set(name, func(call goja.FunctionCall) goja.Value {

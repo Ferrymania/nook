@@ -24,12 +24,12 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/config"
-	"github.com/truewhile/MeBox/internal/helper"
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/repository"
-	"github.com/truewhile/MeBox/internal/service/cloud"
-	"github.com/truewhile/MeBox/internal/service/cloud115"
+	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/helper"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
+	"github.com/Ferrymania/nook/internal/service/cloud"
+	"github.com/Ferrymania/nook/internal/service/cloud115"
 )
 
 // strm 全局设置键（存于 Setting 表，strm.* 前缀）。
@@ -870,7 +870,7 @@ var StrmProviderLabels = map[string]string{
 	model.StrmProviderEmbyRemote: "Emby 远程挂载",
 }
 
-const defaultStrmUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36 MeBox-Strm/1.0"
+const defaultStrmUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36 Nook-Strm/1.0"
 
 // ensureLocalDir 创建本地输出目录。
 func ensureLocalDir(dir string) error {

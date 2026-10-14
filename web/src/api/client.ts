@@ -172,7 +172,7 @@ export function hlsURL(mediaId: string, startSec = 0, subtitleStream?: number, q
   return `/api/hls/${encodeURIComponent(mediaId)}/index.m3u8?${tokenQuery()}${profileQuery()}${start}${subtitle}${qualityQuery}${bust}`
 }
 
-// cloudHlsURL returns the MeBox-proxied 115 cloud HLS master playlist URL.
+// cloudHlsURL returns the Nook-proxied 115 cloud HLS master playlist URL.
 // A browser cannot fetch the 115 CDN directly because its CORS policy only
 // allows https://115.com; the backend rewrites all child URLs to this
 // same-origin proxy.

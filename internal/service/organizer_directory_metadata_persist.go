@@ -8,7 +8,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 func (o *OrganizerService) persistOrganizedSourceMetadata(ctx context.Context, plan organizeSourceFilePlan) {

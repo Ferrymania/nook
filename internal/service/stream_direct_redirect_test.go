@@ -11,10 +11,10 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/config"
-	"github.com/truewhile/MeBox/internal/model"
-	"github.com/truewhile/MeBox/internal/repository"
-	"github.com/truewhile/MeBox/internal/service/cloud"
+	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
+	"github.com/Ferrymania/nook/internal/service/cloud"
 )
 
 // directRedirectTestRepo 建一个带网盘账号表的库：normalizeCloudPlayTarget 需要
@@ -101,7 +101,7 @@ func TestServeFileFallsBackWhenDirectResolveUnavailable(t *testing.T) {
 				Link:  &cloud.DirectLink{URL: "https://cdn.example/x", Headers: map[string]string{"Authorization": "Basic x"}},
 			},
 		},
-		{name: "没有直链（别的 MeBox 实例）", result: &StrmPlayResult{RedirectURL: "https://other.example/api/strm/play/cloud115/video.mkv?acct=o&pickcode=p"}},
+		{name: "没有直链（别的 Nook 实例）", result: &StrmPlayResult{RedirectURL: "https://other.example/api/strm/play/cloud115/video.mkv?acct=o&pickcode=p"}},
 		{name: "解析到本地文件", result: &StrmPlayResult{LocalPath: "/media/Movie.mkv"}},
 		{name: "返回 nil", result: nil},
 		{

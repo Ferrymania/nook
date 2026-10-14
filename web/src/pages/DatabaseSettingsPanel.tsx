@@ -35,7 +35,7 @@ export function DatabaseSettingsPanel() {
     port: 5432,
     user: 'postgres',
     password: '',
-    dbname: 'mebox',
+    dbname: 'nook',
     sslmode: 'disable',
     dsn: '',
   })
@@ -70,7 +70,7 @@ export function DatabaseSettingsPanel() {
       port: Number(formData.port) || 5432,
       user: formData.user?.trim() || '',
       password: formData.password || '',
-      dbname: formData.dbname?.trim() || 'mebox',
+      dbname: formData.dbname?.trim() || 'nook',
       sslmode: formData.sslmode || 'disable',
     }
   }
@@ -144,7 +144,7 @@ export function DatabaseSettingsPanel() {
     const payload = getPayload()
     const ok = await confirmAction({
       title: '切换数据库',
-      message: '保存后系统配置将更新为使用 PostgreSQL。需要重启 MeBox 服务使新数据库生效。确定保存吗？',
+      message: '保存后系统配置将更新为使用 PostgreSQL。需要重启 Nook 服务使新数据库生效。确定保存吗？',
     })
     if (!ok) return
 
@@ -211,7 +211,7 @@ export function DatabaseSettingsPanel() {
             <p className="font-mono text-ink-600 break-all">
               {status?.type === 'postgres'
                 ? status.dsn || '配置的 PostgreSQL 实例'
-                : status?.db_path || './data/mebox.db'}
+                : status?.db_path || './data/nook.db'}
             </p>
           </div>
           <div className="space-y-1 rounded-lg bg-sand-200/30 p-3">
@@ -292,7 +292,7 @@ export function DatabaseSettingsPanel() {
                 type="text"
                 value={formData.dbname || ''}
                 onChange={(e) => setFormData({ ...formData, dbname: e.target.value })}
-                placeholder="mebox"
+                placeholder="nook"
                 className="w-full rounded-lg border border-gray-200 bg-sand-200/40 px-3 py-2 text-ink-600 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none"
               />
             </div>
@@ -339,7 +339,7 @@ export function DatabaseSettingsPanel() {
               type="text"
               value={formData.dsn || ''}
               onChange={(e) => setFormData({ ...formData, dsn: e.target.value })}
-              placeholder="postgres://user:password@127.0.0.1:5432/mebox?sslmode=disable"
+              placeholder="postgres://user:password@127.0.0.1:5432/nook?sslmode=disable"
               className="w-full font-mono text-xs rounded-lg border border-gray-200 bg-sand-200/40 px-3 py-2 text-ink-600 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none"
             />
           </div>

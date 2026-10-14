@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // Read saved probe data only; serving an Emby response must not start a probe.

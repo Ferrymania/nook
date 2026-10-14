@@ -2,7 +2,7 @@
 //
 // Some deployments cannot reach image.tmdb.org directly (GFW, internal-only
 // networks). ImageProxy fronts a remote image URL so the browser only ever
-// talks to the MeBox origin. The proxy:
+// talks to the Nook origin. The proxy:
 //
 //   - validates the URL scheme is http/https,
 //   - streams bytes through with a small disk cache under cache/images,
@@ -27,7 +27,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/truewhile/MeBox/internal/config"
+	"github.com/Ferrymania/nook/internal/config"
 )
 
 // ImageProxy fetches and caches remote images on behalf of the browser.

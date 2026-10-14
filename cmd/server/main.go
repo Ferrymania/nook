@@ -1,6 +1,6 @@
-// Package main is the MeBox HTTP server entry point.
+// Package main is the Nook HTTP server entry point.
 //
-// MeBox is a Go rewrite of the legacy Python implementation,
+// Nook is a Go rewrite of the legacy Python implementation,
 // adopting the same tech stack as cropflre/nowen-video:
 //
 //	Backend:  Go 1.25 + Gin + GORM + PostgreSQL/SQLite + Viper + Zap + JWT
@@ -11,8 +11,9 @@
 package main
 
 import (
-	"os"
 	"strings"
+
+	"github.com/Ferrymania/nook/internal/config"
 )
 
 // version is overwritten at build time via -ldflags="-X main.version=...".
@@ -23,7 +24,7 @@ func effectiveVersion(buildVersion string) string {
 	if buildVersion != "" && buildVersion != "dev" {
 		return buildVersion
 	}
-	if envVersion := strings.TrimSpace(os.Getenv("MEBOX_VERSION")); envVersion != "" {
+	if envVersion := strings.TrimSpace(config.Env("NOOK_VERSION")); envVersion != "" {
 		return envVersion
 	}
 	if buildVersion == "" {

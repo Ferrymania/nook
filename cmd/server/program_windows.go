@@ -16,37 +16,37 @@ import (
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 
-	"github.com/truewhile/MeBox/internal/brand"
+	"github.com/Ferrymania/nook/internal/brand"
 )
 
 const (
 	runRegistryKey     = `Software\Microsoft\Windows\CurrentVersion\Run`
-	runRegistryValue   = "MeBox"
-	singleInstanceName = `Local\MeBox-Server`
+	runRegistryValue   = "Nook"
+	singleInstanceName = `Local\Nook-Server`
 )
 
-var errAlreadyRunning = errors.New("MeBox is already running")
+var errAlreadyRunning = errors.New("Nook is already running")
 
 func runProgram() {
 	if err := prepareWorkingDirectory(); err != nil {
-		reportError("MeBox 启动失败", fmt.Errorf("切换工作目录失败: %w", err))
+		reportError("Nook 启动失败", fmt.Errorf("切换工作目录失败: %w", err))
 		return
 	}
 
 	instance, err := acquireSingleInstance()
 	if errors.Is(err, errAlreadyRunning) {
-		reportError("MeBox", errors.New("MeBox 已在运行，请查看右下角托盘图标"))
+		reportError("Nook", errors.New("Nook 已在运行，请查看右下角托盘图标"))
 		return
 	}
 	if err != nil {
-		reportError("MeBox 启动失败", fmt.Errorf("创建单实例锁失败: %w", err))
+		reportError("Nook 启动失败", fmt.Errorf("创建单实例锁失败: %w", err))
 		return
 	}
 
 	app, err := newApplication()
 	if err != nil {
 		_ = instance.Close()
-		reportError("MeBox 启动失败", err)
+		reportError("Nook 启动失败", err)
 		return
 	}
 
@@ -59,12 +59,12 @@ func runProgram() {
 
 	if !controller.readyClosed.Load() {
 		_ = app.Shutdown()
-		reportError("MeBox 启动失败", errors.New("系统托盘初始化失败"))
+		reportError("Nook 启动失败", errors.New("系统托盘初始化失败"))
 		return
 	}
 	if controller.restartRequested.Load() {
 		if err := launchSelf(); err != nil {
-			reportError("MeBox 重启失败", err)
+			reportError("Nook 重启失败", err)
 		}
 	}
 }
@@ -83,14 +83,14 @@ func (c *trayController) onReady() {
 	}()
 
 	systray.SetIcon(brand.Icon)
-	systray.SetTooltip("MeBox")
+	systray.SetTooltip("Nook")
 
-	mOpen := systray.AddMenuItem("打开 MeBox", "在浏览器中打开 MeBox")
-	mAutoStart := systray.AddMenuItemCheckbox("开机自启", "登录 Windows 后自动启动 MeBox", autoStartEnabled())
-	mLogs := systray.AddMenuItem("查看日志", "打开 MeBox 应用日志")
+	mOpen := systray.AddMenuItem("打开 Nook", "在浏览器中打开 Nook")
+	mAutoStart := systray.AddMenuItemCheckbox("开机自启", "登录 Windows 后自动启动 Nook", autoStartEnabled())
+	mLogs := systray.AddMenuItem("查看日志", "打开 Nook 应用日志")
 	systray.AddSeparator()
-	mRestart := systray.AddMenuItem("重启 MeBox", "重启 MeBox 服务")
-	mQuit := systray.AddMenuItem("退出 MeBox", "停止服务并退出")
+	mRestart := systray.AddMenuItem("重启 Nook", "重启 Nook 服务")
+	mQuit := systray.AddMenuItem("退出 Nook", "停止服务并退出")
 
 	initialAutoStart := mAutoStart.Checked()
 	go func() {
@@ -98,7 +98,7 @@ func (c *trayController) onReady() {
 			select {
 			case <-mOpen.ClickedCh:
 				if err := openURL(c.app.localURL()); err != nil {
-					reportError("MeBox", fmt.Errorf("打开 MeBox 失败: %w", err))
+					reportError("Nook", fmt.Errorf("打开 Nook 失败: %w", err))
 				}
 			case <-mAutoStart.ClickedCh:
 				enable := !mAutoStart.Checked()
@@ -108,7 +108,7 @@ func (c *trayController) onReady() {
 					} else {
 						mAutoStart.Uncheck()
 					}
-					reportError("MeBox", fmt.Errorf("更新开机自启设置失败: %w", err))
+					reportError("Nook", fmt.Errorf("更新开机自启设置失败: %w", err))
 					continue
 				}
 				if enable {
@@ -119,7 +119,7 @@ func (c *trayController) onReady() {
 				initialAutoStart = enable
 			case <-mLogs.ClickedCh:
 				if err := c.app.openLog(); err != nil {
-					reportError("MeBox", fmt.Errorf("打开日志失败: %w", err))
+					reportError("Nook", fmt.Errorf("打开日志失败: %w", err))
 				}
 			case <-mRestart.ClickedCh:
 				c.restart()
@@ -322,7 +322,7 @@ func reportError(title string, err error) {
 	if textErr != nil {
 		return
 	}
-	caption, captionErr := windows.UTF16PtrFromString("MeBox")
+	caption, captionErr := windows.UTF16PtrFromString("Nook")
 	if captionErr != nil {
 		return
 	}

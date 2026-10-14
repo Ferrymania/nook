@@ -6,7 +6,7 @@ import (
 
 // 本文件：legado 兼容性回归——`Packages.java.util.*` 容器与 `.[*]` 形式的 JSONPath。
 //
-// 背景（拷贝系列轻小说源在 MeBox 搜不到/读不了的根因）：
+// 背景（拷贝系列轻小说源在 Nook 搜不到/读不了的根因）：
 //  1. 搜索列表规则写成 `results.list.[*]`（legado/Jayway 接受），PaesslerAG 直接
 //     解析报错返回空；
 //  2. 目录规则用 `new Packages.java.util.LinkedHashMap()` / `ArrayList()` 拼装，

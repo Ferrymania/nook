@@ -18,7 +18,7 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: bo
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('MeBox UI crashed', error, info)
+    console.error('Nook UI crashed', error, info)
   }
 
   render() {

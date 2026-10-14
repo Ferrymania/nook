@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/truewhile/MeBox/internal/service/reader/rule"
+	"github.com/Ferrymania/nook/internal/service/reader/rule"
 )
 
 // 本文件：书源登录（对应 legado SourceLoginDialog / SourceLoginViewModel）。

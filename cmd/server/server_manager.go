@@ -15,8 +15,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/truewhile/MeBox/internal/config"
-	"github.com/truewhile/MeBox/internal/service"
+	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/service"
 )
 
 // httpSchemeFileName 是数据目录下记录当前监听协议的小文件（内容为 http 或 https）。
@@ -37,7 +37,7 @@ type tlsPair struct {
 	version string
 }
 
-// serverManager 负责 MeBox 的 HTTP/HTTPS 监听。HTTPS 设置保存后调用 Reload，
+// serverManager 负责 Nook 的 HTTP/HTTPS 监听。HTTPS 设置保存后调用 Reload，
 // 在同一个端口上把明文 HTTP 与 TLS 监听热切换，无需重启进程：
 //
 //   - 关闭旧监听释放端口（同一进程内 Windows 不允许重复绑定同一端口）；

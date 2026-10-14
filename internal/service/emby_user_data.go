@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
-// SetFavorite 把 mediaID 标为 userID 的收藏。只写入 MeBox 本地 favourites 表，
+// SetFavorite 把 mediaID 标为 userID 的收藏。只写入 Nook 本地 favourites 表，
 // 按 user_id 隔离；挂载远程 Emby 共用账号，不能再透传收藏以免串用户。
 func (e *EmbyService) SetFavorite(ctx context.Context, userID, mediaID string, favorite bool) error {
 	if err := SyncUserFavorite(ctx, e.repo, e.remote, userID, mediaID, favorite); err != nil {
@@ -22,7 +22,7 @@ func (e *EmbyService) SetFavorite(ctx context.Context, userID, mediaID string, f
 }
 
 // MarkPlayed 把 mediaID 标为已看（写一个 100% 进度的 history 行）。
-// 远程挂载条目同样只落本地 PlaybackHistory，按 MeBox 用户隔离。
+// 远程挂载条目同样只落本地 PlaybackHistory，按 Nook 用户隔离。
 func (e *EmbyService) MarkPlayed(ctx context.Context, userID, mediaID string, played bool) error {
 	if !played {
 		err := e.repo.DB.WithContext(ctx).
@@ -143,7 +143,7 @@ func (e *EmbyService) RecordProgressWithSession(ctx context.Context, userID, med
 }
 
 // embyPlaySessionStartedAtMs extracts the millisecond timestamp embedded in a
-// MeBox-issued PlaySessionId. Older IDs used seconds, so normalize those too.
+// Nook-issued PlaySessionId. Older IDs used seconds, so normalize those too.
 func embyPlaySessionStartedAtMs(playSessionID string) int64 {
 	playSessionID = strings.TrimSpace(playSessionID)
 	if playSessionID == "" {
@@ -166,9 +166,9 @@ func embyPlaySessionStartedAtMs(playSessionID string) int64 {
 	return value
 }
 
-// mergeRemoteUserData overlays the current MeBox user's locally recorded
+// mergeRemoteUserData overlays the current Nook user's locally recorded
 // playback and favourite state onto remote Emby payloads. Remote mounts share
-// one upstream Emby account, so upstream UserData must never leak across MeBox users.
+// one upstream Emby account, so upstream UserData must never leak across Nook users.
 func (e *EmbyService) mergeRemoteUserData(ctx context.Context, userID string, payload any) error {
 	if strings.TrimSpace(userID) == "" || payload == nil {
 		return nil
@@ -207,7 +207,7 @@ func (e *EmbyService) mergeRemoteUserData(ctx context.Context, userID string, pa
 	}
 	for _, item := range items {
 		id, _ := item["Id"].(string)
-		item["UserData"] = applyMeBoxUserData(item["UserData"], byMediaID[id], favSet[id])
+		item["UserData"] = applyNookUserData(item["UserData"], byMediaID[id], favSet[id])
 	}
 	return nil
 }
@@ -245,12 +245,12 @@ func mergedRemoteUserData(raw any, history *model.PlaybackHistory) map[string]an
 			favorite = v
 		}
 	}
-	return applyMeBoxUserData(raw, history, favorite)
+	return applyNookUserData(raw, history, favorite)
 }
 
-// applyMeBoxUserData rebuilds UserData for a remote item using only MeBox-local
+// applyNookUserData rebuilds UserData for a remote item using only Nook-local
 // per-user state. Shared upstream Emby favourite/progress fields are discarded.
-func applyMeBoxUserData(raw any, history *model.PlaybackHistory, favorite bool) map[string]any {
+func applyNookUserData(raw any, history *model.PlaybackHistory, favorite bool) map[string]any {
 	userData := map[string]any{}
 	if existing, ok := raw.(map[string]any); ok {
 		for key, value := range existing {

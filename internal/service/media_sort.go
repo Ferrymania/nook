@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // MediaSortSpec is the normalized sort request shared by media and series endpoints.

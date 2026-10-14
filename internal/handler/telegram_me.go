@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/truewhile/MeBox/internal/service"
+	"github.com/Ferrymania/nook/internal/service"
 )
 
 // Telegram 绑定与测试接口。
@@ -80,7 +80,7 @@ func testTelegramHandler(svc *service.Container) gin.HandlerFunc {
 			})
 			return
 		}
-		if err := svc.Telegram.SendToAdminChecked(c.Request.Context(), "✅ MeBox 测试消息：通知通道工作正常。"); err != nil {
+		if err := svc.Telegram.SendToAdminChecked(c.Request.Context(), "✅ Nook 测试消息：通知通道工作正常。"); err != nil {
 			c.JSON(http.StatusOK, gin.H{"success": false, "error": err.Error()})
 			return
 		}

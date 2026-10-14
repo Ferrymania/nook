@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/truewhile/MeBox/internal/config"
-	"github.com/truewhile/MeBox/internal/model"
+	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // TestProxyURLSignRoundTrip 验证媒体代理签名：往返还原 + 防篡改。
