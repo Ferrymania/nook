@@ -72,7 +72,7 @@ function LoginBrandHeader() {
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.15, type: 'spring', stiffness: 200 }}
-        src="/brand/logo-192.png"
+        src="/brand/logo-192.png?v=2"
         alt="Nook"
         className="mb-4 h-14 w-14 rounded-2xl object-contain shadow-sm"
       />

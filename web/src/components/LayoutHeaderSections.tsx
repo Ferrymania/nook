@@ -82,7 +82,7 @@ export function LayoutHeader({
         </button>
         <Link to="/" className={`flex items-center gap-2.5 transition-transform hover:scale-105 ${showSidebar ? 'lg:hidden' : 'hidden sm:flex'}`}>
           <img
-            src="/brand/logo-192.png"
+            src="/brand/logo-192.png?v=2"
             alt="Nook"
             className="h-9 w-9 rounded-xl object-contain shadow-sm"
           />

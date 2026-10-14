@@ -71,7 +71,7 @@ function LayoutSidebarHeader({
     <div className="flex h-20 shrink-0 items-center justify-between border-b border-[var(--app-border)] px-6">
       <Link to="/" className="flex items-center gap-3">
         <img
-          src="/brand/logo-192.png"
+          src="/brand/logo-192.png?v=2"
           alt="Nook"
           className="h-10 w-10 shrink-0 rounded-xl object-contain shadow-sm"
         />
