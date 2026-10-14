@@ -1,0 +1,104 @@
+# Nook 部署模板：连接已有 PostgreSQL，只启动 Nook。
+# 没有 PostgreSQL 时，请使用 docker-compose.yml，自动启动 Nook + PostgreSQL。
+#
+# 使用：
+#   1. 保存为 docker-compose.yml（或执行时带 -f 本文件名）。
+#   2. 修改 NOOK_DATABASE_DSN，填写已有数据库的用户、密码、地址和数据库名。
+#      数据库及用户需要事先创建；复用旧 Nook / MeBox 数据时保留原连接参数。
+#   3. 修改 volumes 左侧的宿主机目录；首次部署先创建 media 和 downloads 目录。
+#   4. docker compose up -d
+#
+# 默认账号：admin / admin123；首次登录后请立即修改密码。
+# 升级已有安装时保留原 data、media 挂载及 data/.jwt_secret。
+
+services:
+  nook:
+    image: ${NOOK_IMAGE:-ghcr.io/ferrymania/nook:latest}
+    restart: unless-stopped
+    init: true
+
+    ports:
+      - "18080:8080"
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    volumes:
+      # 配置、JWT 密钥、日志；PostgreSQL 主库仍由已有数据库服务管理。
+      - ./data:/data
+      - ./cache:/cache
+      - type: bind
+        source: ./media
+        target: /media
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./downloads
+        target: /downloads
+        bind:
+          create_host_path: false
+      # 可选：管理面板一键更新需要访问 Docker 引擎。
+      # - /var/run/docker.sock:/var/run/docker.sock
+
+    environment:
+      TZ: Asia/Shanghai
+      PUID: "1000"
+      PGID: "1000"
+
+      NOOK_APP_HOST: 0.0.0.0
+      NOOK_APP_PORT: 8080
+      NOOK_APP_WEB_DIR: /app/web/dist
+      NOOK_APP_DATA_DIR: /data
+      NOOK_DATABASE_TYPE: postgres
+
+      # 必填：替换 DB_USER、DB_PASSWORD、DB_NAME，并修改数据库地址。
+      # 宿主机 PostgreSQL：host.docker.internal；其他服务器：实际 IP / 域名。
+      # 其他 Docker 容器：加入同一个网络后使用该容器的服务名（见文件末尾）。
+      # 127.0.0.1 指向 Nook 容器自身，不能用于连接宿主机 PostgreSQL。
+      # 用户名/密码中的 @、:、/、#、?、%、$ 等特殊字符需进行 URL 编码。
+      # sslmode 按已有数据库要求设置；以下为同机/内网的连接示例。
+      NOOK_DATABASE_DSN: "postgres://DB_USER:DB_PASSWORD@host.docker.internal:5432/DB_NAME?sslmode=disable"
+      NOOK_DATABASE_DB_PATH: /data/nook.db
+      NOOK_CACHE_CACHE_DIR: /cache
+      NOOK_UPDATE_IMAGE: ${NOOK_IMAGE:-ghcr.io/ferrymania/nook:latest}
+
+      NOOK_MEDIA_DIR: /media
+      NOOK_MEDIA_CONTAINER_DIR: /media
+      NOOK_DOWNLOAD_DIR: /downloads
+      NOOK_DOWNLOAD_CONTAINER_DIR: /downloads
+
+      NOOK_LOGGING_LEVEL: info
+      NOOK_LOGGING_FORMAT: console
+      NOOK_LOGGING_OUTPUT_PATH: /data/logs
+      NOOK_LOGGING_MAX_SIZE_MB: "20"
+      NOOK_LOGGING_MAX_BACKUPS: "5"
+      NOOK_LOGGING_MAX_AGE_DAYS: "30"
+
+      NOOK_TRANSCODER_ENABLED: "true"
+      NOOK_TRANSCODER_HARDWARE_ACCEL: "false"
+      NOOK_TRANSCODER_REALTIME: "true"
+      NOOK_TRANSCODER_THREADS: "2"
+      NOOK_TRANSCODER_MAX_CONCURRENT: "1"
+      NOOK_TRANSCODER_IDLE_TIMEOUT_SECONDS: "120"
+
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/nook-healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+    # 若 PostgreSQL 在其他 Docker 容器中，取消下面和文件末尾的网络注释。
+    # networks:
+    #   - postgres_net
+
+# networks:
+#   postgres_net:
+#     external: true
+#     name: YOUR_EXISTING_NETWORK

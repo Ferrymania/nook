@@ -1,9 +1,11 @@
-# Nook 最简单 Docker Compose 部署文件
+# Nook 部署模板：没有 PostgreSQL，自动启动 Nook + PostgreSQL。
+# 已有独立 PostgreSQL 时，请使用 docker-compose.external-postgres.yml。
+# 旧版安装升级请保留原 PostgreSQL 用户、数据库、密码和 ./postgres 挂载。
 #
 # 新手建议：
 #   1. 不用 .env。
 #   2. 直接改本文件。
-#   3. 第一次可以不改路径，先用当前目录下的 ./media 和 ./downloads 体验。
+#   3. 第一次可以不改路径，先创建当前目录下的 media 和 downloads 目录。
 #
 # 启动：
 #   docker compose up -d
@@ -103,7 +105,7 @@ services:
 
       # SQLite 旧库迁移源：
       # - 首次从 SQLite 导入时保持此路径，旧文件名会自动识别。
-      # - 确认迁移完成后，建议改成 /data/no-sqlite-migration.db 这类不存在的路径。
+      # - 成功后会记录迁移完成状态，无需手动更改此路径。
       NOOK_DATABASE_DB_PATH: /data/nook.db
       NOOK_CACHE_CACHE_DIR: /cache
 

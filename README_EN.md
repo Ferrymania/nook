@@ -63,16 +63,26 @@ In practice, Nook gives you:
 
 ## Quick Start
 
-Docker Compose is the recommended path. The repo ships four **standalone** templates; no `.env` is required.
+Docker Compose is the recommended path. Choose a standalone template based on whether you already have PostgreSQL. Edit the YAML directly; no `.env` is required.
+
+| Database setup | File | Services started |
+| --- | --- | --- |
+| No PostgreSQL yet | [docker-compose.yml](docker-compose.yml) | Nook + a new PostgreSQL instance |
+| Existing PostgreSQL | [docker-compose.external-postgres.yml](docker-compose.external-postgres.yml) | Nook only, connected to your existing database |
+| Built-in SQLite | [docker-compose.simple.yml](docker-compose.simple.yml) | Nook only |
 
 ```bash
 mkdir -p Nook && cd Nook
+mkdir -p media downloads
 
-# Simplest: one container with built-in SQLite
-curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose.simple.yml -o docker-compose.yml
+# No PostgreSQL yet: start Nook + PostgreSQL
+curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose.yml -o docker-compose.yml
 
-# Or PostgreSQL tier for multi-user setups
-# curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose.yml -o docker-compose.yml
+# Existing PostgreSQL: use this URL and edit NOOK_DATABASE_DSN before starting
+# curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose.external-postgres.yml -o docker-compose.yml
+
+# Or one container with built-in SQLite
+# curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose.simple.yml -o docker-compose.yml
 
 docker compose up -d
 ```
@@ -104,7 +114,8 @@ Pick one compose file. Do **not** stack multiple `-f` files.
 | Tier | File | Stack | Best for |
 | --- | --- | --- | --- |
 | Single image | `docker-compose.simple.yml` | Nook + SQLite | Beginners, single-user, low-resource NAS |
-| Tier 1 | `docker-compose.yml` | Nook + PostgreSQL | Most home NAS deployments |
+| Tier 1 | `docker-compose.yml` | Nook + a new PostgreSQL instance | Most home NAS deployments without PostgreSQL |
+| Existing PostgreSQL | `docker-compose.external-postgres.yml` | Nook + external PostgreSQL | Reuse an existing database instance |
 | Tier 2 | `docker-compose.standard.yml` | + Redis | Multi-user, frequent Emby client refreshes |
 | Tier 3 | `docker-compose.search.yml` | + OpenSearch | Very large libraries, advanced full-text search |
 
@@ -114,18 +125,37 @@ Pick one compose file. Do **not** stack multiple `-f` files.
 - Do **not** set `NOOK_DATABASE_DSN` or it switches to PostgreSQL
 - Back up `./data`; `./cache` can be rebuilt
 
-### PostgreSQL notes
+### No PostgreSQL yet
 
-- Primary DB: `./postgres`; secrets and runtime files: `./data`
-- Existing `./data/nook.db` migrates automatically on first start
-- After migration, point `NOOK_DATABASE_DB_PATH` at a non-existent file to disable re-checks
+- `docker-compose.yml` starts both Nook and PostgreSQL.
+- Back up both `./postgres` (primary DB) and `./data` (secrets and runtime files).
+- Existing SQLite data migrates automatically on first start; successful migration is recorded.
+
+### Existing PostgreSQL
+
+Use `docker-compose.external-postgres.yml`, which starts Nook only. Fill in your actual connection settings:
+
+```yaml
+NOOK_DATABASE_TYPE: postgres
+NOOK_DATABASE_DSN: "postgres://DB_USER:DB_PASSWORD@DB_HOST:5432/DB_NAME?sslmode=disable"
+```
+
+Create the database and user beforehand, and allow connections from the Nook container. URL-encode special characters in credentials and set `sslmode` as required by your database.
+
+- Host-installed PostgreSQL: use `host.docker.internal`; the template includes the host gateway mapping.
+- Another server: use its reachable IP address or hostname.
+- Another Docker container: uncomment the existing-network configuration at the end of the template and use the database service name.
+
+`127.0.0.1` refers to the Nook container itself. Back up external PostgreSQL through its original deployment, and keep backing up Nook's `./data` directory.
+
+If PostgreSQL is already part of an older Nook / MeBox Compose deployment, keep that service, its credentials, and data mounts when upgrading. You do not need to separate it into an external database.
 
 ### Backup
 
 | Path | Notes |
 | --- | --- |
 | `./data` | JWT secret, config, SQLite DB or migration source |
-| `./postgres` | PostgreSQL primary DB |
+| `./postgres` | Bundled PostgreSQL primary DB; back up external PostgreSQL at its original deployment |
 | `./cache`, `./redis`, `./opensearch` | Rebuildable |
 
 ### Update

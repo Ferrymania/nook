@@ -66,16 +66,26 @@
 
 ## 快速开始
 
-推荐使用 Docker Compose。仓库提供四份**互相独立**的完整模板，无需 `.env` 即可起步。
+推荐使用 Docker Compose。根据是否已有 PostgreSQL 选择一份完整模板，直接编辑 YAML，无需 `.env`：
+
+| 数据库情况 | 配置文件 | 启动的服务 |
+| --- | --- | --- |
+| 没有 PostgreSQL | [docker-compose.yml](docker-compose.yml) | Nook + 新建 PostgreSQL |
+| 已有 PostgreSQL | [docker-compose.external-postgres.yml](docker-compose.external-postgres.yml) | 只启动 Nook，连接已有数据库 |
+| 想使用内置 SQLite | [docker-compose.simple.yml](docker-compose.simple.yml) | 只启动 Nook |
 
 ```bash
 mkdir -p Nook && cd Nook
+mkdir -p media downloads
 
-# 最省心：单镜像 + 内置 SQLite
-curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose.simple.yml -o docker-compose.yml
+# 没有 PostgreSQL：自动启动 Nook + PostgreSQL
+curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose.yml -o docker-compose.yml
 
-# 或多用户场景：PostgreSQL 第一档
-# curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose.yml -o docker-compose.yml
+# 已有 PostgreSQL：改用下面的下载地址，并先修改 YAML 中的 NOOK_DATABASE_DSN
+# curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose.external-postgres.yml -o docker-compose.yml
+
+# 或单镜像 + 内置 SQLite
+# curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose.simple.yml -o docker-compose.yml
 
 docker compose up -d
 ```
@@ -107,7 +117,8 @@ ghcr.io/ferrymania/nook:latest
 | 档位 | 配置文件 | 组件 | 适合场景 |
 | --- | --- | --- | --- |
 | 单镜像档 | `docker-compose.simple.yml` | Nook + SQLite | 新手、单人、低配 NAS，只想一个容器跑起来 |
-| 第一档 | `docker-compose.yml` | Nook + PostgreSQL | 大多数家庭 NAS，多用户更稳 |
+| 第一档 | `docker-compose.yml` | Nook + 新建 PostgreSQL | 没有 PostgreSQL，大多数家庭 NAS |
+| 已有 PostgreSQL | `docker-compose.external-postgres.yml` | Nook + 外部 PostgreSQL | 复用已有数据库实例 |
 | 第二档 | `docker-compose.standard.yml` | + Redis | 多用户、Emby 客户端频繁刷新、首页/列表访问多 |
 | 第三档 | `docker-compose.search.yml` | + OpenSearch | 超大媒体库、复杂全文搜索（内存占用更高） |
 
@@ -128,22 +139,37 @@ volumes:
 
 网页添加媒体库时填写容器内路径，例如 `/media`、`/media/电影`。
 
-### PostgreSQL 档位要点
+### 没有 PostgreSQL
 
-- 主库在 `./postgres`，配置与密钥在 `./data`
-- 若存在旧版 `./data/nook.db`，首次启动会自动迁移到 PostgreSQL
-- 迁移完成后可将 `NOOK_DATABASE_DB_PATH` 改为不存在路径，避免重复检查：
+- 使用 `docker-compose.yml`，会启动 Nook 和 PostgreSQL 两个服务。
+- 主库在 `./postgres`，配置与密钥在 `./data`，两者都要备份。
+- 若存在旧 SQLite 数据库，首次启动会自动迁移到 PostgreSQL，成功后记录完成状态。
+
+### 已有 PostgreSQL
+
+使用 `docker-compose.external-postgres.yml`，只启动 Nook。在 YAML 中填写实际连接参数：
 
 ```yaml
-NOOK_DATABASE_DB_PATH: /data/no-sqlite-migration.db
+NOOK_DATABASE_TYPE: postgres
+NOOK_DATABASE_DSN: "postgres://数据库用户:数据库密码@数据库地址:5432/数据库名?sslmode=disable"
 ```
+
+数据库和用户需事先创建，并允许 Nook 容器连接。用户名、密码中的特殊字符需进行 URL 编码，`sslmode` 按数据库要求设置。
+
+- 数据库在宿主机：地址使用 `host.docker.internal`，模板已配置宿主机网关。
+- 数据库在其他服务器：地址使用实际 IP 或域名。
+- 数据库在其他 Docker 容器：按模板末尾的注释加入其已有网络，地址使用数据库服务名。
+
+`127.0.0.1` 指向 Nook 容器自身。外部 PostgreSQL 的数据与备份由原数据库部署管理，Nook 目录中仍需保留和备份 `./data`。
+
+若 PostgreSQL 本来就在旧 Nook / MeBox 的同一份 Compose 中，升级时继续保留原数据库服务、连接参数及数据挂载即可；不必拆成外部数据库。
 
 ### 必须备份与可重建
 
 | 路径 | 说明 |
 | --- | --- |
 | `./data` | JWT 密钥、运行配置、SQLite 主库或迁移源 |
-| `./postgres` | PostgreSQL 主库（PG 档位） |
+| `./postgres` | 自带 PostgreSQL 的主库；外部 PostgreSQL 在原部署处备份 |
 | `./cache` | 海报/转码缓存，可重建 |
 | `./redis` | 热缓存，可重建 |
 | `./opensearch` | 搜索索引，可重建 |

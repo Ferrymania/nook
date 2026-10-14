@@ -71,6 +71,8 @@ jobs:
         run: docker compose -f docker-compose.simple.yml config --quiet
       - name: Validate tier 1 compose
         run: docker compose -f docker-compose.yml config --quiet
+      - name: Validate existing PostgreSQL compose
+        run: docker compose -f docker-compose.external-postgres.yml config --quiet
       - name: Validate tier 2 compose
         run: docker compose -f docker-compose.standard.yml config --quiet
       - name: Validate tier 3 compose
