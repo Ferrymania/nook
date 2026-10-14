@@ -12,7 +12,16 @@
 
 没有新增数据库表或列；文件大小放在已有 JSON payload 内，旧缓存仍能读取。无需为这些改动重新登录网盘、重新生成全部 STRM 或重新刮削电影。
 
-## 打包镜像
+## 自动打包与镜像
+
+推送到 `main` 会自动运行 **Build & Publish**，生成：
+
+- `ghcr.io/ferrymania/nook:latest` 与对应版本标签的 amd64/arm64 镜像。
+- GitHub Release，以及 Linux、Windows、macOS 的 amd64/arm64 安装包。
+
+版本号沿用现有 `version` 分支管理方式，每次 main 发布递增 patch；fork 首次从 `0.0.1` 开始。自动发布不连接服务器部署。
+
+## 手动构建测试镜像
 
 使用 GitHub Actions 的 **Publish Docker image** 工作流：
 
@@ -20,7 +29,7 @@
 2. `ref` 填写要构建的分支或提交，`version` 填写固定镜像标签，例如 `fixes-20261014`。
 3. 产物为 `ghcr.io/ferrymania/nook:fixes-20261014`，支持 `linux/amd64` 和 `linux/arm64`。
 
-该工作流不依赖 `version` 分支，也不自动连接服务器部署。只有 `ref=main` 才额外更新 `latest`，构建修复分支不会覆盖稳定标签。上游的自动版本递增/部署工作流在 fork 中跳过。
+此手动工作流不依赖 `version` 分支，也不自动连接服务器部署。只有 `ref=main` 才额外更新 `latest`，构建修复分支不会覆盖稳定标签。
 
 所有 Compose 模板的运行镜像与应用内更新目标共用 `MEBOX_IMAGE`，默认使用 `ghcr.io/ferrymania/nook:latest`。使用固定测试标签时，在部署目录的 `.env` 设置：
 

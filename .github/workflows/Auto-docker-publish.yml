@@ -4,7 +4,7 @@ name: Build & Publish
 # - VERSION 文件单独存放在 version 分支，CI 构建时读取并自增写回 version 分支，
 #   main 分支不再出现任何 CI 提交，本地推送永不与远程冲突。
 # - push 到 main：版本号自动 patch+1，发布 latest + 版本镜像、GitHub Release、
-#   多平台单文件二进制，并部署服务器。
+#   多平台单文件二进制。服务器部署单独进行。
 # - push tag v*：正式发版，版本号取 tag 名（不 bump version 分支），其余同上。
 # - 手动触发：版本号在 version 分支当前值上自增，等同 push main 全量发布。
 # 查看当前版本号：git show origin/version:VERSION
@@ -19,11 +19,12 @@ permissions:
   contents: write  # 读写 version 分支、发布 Release 与上传二进制需要
   packages: write
 
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-image:
-    # Forks publish explicitly through docker-publish.yml; this upstream
-    # workflow depends on its version branch and private deployment setup.
-    if: github.repository == 'truewhile/MeBox'
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -88,7 +89,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/mebox
+          images: ghcr.io/${{ github.repository }}
           tags: |
             type=raw,value=latest
             type=raw,value=${{ steps.version.outputs.version }}
@@ -148,16 +149,18 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ needs.build-image.outputs.release_tag }}
         run: |
-          set -eux
+          set -eu
           # tag push 时 tag 已存在；手动触发时基于当前 main 创建 tag（幂等）
-          if ! git rev-parse "$RELEASE_TAG" >/dev/null 2>&1; then
+          if ! git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
             git tag "$RELEASE_TAG"
             git push origin "$RELEASE_TAG"
           fi
-          gh release create "$RELEASE_TAG" \
-            --title "MeBox ${{ needs.build-image.outputs.version }}" \
-            --notes "自动化发布 ${{ needs.build-image.outputs.version }}" \
-            --verify-tag --latest || true
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" \
+              --title "Nook ${{ needs.build-image.outputs.version }}" \
+              --notes "自动化发布 ${{ needs.build-image.outputs.version }}" \
+              --verify-tag --latest
+          fi
 
   build-binaries:
     needs: [build-image, build-frontend, publish-create-release]
@@ -221,51 +224,14 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ needs.build-image.outputs.release_tag }}
         run: |
-          set -eux
+          set -eu
           PKG="mebox_${{ matrix.goos }}_${{ matrix.goarch }}.zip"
           TAR="mebox_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz"
           # 并发上传到同一 release 各自文件，--clobber 幂等覆盖
-          if [ -f "$PKG" ]; then
-            for i in 1 2 3; do gh release upload "$RELEASE_TAG" "$PKG" --clobber && break || sleep 5; done
-          fi
-          if [ -f "$TAR" ]; then
-            for i in 1 2 3; do gh release upload "$RELEASE_TAG" "$TAR" --clobber && break || sleep 5; done
-          fi
-
-  deploy:
-    name: Deploy to Server
-    needs: [build-image]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          password: ${{ secrets.SERVER_PASSWORD }}
-          port: ${{ secrets.SERVER_PORT }}
-          script: |
-            set -e
-            echo "==== 开始部署 MeBox ===="
-            cd /root/dockerData/mebox
-
-            # 判断 compose 命令版本兼容性（docker compose 或 docker-compose）
-            if docker compose version >/dev/null 2>&1; then
-              COMPOSE_CMD="docker compose"
-            elif command -v docker-compose >/dev/null 2>&1; then
-              COMPOSE_CMD="docker-compose"
-            else
-              echo "错误: 未找到 docker compose 或 docker-compose"
-              exit 1
-            fi
-
-            echo "正在拉取最新镜像..."
-            $COMPOSE_CMD pull
-
-            echo "正在重启服务..."
-            $COMPOSE_CMD up -d
-
-            echo "清理旧的无用镜像..."
-            docker image prune -f
-
-            echo "==== 部署完成并已启动 ===="
+          ARCHIVE="$TAR"
+          if [ -f "$PKG" ]; then ARCHIVE="$PKG"; fi
+          for i in 1 2 3; do
+            if gh release upload "$RELEASE_TAG" "$ARCHIVE" --clobber; then exit 0; fi
+            sleep 5
+          done
+          exit 1
