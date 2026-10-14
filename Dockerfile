@@ -87,6 +87,9 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 # rewriting /etc/passwd or /etc/group on every container start.
 COPY docker-entrypoint.sh /entrypoint.sh
 COPY docker-healthcheck.sh /usr/local/bin/nook-healthcheck
-RUN chmod +x /entrypoint.sh /usr/local/bin/nook-healthcheck
+# Existing Compose files may still override the image health check with this
+# legacy path. Keep it as an alias while new deployments use the Nook name.
+RUN chmod +x /entrypoint.sh /usr/local/bin/nook-healthcheck \
+    && ln -s nook-healthcheck /usr/local/bin/mebox-healthcheck
 
 CMD ["/entrypoint.sh"]

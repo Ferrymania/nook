@@ -53,6 +53,6 @@ docker build --platform linux/amd64 --build-arg VERSION=fixes-20261014 -t nook:f
 - Docker 服务为 `nook`，健康检查为 `/usr/local/bin/nook-healthcheck`。
 - 配置环境变量使用 `NOOK_*`，默认 SQLite 文件为 `nook.db`；发布标签为 `nook-v版本号`，安装包为 `nook_平台_架构`。
 
-已有安装可以先仅更换镜像，旧 `MEBOX_*` 环境变量仍可读取；同时配置时 `NOOK_*` 优先。旧 SQLite 文件、逻辑备份和浏览器偏好保持兼容，不自动重命名数据库文件或表，也不改变 `.jwt_secret`。
+已有安装可以先仅更换镜像，旧 `MEBOX_*` 环境变量仍可读取；同时配置时 `NOOK_*` 优先。旧 Compose 的健康检查脚本路径保留兼容入口。旧 SQLite 文件、逻辑备份和浏览器偏好保持兼容，不自动重命名数据库文件或表，也不改变 `.jwt_secret`。
 
 已有 PostgreSQL 的用户、数据库名和密码属于实际部署数据，不能仅因改名就替换成默认的 `nook`。将配置键改为 `NOOK_DATABASE_DSN` 时，保留原 DSN 的连接参数和现有挂载目录。将 Compose 服务从 `mebox` 改为 `nook` 前，先停止原应用服务，避免两个应用同时访问相同数据；PostgreSQL 服务与数据卷保持原配置。
