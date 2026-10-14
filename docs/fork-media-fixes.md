@@ -21,6 +21,8 @@
 
 版本号沿用现有 `version` 分支管理方式，每次 main 发布递增 patch；fork 首次从 `0.0.1` 开始。自动发布不连接服务器部署。
 
+Release 说明根据上一个发布标签之后的提交自动生成，按 Features、Fixes、Docs、Build / CI 等分类，并附提交链接和完整版本对比。提交标题格式见 [贡献规范](../CONTRIBUTING.md#commit-message-建议)。无新增提交的重新构建会明确说明代码未变；发布重试会重新生成更新说明。
+
 ## 手动构建测试镜像
 
 使用 GitHub Actions 的 **Publish Docker image** 工作流：

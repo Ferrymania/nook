@@ -135,7 +135,7 @@ jobs:
           path: web/dist
           retention-days: 1
 
-  # 先创建（幂等）空的 GitHub Release，供后续 build-binaries 并行上传附件，
+  # 先创建带 changelog 的 GitHub Release，供后续 build-binaries 并行上传附件，
   # 也避免矩阵各 job 并发 upload 时 release 尚不存在而互相竞争。
   publish-create-release:
     needs: [build-image]
@@ -144,6 +144,12 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # changelog 需要上一个发布标签及完整提交历史
+      - name: Generate changelog
+        env:
+          RELEASE_TAG: ${{ needs.build-image.outputs.release_tag }}
+        run: python3 scripts/release-notes.py --tag "$RELEASE_TAG" > "$RUNNER_TEMP/release-notes.md"
       - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -158,8 +164,10 @@ jobs:
           if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release create "$RELEASE_TAG" \
               --title "Nook ${{ needs.build-image.outputs.version }}" \
-              --notes "自动化发布 ${{ needs.build-image.outputs.version }}" \
+              --notes-file "$RUNNER_TEMP/release-notes.md" \
               --verify-tag --latest
+          else
+            gh release edit "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md"
           fi
 
   build-binaries:

@@ -95,10 +95,20 @@ go test ./cmd/server -count=1
 
 ## Commit Message 建议
 
-优先使用简短清晰的动词开头：
+提交标题使用 `类型(可选范围): 具体变更`。自动发布会把上一个发布标签之后的提交按类型生成 changelog，并附上提交及版本对比链接：
+
+- `feat:`：Features，新功能。
+- `fix:`：Fixes，问题修复。
+- `perf:` / `refactor:`：性能优化 / 重构。
+- `docs:`：文档与配置说明。
+- `build:` / `ci:`：构建与发布。
+- `test:`、`chore:` 等其他类型或没有前缀的提交：Other Changes。
+- 类型后带 `!`（如 `feat(api)!:`）：Breaking Changes，不兼容变更。
+
+标题应说明具体结果，避免只写“优化”或“bug 处理”。示例：
 
 ```text
-fix organizer hardlink diagnostics
+fix(organizer): report the cause of hardlink failures
 feat(yemapt): add auth-only site adapter
 docs: add issue and pull request guidelines
 test: cover subscription restore matching
