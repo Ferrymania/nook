@@ -234,6 +234,7 @@ type embyClientInfo struct {
 	DeviceID   string
 	DeviceName string
 	Client     string
+	Version    string
 }
 
 func embyClientInfoFromRequest(c *gin.Context) embyClientInfo {
@@ -243,6 +244,10 @@ func embyClientInfoFromRequest(c *gin.Context) embyClientInfo {
 		"Authorization",
 	))
 	info := embyClientInfo{
+		Version: firstNonEmptyHeaderString(
+			firstHeaderValue(c, "X-Emby-Client-Version", "X-MediaBrowser-Client-Version"),
+			c.Query("Version"), auth["Version"],
+		),
 		DeviceID: firstNonEmptyHeaderString(
 			firstHeaderValue(c, "X-Emby-Device-Id", "X-Emby-DeviceId", "X-MediaBrowser-Device-Id", "X-MediaBrowser-DeviceId"),
 			c.Query("DeviceId"),
@@ -276,6 +281,13 @@ func embyClientInfoFromRequest(c *gin.Context) embyClientInfo {
 	}
 	if info.DeviceName == "" {
 		info.DeviceName = embyDeviceFromUserAgent(ua)
+	}
+	if info.Version == "" {
+		if _, version, ok := strings.Cut(ua, "/"); ok {
+			if fields := strings.Fields(version); len(fields) > 0 {
+				info.Version = fields[0]
+			}
+		}
 	}
 	return info
 }

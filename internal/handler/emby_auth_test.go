@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
@@ -96,6 +97,7 @@ func TestEmbyAuthenticateByNameAcceptsCaseVariantUsernameAndPath(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/emby/users/authenticatebyname", strings.NewReader(`{"Username":"Viewer","Pw":"secret-pass"}`))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Emby-Authorization", `Emby Client="Lenna", Version="1.0.16", Device="Test", DeviceId="lenna-test"`)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -108,6 +110,31 @@ func TestEmbyAuthenticateByNameAcceptsCaseVariantUsernameAndPath(t *testing.T) {
 	}
 	if payload["AccessToken"] == "" {
 		t.Fatalf("missing AccessToken: %#v", payload)
+	}
+	user := payload["User"].(map[string]any)
+	for _, key := range []string{"LastLoginDate", "LastActivityDate", "DateCreated"} {
+		value, ok := user[key].(string)
+		if _, err := time.Parse(time.RFC3339Nano, value); !ok || err != nil {
+			t.Fatalf("invalid %s: %#v", key, user[key])
+		}
+	}
+	session := payload["SessionInfo"].(map[string]any)
+	if session["ApplicationVersion"] != "1.0.16" || session["ServerId"] != payload["ServerId"] {
+		t.Fatalf("incomplete session identity: %#v", session)
+	}
+	for _, key := range []string{"AdditionalUsers", "PlayableMediaTypes", "SupportedCommands"} {
+		if _, ok := session[key].([]any); !ok {
+			t.Fatalf("%s must be an array: %#v", key, session[key])
+		}
+	}
+	if _, ok := session["PlayState"].(map[string]any); !ok {
+		t.Fatal("session missing PlayState")
+	}
+	policy := user["Policy"].(map[string]any)
+	// The first registered account is the administrator; keep that identity
+	// while unsupported capabilities remain disabled.
+	if policy["IsAdministrator"] != true || policy["EnableContentDeletion"] != false {
+		t.Fatal("compatibility response changed the account's permissions")
 	}
 }
 

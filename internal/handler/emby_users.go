@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -34,18 +35,18 @@ func embyAuthByNameHandler(svc *service.Container) gin.HandlerFunc {
 			embyError(c, http.StatusBadRequest, "missing username or password")
 			return
 		}
-			resp, err := svc.Auth.Login(c.Request.Context(), req.Username, password)
-			if err != nil {
-				// 支持电视端/客户端一次性 6 位临时密码登录 (OTP)
-				if tempResp, tempErr := svc.Auth.LoginWithTemporaryPassword(c.Request.Context(), req.Username, password); tempErr == nil {
-					resp = tempResp
-					err = nil
-				}
+		resp, err := svc.Auth.Login(c.Request.Context(), req.Username, password)
+		if err != nil {
+			// 支持电视端/客户端一次性 6 位临时密码登录 (OTP)
+			if tempResp, tempErr := svc.Auth.LoginWithTemporaryPassword(c.Request.Context(), req.Username, password); tempErr == nil {
+				resp = tempResp
+				err = nil
 			}
-			if err != nil {
-				embyError(c, http.StatusUnauthorized, err.Error())
-				return
-			}
+		}
+		if err != nil {
+			embyError(c, http.StatusUnauthorized, err.Error())
+			return
+		}
 		// 记录登录设备会话并执行防共享检测（登录客户端数 / 设备指纹）。
 		clientInfo := embyClientInfoFromRequest(c)
 		if svc.Sessions != nil {
@@ -63,6 +64,13 @@ func embyAuthByNameHandler(svc *service.Container) gin.HandlerFunc {
 				c.ClientIP())
 		}
 		userPayload, _ := svc.Emby.FindUser(c.Request.Context(), resp.User.ID)
+		// Login updates its timestamp asynchronously. The successful response
+		// must already contain concrete dates, including on the first login.
+		now := time.Now().UTC()
+		if userPayload != nil {
+			userPayload["LastLoginDate"] = now
+			userPayload["LastActivityDate"] = now
+		}
 		// Emby/Jellyfin 客户端没有 refresh token 机制：它们把这里返回的
 		// AccessToken 长期保存并反复使用。若返回 60 分钟的普通 access
 		// token，客户端每小时就会掉登录、无法播放、媒体库无法刷新。因此
@@ -77,12 +85,24 @@ func embyAuthByNameHandler(svc *service.Container) gin.HandlerFunc {
 			"ServerId":    "mebox-001",
 			"User":        userPayload,
 			"SessionInfo": gin.H{
-				"Id":         resp.User.ID,
-				"UserId":     resp.User.ID,
-				"UserName":   resp.User.Username,
-				"Client":     clientInfo.Client,
-				"DeviceId":   clientInfo.DeviceID,
-				"DeviceName": clientInfo.DeviceName,
+				"Id":                    resp.User.ID,
+				"UserId":                resp.User.ID,
+				"UserName":              resp.User.Username,
+				"Client":                clientInfo.Client,
+				"DeviceId":              clientInfo.DeviceID,
+				"DeviceName":            clientInfo.DeviceName,
+				"ServerId":              "mebox-001",
+				"ApplicationVersion":    clientInfo.Version,
+				"LastActivityDate":      now,
+				"AdditionalUsers":       []any{},
+				"PlayableMediaTypes":    []string{"Video", "Audio"},
+				"SupportedCommands":     []string{},
+				"SupportsRemoteControl": false,
+				"PlayState": gin.H{
+					"PositionTicks": int64(0), "CanSeek": false,
+					"IsPaused": false, "IsMuted": false,
+					"RepeatMode": "RepeatNone",
+				},
 			},
 		})
 	}
