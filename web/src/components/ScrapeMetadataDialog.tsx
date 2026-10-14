@@ -28,7 +28,7 @@ export function ScrapeMetadataDialog({
   onCompleted,
 }: ScrapeMetadataDialogProps) {
   const [targetMode, setTargetMode] = useState<ScrapeTargetMode>('current')
-  const [actionType, setActionType] = useState<ScrapeActionType>('organize_and_scrape')
+  const [actionType, setActionType] = useState<ScrapeActionType>('scrape_only')
   const [destPath, setDestPath] = useState('')
   const [transferMode, setTransferMode] = useState('hardlink')
   const [refreshMatched, setRefreshMatched] = useState(true)
@@ -41,7 +41,7 @@ export function ScrapeMetadataDialog({
   useEffect(() => {
     if (!open) return
     setTargetMode('current')
-    setActionType('organize_and_scrape')
+    setActionType('scrape_only')
     setDestPath('')
     setTransferMode('hardlink')
     setRefreshMatched(true)
@@ -179,7 +179,7 @@ export function ScrapeMetadataDialog({
                   {targetMode === 'current' && <CheckCircle2 size={16} className="text-brand-600" />}
                 </div>
                 <p className="mt-2 text-xs text-gray-500">
-                  直接在当前媒体库目录内进行刮削整理，无需迁移文件。
+                  在当前目录刮削元数据；也可选择按命名规则整理文件。
                 </p>
                 <div className="mt-3 truncate rounded-lg bg-gray-100/80 px-2.5 py-1.5 font-mono text-[11px] text-gray-600" title={library.path}>
                   {library.path}
@@ -225,7 +225,10 @@ export function ScrapeMetadataDialog({
                     onChange={() => setActionType('organize_and_scrape')}
                     className="text-brand-600"
                   />
-                  <span>整理规范命名并刮削</span>
+                  <span>
+                    整理规范命名并刮削
+                    <span className="mt-1 block font-normal leading-relaxed text-gray-500">按命名规则生成文件名和目录，使用所选转移方式整理，再扫描并刮削。</span>
+                  </span>
                 </label>
                 <label className={`flex cursor-pointer items-center gap-2.5 rounded-lg border p-2.5 text-xs font-semibold transition ${actionType === 'scrape_only' ? 'border-brand-400 bg-brand-50 text-brand-700' : 'border-gray-200 bg-white text-gray-700'}`}>
                   <input
@@ -235,7 +238,10 @@ export function ScrapeMetadataDialog({
                     onChange={() => setActionType('scrape_only')}
                     className="text-brand-600"
                   />
-                  <span>仅原地刮削元数据（不重命名）</span>
+                  <span>
+                    仅原地刮削元数据（不重命名）
+                    <span className="mt-1 block font-normal leading-relaxed text-gray-500">更新影片资料、NFO 和图片，保留现有文件名与目录位置。</span>
+                  </span>
                 </label>
               </div>
             </div>
@@ -320,7 +326,7 @@ export function ScrapeMetadataDialog({
           </div>
 
           {/* Preview Results */}
-          {previewResult && (
+          {isOrganize && previewResult && (
             <div className="rounded-xl border border-brand-200 bg-brand-50/50 p-4 text-xs space-y-1.5">
               <div className="font-bold text-brand-900 flex items-center gap-1.5">
                 <CheckCircle2 size={14} className="text-brand-600" />

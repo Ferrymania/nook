@@ -9,7 +9,7 @@ import { apiErrorMessage, createRootPayload, displayLibraryRootName, displayLibr
 
 export function useAdminLibraryPanel() {
   const { libs, refresh } = useAdminLibraryList()
-  const createForm = useCreateLibraryForm(refresh)
+  const createForm = useCreateLibraryForm(refresh, libs)
   const editableRoots = useEditableRootDrafts()
   const rootActions = useEditableLibraryRootActions(refresh, editableRoots)
   const libraryActions = useLibraryActions(refresh)
@@ -35,7 +35,7 @@ function useAdminLibraryList() {
   return { libs, refresh }
 }
 
-function useCreateLibraryForm(refresh: () => Promise<void>) {
+function useCreateLibraryForm(refresh: () => Promise<void>, libs: Library[]) {
   const [name, setName] = useState('')
   const [roots, setRoots] = useState<RootDraft[]>([emptyRootDraft()])
   const [type, setType] = useState('movie')
@@ -63,8 +63,9 @@ function useCreateLibraryForm(refresh: () => Promise<void>) {
           toast.error('请至少填写一个路径')
           return
         }
-        await libraryAPI.createWithRoots(name, type, payload, coverURL.trim())
-        toast.success('媒体库已保存')
+        const saved = await libraryAPI.createWithRoots(name, type, payload, coverURL.trim())
+        const appended = libs.some((lib) => lib.id === saved.id)
+        toast.success(appended ? `已向「${saved.name}」保存来源路径` : `已创建媒体库「${saved.name}」`)
       }
       setName('')
       setRoots([emptyRootDraft()])

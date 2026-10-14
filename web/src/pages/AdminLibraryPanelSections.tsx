@@ -55,6 +55,10 @@ export function AdminLibraryCreateForm({
   return (
     <>
       <form onSubmit={onSubmit} className="glass-panel grid gap-3 md:grid-cols-4">
+        <div className="md:col-span-4">
+          <h3 className="font-semibold text-ink-900">新建媒体库 / 追加来源路径</h3>
+          <p className="mt-1 text-sm text-sand-500">① 填写名称和类型　② 选择目录　③ 点击下方主按钮保存</p>
+        </div>
         <input
           required={!createPerSubfolder}
           className="input-base"
@@ -89,12 +93,12 @@ export function AdminLibraryCreateForm({
           ))}
           {!createPerSubfolder && (
             <button type="button" className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm" onClick={onAddRoot}>
-              <Plus size={16} /> 添加路径
+              <Plus size={16} /> 添加另一条路径
             </button>
           )}
         </div>
         <p className="md:col-span-4 -mt-2 text-xs text-sand-500">
-          支持直接点选或手动输入；名称和类型与现有媒体库一致时，会自动把这里填写的路径追加到该媒体库。
+          “添加另一条路径”只增加输入行，填写完成后需点击下方按钮保存。名称和类型与现有媒体库一致时，会追加路径到该媒体库。
         </p>
         <label className="md:col-span-4 flex items-center gap-2 text-sm text-ink-100">
           <input
@@ -110,9 +114,9 @@ export function AdminLibraryCreateForm({
             批处理模式：仅取上方第一个路径作为父级目录，会为其中每个子文件夹分别创建媒体库，可自选类型用于整体推断。
           </p>
         )}
-        <button type="submit" className="neon-button md:col-span-4 disabled:opacity-50" disabled={creating}>
-          {creating && <Loader2 size={16} className="animate-spin" />}
-          {creating ? '创建中…' : createPerSubfolder ? '按目录批量创建' : '新建 / 追加路径'}
+        <button type="submit" className="btn-primary md:col-span-4 min-h-12 gap-2 disabled:opacity-50" disabled={creating}>
+          {creating ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
+          {creating ? '保存中…' : createPerSubfolder ? '按子文件夹批量创建媒体库' : '保存：新建媒体库 / 追加路径'}
         </button>
       </form>
 

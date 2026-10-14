@@ -142,6 +142,21 @@ func scrapeQueryCandidatesWithNormalizer(m *model.Media, lib *model.Library, cle
 			if !genericMovieFileTitle(m.Title) {
 				add(m.Title)
 			}
+			// The Chinese single-movie directory can supply a release alias.
+			// Never borrow a collection/category title or a conflicting year.
+			if lib != nil {
+				dir := parentSlashPath(m.Path)
+				base := pathBaseSlash(dir)
+				if !isMediaCollectionFolder(base) && !isGenericMediaCategoryFolder(base) &&
+					!isTechnicalMediaFolder(base) && !strictSeasonFolderMatched(base) && !isTheatricalFolder(base) {
+					folderTitle, folderYear := clean(base + ".mkv")
+					fileYear := mediaYearHint(m)
+					yearDiff := folderYear - fileYear
+					if containsCJK(folderTitle) && (folderYear == 0 || fileYear == 0 || (yearDiff >= -1 && yearDiff <= 1)) {
+						add(folderTitle)
+					}
+				}
+			}
 		}
 	}
 

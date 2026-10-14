@@ -255,7 +255,7 @@ go run ./cmd/server          # http://127.0.0.1:8080
 npm --prefix web run dev     # http://127.0.0.1:3000
 ```
 
-CI 会在 Release 中提供 Windows / Linux / macOS 的 amd64、arm64 单文件可执行程序。
+CI 会在 Release 中提供 Windows / Linux 的 amd64、arm64，以及 macOS Apple Silicon（arm64）的单文件可执行程序。
 
 Windows 本地打包：
 

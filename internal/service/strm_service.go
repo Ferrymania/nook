@@ -49,7 +49,7 @@ const (
 )
 
 const (
-	StrmDefaultVideoExt = "mkv,mp4,avi,rmvb,rm,mov,ts,wmv,flv,m4v,iso,mpg,mpeg,webm"
+	StrmDefaultVideoExt = "mkv,mp4,avi,rmvb,rm,mov,ts,wmv,flv,m4v,mpg,mpeg,webm"
 	StrmDefaultMetaExt  = "nfo,jpg,jpeg,png,srt,ass,ssa,sub,txt,bmp,webp,img"
 	StrmDefaultExclude  = "sample,trailer,预告"
 )
@@ -63,7 +63,7 @@ var StrmSettingDefs = map[string]struct {
 	Help    string
 }{
 	StrmSettingBaseURL:         {Default: "", Label: "STRM 链接基础地址", Kind: "text", Help: "生成的 strm 文件指向的播放地址（默认留空自动取服务器公网地址 app.server_url）。例如 http://192.168.1.10:8096"},
-	StrmSettingVideoExt:        {Default: StrmDefaultVideoExt, Label: "视频扩展名", Kind: "text", Help: "逗号分隔；命中即生成 .strm，其余文件视为元数据"},
+	StrmSettingVideoExt:        {Default: StrmDefaultVideoExt, Label: "视频扩展名", Kind: "text", Help: "逗号分隔；命中即生成 .strm。暂时不支持 ISO，默认不生成 ISO 的 STRM"},
 	StrmSettingMetaExt:         {Default: StrmDefaultMetaExt, Label: "元数据扩展名", Kind: "text", Help: "逗号分隔；进入下载/上传队列的文件类型（nfo/图片/字幕）"},
 	StrmSettingExcludeName:     {Default: StrmDefaultExclude, Label: "排除文件名", Kind: "text", Help: "逗号分隔；文件名包含任一关键词即跳过"},
 	StrmSettingMinVideoSizeMB:  {Default: "0", Label: "最小视频大小(MB)", Kind: "number", Help: "小于该大小的视频文件不生成 STRM，0 表示不限"},
@@ -580,7 +580,7 @@ func (s *StrmService) GetStrmSettings(ctx context.Context) (map[string]string, e
 		if strings.TrimSpace(value) == "" {
 			value = def.Default
 		}
-		out[key] = value
+		out[key] = currentStrmDefault(key, value)
 	}
 	return out, nil
 }
@@ -620,13 +620,21 @@ func (s *StrmService) UpdateStrmSettings(ctx context.Context, values map[string]
 func (s *StrmService) strmSetting(ctx context.Context, key string) string {
 	value, err := s.repo.Setting.Get(ctx, key)
 	if err == nil && strings.TrimSpace(value) != "" {
-		return strings.TrimSpace(value)
+		return currentStrmDefault(key, strings.TrimSpace(value))
 	}
 	def, ok := StrmSettingDefs[key]
 	if ok {
 		return def.Default
 	}
 	return ""
+}
+
+// Upgrade the previously saved default without overwriting custom lists.
+func currentStrmDefault(key, value string) string {
+	if key == StrmSettingVideoExt && value == "mkv,mp4,avi,rmvb,rm,mov,ts,wmv,flv,m4v,iso,mpg,mpeg,webm" {
+		return StrmDefaultVideoExt
+	}
+	return value
 }
 
 func (s *StrmService) strmIntSetting(ctx context.Context, key string, fallback int) int {

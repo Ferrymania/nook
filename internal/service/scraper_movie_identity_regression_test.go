@@ -32,6 +32,13 @@ func TestMovieScrapeFailedReleaseNames(t *testing.T) {
 		{potter, "Harry.Potter.and.the.Deathly.Hallows-Part.2.2011.UHD.BluRay.strm", "Harry Potter and the Deathly Hallows Part 2", "哈利·波特与死亡圣器（下）", "Harry Potter and the Deathly Hallows: Part 2", "Harry Potter and the Deathly Hallows: Part 2", 2011, 12445},
 		{"5 浪客剑心：回忆篇 最终篇", "浪客剑心 最终章 追忆篇.strm", "浪客剑心 最终章 追忆篇", "浪客剑心最终章：追忆篇", "Rurouni Kenshin: The Beginning", "るろうに剣心 最終章 The Beginning", 2021, 672322},
 		{"还有明天 蓝光原盘REMUX [中英双字 简繁中字]", "Theres.Still.Tomorrow.2023.ITA.1080p.BluRay.REMUX.strm", "Theres Still Tomorrow", "还有明天", "There's Still Tomorrow", "C'è ancora domani", 2023, 1026227},
+		{"A计划 (1983)", "Project.A.1983.H.265.strm", "Project A", "A计划", "Project A", "A計劃", 1983, 21519},
+		{"古墓荒斋 (1991)", "古墓荒斋.1991.HD1080p.国语对白.strm", "古墓荒斋", "古墓荒斋", "An Old Manor", "古墓荒斋", 1991, 663923},
+		{"一一 (2000)", "Yi.Yi.2000.USA.CC.BluRay.strm", "一一", "一一", "Yi Yi", "一一", 2000, 25538},
+		{"蛇鹤八步 (1978)", "Snake.and.Crane.Arts.of.Shao.lin.1978.strm", "蛇鹤八步", "蛇鹤八步", "Snake and Crane Arts of Shaolin", "蛇鶴八步", 1978, 35170},
+		{"少林门 (1976)", "Shao.Lin.men.1976.strm", "少林门", "少林门", "Hand of Death", "少林門", 1976, 38099},
+		{"我老婆不是人 (1991)", "我的老婆不是人.strm", "我老婆不是人", "我老婆不是人", "Pretty Ghost", "我老婆不是人", 1991, 320529},
+		{"寒战1994 (2026)", "寒战1994.2026.2160p.strm", "寒战1994", "寒战1994", "Cold War 1994", "寒戰1994", 2026, 1499071},
 	}
 	for _, tc := range cases {
 		t.Run(tc.query, func(t *testing.T) {
@@ -72,6 +79,9 @@ func TestMovieScrapeFailedReleaseNames(t *testing.T) {
 			year := tc.year
 			if tc.id == 672322 {
 				year = 0
+			}
+			if tc.id == 1499071 {
+				year = 1994 // Legacy row created by the previous year parser.
 			}
 			media := model.Media{LibraryID: lib.ID, Title: tc.query, Year: year, Path: path, ScrapeStatus: "no_match"}
 			if err := repos.DB.Create(&media).Error; err != nil {
