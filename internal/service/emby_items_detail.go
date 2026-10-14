@@ -107,6 +107,7 @@ func (e *EmbyService) Item(ctx context.Context, mediaID, userID string) (map[str
 			Order("watched_at desc").First(&h).Error
 		if herr == nil {
 			pos = h.PositionMs
+			m = mediaWithHistoryDuration(m, h.DurationMs)
 		}
 	}
 	// 单条目 payload 内部对库类型/series 标题有多次查找，挂请求级缓存合并。
@@ -534,7 +535,7 @@ func (e *EmbyService) resumableItems(ctx context.Context, p ItemsParams) (map[st
 				continue
 			}
 			localTotal++
-			slots = append(slots, resumeSlot{item: e.itemPayload(ctx, m, favSet[h.MediaID], h.PositionMs, false)})
+			slots = append(slots, resumeSlot{item: e.itemPayload(ctx, mediaWithHistoryDuration(m, h.DurationMs), favSet[h.MediaID], h.PositionMs, false)})
 			continue
 		}
 		if e.remote == nil || !IsEmbyRemoteID(h.MediaID) {
@@ -711,14 +712,17 @@ func (e *EmbyService) itemPayload(ctx context.Context, m *model.Media, fav bool,
 		backdropTags = append(backdropTags, m.ID+"-bd")
 	}
 
-	runTimeTicks := int64(m.DurationSec) * 10_000_000
-	durationMs := int64(m.DurationSec) * 1000
-	if durationMs <= 0 && posMs > 0 {
-		durationMs = posMs * 2
-		if durationMs < 30*60*1000 {
-			durationMs = 30 * 60 * 1000
+	mediaSources := e.mediaSourcesForItem(ctx, m, true, false)
+	primarySource := mediaSources[0]
+	runTimeTicks, _ := primarySource["RunTimeTicks"].(int64)
+	durationMs := runTimeTicks / 10_000
+	width, height := m.Width, m.Height
+	for _, stream := range primarySource["MediaStreams"].([]map[string]any) {
+		if stream["Type"] == "Video" {
+			width, _ = stream["Width"].(int)
+			height, _ = stream["Height"].(int)
+			break
 		}
-		runTimeTicks = durationMs * 10_000
 	}
 	played := posMs > 0 && durationMs > 0 && posMs >= durationMs*9/10
 	pct := 0.0
@@ -740,9 +744,9 @@ func (e *EmbyService) itemPayload(ctx context.Context, m *model.Media, fav bool,
 		"Overview":          m.Overview,
 		"RunTimeTicks":      runTimeTicks,
 		"CommunityRating":   m.Rating,
-		"Container":         m.Container,
-		"Width":             m.Width,
-		"Height":            m.Height,
+		"Container":         primarySource["Container"],
+		"Width":             width,
+		"Height":            height,
 		"DateCreated":       m.CreatedAt,
 		"Path":              m.Path,
 		"ParentId":          parentID,
@@ -765,7 +769,8 @@ func (e *EmbyService) itemPayload(ctx context.Context, m *model.Media, fav bool,
 			"Played":                played,
 			"PlayedPercentage":      pct,
 		},
-		"MediaSources": e.mediaSourcesForItem(ctx, m, true, false),
+		"MediaSources": mediaSources,
+		"MediaStreams": primarySource["MediaStreams"],
 	}
 	if primaryArtwork != "" {
 		item["PrimaryImageTag"] = m.ID
@@ -796,6 +801,8 @@ func (e *EmbyService) itemPayload(ctx context.Context, m *model.Media, fav bool,
 	if itemType == "Episode" {
 		dropEmptyStringFields(item, seasonKeys...)
 	} else {
+		delete(item, "IndexNumber")
+		delete(item, "ParentIndexNumber")
 		for _, key := range seasonKeys {
 			delete(item, key)
 		}

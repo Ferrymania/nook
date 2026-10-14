@@ -315,10 +315,10 @@ func TestEmbyImageClearNoStore(t *testing.T) {
 	if strings.Contains(cacheControl, "no-store") {
 		t.Fatalf("image response should not have no-store, got: %s", cacheControl)
 	}
-		if !strings.Contains(cacheControl, "public") {
-			t.Fatalf("image response should have public cache-control, got: %s", cacheControl)
-		}
+	if !strings.Contains(cacheControl, "public") {
+		t.Fatalf("image response should have public cache-control, got: %s", cacheControl)
 	}
+}
 
 func TestEmbyTemporaryPasswordLogin(t *testing.T) {
 	gin.SetMode(gin.TestMode)
@@ -452,7 +452,7 @@ func TestEmbySeriesArtworkInheritanceAndRunTimeTicksFallback(t *testing.T) {
 		t.Fatalf("create series: %v", err)
 	}
 
-	// 创建单集 Episode（DurationSec 为 0，但有播放进度 posMs，用于测试 RunTimeTicks 兜底）
+	// 主表时长未知，详情应使用客户端已上报的总时长。
 	ep := &model.Media{
 		LibraryID:   "lib-tv-1",
 		SeriesID:    "s-test-1",
@@ -494,6 +494,7 @@ func TestEmbySeriesArtworkInheritanceAndRunTimeTicksFallback(t *testing.T) {
 		UserID:     user.ID,
 		MediaID:    ep.ID,
 		PositionMs: 60000,
+		DurationMs: 1200000,
 	}
 	_ = db.Create(hist).Error
 
@@ -504,9 +505,9 @@ func TestEmbySeriesArtworkInheritanceAndRunTimeTicksFallback(t *testing.T) {
 	if wEp.Code != http.StatusOK {
 		t.Fatalf("get ep code = %d: %s", wEp.Code, wEp.Body.String())
 	}
-		var epPayload map[string]any
-		_ = json.Unmarshal(wEp.Body.Bytes(), &epPayload)
-		t.Logf("epPayload: %#v", epPayload)
+	var epPayload map[string]any
+	_ = json.Unmarshal(wEp.Body.Bytes(), &epPayload)
+	t.Logf("epPayload: %#v", epPayload)
 
 	// 验证图片继承
 	if epPayload["SeriesPrimaryImageTag"] != "s-test-1" {
@@ -521,8 +522,8 @@ func TestEmbySeriesArtworkInheritanceAndRunTimeTicksFallback(t *testing.T) {
 
 	// 验证 RunTimeTicks 兜底
 	runTimeTicks, _ := epPayload["RunTimeTicks"].(float64)
-	if runTimeTicks <= 0 {
-		t.Fatalf("ep RunTimeTicks should be safely fallback to positive value, got %v", runTimeTicks)
+	if runTimeTicks != 1200*10_000_000 {
+		t.Fatalf("ep RunTimeTicks should use the reported duration, got %v", runTimeTicks)
 	}
 	userData, _ := epPayload["UserData"].(map[string]any)
 	playedPct, _ := userData["PlayedPercentage"].(float64)

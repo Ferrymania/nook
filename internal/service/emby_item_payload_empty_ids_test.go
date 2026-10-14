@@ -31,7 +31,7 @@ func TestEmbyMovieItemOmitsEmptySeasonAndSeriesFields(t *testing.T) {
 	if item["Type"] != "Movie" {
 		t.Fatalf("Type = %#v, want Movie", item["Type"])
 	}
-	for _, key := range []string{"SeasonId", "SeriesId", "SeasonName", "SeriesName"} {
+	for _, key := range []string{"SeasonId", "SeriesId", "SeasonName", "SeriesName", "IndexNumber", "ParentIndexNumber"} {
 		if value, ok := item[key]; ok {
 			t.Fatalf("%s must be omitted for a movie, got %#v", key, value)
 		}

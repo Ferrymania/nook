@@ -18,6 +18,9 @@ func (e *EmbyService) mediaSourcesForItem(ctx context.Context, m *model.Media, a
 	sources := make([]map[string]any, 0, len(siblings))
 	for i := range siblings {
 		media := siblings[i]
+		if media.ID == m.ID && media.DurationSec <= 0 {
+			media.DurationSec = m.DurationSec
+		}
 		sources = append(sources, e.mediaSource(ctx, &media, asEmbedded, directOnly))
 	}
 	return sources
@@ -174,6 +177,15 @@ func embyDirectStreamURL(mediaID, container string) string {
 }
 
 func (e *EmbyService) mediaStreams(ctx context.Context, m *model.Media) []map[string]any {
+	return e.mediaStreamsFromProbe(ctx, m, e.cachedMediaProbe(ctx, m))
+}
+
+func (e *EmbyService) mediaStreamsFromProbe(ctx context.Context, m *model.Media, probe *mediaProbePayload) []map[string]any {
+	if probe != nil {
+		if streams := probedMediaStreams(probe); len(streams) > 0 {
+			return e.appendSubtitleStreams(ctx, streams, m)
+		}
+	}
 	streams := []map[string]any{}
 	if m.VideoCodec != "" || m.Width > 0 {
 		streams = append(streams, map[string]any{
@@ -223,8 +235,7 @@ func (e *EmbyService) mediaStreams(ctx context.Context, m *model.Media) []map[st
 // The streams follow the official Emby external-subtitle contract:
 //   - Codec reports the source codec (ass/ssa/subrip/vtt), matching the RAW
 //     bytes served at the DeliveryUrl (see ServeSubtitleStream / ServeRaw).
-//   - Index is stable and global across the MediaSource (Video 0, Audio 1,
-//     subtitles 2, 3, ...). It never shifts to 1 when audio is absent.
+//   - Index follows the embedded stream indexes without collisions.
 //   - IsDefault is false (external subtitles are never auto-selected).
 //   - Path and DeliveryMethod identify the sidecar file.
 func (e *EmbyService) appendSubtitleStreams(ctx context.Context, streams []map[string]any, m *model.Media) []map[string]any {
@@ -237,13 +248,8 @@ func (e *EmbyService) appendSubtitleStreams(ctx context.Context, streams []map[s
 	if err != nil || len(tracks) == 0 {
 		return streams
 	}
-	// Subtitle indexes continue after Video (0) and Audio (1). When Audio is
-	// absent (e.g. STRM media), the fallback "unknown" Video stream fills slot 0
-	// and subtitles still start at 1; when Audio is present they start at 2.
-	next := 1
-	if m.AudioCodec != "" {
-		next = 2
-	}
+	// Keep external subtitles after all real embedded stream indexes.
+	next := nextMediaStreamIndex(streams)
 	mediaID := strings.TrimSpace(m.ID)
 	for _, t := range tracks {
 		index := next

@@ -44,6 +44,12 @@ func (e *EmbyService) PlaybackInfo(ctx context.Context, mediaID, userID string) 
 	if err != nil || m == nil {
 		return nil, err
 	}
+	if m.DurationSec <= 0 && userID != "" {
+		var history model.PlaybackHistory
+		if e.repo.DB.WithContext(ctx).Where("user_id = ? AND media_id = ?", userID, m.ID).First(&history).Error == nil {
+			m = mediaWithHistoryDuration(m, history.DurationMs)
+		}
+	}
 	return map[string]any{
 		"MediaSources":  e.mediaSourcesForItem(ctx, m, false, e.directPlayOnly(ctx)),
 		"PlaySessionId": fmt.Sprintf("%s-%d", m.ID, time.Now().UnixMilli()),
@@ -114,8 +120,7 @@ func (e *EmbyService) ProxyRemoteSetFavorite(ctx context.Context, mountID, remot
 // the original (unconverted) subtitle bytes to w — matching the source Codec
 // advertised in MediaStreams. The index mapping mirrors appendSubtitleStreams
 // so the DeliveryUrl advertised in MediaStreams lines up exactly with the
-// served track: subtitles start at 1 when no audio stream is present, otherwise
-// at 2 (after Video 0 + Audio 1).
+// served track: external subtitles follow the actual embedded stream indexes.
 //
 // 只服务外挂字幕文件（DiscoverExternalOnly）：云盘/strm 媒体的容器内嵌字幕
 // 不做服务端提取，客户端直连播放直链时自行解析。
@@ -140,10 +145,7 @@ func (e *EmbyService) ServeSubtitleStream(ctx context.Context, w io.Writer, medi
 	if err != nil || len(tracks) == 0 {
 		return ErrSubtitleNotFound
 	}
-	first := 1
-	if strings.TrimSpace(m.AudioCodec) != "" {
-		first = 2
-	}
+	first := e.externalSubtitleStart(ctx, m)
 	offset := index - first
 	if offset < 0 || offset >= len(tracks) {
 		return ErrSubtitleNotFound
@@ -170,10 +172,7 @@ func (e *EmbyService) SubtitleStreamCodec(ctx context.Context, mediaID, indexStr
 	if err != nil || len(tracks) == 0 {
 		return ""
 	}
-	first := 1
-	if strings.TrimSpace(m.AudioCodec) != "" {
-		first = 2
-	}
+	first := e.externalSubtitleStart(ctx, m)
 	offset := index - first
 	if offset < 0 || offset >= len(tracks) {
 		return ""
@@ -319,7 +318,8 @@ func (e *EmbyService) mediaSource(ctx context.Context, m *model.Media, asEmbedde
 }
 
 func (e *EmbyService) baseMediaSource(ctx context.Context, m *model.Media, container string, isCloud bool, playURL string, directOnly bool) map[string]any {
-	return map[string]any{
+	probe := e.cachedMediaProbe(ctx, m)
+	src := map[string]any{
 		"Id":                    m.ID,
 		"Name":                  MediaVersionLabel(*m),
 		"Path":                  embyMediaSourcePath(m),
@@ -336,8 +336,29 @@ func (e *EmbyService) baseMediaSource(ctx context.Context, m *model.Media, conta
 		"SupportsDirectPlay":    !isCloud || playURL != "",
 		"SupportsProbing":       true,
 		"RunTimeTicks":          int64(m.DurationSec) * 10_000_000,
-		"MediaStreams":          e.mediaStreams(ctx, m),
+		"MediaStreams":          e.mediaStreamsFromProbe(ctx, m, probe),
 	}
+	// A local STRM's size describes its text, not the remote video.
+	if strings.EqualFold(filepath.Ext(m.Path), ".strm") {
+		delete(src, "Size")
+	}
+	if probe != nil {
+		if probe.Container != "" {
+			copy := *m
+			copy.Container = probe.Container
+			src["Container"] = embyMediaContainer(&copy)
+		}
+		if probe.DurationSec > 0 {
+			src["RunTimeTicks"] = int64(probe.DurationSec) * 10_000_000
+		}
+		if probe.SizeBytes > 0 {
+			src["Size"] = probe.SizeBytes
+		}
+		if probe.BitRate > 0 {
+			src["Bitrate"] = probe.BitRate
+		}
+	}
+	return src
 }
 
 // embyMediaSourcePath keeps Emby's Path field as a source identity rather
@@ -376,6 +397,14 @@ func embyMediaContainer(m *model.Media) string {
 	}
 	if container == "" && strings.TrimSpace(m.STRMURL) != "" {
 		return "strm"
+	}
+	switch strings.Split(container, ",")[0] {
+	case "matroska":
+		return "mkv"
+	case "mov":
+		if strings.Contains(container, "mp4") {
+			return "mp4"
+		}
 	}
 	return container
 }
