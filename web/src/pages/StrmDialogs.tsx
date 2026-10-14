@@ -494,7 +494,7 @@ export function StrmAccountDialog({
 // QR 尺寸：物理像素 = CSS 像素（避免 canvas 被 CSS 缩放导致裁切/模糊）
 const SETTING_DEFS: SettingDef[] = [
   { key: 'strm.base_url', label: 'STRM 链接基础地址', type: 'text', hint: '生成的 strm 文件指向的播放地址；留空依次自动使用 app.server_url，最后回退到本机地址（http://127.0.0.1:端口）。Emby 在其他设备时请配置局域网/公网地址' },
-  { key: 'strm.video_ext', label: '视频扩展名', type: 'text', hint: '逗号分隔，命中即生成 .strm' },
+  { key: 'strm.video_ext', label: '视频扩展名', type: 'text', hint: '逗号分隔，命中即生成 .strm。暂时不支持 ISO，默认不生成 ISO 的 STRM' },
   { key: 'strm.meta_ext', label: '元数据扩展名', type: 'text', hint: '逗号分隔，进入下载/上传队列（nfo/图片/字幕）' },
   { key: 'strm.exclude_name', label: '排除文件名', type: 'text', hint: '逗号分隔，文件名包含任一关键词即跳过' },
   { key: 'strm.min_video_size_mb', label: '最小视频大小(MB)', type: 'number', hint: '小于该大小的视频不生成 STRM，0 表示不限' },
@@ -896,7 +896,7 @@ export function StrmSyncPathDialog({
           <summary className="cursor-pointer text-sm font-semibold text-ink-600">高级选项</summary>
           <div className="mt-3 space-y-3">
             <div className="grid gap-3 md:grid-cols-3">
-              <Field label="视频扩展名（覆盖全局）">
+              <Field label="视频扩展名（覆盖全局）" hint="留空继承全局设置；暂时不支持 ISO，默认不生成 ISO 的 STRM">
                 <input className={inputCls} value={form.video_ext ?? ''} placeholder="mkv,mp4,avi" onChange={(e) => set('video_ext', e.target.value)} />
               </Field>
               <Field label="元数据扩展名（覆盖全局）">

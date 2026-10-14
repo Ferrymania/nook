@@ -51,6 +51,30 @@ func testStrmService(t *testing.T) *StrmService {
 	return NewStrmService(nil, zap.NewNop(), repos, NewCryptoService("test-secret", zap.NewNop()))
 }
 
+func TestStrmVideoExtensionsUpgradeSavedDefault(t *testing.T) {
+	svc := testStrmService(t)
+	ctx := t.Context()
+	for _, value := range []string{"", "mkv,mp4,avi,rmvb,rm,mov,ts,wmv,flv,m4v,iso,mpg,mpeg,webm", "mkv,mp4"} {
+		if err := svc.repo.Setting.Set(ctx, StrmSettingVideoExt, value); err != nil {
+			t.Fatal(err)
+		}
+		settings, err := svc.GetStrmSettings(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := svc.strmEffectiveConfig(ctx, &model.StrmSyncPath{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if settings[StrmSettingVideoExt] != strings.Join(cfg.VideoExt, ",") || strmContains(cfg.VideoExt, "iso") {
+			t.Fatalf("legacy/default ISO still enabled: settings=%q effective=%v", settings[StrmSettingVideoExt], cfg.VideoExt)
+		}
+		if value == "mkv,mp4" && settings[StrmSettingVideoExt] != value {
+			t.Fatal("custom extension list was overwritten")
+		}
+	}
+}
+
 func syncPathRecord(t *testing.T, svc *StrmService, provider, remote, local string, enabled bool) *model.StrmSyncPath {
 	t.Helper()
 	p, err := svc.CreateSyncPath(context.Background(), &model.StrmSyncPath{
