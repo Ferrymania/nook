@@ -28,7 +28,7 @@ type stubProber struct {
 	last  ProbeInput
 }
 
-func (s *stubProber) ProbeFull(_ context.Context, input ProbeInput) (*FullProbeResult, error) {
+func (s *stubProber) ProbeFull(ctx context.Context, input ProbeInput) (*FullProbeResult, error) {
 	s.mu.Lock()
 	s.calls++
 	s.last = input
@@ -37,7 +37,11 @@ func (s *stubProber) ProbeFull(_ context.Context, input ProbeInput) (*FullProbeR
 	err := s.err
 	s.mu.Unlock()
 	if gate != nil {
-		<-gate
+		select {
+		case <-gate:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
 	}
 	return result, err
 }
@@ -115,8 +119,7 @@ func TestMediaProbeRunPersistsProbeRow(t *testing.T) {
 	prober := &stubProber{result: chapterProbeResult()}
 	svc.probe = prober
 
-	// 直接调 run（而不是 EnsureAsync）以获得确定性的断言：这里要验证的是落库，
-	// 不是调度。
+	// 直接调 run：这里只验证落库，不经过缓存判断。
 	svc.run(context.Background(), m)
 
 	if got := prober.lastInput().Source; got != m.Path {
@@ -184,56 +187,72 @@ func TestMediaProbeFailureKeepsPreviousSummary(t *testing.T) {
 
 // 探测有结论后就不再重探；失败要等冷却期过去才允许重试。
 func TestMediaProbeSettledSkipsReprobeButStaleFailureRetries(t *testing.T) {
-	if !mediaProbeSettled(&model.MediaProbe{ProbedAt: time.Now()}) {
+	_, _, m := newProbeFixture(t)
+	row, err := mediaProbeRow(m, chapterProbeResult())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !mediaProbeSettled(row, m) {
 		t.Fatal("a completed probe is settled")
 	}
-	if !mediaProbeSettled(&model.MediaProbe{ProbedAt: time.Now(), LastError: "boom"}) {
+	if mediaProbeSettled(&model.MediaProbe{ProbedAt: time.Now()}, m) {
+		t.Fatal("an empty successful row must not suppress a real probe")
+	}
+	if !mediaProbeSettled(&model.MediaProbe{ProbedAt: time.Now(), LastError: "boom"}, m) {
 		t.Fatal("a recent failure is settled: it must not be retried on every play")
 	}
-	if mediaProbeSettled(&model.MediaProbe{ProbedAt: time.Now().Add(-mediaProbeFailureRetry - time.Minute), LastError: "boom"}) {
+	if mediaProbeSettled(&model.MediaProbe{ProbedAt: time.Now().Add(-mediaProbeFailureRetry - time.Minute), LastError: "boom"}, m) {
 		t.Fatal("a failure past the cooldown should be retried")
 	}
-	if mediaProbeSettled(nil) {
+	if mediaProbeSettled(nil, m) {
 		t.Fatal("a missing probe row is not settled")
+	}
+	row.Signature = "different-file"
+	if mediaProbeSettled(row, m) {
+		t.Fatal("a changed file must invalidate the cached result")
 	}
 }
 
-func TestMediaProbeEnsureAsyncDedupesInFlightProbes(t *testing.T) {
+func TestMediaProbeEnsureDedupesAndReusesCache(t *testing.T) {
 	svc, _, m := newProbeFixture(t)
 	gate := make(chan struct{})
 	prober := &stubProber{result: chapterProbeResult(), gate: gate}
 	svc.probe = prober
 
-	if !svc.EnsureAsync(m) {
-		t.Fatal("first EnsureAsync should enqueue a probe")
+	done := make(chan error, 1)
+	go func() { done <- svc.Ensure(t.Context(), m) }()
+	waitForCondition(t, time.Second, func() bool { return prober.callCount() == 1 })
+	if err := svc.Ensure(t.Context(), m); err != nil {
+		t.Fatal(err)
 	}
-	// 同一条媒体在跑的时候不能重复排队：否则每次播放请求都会再起一次 3 秒探测。
-	if svc.EnsureAsync(m) {
-		t.Fatal("second EnsureAsync must report that a probe is already running")
+	if err := svc.Probe(t.Context(), m); err == nil {
+		t.Fatal("a manual request must not duplicate an in-flight probe")
 	}
 
 	close(gate)
-	waitForCondition(t, 5*time.Second, func() bool {
-		svc.mu.Lock()
-		defer svc.mu.Unlock()
-		return len(svc.inFlight) == 0
-	})
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.Ensure(t.Context(), m); err != nil {
+		t.Fatal(err)
+	}
 	if got := prober.callCount(); got != 1 {
 		t.Fatalf("probe calls = %d, want 1", got)
 	}
-	// 跑完之后允许再次排队（例如失败冷却期到了之后的重试）。
-	if !svc.EnsureAsync(m) {
-		t.Fatal("EnsureAsync should enqueue again once the previous run finished")
+	if err := svc.Probe(t.Context(), m); err != nil {
+		t.Fatal(err)
 	}
-	waitForCondition(t, 5*time.Second, func() bool { return prober.callCount() == 2 })
+	if prober.callCount() != 2 {
+		t.Fatal("manual retry must bypass the successful cache")
+	}
 }
 
-func TestMediaProbeEnsureAsyncWithoutProberIsNotPending(t *testing.T) {
+func TestMediaProbeEnsureWithoutProber(t *testing.T) {
 	svc, _, m := newProbeFixture(t)
 	// probe 未注入（ffprobe 不可用时就是这样）：不能谎报「提取中」，否则客户端
 	// 会白轮询一轮。
-	if svc.EnsureAsync(m) {
-		t.Fatal("EnsureAsync must return false without a prober")
+	if err := svc.Ensure(t.Context(), m); err == nil {
+		t.Fatal("Ensure must report an unavailable prober")
 	}
 }
 

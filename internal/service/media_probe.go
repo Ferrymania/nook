@@ -4,29 +4,30 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
 
 	"go.uber.org/zap"
 
-	"github.com/Ferrymania/nook/internal/helper"
 	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/repository"
 )
 
 // 探测结果的缓存与预算策略。
 const (
-	// mediaProbeTimeout 是一次后台探测的总预算（含把 strm 目标解析成直链）。
-	mediaProbeTimeout = 90 * time.Second
+	// 刮削中的单次探测预算包含换链；排队不占用这段预算。
+	mediaProbeTimeout       = 30 * time.Second
+	mediaProbeRecordTimeout = 3 * time.Second
 	// mediaProbeFailureRetry 是探测失败后允许重新探测的间隔。失败的结果也会落库，
-	// 否则每次播放都会为一个坏源重跑一次。
+	// 避免重复刮削时不断读取同一个坏源。
 	mediaProbeFailureRetry = 6 * time.Hour
-	// mediaProbeErrorLimit 限制落库的错误信息长度（列宽 512 字节，错误里可能
-	// 带 URL，截断同时避免超长）。
+	// 错误脱敏后的最大字符数，保持在 last_error 列宽内。
 	mediaProbeErrorLimit = 200
 )
 
@@ -39,20 +40,17 @@ type mediaProber interface {
 // MediaProbeService 用 ffprobe 提取媒体的基础信息（容器、每路轨道、内嵌章节）
 // 并落库缓存。
 //
-// 定位是「播放时顺带补齐媒体信息」：STRM / 云盘媒体在扫描阶段拿不到时长，而
-// 播放链路要用缓存里的时长来换算「延续到片尾」这类区间，详情页将来也直接读这份
-// 媒体信息。
+// 刮削阶段补齐信息，播放与详情接口只读取已保存的结果。
 //
 // 它**不参与片头/片尾判定**：章节标题绝大多数没有语义（生产库实测抽样 64 个
 // 文件，命中 0 个），拿它去猜跳过点只会给出错误的位置，时间轴数据仍然只信
 // TheIntroDB。
-//
-// 核心约束：一次探测要 2～4.5 秒（远端直链要跨洋跑几次 HTTP 事务），所以只允许
-// 异步跑，播放链路永远只读缓存。
 type MediaProbeService struct {
-	log   *zap.Logger
-	repo  *repository.Container
-	probe mediaProber
+	log         *zap.Logger
+	repo        *repository.Container
+	probe       mediaProber
+	cache       *RuntimeCacheService
+	remoteSlots chan struct{}
 	// resolve 把 strm 播放目标解析成最终直链（含绑定 UA 的请求头）。与转码、
 	// 内嵌字幕发现走同一条换链路径，否则会踩到网盘 CDN 的防盗链 403。
 	resolve func(ctx context.Context, raw, userAgent string) (*StrmPlayResult, error)
@@ -64,9 +62,10 @@ type MediaProbeService struct {
 // NewMediaProbeService is the constructor.
 func NewMediaProbeService(log *zap.Logger, repo *repository.Container, probe *FFprobeService) *MediaProbeService {
 	svc := &MediaProbeService{
-		log:      log,
-		repo:     repo,
-		inFlight: make(map[string]struct{}),
+		log:         log,
+		repo:        repo,
+		inFlight:    make(map[string]struct{}),
+		remoteSlots: make(chan struct{}, 1),
 	}
 	if probe != nil {
 		svc.probe = probe
@@ -82,24 +81,78 @@ func (s *MediaProbeService) SetPlayTargetResolver(resolve func(ctx context.Conte
 	return s
 }
 
-// EnsureAsync 保证这部媒体的探测已排上队，并立刻返回。
-//
-// 已经有同一条媒体的探测在跑、或服务未配置好时返回 false；这次新排上一条返回
-// true——调用方据此告诉客户端「稍后再拉一次」。
-func (s *MediaProbeService) EnsureAsync(m *model.Media) bool {
-	if s == nil || s.probe == nil || s.repo == nil || m == nil || strings.TrimSpace(m.ID) == "" {
-		return false
+func (s *MediaProbeService) SetRuntimeCache(cache *RuntimeCacheService) *MediaProbeService {
+	if s != nil {
+		s.cache = cache
+	}
+	return s
+}
+
+// Ensure 在现有刮削工作协程中补齐缺失信息，不另建后台队列。
+func (s *MediaProbeService) Ensure(ctx context.Context, m *model.Media) error {
+	return s.probeMedia(ctx, m, false)
+}
+
+// Probe 是管理员显式重试，绕过成功缓存及失败冷却。
+func (s *MediaProbeService) Probe(ctx context.Context, m *model.Media) error {
+	return s.probeMedia(ctx, m, true)
+}
+
+func (s *MediaProbeService) probeMedia(ctx context.Context, m *model.Media, force bool) error {
+	if s == nil || s.probe == nil || s.repo == nil || s.repo.MediaProbe == nil {
+		return errors.New("media probe unavailable")
+	}
+	if m == nil || strings.TrimSpace(m.ID) == "" {
+		return ErrMediaNotFound
+	}
+	if err := ctx.Err(); err != nil {
+		return err
 	}
 	if !s.reserve(m.ID) {
+		if force {
+			return errors.New("media probe already running")
+		}
+		return nil
+	}
+	defer s.release(m.ID)
+	if !force {
+		row, err := s.repo.MediaProbe.Get(ctx, m.ID)
+		if err != nil {
+			return err
+		}
+		if mediaProbeSettled(row, m) {
+			return nil
+		}
+	}
+	if isStrmMediaRow(m) {
+		select {
+		case s.remoteSlots <- struct{}{}:
+			defer func() { <-s.remoteSlots }()
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	return s.run(ctx, m)
+}
+
+func mediaProbeSettled(row *model.MediaProbe, m *model.Media) bool {
+	if row == nil || (row.Signature != "" && row.Signature != mediaProbeSignature(m)) {
 		return false
 	}
-	// 复制一份媒体行：调用方的对象可能属于请求作用域，后台协程不该继续引用它。
-	snapshot := *m
-	helper.Go(s.log, "service.mediaProbe", func() {
-		defer s.release(snapshot.ID)
-		s.run(context.Background(), &snapshot)
-	})
-	return true
+	var payload mediaProbePayload
+	if json.Unmarshal([]byte(row.Payload), &payload) == nil && validProbeStreams(payload.Streams) {
+		return true
+	}
+	return row.LastError != "" && time.Since(row.ProbedAt) < mediaProbeFailureRetry
+}
+
+func validProbeStreams(streams []ProbeStream) bool {
+	for _, stream := range streams {
+		if (stream.Type == "video" || stream.Type == "audio") && stream.Codec != "" && stream.Codec != "unknown" {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *MediaProbeService) reserve(mediaID string) bool {
@@ -121,25 +174,29 @@ func (s *MediaProbeService) release(mediaID string) {
 	s.mu.Unlock()
 }
 
-// run 执行一次探测并落库。它跑在后台，没有调用方能接收错误，所以任何失败都只
-// 记录、不外抛。
-func (s *MediaProbeService) run(ctx context.Context, m *model.Media) {
+// run 返回的错误与影片匹配状态独立，超时后仍留出短暂时间保存失败原因。
+func (s *MediaProbeService) run(ctx context.Context, m *model.Media) (err error) {
 	ctx, cancel := context.WithTimeout(ctx, mediaProbeTimeout)
 	defer cancel()
+	defer func() {
+		if err != nil {
+			s.markFailure(ctx, m, err)
+			err = mediaProbeError{err}
+		}
+	}()
 
 	input, err := s.probeInput(ctx, m)
 	if err != nil {
-		s.markFailure(ctx, m.ID, err)
-		return
+		return err
 	}
 	result, err := s.probe.ProbeFull(ctx, input)
 	if err != nil {
-		s.markFailure(ctx, m.ID, err)
-		return
+		return err
 	}
-	if err := s.persistProbe(ctx, m, result); err != nil {
-		s.markFailure(ctx, m.ID, err)
+	if result == nil || !validProbeStreams(result.Streams) {
+		return errors.New("no audio or video stream metadata parsed")
 	}
+	return s.persistProbe(ctx, m, result)
 }
 
 // probeInput 把媒体行解析成 ffprobe 能直接打开的输入。
@@ -199,7 +256,26 @@ func (s *MediaProbeService) persistProbe(ctx context.Context, m *model.Media, re
 	if err := s.repo.MediaProbe.Upsert(ctx, row); err != nil {
 		return err
 	}
-	s.backfillDuration(ctx, m, result.DurationSec)
+	updates := map[string]any{
+		"width": row.Width, "height": row.Height,
+		"video_codec": row.VideoCodec, "audio_codec": row.AudioCodec,
+	}
+	if result.DurationSec > 0 {
+		updates["duration_sec"] = result.DurationSec
+	}
+	if result.Container != "" {
+		updates["container"] = result.Container
+	}
+	if result.SizeBytes > 0 {
+		updates["size_bytes"] = result.SizeBytes
+	}
+	if err := s.repo.DB.WithContext(ctx).Model(&model.Media{}).Where("id = ?", m.ID).Updates(updates).Error; err != nil {
+		return err
+	}
+	if s.cache != nil {
+		s.cache.DeletePrefix(ctx, "media:")
+		s.cache.DeletePrefix(ctx, "stats:")
+	}
 	return nil
 }
 
@@ -228,37 +304,43 @@ func mediaProbeRow(m *model.Media, result *FullProbeResult) (*model.MediaProbe, 
 	}, nil
 }
 
-// backfillDuration 把探测到的时长补进 media.duration_sec。STRM / 云盘媒体在扫描
-// 阶段拿不到时长，而末段区间（end_ms = 0）要靠它才能换算出真实结束时间。
-func (s *MediaProbeService) backfillDuration(ctx context.Context, m *model.Media, durationSec int) {
-	if s.repo == nil || s.repo.DB == nil || m == nil || durationSec <= 0 || m.DurationSec > 0 {
-		return
-	}
-	err := s.repo.DB.WithContext(ctx).Model(&model.Media{}).
-		Where("id = ? AND duration_sec <= 0", m.ID).
-		Update("duration_sec", durationSec).Error
-	if err != nil && s.log != nil {
-		s.log.Debug("backfill probed duration failed", zap.String("media_id", m.ID), zap.Error(err))
-	}
-}
-
-func (s *MediaProbeService) markFailure(ctx context.Context, mediaID string, probeErr error) {
+func (s *MediaProbeService) markFailure(ctx context.Context, m *model.Media, probeErr error) {
 	if s == nil || s.repo == nil || probeErr == nil {
 		return
 	}
 	message := truncateProbeError(probeErr)
-	if err := s.repo.MediaProbe.MarkFailure(ctx, mediaID, message, time.Now()); err != nil && s.log != nil {
-		s.log.Debug("record media probe failure failed", zap.String("media_id", mediaID), zap.Error(err))
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), mediaProbeRecordTimeout)
+	defer cancel()
+	row, err := s.repo.MediaProbe.Get(ctx, m.ID)
+	if err == nil {
+		if row == nil || row.Signature != mediaProbeSignature(m) {
+			// 文件变更后旧信息已失效；不能把旧 Payload 记成新文件的结果。
+			err = s.repo.MediaProbe.Upsert(ctx, &model.MediaProbe{
+				MediaID: m.ID, Signature: mediaProbeSignature(m), Source: mediaProbeInputKind(m),
+				ProbedAt: time.Now(), LastError: message,
+			})
+		} else {
+			err = s.repo.MediaProbe.MarkFailure(ctx, m.ID, message, time.Now())
+		}
+	}
+	if err != nil && s.log != nil {
+		s.log.Warn("record media probe failure failed", zap.String("media_id", m.ID), zap.Error(redactSensitiveError(err)))
 	}
 	if s.log != nil {
-		s.log.Debug("media probe failed", zap.String("media_id", mediaID), zap.Error(probeErr))
+		s.log.Warn("media probe failed", zap.String("media_id", m.ID), zap.String("error", message))
 	}
 }
 
-// truncateProbeError 限制错误信息长度。错误里可能带被拒绝的直链，落库时截断，
-// 避免超长并减少敏感内容。
+var mediaProbeURLPattern = regexp.MustCompile(`(?i)\b(?:https?|cloud)://[^\s"'<>]+`)
+
+type mediaProbeError struct{ cause error }
+
+func (e mediaProbeError) Error() string { return truncateProbeError(e.cause) }
+func (e mediaProbeError) Unwrap() error { return e.cause }
+
+// 错误在日志、数据库和 API 响应中都不保留可播放的签名链接。
 func truncateProbeError(err error) string {
-	message := strings.TrimSpace(err.Error())
+	message := mediaProbeURLPattern.ReplaceAllString(redactSensitiveText(strings.TrimSpace(err.Error())), "[redacted URL]")
 	runes := []rune(message)
 	if len(runes) > mediaProbeErrorLimit {
 		return string(runes[:mediaProbeErrorLimit])
@@ -288,13 +370,13 @@ func mediaProbeSignature(m *model.Media) string {
 	}
 	var base string
 	if isStrmMediaRow(m) {
-		target := strings.TrimSpace(m.STRMURL)
+		target := MediaSTRMTarget(m)
 		if target == "" {
 			target = strings.TrimSpace(m.Path)
 		}
 		base = "strm|" + target
 	} else if info, err := os.Stat(m.Path); err == nil {
-		base = fmt.Sprintf("local|%s|%d|%d", m.Path, info.Size(), info.ModTime().Unix())
+		base = fmt.Sprintf("local|%s|%d|%d", m.Path, info.Size(), info.ModTime().UnixNano())
 	} else {
 		base = "local|" + m.Path
 	}

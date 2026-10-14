@@ -198,6 +198,8 @@ environment:
 4. Optionally configure cloud accounts under STRM management
 5. Add the server in Emby-compatible players at `http://SERVER_IP:18080` using Nook credentials
 
+Scraping also extracts and saves technical media information with ffprobe, including STRM targets. Valid cached results are reused, remote probes run one at a time with a 30-second budget, and failures have a six-hour cooldown without failing the metadata match. The manual probe button bypasses the cooldown. PlaybackInfo and MediaSegments only read saved technical information and do not start probes during playback.
+
 ---
 
 ## FAQ

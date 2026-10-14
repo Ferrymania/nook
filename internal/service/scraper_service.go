@@ -25,6 +25,7 @@ type ScraperService struct {
 	hub     *Hub
 	cache   *RuntimeCacheService
 	images  *ImageProxy
+	probe   *MediaProbeService
 
 	// Caches provider-chain results keyed by media kind/query/year. Per-instance
 	// so services with different provider config never share results.
@@ -72,6 +73,13 @@ func (s *ScraperService) SetRuntimeCache(cache *RuntimeCacheService) *ScraperSer
 func (s *ScraperService) SetImageProxy(images *ImageProxy) *ScraperService {
 	if s != nil {
 		s.images = images
+	}
+	return s
+}
+
+func (s *ScraperService) SetMediaProbe(probe *MediaProbeService) *ScraperService {
+	if s != nil {
+		s.probe = probe
 	}
 	return s
 }

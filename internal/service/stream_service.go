@@ -33,6 +33,7 @@ type StreamService struct {
 	log        *zap.Logger
 	repo       *repository.Container
 	transcoder *TranscoderService
+	mediaProbe *MediaProbeService
 	// strmResolve 把 strm 目标解析成最终直链。注入后 /Videos/{id}/stream 能直接
 	// 302 到 CDN 地址，省掉 /api/strm/play 那一跳；未注入时保持原有的两跳行为，
 	// 因此测试与精简部署不受影响。
@@ -57,6 +58,12 @@ func (s *StreamService) SetStrmPlayTargetResolver(resolve func(ctx context.Conte
 		s.strmResolve = resolve
 	}
 	return s
+}
+
+func (s *StreamService) SetMediaProbe(probe *MediaProbeService) {
+	if s != nil {
+		s.mediaProbe = probe
+	}
 }
 
 // ErrMediaNotFound is returned when the media row or its file is missing.
@@ -90,33 +97,9 @@ func (s *StreamService) Probe(ctx context.Context, mediaID string, probe *FFprob
 	if err != nil || m == nil {
 		return ErrMediaNotFound
 	}
-	input, err := resolveMediaProbeInput(ctx, m, s.strmResolve)
-	if err != nil {
-		return err
+	prober := s.mediaProbe
+	if prober == nil {
+		prober = NewMediaProbeService(s.log, s.repo, probe).SetPlayTargetResolver(s.strmResolve)
 	}
-	res, err := probe.ProbeFull(ctx, input)
-	if err != nil {
-		return err
-	}
-	row, err := mediaProbeRow(m, res)
-	if err != nil {
-		return err
-	}
-	if err := s.repo.MediaProbe.Upsert(ctx, row); err != nil {
-		return err
-	}
-	updates := map[string]any{
-		"duration_sec": res.DurationSec,
-		"width":        row.Width,
-		"height":       row.Height,
-		"video_codec":  row.VideoCodec,
-		"audio_codec":  row.AudioCodec,
-	}
-	if res.Container != "" {
-		updates["container"] = res.Container
-	}
-	if res.SizeBytes > 0 {
-		updates["size_bytes"] = res.SizeBytes
-	}
-	return s.repo.DB.WithContext(ctx).Model(m).Updates(updates).Error
+	return prober.Probe(ctx, m)
 }

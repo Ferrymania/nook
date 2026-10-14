@@ -24,6 +24,9 @@ func (s *ScraperService) EnrichOneWithOptions(ctx context.Context, m *model.Medi
 	if err != nil {
 		return err
 	}
+	// 在同一个刮削工作协程中补齐技术信息。影片未匹配也可以探测，反之探测
+	// 失败不会改变已保存的影片匹配结果。
+	defer s.probeAfterScrape(ctx, m)
 
 	seriesLike := mediaIsEpisodic(m, lib)
 	cloudMedia := isCloudMediaPath(m.Path) || (lib != nil && isCloudMediaPath(lib.Path))
@@ -124,6 +127,12 @@ func (s *ScraperService) EnrichOneWithOptions(ctx context.Context, m *model.Medi
 	mergeLocalMetadataIntoMatch(match, local)
 
 	return s.applyProviderMatchWithOptions(ctx, m, lib, match, options)
+}
+
+func (s *ScraperService) probeAfterScrape(ctx context.Context, m *model.Media) {
+	if s != nil && s.probe != nil && ctx.Err() == nil {
+		_ = s.probe.Ensure(ctx, m) // 失败由探测服务独立记录，不向刮削状态传播。
+	}
 }
 
 func (s *ScraperService) applyProviderMatch(ctx context.Context, m *model.Media, lib *model.Library, match *Match) error {

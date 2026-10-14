@@ -68,6 +68,7 @@ func (s *ScraperService) ApplyManualMatchWithOptions(ctx context.Context, mediaI
 	if err := s.applyProviderMatchWithOptions(ctx, media, lib, match, options); err != nil {
 		return nil, err
 	}
+	s.probeAfterScrape(ctx, media)
 	return s.repo.Media.FindByID(ctx, mediaID)
 }
 

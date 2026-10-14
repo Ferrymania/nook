@@ -56,8 +56,6 @@ type MediaSegmentService struct {
 	log     *zap.Logger
 	repo    *repository.Container
 	introdb *IntroDBService
-	// probe 负责异步补齐媒体信息（主要是 STRM 时长）。未注入时只用 TheIntroDB。
-	probe *MediaProbeService
 	// prewarmGap 是预热两次 IntroDB 请求之间的间隔；测试可设为 0。
 	prewarmGap time.Duration
 	now        func() time.Time
@@ -89,62 +87,18 @@ func (s *MediaSegmentService) SetIntroDB(p *IntroDBService) *MediaSegmentService
 	return s
 }
 
-// SetProbe wires the async media probe (duration backfill for STRM). Without it
-// open-ended credits still work once duration is known from elsewhere.
-func (s *MediaSegmentService) SetProbe(p *MediaProbeService) *MediaSegmentService {
-	if s != nil {
-		s.probe = p
-	}
-	return s
-}
-
 // ListForPlayback returns the segments known for a media item, refreshing from
 // the provider when the cache is stale.
 //
 // 它不做任何阻塞起播的事情——调用方是在播放已经开始之后用一次独立请求进来的，
 // 抓取失败也只是少一个「跳过片头」按钮，绝不能让播放报错。
 //
-// 时间轴数据只来自 TheIntroDB。顺带在返回前起一次异步探测补齐媒体信息（主要是
-// STRM 媒体的时长），但探测结果不参与片段判定，详见 MediaProbeService 的说明。
+// 时间轴数据只来自 TheIntroDB；媒体技术信息由刮削阶段补齐，此接口不启动 ffprobe。
 func (s *MediaSegmentService) ListForPlayback(ctx context.Context, m *model.Media) ([]model.MediaSegment, error) {
 	if s == nil || s.repo == nil || m == nil || m.ID == "" {
 		return nil, nil
 	}
-	// 用 defer 保证探测一定在本次请求所有数据库读写之后才启动：后台探测自己也要
-	// 写库，若在本次写事务还没结束时启动，两个写事务会抢同一把锁（SQLite 下就是
-	// SQLITE_BUSY，实测能直接把社区库的落库打失败）。
-	defer s.ensureMediaProbe(ctx, m)
 	return s.introDBSegments(ctx, m)
-}
-
-// ensureMediaProbe 在还没探过（或上次失败已过冷却期）时起一次异步探测。
-//
-// 它只为「补齐媒体信息」服务：失败只是拿不到时长，不影响播放，也不影响片段。
-func (s *MediaSegmentService) ensureMediaProbe(ctx context.Context, m *model.Media) {
-	if s == nil || s.probe == nil || m == nil {
-		return
-	}
-	cached, err := s.repo.MediaProbe.Get(ctx, m.ID)
-	if err != nil {
-		s.debug("get media probe failed", m.ID, err)
-		return
-	}
-	if mediaProbeSettled(cached) {
-		return
-	}
-	s.probe.EnsureAsync(m)
-}
-
-// mediaProbeSettled 判断这部媒体的探测是否已经「有结论」——成功过，或者失败但还在
-// 冷却期内。有结论就不必再探；失败且已过冷却期时返回 false，让下一次播放重试。
-func mediaProbeSettled(row *model.MediaProbe) bool {
-	if row == nil {
-		return false
-	}
-	if strings.TrimSpace(row.LastError) == "" {
-		return true
-	}
-	return time.Since(row.ProbedAt) < mediaProbeFailureRetry
 }
 
 // introDBSegments 读社区库的片段，缓存过期时按调用方的预算抓一次并落库。
