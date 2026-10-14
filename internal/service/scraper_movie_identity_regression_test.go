@@ -80,6 +80,9 @@ func TestMovieScrapeFailedReleaseNames(t *testing.T) {
 			if tc.id == 672322 {
 				year = 0
 			}
+			if tc.id == 1499071 {
+				year = 1994 // Legacy row created by the previous year parser.
+			}
 			media := model.Media{LibraryID: lib.ID, Title: tc.query, Year: year, Path: path, ScrapeStatus: "no_match"}
 			if err := repos.DB.Create(&media).Error; err != nil {
 				t.Fatal(err)
