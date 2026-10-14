@@ -5,10 +5,44 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 // yearPattern extracts a 4-digit year (1900-2099).
 var yearPattern = regexp.MustCompile(`(?:^|[^\d])(19\d{2}|20\d{2})(?:[^\d]|$)`)
+
+var queryYearDigitsRE = regexp.MustCompile(`19\d{2}|20\d{2}`)
+var splitCodecTokenRE = regexp.MustCompile(`(?i)\b([hx])[\s._-]+(264|265|266)\b`)
+
+// A release year must be separate from title letters. Keep the 1994 in
+// 寒战1994.2026, while accepting release names such as Rush.Hour.2001BluRay.
+func queryReleaseYear(name string) (start, end, year int) {
+	for _, loc := range queryYearDigitsRE.FindAllStringIndex(name, -1) {
+		start, end = loc[0], loc[1]
+		if start > 0 {
+			before, _ := utf8.DecodeLastRuneInString(name[:start])
+			if unicode.IsLetter(before) || unicode.IsDigit(before) {
+				continue
+			}
+		}
+		if end < len(name) {
+			after, _ := utf8.DecodeRuneInString(name[end:])
+			if unicode.IsDigit(after) {
+				continue
+			}
+			if unicode.IsLetter(after) {
+				tail := strings.ToLower(name[end:])
+				if !strings.HasPrefix(tail, "bluray") && !strings.HasPrefix(tail, "web-dl") {
+					continue
+				}
+			}
+		}
+		year, _ = strconv.Atoi(name[start:end])
+		return start, end, year
+	}
+	return 0, 0, 0
+}
 
 // noiseTokens are stripped before search.
 var noiseTokens = []string{
@@ -37,7 +71,7 @@ var noiseTokens = []string{
 
 	// 中文字幕标记
 	"zm", "zw", "ch", "chs", "cht", "cn", "tc", "sc",
-	"中字", "繁字", "简中", "繁中", "国语", "粤语", "日语",
+	"中字", "繁字", "简中", "繁中", "国语", "粤语", "日语", "国语对白", "粤语对白",
 
 	// 季数前缀残留 — ParseEpisode 已抽取过
 	"season", "264", "265", "aac2", "aac5",
@@ -74,11 +108,12 @@ var weakReleaseBoundaryTokenSet = map[string]struct{}{
 const releaseSignalToken = "\u0001"
 const episodeSignalToken = "\u0002"
 
-var dynamicReleaseBoundaryTokenRE = regexp.MustCompile(`(?i)^(?:\d{3,4}p|\d{2,3}fps)$`)
+var dynamicReleaseBoundaryTokenRE = regexp.MustCompile(`(?i)^(?:(?:hd|bd|uhd)?\d{3,4}[pi]|\d{2,3}fps)$`)
 var releaseVersionTokenRE = regexp.MustCompile(`(?i)^v\d+$`)
 
 var releaseLanguageTokenSet = map[string]struct{}{
 	"ita": {}, "eng": {}, "jpn": {}, "kor": {}, "fra": {}, "ger": {}, "rus": {}, "spa": {},
+	"usa": {}, "cc": {},
 }
 
 // bracketedTag matches "[anything]", "(anything)" or "{anything}" segments.
@@ -106,14 +141,11 @@ func CleanQuery(raw string) (title string, year int) {
 		name = strings.TrimSuffix(base, filepath.Ext(base))
 	}
 	lower := strings.ToLower(name)
+	_, episode := ParseEpisode(base)
 
-	if m := yearPattern.FindStringSubmatch(lower); len(m) >= 2 {
-		if v, err := strconv.Atoi(m[1]); err == nil {
-			year = v
-			// Keep a positional marker: the year is not a title token, but its
-			// presence arms release-tag truncation for what follows.
-			lower = strings.ReplaceAll(lower, m[1], " "+releaseSignalToken+" ")
-		}
+	if start, end, v := queryReleaseYear(lower); v > 0 {
+		year = v
+		lower = lower[:start] + " " + releaseSignalToken + " " + lower[end:]
 	}
 
 	lower = bracketedTag.ReplaceAllString(lower, " ")
@@ -131,11 +163,12 @@ func CleanQuery(raw string) (title string, year int) {
 	for _, pat := range multiWordNoise {
 		lower = pat.ReplaceAllString(lower, " ")
 	}
+	lower = splitCodecTokenRE.ReplaceAllString(lower, "${1}${2}")
 	for _, sep := range []string{".", "_", "-", "[", "]", "(", ")", "×"} {
 		lower = strings.ReplaceAll(lower, sep, " ")
 	}
 	// 保留标题里的续集数字；集号之后的单个数字仍作为发布碎片丢弃。
-	// 单个 ASCII 字母及规格边界后的尾巴不参与标题搜索。
+	// 保留电影片名里的单个字母（Project A、X）；剧集沿用原有碎片清洗。
 	//
 	// seenReleaseBoundary 只有在遇到分辨率/编码等强标记后才置位，置位后其余
 	// ASCII 词一律视为发布尾巴丢弃；releaseSignalled 则宽松得多，年份标记也会
@@ -181,11 +214,8 @@ func CleanQuery(raw string) (title string, year int) {
 		if seenReleaseBoundary && isASCIIWord(w) {
 			continue
 		}
-		if len(w) <= 1 {
-			r := []rune(w)
-			if len(r) == 1 && r[0] < 128 && (r[0] < '0' || r[0] > '9' || seenEpisodeBoundary) {
-				continue
-			}
+		if len(w) == 1 && w[0] < 128 && (seenEpisodeBoundary || (episode > 0 && (w[0] < '0' || w[0] > '9'))) {
+			continue
 		}
 		out = append(out, w)
 	}

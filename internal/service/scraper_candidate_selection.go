@@ -29,6 +29,26 @@ func (s *ScraperService) lookupAutomaticTMDb(ctx context.Context, kind, query st
 }
 
 func (s *ScraperService) lookupAutomaticTMDbPrimary(ctx context.Context, kind, query string, year int, failure *scrapeLookupFailure) *Match {
+	// One unfiltered retry is enough to find adjacent-year releases. Always
+	// validate against the original year, including after alias hydration.
+	searchYears := []int{year}
+	if year > 0 && !isTVMetadataKind(kind) {
+		searchYears = append(searchYears, 0)
+	}
+	detailsChecked := map[int]bool{}
+	for _, searchYear := range searchYears {
+		match, hadCandidates := s.lookupAutomaticTMDbCandidates(ctx, kind, query, searchYear, year, failure, detailsChecked)
+		if match != nil {
+			return s.localizeAutomaticTMDbMatch(ctx, kind, query, match)
+		}
+		if !hadCandidates || ctx.Err() != nil {
+			break
+		}
+	}
+	return nil
+}
+
+func (s *ScraperService) lookupAutomaticTMDbCandidates(ctx context.Context, kind, query string, searchYear, sourceYear int, failure *scrapeLookupFailure, detailsChecked map[int]bool) (*Match, bool) {
 	var (
 		candidates []*Match
 		err        error
@@ -36,36 +56,58 @@ func (s *ScraperService) lookupAutomaticTMDbPrimary(ctx context.Context, kind, q
 	)
 	if isTVMetadataKind(kind) {
 		mediaLabel = "tv"
-		candidates, err = s.tmdb.SearchTVCandidates(ctx, query, year)
+		candidates, err = s.tmdb.SearchTVCandidates(ctx, query, searchYear)
 	} else {
 		mediaLabel = "movie"
-		candidates, err = s.tmdb.SearchMovieCandidates(ctx, query, year)
+		candidates, err = s.tmdb.SearchMovieCandidates(ctx, query, searchYear)
 	}
 	if err != nil {
 		failure.requestFailed = true
 		s.log.Debug("tmdb "+mediaLabel+" search failed", zap.String("query", query), zap.Error(err))
-		return nil
+		return nil, false
 	}
-	if match := bestAutomaticMetadataMatch(query, year, kind, candidates, failure); match != nil {
-		return s.localizeAutomaticTMDbMatch(ctx, kind, query, match)
+	if match := bestAutomaticMetadataMatch(query, sourceYear, kind, candidates, failure); match != nil {
+		return match, true
 	}
-	if !queryNeedsEnglishTMDbFallback(query) {
-		return nil
+	if queryNeedsEnglishTMDbFallback(query) {
+		var alternate []*Match
+		if isTVMetadataKind(kind) {
+			alternate, err = s.tmdb.searchTVCandidates(ctx, query, searchYear, "en-US")
+		} else {
+			alternate, err = s.tmdb.searchMovieCandidates(ctx, query, searchYear, "en-US")
+		}
+		if err != nil {
+			failure.requestFailed = true
+			s.log.Debug("tmdb "+mediaLabel+" alternate-language search failed", zap.String("query", query), zap.Error(err))
+		} else {
+			candidates = mergeTMDbLanguageCandidates(candidates, alternate)
+			if match := bestAutomaticMetadataMatch(query, sourceYear, kind, candidates, failure); match != nil {
+				return match, true
+			}
+		}
 	}
-
-	var alternate []*Match
-	if isTVMetadataKind(kind) {
-		alternate, err = s.tmdb.searchTVCandidates(ctx, query, year, "en-US")
-	} else {
-		alternate, err = s.tmdb.searchMovieCandidates(ctx, query, year, "en-US")
+	// A failed movie search may need a provider-returned translation/alias.
+	// Bound extra detail requests to three unique IDs across both year passes.
+	if !isTVMetadataKind(kind) {
+		for _, candidate := range candidates {
+			if candidate == nil || candidate.TMDbID <= 0 || detailsChecked[candidate.TMDbID] ||
+				!metadataMatchCompatibleWithType(kind, candidate) ||
+				(sourceYear > 0 && (candidate.Year <= 0 || candidate.Year < sourceYear-1 || candidate.Year > sourceYear+1)) {
+				continue
+			}
+			if len(detailsChecked) >= 3 || ctx.Err() != nil {
+				break
+			}
+			detailsChecked[candidate.TMDbID] = true
+			details, detailErr := s.tmdb.GetMovieMatch(ctx, candidate.TMDbID)
+			if detailErr != nil || details == nil || details.TMDbID != candidate.TMDbID {
+				continue
+			}
+			candidate.Aliases = appendMetadataAliases(candidate.Aliases, details.Title, details.OriginalName)
+			candidate.Aliases = appendMetadataAliases(candidate.Aliases, details.Aliases...)
+		}
 	}
-	if err != nil {
-		failure.requestFailed = true
-		s.log.Debug("tmdb "+mediaLabel+" alternate-language search failed", zap.String("query", query), zap.Error(err))
-		return nil
-	}
-	match := bestAutomaticMetadataMatch(query, year, kind, mergeTMDbLanguageCandidates(candidates, alternate), failure)
-	return s.localizeAutomaticTMDbMatch(ctx, kind, query, match)
+	return bestAutomaticMetadataMatch(query, sourceYear, kind, candidates, failure), len(candidates) > 0
 }
 
 func (s *ScraperService) localizeAutomaticTMDbMatch(ctx context.Context, kind, query string, match *Match) *Match {

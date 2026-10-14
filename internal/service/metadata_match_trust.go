@@ -2,6 +2,7 @@ package service
 
 import (
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode"
 )
@@ -69,7 +70,9 @@ func metadataTrustKey(value string) string {
 		return r
 	}, value)
 	value = bracketedTag.ReplaceAllString(value, " ")
-	value = yearPattern.ReplaceAllString(value, " ")
+	if start, end, year := queryReleaseYear(value); year > 0 {
+		value = value[:start] + " " + value[end:]
+	}
 	for _, re := range []*regexp.Regexp{patSEnE, patDanglingSE, patNxE, patEP, patCN, patSeasonOnly, patCNSeason} {
 		value = re.ReplaceAllString(value, " ")
 	}
@@ -82,7 +85,34 @@ func metadataTrustKey(value string) string {
 		}
 		out = append(out, token)
 	}
-	return strings.Join(out, " ")
+	return strings.Join(normalizeMetadataSequelTokens(out), " ")
+}
+
+// Normalize explicit part numbers and Roman sequel tokens only. Bare title
+// words (I, V, One, etc.) retain their meaning, and the number stays in the key.
+func normalizeMetadataSequelTokens(tokens []string) []string {
+	numbers := map[string]string{"i": "1", "ii": "2", "iii": "3", "iv": "4", "v": "5", "vi": "6", "vii": "7", "viii": "8", "ix": "9", "x": "10",
+		"one": "1", "two": "2", "three": "3", "four": "4", "five": "5", "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10"}
+	out := make([]string, 0, len(tokens))
+	for i, token := range tokens {
+		if (token == "part" || token == "chapter") && i+1 < len(tokens) {
+			if _, ok := numbers[tokens[i+1]]; ok {
+				continue
+			}
+			if n, err := strconv.Atoi(tokens[i+1]); err == nil && n > 0 {
+				continue
+			}
+		}
+		if n, ok := numbers[token]; ok {
+			explicit := i > 0 && (tokens[i-1] == "part" || tokens[i-1] == "chapter")
+			romanSequel := i > 0 && strings.Contains(" ii iii iv vi vii viii ix ", " "+token+" ") && !containsCJK(strings.Join(tokens, ""))
+			if explicit || romanSequel {
+				token = n
+			}
+		}
+		out = append(out, token)
+	}
+	return out
 }
 
 func metadataTrustNoiseToken(token string) bool {

@@ -20,6 +20,13 @@ func mediaYearHint(m *model.Media) int {
 		return seriesPathYearHint(m.Path)
 	}
 	if m.Year > 0 {
+		// Repair only the old parser's embedded-title year on unmatched rows.
+		// Keep confirmed identities and independent NFO/database year hints.
+		if m.ScrapeStatus != "matched" && m.TMDbID == 0 && m.Year == yearFromText(pathBaseSlash(m.Path)) {
+			if _, year := CleanQuery(pathBaseSlash(m.Path)); year > 0 {
+				return year
+			}
+		}
 		return m.Year
 	}
 	if _, year := CleanQuery(filepath.Base(m.Path)); year > 0 {
