@@ -16,7 +16,7 @@
 
 services:
   mebox:
-    image: ghcr.io/truewhile/mebox:latest
+    image: ${MEBOX_IMAGE:-ghcr.io/ferrymania/nook:latest}
 
     restart: unless-stopped
     init: true
@@ -108,7 +108,7 @@ services:
       MEBOX_CACHE_CACHE_DIR: /cache
 
       # 管理面板热更新默认拉取此镜像，并用 Watchtower 一次性重建当前容器。
-      MEBOX_UPDATE_IMAGE: ghcr.io/truewhile/mebox:latest
+      MEBOX_UPDATE_IMAGE: ${MEBOX_IMAGE:-ghcr.io/ferrymania/nook:latest}
 
       # 路径换算配置。
       # 默认推荐在网页里使用容器路径 /media。

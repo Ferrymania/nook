@@ -13,7 +13,7 @@
 
 services:
   mebox:
-    image: ghcr.io/truewhile/mebox:latest
+    image: ${MEBOX_IMAGE:-ghcr.io/ferrymania/nook:latest}
 
     container_name: mebox
     restart: unless-stopped
@@ -50,6 +50,7 @@ services:
       MEBOX_APP_PORT: 8080
       MEBOX_APP_WEB_DIR: /app/web/dist
       MEBOX_APP_DATA_DIR: /data
+      MEBOX_UPDATE_IMAGE: ${MEBOX_IMAGE:-ghcr.io/ferrymania/nook:latest}
 
       # 单镜像档固定使用 SQLite。主数据库文件：./data/mebox.db。
       MEBOX_DATABASE_TYPE: sqlite

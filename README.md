@@ -1,5 +1,7 @@
 # MeBox
 
+本 fork 的媒体兼容修复和镜像打包方式见 [维护说明](docs/fork-media-fixes.md)。
+
 <p align="center">
   <img src="web/public/brand/logo-192.png" width="96" height="96" alt="MeBox Logo" />
 </p>
@@ -91,7 +93,7 @@ http://服务器IP:18080
 镜像地址：
 
 ```text
-ghcr.io/truewhile/mebox:latest
+ghcr.io/ferrymania/nook:latest
 ```
 
 ---

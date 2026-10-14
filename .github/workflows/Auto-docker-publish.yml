@@ -21,6 +21,9 @@ permissions:
 
 jobs:
   build-image:
+    # Forks publish explicitly through docker-publish.yml; this upstream
+    # workflow depends on its version branch and private deployment setup.
+    if: github.repository == 'truewhile/MeBox'
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}

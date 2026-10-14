@@ -119,7 +119,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/mebox
+          images: ghcr.io/${{ github.repository }}
           tags: |
             type=raw,value=beta
             type=raw,value=${{ needs.test-and-build.outputs.version }}

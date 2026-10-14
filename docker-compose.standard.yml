@@ -17,7 +17,7 @@
 
 services:
   mebox:
-    image: ghcr.io/truewhile/mebox:latest
+    image: ${MEBOX_IMAGE:-ghcr.io/ferrymania/nook:latest}
 
     restart: unless-stopped
     init: true
@@ -71,7 +71,7 @@ services:
       MEBOX_CACHE_REDIS_URL: redis://redis:6379/0
       MEBOX_CACHE_CACHE_DIR: /cache
 
-      MEBOX_UPDATE_IMAGE: ghcr.io/truewhile/mebox:latest
+      MEBOX_UPDATE_IMAGE: ${MEBOX_IMAGE:-ghcr.io/ferrymania/nook:latest}
 
       # 路径换算配置。左边宿主机真实路径要和 volumes 左边保持一致。
       MEBOX_MEDIA_DIR: /media
