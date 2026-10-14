@@ -168,7 +168,10 @@ func TestServerManagerRedirectsPlainHTTPToHTTPS(t *testing.T) {
 	}
 
 	plain := &http.Client{
-		Timeout:       10 * time.Second,
+		Timeout: 10 * time.Second,
+		// Reload drains the previous server asynchronously. Test the new listener,
+		// rather than an idle connection that still belongs to the old redirect server.
+		Transport:     &http.Transport{DisableKeepAlives: true},
 		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 	}
 
