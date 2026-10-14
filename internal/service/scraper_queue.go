@@ -116,11 +116,13 @@ func (s *ScraperService) processScrapeTask(ctx context.Context, task *model.Scra
 
 	epArtwork := task.EpisodeImages
 	usedProvider := ""
+	failureReason := ""
 	options := ScrapeOptions{
 		EpisodeArtwork: &epArtwork,
 		IncludeMatched: task.RefreshMatched,
 		RetryNoMatch:   true,
 		resultProvider: &usedProvider,
+		resultFailure:  &failureReason,
 	}
 
 	enrichErr := s.EnrichOneWithOptions(ctx, media, options)
@@ -144,7 +146,7 @@ func (s *ScraperService) processScrapeTask(ctx context.Context, task *model.Scra
 		if enrichErr != nil {
 			task.Error = enrichErr.Error()
 		} else if refreshed != nil && refreshed.ScrapeStatus == "no_match" {
-			task.Error = "未搜索到匹配的元数据"
+			task.Error = firstText(failureReason, "未搜索到匹配的元数据")
 		} else {
 			task.Error = "刮削未完成匹配"
 		}

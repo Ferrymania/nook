@@ -71,13 +71,15 @@ func (s *ScraperService) EnrichOneWithOptions(ctx context.Context, m *model.Medi
 	candidates := scrapeQueryCandidatesWithRecognition(ctx, s.repo, m, lib)
 	var query string
 	match := (*Match)(nil)
+	failure := scrapeLookupFailure{}
 	for _, candidate := range candidates {
 		query = candidate
-		candidateMatch := s.lookup(ctx, lib, m, candidate, year, options.ForceRematch)
+		candidateMatch := s.lookup(ctx, lib, m, candidate, year, options.ForceRematch, &failure)
 		if candidateMatch == nil {
 			continue
 		}
 		if !organizeMetadataMatchTrusted(candidate, year, candidateMatch) {
+			failure.reject(candidate, year, candidateMatch)
 			s.log.Warn("metadata scrape match rejected",
 				zap.String("media_id", m.ID),
 				zap.String("query", candidate),
@@ -109,6 +111,9 @@ func (s *ScraperService) EnrichOneWithOptions(ctx context.Context, m *model.Medi
 			return err
 		}
 		s.invalidateMediaCache(ctx)
+		if options.resultFailure != nil {
+			*options.resultFailure = failure.message()
+		}
 		s.log.Info("metadata scrape no match",
 			zap.String("media_id", m.ID),
 			zap.String("query", query),

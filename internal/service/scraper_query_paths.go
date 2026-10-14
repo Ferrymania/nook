@@ -7,6 +7,19 @@ import (
 
 var namedTheatricalFolderRE = regexp.MustCompile(`(?i)(?:剧场版|劇場版|动画电影|動畫電影|电影版|電影版)`)
 
+func genericMovieFileTitle(title string) bool {
+	title = strings.TrimSpace(title)
+	if title == "" || genericISOImageTitle(title) || isTechnicalMediaFolder(title) {
+		return true
+	}
+	for _, r := range title {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}
+
 func mediaFolderTitle(mediaPath, libraryRoot string) string {
 	dir := parentSlashPath(mediaPath)
 	root := comparableLibraryRoot(libraryRoot)
@@ -44,7 +57,7 @@ func isTechnicalMediaFolder(name string) bool {
 	switch compact {
 	case "bdmv", "stream", "certificate", "videots", "audiots",
 		"subs", "subtitles", "subtitle", "sample", "samples",
-		"extra", "extras", "featurette", "featurettes":
+		"extra", "extras", "featurette", "featurettes", "chapters", "章节":
 		return true
 	default:
 		return numberedTechnicalFolder(compact, "disc") ||

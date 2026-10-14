@@ -7,8 +7,8 @@ import (
 	"go.uber.org/zap"
 )
 
-func (s *ScraperService) lookupAutomaticTMDb(ctx context.Context, kind, query string, year int) *Match {
-	if match := s.lookupAutomaticTMDbPrimary(ctx, kind, query, year); match != nil {
+func (s *ScraperService) lookupAutomaticTMDb(ctx context.Context, kind, query string, year int, failure *scrapeLookupFailure) *Match {
+	if match := s.lookupAutomaticTMDbPrimary(ctx, kind, query, year, failure); match != nil {
 		return match
 	}
 	fallbackKind := ""
@@ -21,14 +21,14 @@ func (s *ScraperService) lookupAutomaticTMDb(ctx context.Context, kind, query st
 		}
 	}
 	if fallbackKind != "" {
-		if fbMatch := s.lookupAutomaticTMDbPrimary(ctx, fallbackKind, query, year); fbMatch != nil {
+		if fbMatch := s.lookupAutomaticTMDbPrimary(ctx, fallbackKind, query, year, failure); fbMatch != nil {
 			return fbMatch
 		}
 	}
 	return nil
 }
 
-func (s *ScraperService) lookupAutomaticTMDbPrimary(ctx context.Context, kind, query string, year int) *Match {
+func (s *ScraperService) lookupAutomaticTMDbPrimary(ctx context.Context, kind, query string, year int, failure *scrapeLookupFailure) *Match {
 	var (
 		candidates []*Match
 		err        error
@@ -42,10 +42,11 @@ func (s *ScraperService) lookupAutomaticTMDbPrimary(ctx context.Context, kind, q
 		candidates, err = s.tmdb.SearchMovieCandidates(ctx, query, year)
 	}
 	if err != nil {
+		failure.requestFailed = true
 		s.log.Debug("tmdb "+mediaLabel+" search failed", zap.String("query", query), zap.Error(err))
 		return nil
 	}
-	if match := bestAutomaticMetadataMatch(query, year, kind, candidates); match != nil {
+	if match := bestAutomaticMetadataMatch(query, year, kind, candidates, failure); match != nil {
 		return s.localizeAutomaticTMDbMatch(ctx, kind, query, match)
 	}
 	if !queryNeedsEnglishTMDbFallback(query) {
@@ -59,10 +60,11 @@ func (s *ScraperService) lookupAutomaticTMDbPrimary(ctx context.Context, kind, q
 		alternate, err = s.tmdb.searchMovieCandidates(ctx, query, year, "en-US")
 	}
 	if err != nil {
+		failure.requestFailed = true
 		s.log.Debug("tmdb "+mediaLabel+" alternate-language search failed", zap.String("query", query), zap.Error(err))
 		return nil
 	}
-	match := bestAutomaticMetadataMatch(query, year, kind, mergeTMDbLanguageCandidates(candidates, alternate))
+	match := bestAutomaticMetadataMatch(query, year, kind, mergeTMDbLanguageCandidates(candidates, alternate), failure)
 	return s.localizeAutomaticTMDbMatch(ctx, kind, query, match)
 }
 
@@ -127,14 +129,18 @@ func mergeAutomaticTMDbLocalizedMatch(localized, search *Match) {
 	}
 }
 
-func bestAutomaticMetadataMatch(query string, year int, expectedType string, candidates []*Match) *Match {
+func bestAutomaticMetadataMatch(query string, year int, expectedType string, candidates []*Match, failure *scrapeLookupFailure) *Match {
 	bestScore := -1
 	var best *Match
 	for index, candidate := range candidates {
 		if candidate == nil || !metadataMatchCompatibleWithType(expectedType, candidate) {
+			if candidate != nil {
+				failure.typeMismatch = true
+			}
 			continue
 		}
 		if !organizeMetadataMatchTrusted(query, year, candidate) {
+			failure.reject(query, year, candidate)
 			continue
 		}
 		score := automaticMetadataMatchScore(query, year, candidate) - index
@@ -155,7 +161,7 @@ func automaticMetadataMatchScore(query string, year int, match *Match) int {
 	for _, title := range titles {
 		titleKey := metadataTrustKey(title)
 		switch {
-		case titleKey != "" && titleKey == queryKey:
+		case titleKey != "" && metadataTitlesEquivalent(queryKey, titleKey):
 			if score < 1000 {
 				score = 1000
 			}

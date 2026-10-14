@@ -17,6 +17,16 @@ func applyLocalMetadata(m *model.Media, local *LocalMetadata) {
 }
 
 func applyLocalIdentityMetadata(m *model.Media, local *LocalMetadata) {
+	if local.PathHint && (m.ScrapeStatus == "matched" || m.TMDbID > 0 || m.BangumiID > 0 || m.DoubanID != "" || m.TheTVDBID != "") {
+		// A guessed path must not replace an already confirmed identity.
+		if m.Title == "" {
+			m.Title = local.Title
+		}
+		if m.Year <= 0 {
+			m.Year = local.Year
+		}
+		return
+	}
 	if local.Title != "" {
 		m.Title = local.Title
 	}

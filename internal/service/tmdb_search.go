@@ -83,7 +83,9 @@ func (t *TMDbProvider) searchMovieCandidates(ctx context.Context, query string, 
 		// 移除年份限制重试一次，避免年份微小差异（如 2019 vs 2020）导致无搜索结果
 		q.Del("year")
 		u = base + "/search/movie?" + q.Encode()
-		_ = t.getJSON(ctx, u, &p)
+		if err := t.getJSON(ctx, u, &p); err != nil {
+			return nil, err
+		}
 	}
 	if len(p.Results) == 0 {
 		return nil, nil
@@ -169,7 +171,9 @@ func (t *TMDbProvider) searchTVCandidates(ctx context.Context, query string, yea
 		// 移除年份限制重试一次，避免年份微小差异导致无搜索结果
 		q.Del("first_air_date_year")
 		u = base + "/search/tv?" + q.Encode()
-		_ = t.getJSON(ctx, u, &p)
+		if err := t.getJSON(ctx, u, &p); err != nil {
+			return nil, err
+		}
 	}
 	if len(p.Results) == 0 {
 		return nil, nil

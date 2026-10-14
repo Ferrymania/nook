@@ -31,6 +31,7 @@ type scrapeLookupCache struct {
 
 type scrapeLookupCacheEntry struct {
 	match     *Match
+	failure   scrapeLookupFailure
 	expiresAt time.Time
 }
 
@@ -53,7 +54,7 @@ func scrapeLookupCacheKey(kind, query string, year int, isTheatrical bool) strin
 // means the provider chain already ran and found nothing (negative cache).
 // Use clearNegative before a user-triggered retry so stale negative entries
 // do not suppress the fresh provider round-trip.
-func (c *scrapeLookupCache) get(key string) (*Match, bool) {
+func (c *scrapeLookupCache) get(key string, failure ...*scrapeLookupFailure) (*Match, bool) {
 	if c == nil || key == "" {
 		return nil, false
 	}
@@ -68,10 +69,13 @@ func (c *scrapeLookupCache) get(key string) (*Match, bool) {
 		delete(c.entries, key)
 		return nil, false
 	}
+	if len(failure) > 0 {
+		failure[0].merge(item.failure)
+	}
 	return cloneMatch(item.match), true
 }
 
-func (c *scrapeLookupCache) set(key string, match *Match) {
+func (c *scrapeLookupCache) set(key string, match *Match, failure ...*scrapeLookupFailure) {
 	if c == nil || key == "" {
 		return
 	}
@@ -92,7 +96,11 @@ func (c *scrapeLookupCache) set(key string, match *Match) {
 	if match == nil {
 		ttl = scrapeLookupNegativeCacheTTL
 	}
-	c.entries[key] = scrapeLookupCacheEntry{match: cloneMatch(match), expiresAt: now.Add(ttl)}
+	entry := scrapeLookupCacheEntry{match: cloneMatch(match), expiresAt: now.Add(ttl)}
+	if len(failure) > 0 && failure[0] != nil {
+		entry.failure = *failure[0]
+	}
+	c.entries[key] = entry
 }
 
 // clearNegatives drops cached misses so a user-triggered retry gets a fresh

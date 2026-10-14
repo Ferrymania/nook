@@ -3,6 +3,7 @@ package service
 import (
 	"regexp"
 	"strings"
+	"unicode"
 )
 
 var (
@@ -23,7 +24,7 @@ func automaticMetadataTitleTrusted(query string, match *Match) bool {
 		if titleKey == "" {
 			continue
 		}
-		if queryKey == titleKey || metadataTrustTokenOverlap(queryKey, titleKey) {
+		if metadataTitlesEquivalent(queryKey, titleKey) || metadataTrustTokenOverlap(queryKey, titleKey) {
 			return true
 		}
 	}
@@ -33,11 +34,40 @@ func automaticMetadataTitleTrusted(query string, match *Match) bool {
 	return false
 }
 
+func metadataTitlesEquivalent(queryKey, titleKey string) bool {
+	if queryKey == titleKey {
+		return true
+	}
+	// Chinese word boundaries are not consistently spaced by providers. Keep
+	// every letter and digit, and require equality rather than a fuzzy prefix.
+	return containsCJK(queryKey) && containsCJK(titleKey) &&
+		metadataCJKSpacingKey(queryKey) == metadataCJKSpacingKey(titleKey)
+}
+
+func metadataCJKSpacingKey(key string) string {
+	runes := []rune(key)
+	var out strings.Builder
+	for i, r := range runes {
+		if r == ' ' && ((i > 0 && containsCJK(string(runes[i-1]))) ||
+			(i+1 < len(runes) && containsCJK(string(runes[i+1])))) {
+			continue
+		}
+		out.WriteRune(r)
+	}
+	return out.String()
+}
+
 func metadataTrustKey(value string) string {
 	value = strings.ToLower(strings.TrimSpace(value))
 	if value == "" {
 		return ""
 	}
+	value = strings.Map(func(r rune) rune {
+		if r == '\'' || r == '’' || r == '‘' {
+			return -1
+		}
+		return r
+	}, value)
 	value = bracketedTag.ReplaceAllString(value, " ")
 	value = yearPattern.ReplaceAllString(value, " ")
 	for _, re := range []*regexp.Regexp{patSEnE, patDanglingSE, patNxE, patEP, patCN, patSeasonOnly, patCNSeason} {
@@ -69,6 +99,19 @@ func metadataTrustNoiseToken(token string) bool {
 }
 
 func metadataTrustTokenOverlap(queryKey, titleKey string) bool {
+	// A sequel/part number must not disappear into the token-overlap score.
+	numbers := func(key string) string {
+		var out []string
+		for _, token := range strings.Fields(key) {
+			if strings.IndexFunc(token, unicode.IsDigit) >= 0 {
+				out = append(out, token)
+			}
+		}
+		return strings.Join(out, " ")
+	}
+	if numbers(queryKey) != numbers(titleKey) {
+		return false
+	}
 	queryTokens := metadataTrustSignificantTokens(queryKey)
 	titleTokens := metadataTrustSignificantTokens(titleKey)
 	if len(queryTokens) <= 1 || len(titleTokens) <= 1 {

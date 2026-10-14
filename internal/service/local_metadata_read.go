@@ -72,7 +72,8 @@ func findMovieNFO(mediaPath, libraryRoot string) (*nfoDocument, string, error) {
 				}
 			}
 		}
-		if len(matches) == 1 {
+		// A collection's only existing NFO can belong to a different movie.
+		if len(matches) == 1 && !mediaParentLooksLikeCollection(mediaPath) {
 			if doc, _, err := decodeNFOFile(matches[0]); err == nil && doc != nil {
 				return doc, matches[0], nil
 			} else if err != nil && !errors.Is(err, os.ErrNotExist) {

@@ -110,14 +110,39 @@ func scrapeQueryCandidatesWithNormalizer(m *model.Media, lib *model.Library, cle
 		}
 	} else {
 		episodic := mediaIsEpisodic(m, lib)
-		if lib != nil && episodic {
-			add(seriesFolderTitle(m.Path, lib.Path))
+		if episodic {
+			if lib != nil {
+				add(seriesFolderTitle(m.Path, lib.Path))
+				add(mediaFolderTitle(m.Path, lib.Path))
+			}
+			add(m.Title)
+			add(m.Path)
+		} else {
+			fileTitle, _ := clean(m.Path)
+			if genericMovieFileTitle(fileTitle) {
+				if lib != nil {
+					add(mediaFolderTitle(m.Path, lib.Path))
+				}
+			} else {
+				add(m.Path)
+				// Bilingual movie releases also provide a literal English title.
+				// Use it as a fallback when the Chinese distributor prefix differs.
+				if containsCJK(fileTitle) {
+					var latin []string
+					for _, field := range strings.Fields(fileTitle) {
+						if isASCIIWord(strings.ToLower(field)) {
+							latin = append(latin, field)
+						}
+					}
+					if len(latin) >= 2 {
+						add(strings.Join(latin, " "))
+					}
+				}
+			}
+			if !genericMovieFileTitle(m.Title) {
+				add(m.Title)
+			}
 		}
-		if lib != nil {
-			add(mediaFolderTitle(m.Path, lib.Path))
-		}
-		add(m.Title)
-		add(m.Path)
 	}
 
 	if len(out) == 0 {

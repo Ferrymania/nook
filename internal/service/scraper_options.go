@@ -9,6 +9,7 @@ type ScrapeOptions struct {
 	ForceRematch        bool
 	RebuildIdentity     bool
 	resultProvider      *string
+	resultFailure       *string
 }
 
 func (o ScrapeOptions) episodeArtworkEnabled() bool {

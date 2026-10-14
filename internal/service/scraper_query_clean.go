@@ -72,8 +72,14 @@ var weakReleaseBoundaryTokenSet = map[string]struct{}{
 // release tags ("复仇者联盟4.2019.BD.1080p" must drop "BD"). A control rune is
 // used so it can never collide with a real filename token.
 const releaseSignalToken = "\u0001"
+const episodeSignalToken = "\u0002"
 
 var dynamicReleaseBoundaryTokenRE = regexp.MustCompile(`(?i)^(?:\d{3,4}p|\d{2,3}fps)$`)
+var releaseVersionTokenRE = regexp.MustCompile(`(?i)^v\d+$`)
+
+var releaseLanguageTokenSet = map[string]struct{}{
+	"ita": {}, "eng": {}, "jpn": {}, "kor": {}, "fra": {}, "ger": {}, "rus": {}, "spa": {},
+}
 
 // bracketedTag matches "[anything]", "(anything)" or "{anything}" segments.
 var bracketedTag = regexp.MustCompile(`[\[\(\{][^\]\)\}]*[\]\)\}]`)
@@ -112,11 +118,11 @@ func CleanQuery(raw string) (title string, year int) {
 
 	lower = bracketedTag.ReplaceAllString(lower, " ")
 
-	lower = patSEnE.ReplaceAllString(lower, " ")
+	lower = patSEnE.ReplaceAllString(lower, " "+episodeSignalToken+" ")
 	lower = patDanglingSE.ReplaceAllString(lower, " ")
-	lower = patNxE.ReplaceAllString(lower, " ")
-	lower = patEP.ReplaceAllString(lower, " ")
-	lower = patCN.ReplaceAllString(lower, " ")
+	lower = patNxE.ReplaceAllString(lower, " "+episodeSignalToken+" ")
+	lower = patEP.ReplaceAllString(lower, " "+episodeSignalToken+" ")
+	lower = patCN.ReplaceAllString(lower, " "+episodeSignalToken+" ")
 	// 去掉中文季/部标记（如「第二季」「第2部」），避免残留在标题里既污染
 	// 搜索查询又导致整理后的目录名重复季信息。
 	lower = patSeasonOnly.ReplaceAllString(lower, " ")
@@ -128,8 +134,8 @@ func CleanQuery(raw string) (title string, year int) {
 	for _, sep := range []string{".", "_", "-", "[", "]", "(", ")", "×"} {
 		lower = strings.ReplaceAll(lower, sep, " ")
 	}
-	// 拆分后丢掉过短（≤1）且全为 ASCII 数字 / 字母的"碎片"，避免
-	// 「2」「0」「v」之类残留干扰 TMDb 搜索。中文字符不算碎片。
+	// 保留标题里的续集数字；集号之后的单个数字仍作为发布碎片丢弃。
+	// 单个 ASCII 字母及规格边界后的尾巴不参与标题搜索。
 	//
 	// seenReleaseBoundary 只有在遇到分辨率/编码等强标记后才置位，置位后其余
 	// ASCII 词一律视为发布尾巴丢弃；releaseSignalled 则宽松得多，年份标记也会
@@ -138,10 +144,21 @@ func CleanQuery(raw string) (title string, year int) {
 	// 真实标题词当成尾巴丢掉。
 	out := make([]string, 0, 8)
 	seenReleaseBoundary := false
+	seenEpisodeBoundary := false
 	releaseSignalled := false
 	for _, w := range strings.Fields(lower) {
+		if w == episodeSignalToken {
+			seenEpisodeBoundary = true
+			continue
+		}
 		if w == releaseSignalToken {
 			releaseSignalled = true
+			continue
+		}
+		if _, languageTag := releaseLanguageTokenSet[w]; languageTag && releaseSignalled && len(out) > 0 {
+			continue
+		}
+		if releaseSignalled && len(out) > 0 && releaseVersionTokenRE.MatchString(w) {
 			continue
 		}
 		if dynamicReleaseBoundaryTokenRE.MatchString(w) {
@@ -166,7 +183,7 @@ func CleanQuery(raw string) (title string, year int) {
 		}
 		if len(w) <= 1 {
 			r := []rune(w)
-			if len(r) == 1 && r[0] < 128 {
+			if len(r) == 1 && r[0] < 128 && (r[0] < '0' || r[0] > '9' || seenEpisodeBoundary) {
 				continue
 			}
 		}

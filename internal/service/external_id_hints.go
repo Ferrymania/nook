@@ -86,9 +86,12 @@ func pathHintMetadata(raw string, seriesLike bool) (*LocalMetadata, mediaExterna
 		}
 		title, year = CleanQuery(stem)
 	} else {
-		title, year = cloudSeriesTitleFromMediaPath(source)
-		if title == "" {
-			title, year = CleanQuery(source)
+		// Movie collections can contain several release years. A named movie
+		// file owns its identity; only generic disc filenames need a folder.
+		title, year = CleanQuery(source)
+		if genericMovieFileTitle(title) {
+			title = mediaFolderTitle(raw, "")
+			year = 0
 		}
 	}
 	if !hints.useful() && title == "" && year <= 0 {

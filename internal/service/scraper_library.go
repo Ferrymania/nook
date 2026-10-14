@@ -18,7 +18,7 @@ import (
 // episode of a show produces the same candidate; bypassCache forces a fresh
 // provider round-trip for user-triggered rematches but still refreshes the
 // cache so later episodes reuse the corrected result.
-func (s *ScraperService) lookup(ctx context.Context, lib *model.Library, media *model.Media, query string, year int, bypassCache bool) *Match {
+func (s *ScraperService) lookup(ctx context.Context, lib *model.Library, media *model.Media, query string, year int, bypassCache bool, failure *scrapeLookupFailure) *Match {
 	kind := ""
 	if lib != nil {
 		kind = lib.Type
@@ -36,25 +36,27 @@ func (s *ScraperService) lookup(ctx context.Context, lib *model.Library, media *
 
 	cacheKey := scrapeLookupCacheKey(kind, query, year, isTheatrical)
 	if !bypassCache {
-		if cached, ok := s.lookupCache.get(cacheKey); ok {
+		if cached, ok := s.lookupCache.get(cacheKey, failure); ok {
 			return cached
 		}
 	}
-	match := s.lookupUncached(ctx, kind, isTheatrical, query, year)
+	currentFailure := scrapeLookupFailure{}
+	match := s.lookupUncached(ctx, kind, isTheatrical, query, year, &currentFailure)
+	failure.merge(currentFailure)
 	// Always refresh the cache, even on bypassed (forced) lookups, so a
 	// corrected rematch replaces the stale entry for later episodes.
-	s.lookupCache.set(cacheKey, match)
+	s.lookupCache.set(cacheKey, match, &currentFailure)
 	return match
 }
 
-func (s *ScraperService) lookupUncached(ctx context.Context, kind string, isTheatrical bool, query string, year int) *Match {
+func (s *ScraperService) lookupUncached(ctx context.Context, kind string, isTheatrical bool, query string, year int, failure *scrapeLookupFailure) *Match {
 	if s.tmdb != nil && s.tmdb.Enabled() {
-		if match := s.lookupAutomaticTMDb(ctx, kind, query, year); match != nil {
+		if match := s.lookupAutomaticTMDb(ctx, kind, query, year, failure); match != nil {
 			match.Provider = "tmdb"
 			return match
 		}
 		if isTheatrical {
-			if match := s.lookupAutomaticTMDb(ctx, "tv", query, year); match != nil {
+			if match := s.lookupAutomaticTMDb(ctx, "tv", query, year, failure); match != nil {
 				match.Provider = "tmdb"
 				return match
 			}
@@ -65,6 +67,7 @@ func (s *ScraperService) lookupUncached(ctx context.Context, kind string, isThea
 			m.Provider = "douban"
 			return m
 		} else if err != nil {
+			failure.requestFailed = true
 			s.log.Debug("douban search failed", zap.String("query", query), zap.Error(err))
 		}
 	}
@@ -73,6 +76,7 @@ func (s *ScraperService) lookupUncached(ctx context.Context, kind string, isThea
 			m.Provider = "bangumi"
 			return m
 		} else if err != nil {
+			failure.requestFailed = true
 			s.log.Debug("bangumi search failed", zap.String("query", query), zap.Error(err))
 		}
 	}
@@ -81,6 +85,7 @@ func (s *ScraperService) lookupUncached(ctx context.Context, kind string, isThea
 			m.Provider = "thetvdb"
 			return m
 		} else if err != nil {
+			failure.requestFailed = true
 			s.log.Debug("thetvdb search failed", zap.String("query", query), zap.Error(err))
 		}
 	}
