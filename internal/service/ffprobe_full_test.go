@@ -10,6 +10,7 @@ const fullProbeFixture = `{
     "format_name": "matroska,webm",
     "duration": "1451.024000",
     "bit_rate": "8000000",
+    "size": "1451000000",
     "filename": "https://cdn.example.com/secret/movie.mkv?d=vip-abc-pickcode&token=xyz"
   },
   "streams": [
@@ -35,6 +36,9 @@ func TestParseFullProbeJSONExtractsStreamsAndChapters(t *testing.T) {
 	}
 	if got.Container != "matroska,webm" || got.DurationSec != 1451 || got.BitRate != 8_000_000 {
 		t.Fatalf("container/duration/bitrate = %q/%d/%d", got.Container, got.DurationSec, got.BitRate)
+	}
+	if got.SizeBytes != 1451000000 {
+		t.Fatalf("size = %d", got.SizeBytes)
 	}
 	if len(got.Streams) != 3 {
 		t.Fatalf("streams = %#v, want 3", got.Streams)

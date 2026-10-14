@@ -90,19 +90,33 @@ func (s *StreamService) Probe(ctx context.Context, mediaID string, probe *FFprob
 	if err != nil || m == nil {
 		return ErrMediaNotFound
 	}
-	res, err := probe.Probe(ctx, m.Path)
+	input, err := resolveMediaProbeInput(ctx, m, s.strmResolve)
 	if err != nil {
+		return err
+	}
+	res, err := probe.ProbeFull(ctx, input)
+	if err != nil {
+		return err
+	}
+	row, err := mediaProbeRow(m, res)
+	if err != nil {
+		return err
+	}
+	if err := s.repo.MediaProbe.Upsert(ctx, row); err != nil {
 		return err
 	}
 	updates := map[string]any{
 		"duration_sec": res.DurationSec,
-		"width":        res.Width,
-		"height":       res.Height,
-		"video_codec":  res.VideoCodec,
-		"audio_codec":  res.AudioCodec,
+		"width":        row.Width,
+		"height":       row.Height,
+		"video_codec":  row.VideoCodec,
+		"audio_codec":  row.AudioCodec,
 	}
 	if res.Container != "" {
 		updates["container"] = res.Container
 	}
-	return s.repo.DB.Model(m).Updates(updates).Error
+	if res.SizeBytes > 0 {
+		updates["size_bytes"] = res.SizeBytes
+	}
+	return s.repo.DB.WithContext(ctx).Model(m).Updates(updates).Error
 }

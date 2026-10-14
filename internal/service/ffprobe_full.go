@@ -56,6 +56,7 @@ type FullProbeResult struct {
 	Container   string
 	DurationSec int
 	BitRate     int64
+	SizeBytes   int64
 	Streams     []ProbeStream
 	Chapters    []ProbeChapter
 }
@@ -67,6 +68,7 @@ type mediaProbePayload struct {
 	Container   string         `json:"container,omitempty"`
 	DurationSec int            `json:"duration_sec"`
 	BitRate     int64          `json:"bit_rate,omitempty"`
+	SizeBytes   int64          `json:"size_bytes,omitempty"`
 	Streams     []ProbeStream  `json:"streams"`
 	Chapters    []ProbeChapter `json:"chapters,omitempty"`
 }
@@ -98,6 +100,7 @@ func (r *FullProbeResult) PayloadJSON() (string, error) {
 		Container:   r.Container,
 		DurationSec: r.DurationSec,
 		BitRate:     r.BitRate,
+		SizeBytes:   r.SizeBytes,
 		Streams:     streams,
 		Chapters:    r.Chapters,
 	})
@@ -179,6 +182,7 @@ type rawFullProbe struct {
 		FormatName string      `json:"format_name"`
 		Duration   probeNumber `json:"duration"`
 		BitRate    probeNumber `json:"bit_rate"`
+		Size       probeNumber `json:"size"`
 	} `json:"format"`
 	Streams []struct {
 		Index         int         `json:"index"`
@@ -220,6 +224,7 @@ func parseFullProbeJSON(data []byte) (*FullProbeResult, error) {
 		Container:   strings.TrimSpace(raw.Format.FormatName),
 		DurationSec: raw.Format.Duration.int(),
 		BitRate:     raw.Format.BitRate.int64(),
+		SizeBytes:   raw.Format.Size.int64(),
 		Streams:     make([]ProbeStream, 0, len(raw.Streams)),
 		Chapters:    make([]ProbeChapter, 0, len(raw.Chapters)),
 	}

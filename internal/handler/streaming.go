@@ -199,6 +199,9 @@ func reprobeHandler(svc *service.Container) gin.HandlerFunc {
 			c.JSON(http.StatusOK, gin.H{"code": 1, "error": err.Error()})
 			return
 		}
+		if svc.Cache != nil {
+			svc.Cache.DeletePrefix(c.Request.Context(), "media:emby:")
+		}
 		c.JSON(http.StatusOK, gin.H{"code": 0, "message": "ok"})
 	}
 }

@@ -147,6 +147,10 @@ func (s *MediaProbeService) run(ctx context.Context, m *model.Media) {
 // 本地文件给路径；STRM / 云盘先解析成最终直链并带上绑定的请求头——直链与 UA
 // 必须配套，用错会被 CDN 拒绝。
 func (s *MediaProbeService) probeInput(ctx context.Context, m *model.Media) (ProbeInput, error) {
+	return resolveMediaProbeInput(ctx, m, s.resolve)
+}
+
+func resolveMediaProbeInput(ctx context.Context, m *model.Media, resolve func(context.Context, string, string) (*StrmPlayResult, error)) (ProbeInput, error) {
 	if m == nil {
 		return ProbeInput{}, ErrMediaNotFound
 	}
@@ -166,8 +170,8 @@ func (s *MediaProbeService) probeInput(ctx context.Context, m *model.Media) (Pro
 	if raw == "" {
 		return ProbeInput{}, errors.New("strm play target missing")
 	}
-	if s.resolve != nil {
-		resolved, err := s.resolve(ctx, raw, "")
+	if resolve != nil {
+		resolved, err := resolve(ctx, raw, "")
 		if err != nil {
 			return ProbeInput{}, err
 		}
@@ -188,11 +192,23 @@ func (s *MediaProbeService) persistProbe(ctx context.Context, m *model.Media, re
 	if s.repo == nil || s.repo.MediaProbe == nil {
 		return errors.New("media probe repository not wired")
 	}
-	payload, err := result.PayloadJSON()
+	row, err := mediaProbeRow(m, result)
 	if err != nil {
 		return err
 	}
-	row := &model.MediaProbe{
+	if err := s.repo.MediaProbe.Upsert(ctx, row); err != nil {
+		return err
+	}
+	s.backfillDuration(ctx, m, result.DurationSec)
+	return nil
+}
+
+func mediaProbeRow(m *model.Media, result *FullProbeResult) (*model.MediaProbe, error) {
+	payload, err := result.PayloadJSON()
+	if err != nil {
+		return nil, err
+	}
+	return &model.MediaProbe{
 		MediaID:         m.ID,
 		Signature:       mediaProbeSignature(m),
 		Source:          mediaProbeInputKind(m),
@@ -209,12 +225,7 @@ func (s *MediaProbeService) persistProbe(ctx context.Context, m *model.Media, re
 		ChapterCount:    len(result.Chapters),
 		Payload:         payload,
 		ProbedAt:        time.Now(),
-	}
-	if err := s.repo.MediaProbe.Upsert(ctx, row); err != nil {
-		return err
-	}
-	s.backfillDuration(ctx, m, result.DurationSec)
-	return nil
+	}, nil
 }
 
 // backfillDuration 把探测到的时长补进 media.duration_sec。STRM / 云盘媒体在扫描
