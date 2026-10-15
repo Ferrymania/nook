@@ -22,7 +22,6 @@ export function ManualScrapeDialogHeader({
   onClose: () => void
 }) {
   const separator = Math.max(sourcePath.lastIndexOf('/'), sourcePath.lastIndexOf('\\'))
-  const filename = sourcePath.slice(separator + 1)
   const directory = separator >= 0 ? sourcePath.slice(0, separator || 1) : ''
 
   return (
@@ -32,16 +31,10 @@ export function ManualScrapeDialogHeader({
         <p className="mt-1 truncate text-xs text-sand-500">
           当前标题：{title} · {targetCount > 1 ? `将应用到 ${targetCount} 个媒体` : '单个媒体'}
         </p>
-        {sourcePath && (
+        {directory && (
           <dl className="mt-3 grid max-h-28 min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 overflow-y-auto rounded-xl border border-sand-200 bg-sand-50/50 px-3 py-2.5 text-xs">
-            {directory && (
-              <>
-                <dt className="text-sand-500">来源目录</dt>
-                <dd className="min-w-0 select-text break-all font-mono text-ink-600">{directory}</dd>
-              </>
-            )}
-            <dt className="text-sand-500">{targetCount > 1 ? '代表文件' : '来源文件'}</dt>
-            <dd className="min-w-0 select-text break-all font-mono text-ink-600">{filename}</dd>
+            <dt className="text-sand-500">来源目录</dt>
+            <dd className="min-w-0 select-text break-all font-mono text-ink-600">{directory}</dd>
           </dl>
         )}
       </div>
