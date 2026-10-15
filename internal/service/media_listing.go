@@ -22,6 +22,7 @@ type MediaListFilters struct {
 	YearMax   int
 	RatingMin float64
 	Unwatched bool
+	Unmatched bool
 	// UserID 是「未观看」判定所需的账号；为空时 Unwatched 被忽略。
 	UserID string
 }
@@ -29,11 +30,14 @@ type MediaListFilters struct {
 // empty 报告是否没有任何筛选条件。调用方据此走缓存友好的默认路径。
 func (f MediaListFilters) empty() bool {
 	return len(f.Genres) == 0 && f.YearMin <= 0 && f.YearMax <= 0 &&
-		f.RatingMin <= 0 && !f.Unwatched
+		f.RatingMin <= 0 && !f.Unwatched && !f.Unmatched
 }
 
 // apply 把筛选条件叠加到仓储过滤条件上。
 func (f MediaListFilters) apply(filter repository.MediaQueryFilter) repository.MediaQueryFilter {
+	if f.Unmatched {
+		filter.UnmatchedOnly = true
+	}
 	if len(f.Genres) > 0 {
 		filter.Genres = f.Genres
 	}
@@ -197,7 +201,8 @@ func (s *MediaService) listMediaVisibleForGrouping(ctx context.Context, libraryI
 }
 
 // GetMedia returns a single media row.
-func (s *MediaService) GetMedia(ctx context.Context, id string) (*model.Media, error) {	media, err := s.repo.Media.FindByID(ctx, id)
+func (s *MediaService) GetMedia(ctx context.Context, id string) (*model.Media, error) {
+	media, err := s.repo.Media.FindByID(ctx, id)
 	if err != nil || media == nil {
 		return media, err
 	}

@@ -59,7 +59,7 @@ type StrmSyncPath struct {
 	SyncMode        string     `gorm:"size:32;default:'incremental'" json:"sync_mode"` // 默认同步模式：incremental / full
 	Enabled         bool       `gorm:"default:true" json:"enabled"`
 	LastSyncAt      *time.Time `json:"last_sync_at"`
-	LastSyncStatus  string     `gorm:"size:16" json:"last_sync_status"` // idle/running/ok/error/canceled
+	LastSyncStatus  string     `gorm:"size:16" json:"last_sync_status"` // idle/running/done/failed/canceled；兼容旧 ok/error
 	LastSyncMessage string     `gorm:"size:1024" json:"last_sync_message"`
 }
 

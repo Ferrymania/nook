@@ -28,10 +28,14 @@ import { StrmAccountDialog, StrmSettingsDialog, StrmSyncPathDialog } from './Str
 type StrmDialogKey = 'account' | 'settings' | 'path' | null
 
 const STATUS_META: Record<string, { label: string; cls: string }> = {
-  idle: { label: '未同步', cls: 'bg-gray-100 text-gray-500' },
+  '': { label: '尚未同步', cls: 'bg-gray-100 text-gray-500' },
+  idle: { label: '尚未同步', cls: 'bg-gray-100 text-gray-500' },
   running: { label: '同步中', cls: 'bg-brand-100 text-brand-600' },
-  ok: { label: '正常', cls: 'bg-emerald-100 text-emerald-600' },
-  error: { label: '失败', cls: 'bg-rose-100 text-rose-600' },
+  done: { label: '上次同步成功', cls: 'bg-emerald-100 text-emerald-600' },
+  failed: { label: '上次同步失败', cls: 'bg-rose-100 text-rose-600' },
+  // 兼容旧版保存的目录状态；新同步结果使用 done / failed。
+  ok: { label: '上次同步成功', cls: 'bg-emerald-100 text-emerald-600' },
+  error: { label: '上次同步失败', cls: 'bg-rose-100 text-rose-600' },
   canceled: { label: '已取消', cls: 'bg-amber-100 text-amber-600' },
 }
 
@@ -390,7 +394,7 @@ function SyncPathSection({
       ) : (
         <div className="space-y-2.5">
           {paths.map((path) => {
-            const status = STATUS_META[path.last_sync_status] ?? STATUS_META.idle
+            const status = STATUS_META[path.last_sync_status] ?? { label: '状态未知', cls: STATUS_META.idle.cls }
             const running = path.last_sync_status === 'running'
             const PathIcon = providerIcon(path.provider)
             return (
@@ -468,6 +472,11 @@ function SyncPathSection({
                   <span className="text-sand-500">→</span>
                   <span className="max-w-[45%] truncate">{path.local_path}</span>
                 </div>
+                {path.last_sync_at && (
+                  <p className="mt-1.5 text-xs text-sand-500" title="该次同步的开始时间">
+                    最近同步：{formatTime(path.last_sync_at)}
+                  </p>
+                )}
                 {path.last_sync_message && (
                   <p className="mt-1.5 text-xs text-sand-500">{path.last_sync_message}</p>
                 )}

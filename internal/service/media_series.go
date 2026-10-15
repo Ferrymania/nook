@@ -193,6 +193,9 @@ func mediaRowMatchesFilters(row *model.Media, filters MediaListFilters, complete
 	if row == nil {
 		return false
 	}
+	if filters.Unmatched && row.ScrapeStatus == "matched" {
+		return false
+	}
 	if filters.YearMin > 0 && row.Year < filters.YearMin {
 		return false
 	}

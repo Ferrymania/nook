@@ -21,6 +21,7 @@ type LibraryMediaSectionsProps = {
   onLoadMore: () => void
   cardActions: (media: Media) => ReactNode
   onSeriesClick: (series: SeriesCard) => void
+  emptyMessage?: string
 }
 
 export function LibraryMediaSections({
@@ -34,6 +35,7 @@ export function LibraryMediaSections({
   onLoadMore,
   cardActions,
   onSeriesClick,
+  emptyMessage,
 }: LibraryMediaSectionsProps) {
   return (
     <>
@@ -47,7 +49,7 @@ export function LibraryMediaSections({
       )}
 
       {!isSeries && items.length === 0 && (
-        <LibraryEmptyState message="该媒体库暂无内容，触发一次扫描后再来看看" />
+        <LibraryEmptyState message={emptyMessage ?? '该媒体库暂无内容，触发一次扫描后再来看看'} />
       )}
 
       {isSeries && seriesCards.length > 0 && !selectedSeries && (
@@ -65,7 +67,7 @@ export function LibraryMediaSections({
       )}
 
       {isSeries && seriesCards.length === 0 && !loading && (
-        <LibraryEmptyState message="该库尚未发现任何剧集，触发一次扫描后再来看看" />
+        <LibraryEmptyState message={emptyMessage ?? '该库尚未发现任何剧集，触发一次扫描后再来看看'} />
       )}
 
       <LoadMoreSentinel hasMore={hasMore} loadingMore={loadingMore} onLoadMore={onLoadMore} />

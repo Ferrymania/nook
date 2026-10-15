@@ -51,7 +51,8 @@ export interface StrmAccountInput {
   enabled?: boolean
 }
 
-export type StrmSyncStatus = 'idle' | 'running' | 'ok' | 'error' | 'canceled'
+// 新结果为 done / failed；空值用于新目录，ok / error 兼容旧数据。
+export type StrmSyncStatus = '' | 'idle' | 'running' | 'done' | 'failed' | 'canceled' | 'ok' | 'error'
 
 export interface StrmSyncPath {
   id: string
