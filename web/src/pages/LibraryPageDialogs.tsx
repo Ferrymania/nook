@@ -60,6 +60,7 @@ export function LibraryPageDialogs({
         defaultQuery={selectedSeriesTitle}
         mediaType="tv"
         scopeLabel={selectedSeriesTitle || '当前剧集'}
+        sourcePath={selectedSeries?.rep.path}
         episodeArtwork={scrapeEpisodeArtwork}
         onClose={onCloseManualSeriesScrape}
         onApplied={onApplied}
