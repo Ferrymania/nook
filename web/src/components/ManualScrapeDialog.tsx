@@ -14,6 +14,7 @@ interface ManualScrapeDialogProps {
   defaultQuery?: string
   mediaType?: string
   scopeLabel?: string
+  sourcePath?: string
   episodeArtwork?: boolean
   onClose: () => void
   onApplied?: () => void
@@ -26,6 +27,7 @@ export function ManualScrapeDialog({
   defaultQuery,
   mediaType,
   scopeLabel,
+  sourcePath,
   episodeArtwork,
   onClose,
   onApplied,
@@ -46,7 +48,12 @@ export function ManualScrapeDialog({
   return (
     <div className="fixed inset-0 z-50 flex min-w-0 items-center justify-center overflow-hidden bg-ink-900/40 px-4 py-8 backdrop-blur-sm">
       <div className="flex min-w-0 max-h-[86vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-sand-200 bg-white shadow-2xl">
-        <ManualScrapeDialogHeader title={scopeLabel || media.title} targetCount={dialog.targetIds.length} onClose={onClose} />
+        <ManualScrapeDialogHeader
+          title={scopeLabel || media.title}
+          sourcePath={sourcePath || media.path}
+          targetCount={dialog.targetIds.length}
+          onClose={onClose}
+        />
 
         <ManualScrapeSearchControls
           query={dialog.query}

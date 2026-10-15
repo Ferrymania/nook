@@ -131,12 +131,11 @@ export const MediaCard = memo(function MediaCard({
           }`}>
             {media.title}
           </p>
-          {/* 单行、不折行：年份可截断，徽标永不压缩。折行会让同一行里各卡片的
-              徽标落位高低不一，看起来就是「错位」，所以宁可极窄屏上截断年份。
-              min-h 统一行高，避免有/无徽标的卡片年份基线差几像素。 */}
-          <div className="flex min-h-[21px] items-center text-[10px] font-bold uppercase text-[var(--app-muted)] sm:min-h-0 sm:gap-x-2 sm:text-[11px] sm:tracking-wider">
-            <span className="truncate">{media.year > 0 ? media.year : "未知年份"}</span>
-            <span className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1.5">
+          {/* 年份完整显示；空间不足时徽标换行，避免把年份挤成「2…」。
+              min-h 统一无徽标时的信息行高度。 */}
+          <div className="flex min-h-[21px] flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-bold uppercase text-[var(--app-muted)] sm:min-h-0 sm:text-[11px] sm:tracking-wider">
+            <span className="shrink-0 whitespace-nowrap">{media.year > 0 ? media.year : "未知年份"}</span>
+            <span className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-0.5 sm:gap-1.5">
               {/* 集数/版本数徽标：放在海报下方的信息行而不是压在画面上。海报底部通常
                   自带片名，角标会盖住它（Game of Thrones / Breaking Bad 都很明显）。 */}
               {(count !== undefined && count > 1) || (count === undefined && versionCount > 1) ? (

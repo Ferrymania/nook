@@ -217,19 +217,6 @@ export function ScrapeMetadataDialog({
             <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 space-y-3">
               <label className="text-xs font-bold text-gray-600">当前文件夹执行方式</label>
               <div className="grid gap-2 sm:grid-cols-2">
-                <label className={`flex cursor-pointer items-center gap-2.5 rounded-lg border p-2.5 text-xs font-semibold transition ${actionType === 'organize_and_scrape' ? 'border-brand-400 bg-brand-50 text-brand-700' : 'border-gray-200 bg-white text-gray-700'}`}>
-                  <input
-                    type="radio"
-                    name="actionType"
-                    checked={actionType === 'organize_and_scrape'}
-                    onChange={() => setActionType('organize_and_scrape')}
-                    className="text-brand-600"
-                  />
-                  <span>
-                    整理规范命名并刮削
-                    <span className="mt-1 block font-normal leading-relaxed text-gray-500">按命名规则生成文件名和目录，使用所选转移方式整理，再扫描并刮削。</span>
-                  </span>
-                </label>
                 <label className={`flex cursor-pointer items-center gap-2.5 rounded-lg border p-2.5 text-xs font-semibold transition ${actionType === 'scrape_only' ? 'border-brand-400 bg-brand-50 text-brand-700' : 'border-gray-200 bg-white text-gray-700'}`}>
                   <input
                     type="radio"
@@ -241,6 +228,19 @@ export function ScrapeMetadataDialog({
                   <span>
                     仅原地刮削元数据（不重命名）
                     <span className="mt-1 block font-normal leading-relaxed text-gray-500">更新影片资料、NFO 和图片，保留现有文件名与目录位置。</span>
+                  </span>
+                </label>
+                <label className={`flex cursor-pointer items-center gap-2.5 rounded-lg border p-2.5 text-xs font-semibold transition ${actionType === 'organize_and_scrape' ? 'border-brand-400 bg-brand-50 text-brand-700' : 'border-gray-200 bg-white text-gray-700'}`}>
+                  <input
+                    type="radio"
+                    name="actionType"
+                    checked={actionType === 'organize_and_scrape'}
+                    onChange={() => setActionType('organize_and_scrape')}
+                    className="text-brand-600"
+                  />
+                  <span>
+                    整理规范命名并刮削
+                    <span className="mt-1 block font-normal leading-relaxed text-gray-500">按命名规则生成文件名和目录，使用所选转移方式整理，再扫描并刮削。</span>
                   </span>
                 </label>
               </div>

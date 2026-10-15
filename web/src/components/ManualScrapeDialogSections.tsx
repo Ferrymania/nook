@@ -12,20 +12,31 @@ import { EpisodeArtworkToggle } from './EpisodeArtworkToggle'
 
 export function ManualScrapeDialogHeader({
   title,
+  sourcePath,
   targetCount,
   onClose,
 }: {
   title: string
+  sourcePath: string
   targetCount: number
   onClose: () => void
 }) {
+  const separator = Math.max(sourcePath.lastIndexOf('/'), sourcePath.lastIndexOf('\\'))
+  const directory = separator >= 0 ? sourcePath.slice(0, separator || 1) : ''
+
   return (
-    <div className="flex min-w-0 items-start justify-between gap-4 border-b border-sand-200 px-5 py-4">
-      <div className="min-w-0">
+    <div className="flex min-w-0 shrink-0 items-start justify-between gap-4 border-b border-sand-200 px-5 py-4">
+      <div className="min-w-0 flex-1">
         <h2 className="font-display text-xl font-bold text-ink-600">手动搜索刮削</h2>
         <p className="mt-1 truncate text-xs text-sand-500">
-          {title} · {targetCount > 1 ? `将应用到 ${targetCount} 个媒体` : '单个媒体'}
+          当前标题：{title} · {targetCount > 1 ? `将应用到 ${targetCount} 个媒体` : '单个媒体'}
         </p>
+        {directory && (
+          <dl className="mt-3 grid max-h-28 min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 overflow-y-auto rounded-xl border border-sand-200 bg-sand-50/50 px-3 py-2.5 text-xs">
+            <dt className="text-sand-500">来源目录</dt>
+            <dd className="min-w-0 select-text break-all font-mono text-ink-600">{directory}</dd>
+          </dl>
+        )}
       </div>
       <button onClick={onClose} className="btn-ghost h-9 w-9 shrink-0 p-0" aria-label="关闭">
         <X size={16} />
