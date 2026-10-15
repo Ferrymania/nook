@@ -4,7 +4,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"unicode"
 )
 
 var (
@@ -25,14 +24,26 @@ func automaticMetadataTitleTrusted(query string, match *Match) bool {
 		if titleKey == "" {
 			continue
 		}
-		if metadataTitlesEquivalent(queryKey, titleKey) || metadataTrustTokenOverlap(queryKey, titleKey) {
+		if metadataTitlesEquivalent(queryKey, titleKey) {
 			return true
 		}
 	}
-	if metadataTrustLocalizedSearchKeyword(queryKey, match) {
-		return true
-	}
 	return false
+}
+
+// A bilingual source must not be confirmed from its English name while its
+// explicit Chinese name disagrees. Unknown translations stay manual.
+func automaticSourceNamesTrusted(queries []string, match *Match) bool {
+	hasChinese := false
+	for _, query := range queries {
+		if containsCJK(query) {
+			hasChinese = true
+			if automaticMetadataTitleTrusted(query, match) {
+				return true
+			}
+		}
+	}
+	return !hasChinese
 }
 
 func metadataTitlesEquivalent(queryKey, titleKey string) bool {
@@ -128,40 +139,6 @@ func metadataTrustNoiseToken(token string) bool {
 	return false
 }
 
-func metadataTrustTokenOverlap(queryKey, titleKey string) bool {
-	// A sequel/part number must not disappear into the token-overlap score.
-	numbers := func(key string) string {
-		var out []string
-		for _, token := range strings.Fields(key) {
-			if strings.IndexFunc(token, unicode.IsDigit) >= 0 {
-				out = append(out, token)
-			}
-		}
-		return strings.Join(out, " ")
-	}
-	if numbers(queryKey) != numbers(titleKey) {
-		return false
-	}
-	queryTokens := metadataTrustSignificantTokens(queryKey)
-	titleTokens := metadataTrustSignificantTokens(titleKey)
-	if len(queryTokens) <= 1 || len(titleTokens) <= 1 {
-		return false
-	}
-	titleSet := make(map[string]struct{}, len(titleTokens))
-	for _, token := range titleTokens {
-		titleSet[token] = struct{}{}
-	}
-	overlap := 0
-	for _, token := range queryTokens {
-		if _, ok := titleSet[token]; ok {
-			overlap++
-		}
-	}
-	queryCoverage := float64(overlap) / float64(len(queryTokens))
-	titleCoverage := float64(overlap) / float64(len(titleTokens))
-	return queryCoverage >= 0.80 && titleCoverage >= 0.50
-}
-
 func metadataTrustLocalizedSearchKeyword(queryKey string, match *Match) bool {
 	if match == nil || !metadataMatchHasExternalID(match) {
 		return false
@@ -218,18 +195,4 @@ func metadataMatchHasExternalID(match *Match) bool {
 			match.BangumiID > 0 ||
 			strings.TrimSpace(match.DoubanID) != "" ||
 			strings.TrimSpace(match.TheTVDBID) != "")
-}
-
-func metadataTrustSignificantTokens(key string) []string {
-	fields := strings.Fields(key)
-	out := make([]string, 0, len(fields))
-	for _, field := range fields {
-		switch field {
-		case "the", "a", "an", "of", "and":
-			continue
-		default:
-			out = append(out, field)
-		}
-	}
-	return out
 }

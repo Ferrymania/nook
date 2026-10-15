@@ -51,10 +51,12 @@ func TestMovieSequelNormalizationPreservesIdentity(t *testing.T) {
 		query, title string
 		want         bool
 	}{
-		{"The Fearless Hyena Part II", "Fearless Hyena 2", true},
+		{"Fearless Hyena Part II", "Fearless Hyena 2", true},
+		{"The Fearless Hyena Part II", "Fearless Hyena 2", false},
 		{"Royal Tramp II", "Royal Tramp 2", true},
 		{"Police Story III Super Cop", "Police Story 3 Super Cop", true},
-		{"A Chinese Odyssey Part One", "Chinese Odyssey Part 1", true},
+		{"Chinese Odyssey Part One", "Chinese Odyssey Part 1", true},
+		{"A Chinese Odyssey Part One", "Chinese Odyssey Part 1", false},
 		{"Fearless Hyena Part II", "Fearless Hyena", false},
 		{"Royal Tramp II", "Royal Tramp 3", false},
 		{"Chinese Odyssey Part 1", "Chinese Odyssey Part 2", false},
@@ -125,7 +127,7 @@ func TestAutomaticMovieYearFallbackAndProviderAliases(t *testing.T) {
 			cfg.Secrets.TMDbAPIKey, cfg.Secrets.TMDbAPIProxy = "test-key", upstream.URL
 			log := zap.NewNop()
 			svc := NewScraperService(cfg, log, newOrganizerTestRepo(t), NewTMDbProvider(cfg, log, nil), nil, nil, nil, NewHub(log))
-			match := svc.lookupAutomaticTMDb(t.Context(), "movie", tc.query, tc.sourceYear, &scrapeLookupFailure{})
+			match := svc.lookupAutomaticTMDb(t.Context(), "movie", tc.query, tc.sourceYear, 0, &scrapeLookupFailure{})
 			if tc.wantID == 0 {
 				if match != nil {
 					t.Fatalf("unsafe match accepted: %+v", match)

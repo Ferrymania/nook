@@ -91,6 +91,14 @@ func TestMovieScrapeFailedReleaseNames(t *testing.T) {
 				t.Fatal(err)
 			}
 			got, err := repos.Media.FindByID(t.Context(), media.ID)
+			// These fixtures supply an exact English name but no verified alias
+			// for the different Chinese source name. Leave them for manual matching.
+			if tc.id == 155 || tc.id == 49026 || tc.id == 1026227 {
+				if err != nil || got == nil || got.ScrapeStatus != "no_match" || got.TMDbID != 0 {
+					t.Fatalf("unverified Chinese source was automatically accepted: %+v, %v", got, err)
+				}
+				return
+			}
 			if err != nil || got == nil || got.ScrapeStatus != "matched" || got.TMDbID != tc.id || got.Year != tc.year || got.Title != tc.title || got.SeasonNum != 0 || got.EpisodeNum != 0 {
 				t.Fatalf("movie identity=%+v error=%v; want %q (%d), tmdb=%d", got, err, tc.title, tc.year, tc.id)
 			}

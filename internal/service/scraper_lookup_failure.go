@@ -9,6 +9,7 @@ type scrapeLookupFailure struct {
 	yearMismatch  bool
 	typeMismatch  bool
 	requestFailed bool
+	ambiguous     bool
 }
 
 func (f *scrapeLookupFailure) merge(other scrapeLookupFailure) {
@@ -19,6 +20,7 @@ func (f *scrapeLookupFailure) merge(other scrapeLookupFailure) {
 	f.yearMismatch = f.yearMismatch || other.yearMismatch
 	f.typeMismatch = f.typeMismatch || other.typeMismatch
 	f.requestFailed = f.requestFailed || other.requestFailed
+	f.ambiguous = f.ambiguous || other.ambiguous
 }
 
 func (f *scrapeLookupFailure) reject(query string, year int, match *Match) {
@@ -34,6 +36,9 @@ func (f *scrapeLookupFailure) reject(query string, year int, match *Match) {
 
 func (f scrapeLookupFailure) message() string {
 	var reasons []string
+	if f.ambiguous {
+		return "多个候选符合名称和年份条件，请手动匹配"
+	}
 	if f.yearMismatch {
 		reasons = append(reasons, "搜索到候选，但上映年份不符")
 	}

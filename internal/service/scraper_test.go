@@ -101,6 +101,8 @@ func TestEnrichOneForceRematchReplacesStaleExternalIDsAndTaxonomy(t *testing.T) 
 		Genres:       "Drama",
 		ScrapeStatus: "matched",
 	}
+	writeOrgFile(t, filepath.Join(filepath.Dir(filepath.Dir(media.Path)), "tvshow.nfo"),
+		`<tvshow><title>错误旧匹配</title><tmdbid>999</tmdbid><country>CN</country><language>zh</language></tvshow>`)
 	if err := repos.DB.Create(&media).Error; err != nil {
 		t.Fatal(err)
 	}

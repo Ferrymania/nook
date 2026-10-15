@@ -78,11 +78,18 @@ func (s *ScraperService) EnrichOneWithOptions(ctx context.Context, m *model.Medi
 	for _, candidate := range candidates {
 		query = candidate
 		candidateMatch := s.lookup(ctx, lib, m, candidate, year, options.ForceRematch, &failure)
+		if failure.ambiguous {
+			break
+		}
 		if candidateMatch == nil {
 			continue
 		}
-		if !organizeMetadataMatchTrusted(candidate, year, candidateMatch) {
+		sourceNamesTrusted := automaticSourceNamesTrusted(candidates, candidateMatch)
+		if !organizeMetadataMatchTrusted(candidate, year, candidateMatch) || !sourceNamesTrusted {
 			failure.reject(candidate, year, candidateMatch)
+			if !sourceNamesTrusted {
+				failure.titleMismatch = true
+			}
 			s.log.Warn("metadata scrape match rejected",
 				zap.String("media_id", m.ID),
 				zap.String("query", candidate),
@@ -102,7 +109,7 @@ func (s *ScraperService) EnrichOneWithOptions(ctx context.Context, m *model.Medi
 		}
 	}
 	if match == nil {
-		if local != nil && !local.PathHint {
+		if local != nil && !local.PathHint && !options.ForceRematch && !failure.ambiguous {
 			fillNumberedPartEpisodeIdentity(m, lib)
 			err := s.applyLocalMetadataMatch(ctx, m, local)
 			if err == nil {
@@ -125,7 +132,9 @@ func (s *ScraperService) EnrichOneWithOptions(ctx context.Context, m *model.Medi
 		return nil
 	}
 	s.applyFanartArtwork(ctx, match)
-	mergeLocalMetadataIntoMatch(match, local)
+	if !options.ForceRematch {
+		mergeLocalMetadataIntoMatch(match, local)
+	}
 
 	return s.applyProviderMatchWithOptions(ctx, m, lib, match, options)
 }

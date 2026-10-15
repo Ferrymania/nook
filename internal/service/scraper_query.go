@@ -73,7 +73,7 @@ func scrapeQueryCandidatesWithNormalizer(m *model.Media, lib *model.Library, cle
 				cleaned = strings.TrimSpace(variant)
 			}
 			for _, candidate := range titleCandidates(cleaned) {
-				if unsafeAutomaticEpisodeQuery(candidate) {
+				if unsafeAutomaticEpisodeQuery(candidate) || isGenericMediaCategoryFolder(candidate) {
 					continue
 				}
 				key := strings.ToLower(candidate)
@@ -115,9 +115,24 @@ func scrapeQueryCandidatesWithNormalizer(m *model.Media, lib *model.Library, cle
 				add(seriesFolderTitle(m.Path, lib.Path))
 				add(mediaFolderTitle(m.Path, lib.Path))
 			}
-			add(m.Title)
 			add(m.Path)
+			if len(out) == 0 {
+				add(m.Title)
+			}
 		} else {
+			// A bilingual release often has its clearest name in the single-movie
+			// directory. Try that Chinese name before an English filename.
+			if lib != nil {
+				base := pathBaseSlash(parentSlashPath(m.Path))
+				if !isMediaCollectionFolder(base) && !isGenericMediaCategoryFolder(base) &&
+					!isTechnicalMediaFolder(base) && !strictSeasonFolderMatched(base) && !isTheatricalFolder(base) {
+					folderTitle, folderYear := clean(base + ".mkv")
+					yearDiff := folderYear - mediaYearHint(m)
+					if containsCJK(folderTitle) && (folderYear == 0 || mediaYearHint(m) == 0 || (yearDiff >= -1 && yearDiff <= 1)) {
+						add(folderTitle)
+					}
+				}
+			}
 			fileTitle, _ := clean(m.Path)
 			if genericMovieFileTitle(fileTitle) {
 				if lib != nil {
@@ -139,23 +154,8 @@ func scrapeQueryCandidatesWithNormalizer(m *model.Media, lib *model.Library, cle
 					}
 				}
 			}
-			if !genericMovieFileTitle(m.Title) {
+			if len(out) == 0 && !genericMovieFileTitle(m.Title) {
 				add(m.Title)
-			}
-			// The Chinese single-movie directory can supply a release alias.
-			// Never borrow a collection/category title or a conflicting year.
-			if lib != nil {
-				dir := parentSlashPath(m.Path)
-				base := pathBaseSlash(dir)
-				if !isMediaCollectionFolder(base) && !isGenericMediaCategoryFolder(base) &&
-					!isTechnicalMediaFolder(base) && !strictSeasonFolderMatched(base) && !isTheatricalFolder(base) {
-					folderTitle, folderYear := clean(base + ".mkv")
-					fileYear := mediaYearHint(m)
-					yearDiff := folderYear - fileYear
-					if containsCJK(folderTitle) && (folderYear == 0 || fileYear == 0 || (yearDiff >= -1 && yearDiff <= 1)) {
-						add(folderTitle)
-					}
-				}
 			}
 		}
 	}
@@ -176,6 +176,15 @@ func titleCandidates(title string) []string {
 	if cjk := cjkTitleOnly(title); cjk != "" {
 		out = append(out, cjk)
 		if cjk != title {
+			var latin []string
+			for _, word := range strings.Fields(title) {
+				if isASCIIWord(strings.ToLower(word)) {
+					latin = append(latin, word)
+				}
+			}
+			if len(latin) > 0 {
+				out = append(out, strings.Join(latin, " "))
+			}
 			return out
 		}
 	}

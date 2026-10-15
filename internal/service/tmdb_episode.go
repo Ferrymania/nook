@@ -6,6 +6,28 @@ import (
 	"net/url"
 )
 
+// GetTVSeasonYear 用于核对后续季文件中的年份，不使用整剧首播年来代替。
+func (t *TMDbProvider) GetTVSeasonYear(ctx context.Context, tmdbID, season int) (int, error) {
+	apiKey := t.resolveAPIKey(ctx)
+	if apiKey == "" || tmdbID <= 0 || season < 0 {
+		return 0, fmt.Errorf("tmdb: season identity unavailable")
+	}
+	q := url.Values{"api_key": {apiKey}, "language": {"zh-CN"}}
+	u := fmt.Sprintf("%s/tv/%d/season/%d?%s", t.resolveBaseURL(ctx), tmdbID, season, q.Encode())
+	var r struct {
+		AirDate string `json:"air_date"`
+	}
+	if err := t.getJSON(ctx, u, &r); err != nil {
+		return 0, err
+	}
+	if len(r.AirDate) < 4 {
+		return 0, nil
+	}
+	var year int
+	_, err := fmt.Sscanf(r.AirDate[:4], "%d", &year)
+	return year, err
+}
+
 func (t *TMDbProvider) GetTVEpisodeDetails(ctx context.Context, tmdbID, season, episode int) (*TMDbEpisodeDetails, error) {
 	if tmdbID <= 0 || episode <= 0 {
 		return nil, nil

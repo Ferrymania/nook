@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,7 +15,7 @@ import (
 // TMDb -> Douban -> Bangumi -> TheTVDB. Douban and Bangumi do not require API
 // keys; providers that are unavailable or return an error are skipped.
 //
-// Results are cached per (kind, theatrical, query, year) because every
+// Results are cached per (kind, theatrical, query, year, season) because every
 // episode of a show produces the same candidate; bypassCache forces a fresh
 // provider round-trip for user-triggered rematches but still refreshes the
 // cache so later episodes reuse the corrected result.
@@ -34,14 +35,21 @@ func (s *ScraperService) lookup(ctx context.Context, lib *model.Library, media *
 		kind = "tv"
 	}
 
+	season := 0
+	if media != nil {
+		season = media.SeasonNum
+	}
 	cacheKey := scrapeLookupCacheKey(kind, query, year, isTheatrical)
+	if season > 0 {
+		cacheKey += "|season:" + strconv.Itoa(season)
+	}
 	if !bypassCache {
 		if cached, ok := s.lookupCache.get(cacheKey, failure); ok {
 			return cached
 		}
 	}
 	currentFailure := scrapeLookupFailure{}
-	match := s.lookupUncached(ctx, kind, isTheatrical, query, year, &currentFailure)
+	match := s.lookupUncached(ctx, kind, isTheatrical, query, year, season, &currentFailure)
 	failure.merge(currentFailure)
 	// Always refresh the cache, even on bypassed (forced) lookups, so a
 	// corrected rematch replaces the stale entry for later episodes.
@@ -49,16 +57,22 @@ func (s *ScraperService) lookup(ctx context.Context, lib *model.Library, media *
 	return match
 }
 
-func (s *ScraperService) lookupUncached(ctx context.Context, kind string, isTheatrical bool, query string, year int, failure *scrapeLookupFailure) *Match {
+func (s *ScraperService) lookupUncached(ctx context.Context, kind string, isTheatrical bool, query string, year, season int, failure *scrapeLookupFailure) *Match {
 	if s.tmdb != nil && s.tmdb.Enabled() {
-		if match := s.lookupAutomaticTMDb(ctx, kind, query, year, failure); match != nil {
+		if match := s.lookupAutomaticTMDb(ctx, kind, query, year, season, failure); match != nil {
 			match.Provider = "tmdb"
 			return match
 		}
+		if failure != nil && failure.ambiguous {
+			return nil
+		}
 		if isTheatrical {
-			if match := s.lookupAutomaticTMDb(ctx, "tv", query, year, failure); match != nil {
+			if match := s.lookupAutomaticTMDb(ctx, "tv", query, year, 0, failure); match != nil {
 				match.Provider = "tmdb"
 				return match
+			}
+			if failure != nil && failure.ambiguous {
+				return nil
 			}
 		}
 	}

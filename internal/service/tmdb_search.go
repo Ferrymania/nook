@@ -45,7 +45,7 @@ func (t *TMDbProvider) SearchMovie(ctx context.Context, query string, year int) 
 }
 
 // SearchMovieCandidates returns the first localized TMDb result page. Manual
-// scrape exposes the full page; automatic scrape ranks the same candidates.
+// scrape exposes the full page; automatic scrape requires a unique verified match.
 func (t *TMDbProvider) SearchMovieCandidates(ctx context.Context, query string, year int) ([]*Match, error) {
 	return t.searchMovieCandidates(ctx, query, year, "zh-CN")
 }
