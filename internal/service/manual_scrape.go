@@ -86,6 +86,7 @@ func rebuildManualScrapeIdentity(media *model.Media, lib *model.Library, match *
 		// 半集（S01E11.5）的小数部分同样按路径重建，否则重新刮削会把 11.5
 		// 变回普通的第 11 集。
 		media.EpisodeFraction = onlineEpisodeFractionFromPath(media.Path)
+		fillNumberedPartEpisodeIdentity(media, lib)
 		media.EpisodeTitle = ""
 	case "movie", "adult":
 		media.SeasonNum = 0

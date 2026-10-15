@@ -23,7 +23,7 @@ func (s *ScannerService) ingestFile(ctx context.Context, lib *model.Library, roo
 		return
 	}
 
-	parsedSeason, parsedEpisode, parsedFraction := ParseEpisodeParts(path)
+	parsedSeason, parsedEpisode, parsedFraction := parseEpisodePartsForLibrary(path, lib)
 	localMeta := s.readLocalScanMetadata(lib, root, path, parsedSeason, parsedEpisode)
 	media := s.buildLocalScanMedia(localScanMediaInput{
 		lib:            lib,
