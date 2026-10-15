@@ -4,27 +4,28 @@ package service
 // across providers; provider-specific IDs sit side-by-side so the scraper
 // orchestrator can write them all into a single update.
 type Match struct {
-	Provider      string   `json:"provider,omitempty"`
-	TMDbID        int      `json:"tmdb_id"`
-	BangumiID     int      `json:"bangumi_id"`
-	DoubanID      string   `json:"douban_id,omitempty"`
-	TheTVDBID     string   `json:"thetvdb_id,omitempty"`
-	MediaType     string   `json:"media_type,omitempty"`
-	Title         string   `json:"title"`
-	OriginalName  string   `json:"original_name,omitempty"`
-	Overview      string   `json:"overview"`
-	PosterURL     string   `json:"poster_url"`
-	BackdropURL   string   `json:"backdrop_url"`
-	Year          int      `json:"year"`
-	ReleaseDate   string   `json:"release_date,omitempty"`
-	Rating        float32  `json:"rating"`
-	Languages     []string `json:"languages,omitempty"`
-	Countries     []string `json:"countries,omitempty"`
-	Genres        []string `json:"genres,omitempty"`
-	Aliases       []string `json:"aliases,omitempty"`
+	Provider      string           `json:"provider,omitempty"`
+	TMDbID        int              `json:"tmdb_id"`
+	BangumiID     int              `json:"bangumi_id"`
+	DoubanID      string           `json:"douban_id,omitempty"`
+	TheTVDBID     string           `json:"thetvdb_id,omitempty"`
+	MediaType     string           `json:"media_type,omitempty"`
+	Title         string           `json:"title"`
+	OriginalName  string           `json:"original_name,omitempty"`
+	Overview      string           `json:"overview"`
+	PosterURL     string           `json:"poster_url"`
+	BackdropURL   string           `json:"backdrop_url"`
+	Year          int              `json:"year"`
+	ReleaseDate   string           `json:"release_date,omitempty"`
+	Rating        float32          `json:"rating"`
+	Languages     []string         `json:"languages,omitempty"`
+	Countries     []string         `json:"countries,omitempty"`
+	Genres        []string         `json:"genres,omitempty"`
+	Aliases       []string         `json:"aliases,omitempty"`
 	People        []map[string]any `json:"-"`
-	NSFW          bool     `json:"nsfw,omitempty"`
-	SearchKeyword string   `json:"-"`
+	NSFW          bool             `json:"nsfw,omitempty"`
+	SearchKeyword string           `json:"-"`
+	seasonYear    int              // 本次查询已校验的季播出年，不覆盖整剧首播年。
 }
 
 // TMDbEpisodeDetails holds per-episode metadata from /tv/{id}/season/{season}/episode/{episode}.

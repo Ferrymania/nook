@@ -16,7 +16,7 @@ import (
 // two services with different provider configuration never share results. TTL
 // bounds staleness for out-of-band edits; explicit invalidation is unnecessary
 // because the key includes the effective media kind, theatrical flag, query
-// and year. Negative entries use a shorter TTL so a failed query is retried
+// year and season. Negative entries use a shorter TTL so a failed query is retried
 // sooner without manual intervention.
 const (
 	scrapeLookupCacheTTL         = 10 * time.Minute

@@ -32,6 +32,8 @@ func TestOrganizeDirectoryUsesTMDbChineseAlternativeTitle(t *testing.T) {
 					"first_air_date":    "2007-03-26",
 				}},
 			})
+		case r.URL.Path == "/tv/7583/season/4":
+			_ = json.NewEncoder(w).Encode(map[string]any{"air_date": "2007-03-26"})
 		case r.URL.Path == "/tv/7583":
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"id":                7583,

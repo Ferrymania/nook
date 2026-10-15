@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"go.uber.org/zap"
@@ -45,19 +46,27 @@ func (o *OrganizerService) lookupOrganizeMetadata(ctx context.Context, src, sour
 		SeasonNum:  lookupSeason,
 		EpisodeNum: lookupEpisode,
 	}
-	for _, candidate := range scrapeQueryCandidatesWithRecognition(ctx, o.repo, media, lib) {
+	queries := scrapeQueryCandidatesWithRecognition(ctx, o.repo, media, lib)
+	for _, candidate := range queries {
 		key := organizeMetadataCacheKey(lib.Type, candidate, year)
+		if lookupSeason > 0 {
+			key += "|season:" + strconv.Itoa(lookupSeason)
+		}
 		if cache != nil {
 			if cached, ok := cache[key]; ok {
-				if cached != nil {
+				if cached != nil && automaticSourceNamesTrusted(queries, cached) {
 					return cached
 				}
 				continue
 			}
 		}
-		match := o.scraper.lookup(ctx, lib, media, candidate, year, false, nil)
+		failure := scrapeLookupFailure{}
+		match := o.scraper.lookup(ctx, lib, media, candidate, year, false, &failure)
+		if failure.ambiguous {
+			return nil
+		}
 		if match != nil && strings.TrimSpace(match.Title) != "" {
-			if !organizeMetadataMatchTrusted(candidate, year, match) {
+			if !organizeMetadataMatchTrusted(candidate, year, match) || !automaticSourceNamesTrusted(queries, match) {
 				if cache != nil {
 					cache[key] = nil
 				}

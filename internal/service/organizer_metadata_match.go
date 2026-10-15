@@ -16,8 +16,12 @@ func organizeMetadataMatchTrusted(query string, sourceYear int, match *Match) bo
 	if unsafeAutomaticEpisodeQuery(query) {
 		return false
 	}
-	if sourceYear > 0 && match.Year > 0 {
-		diff := sourceYear - match.Year
+	matchYear := match.Year
+	if match.seasonYear > 0 {
+		matchYear = match.seasonYear
+	}
+	if sourceYear > 0 && matchYear > 0 {
+		diff := sourceYear - matchYear
 		if diff < 0 {
 			diff = -diff
 		}

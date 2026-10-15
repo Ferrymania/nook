@@ -184,7 +184,7 @@ func isGenericMediaCategoryFolder(name string) bool {
 	switch key {
 	case "",
 		"电影", "movies", "movie",
-		"电视剧", "剧集", "tv", "shows", "series",
+		"电视剧", "剧集", "tv", "shows", "series", "华语电视剧", "外语电视剧",
 		"动漫", "动画", "anime", "bangumi",
 		"国产剧", "国剧", "大陆剧", "国产电视剧",
 		"欧美剧", "欧美电视剧",

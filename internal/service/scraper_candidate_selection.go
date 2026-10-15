@@ -7,9 +7,15 @@ import (
 	"go.uber.org/zap"
 )
 
-func (s *ScraperService) lookupAutomaticTMDb(ctx context.Context, kind, query string, year int, failure *scrapeLookupFailure) *Match {
-	if match := s.lookupAutomaticTMDbPrimary(ctx, kind, query, year, failure); match != nil {
+func (s *ScraperService) lookupAutomaticTMDb(ctx context.Context, kind, query string, year, season int, failure *scrapeLookupFailure) *Match {
+	if failure == nil {
+		failure = &scrapeLookupFailure{}
+	}
+	if match := s.lookupAutomaticTMDbPrimary(ctx, kind, query, year, season, failure); match != nil {
 		return match
+	}
+	if failure.ambiguous {
+		return nil
 	}
 	fallbackKind := ""
 	normalized := normalizeOrganizeMediaType(kind)
@@ -21,34 +27,52 @@ func (s *ScraperService) lookupAutomaticTMDb(ctx context.Context, kind, query st
 		}
 	}
 	if fallbackKind != "" {
-		if fbMatch := s.lookupAutomaticTMDbPrimary(ctx, fallbackKind, query, year, failure); fbMatch != nil {
+		if fbMatch := s.lookupAutomaticTMDbPrimary(ctx, fallbackKind, query, year, season, failure); fbMatch != nil {
 			return fbMatch
 		}
 	}
 	return nil
 }
 
-func (s *ScraperService) lookupAutomaticTMDbPrimary(ctx context.Context, kind, query string, year int, failure *scrapeLookupFailure) *Match {
+func (s *ScraperService) lookupAutomaticTMDbPrimary(ctx context.Context, kind, query string, year, season int, failure *scrapeLookupFailure) *Match {
 	// One unfiltered retry is enough to find adjacent-year releases. Always
 	// validate against the original year, including after alias hydration.
 	searchYears := []int{year}
-	if year > 0 && !isTVMetadataKind(kind) {
+	if isTVMetadataKind(kind) && season > 1 {
+		searchYears = []int{0}
+	} else if year > 0 {
 		searchYears = append(searchYears, 0)
 	}
 	detailsChecked := map[int]bool{}
 	for _, searchYear := range searchYears {
-		match, hadCandidates := s.lookupAutomaticTMDbCandidates(ctx, kind, query, searchYear, year, failure, detailsChecked)
+		match, hadCandidates := s.lookupAutomaticTMDbCandidates(ctx, kind, query, searchYear, year, season, failure, detailsChecked)
 		if match != nil {
+			if isTVMetadataKind(kind) && season > 1 && year > 0 {
+				seasonYear, err := s.tmdb.GetTVSeasonYear(ctx, match.TMDbID, season)
+				if err != nil {
+					failure.requestFailed = true
+					return nil
+				}
+				if seasonYear == 0 || seasonYear != year {
+					failure.yearMismatch = true
+					return nil
+				}
+				match.seasonYear = seasonYear
+			}
 			return s.localizeAutomaticTMDbMatch(ctx, kind, query, match)
 		}
-		if !hadCandidates || ctx.Err() != nil {
+		if failure.ambiguous || !hadCandidates || ctx.Err() != nil {
 			break
 		}
 	}
 	return nil
 }
 
-func (s *ScraperService) lookupAutomaticTMDbCandidates(ctx context.Context, kind, query string, searchYear, sourceYear int, failure *scrapeLookupFailure, detailsChecked map[int]bool) (*Match, bool) {
+func (s *ScraperService) lookupAutomaticTMDbCandidates(ctx context.Context, kind, query string, searchYear, sourceYear, season int, failure *scrapeLookupFailure, detailsChecked map[int]bool) (*Match, bool) {
+	validationYear := sourceYear
+	if isTVMetadataKind(kind) && season > 1 {
+		validationYear = 0
+	}
 	var (
 		candidates []*Match
 		err        error
@@ -66,8 +90,11 @@ func (s *ScraperService) lookupAutomaticTMDbCandidates(ctx context.Context, kind
 		s.log.Debug("tmdb "+mediaLabel+" search failed", zap.String("query", query), zap.Error(err))
 		return nil, false
 	}
-	if match := bestAutomaticMetadataMatch(query, sourceYear, kind, candidates, failure); match != nil {
+	if match := uniqueAutomaticMetadataMatch(query, validationYear, kind, candidates, failure); match != nil {
 		return match, true
+	}
+	if failure.ambiguous {
+		return nil, true
 	}
 	if queryNeedsEnglishTMDbFallback(query) {
 		var alternate []*Match
@@ -81,8 +108,11 @@ func (s *ScraperService) lookupAutomaticTMDbCandidates(ctx context.Context, kind
 			s.log.Debug("tmdb "+mediaLabel+" alternate-language search failed", zap.String("query", query), zap.Error(err))
 		} else {
 			candidates = mergeTMDbLanguageCandidates(candidates, alternate)
-			if match := bestAutomaticMetadataMatch(query, sourceYear, kind, candidates, failure); match != nil {
+			if match := uniqueAutomaticMetadataMatch(query, validationYear, kind, candidates, failure); match != nil {
 				return match, true
+			}
+			if failure.ambiguous {
+				return nil, true
 			}
 		}
 	}
@@ -107,7 +137,7 @@ func (s *ScraperService) lookupAutomaticTMDbCandidates(ctx context.Context, kind
 			candidate.Aliases = appendMetadataAliases(candidate.Aliases, details.Aliases...)
 		}
 	}
-	return bestAutomaticMetadataMatch(query, sourceYear, kind, candidates, failure), len(candidates) > 0
+	return uniqueAutomaticMetadataMatch(query, validationYear, kind, candidates, failure), len(candidates) > 0
 }
 
 func (s *ScraperService) localizeAutomaticTMDbMatch(ctx context.Context, kind, query string, match *Match) *Match {
@@ -144,6 +174,7 @@ func mergeAutomaticTMDbLocalizedMatch(localized, search *Match) {
 	if localized == nil || search == nil {
 		return
 	}
+	localized.seasonYear = search.seasonYear
 	if strings.TrimSpace(localized.OriginalName) == "" {
 		localized.OriginalName = strings.TrimSpace(firstNonEmpty(search.OriginalName, search.Title))
 	}
@@ -171,10 +202,12 @@ func mergeAutomaticTMDbLocalizedMatch(localized, search *Match) {
 	}
 }
 
-func bestAutomaticMetadataMatch(query string, year int, expectedType string, candidates []*Match, failure *scrapeLookupFailure) *Match {
-	bestScore := -1
-	var best *Match
-	for index, candidate := range candidates {
+func uniqueAutomaticMetadataMatch(query string, year int, expectedType string, candidates []*Match, failure *scrapeLookupFailure) *Match {
+	if failure == nil {
+		failure = &scrapeLookupFailure{}
+	}
+	var unique *Match
+	for _, candidate := range candidates {
 		if candidate == nil || !metadataMatchCompatibleWithType(expectedType, candidate) {
 			if candidate != nil {
 				failure.typeMismatch = true
@@ -185,53 +218,13 @@ func bestAutomaticMetadataMatch(query string, year int, expectedType string, can
 			failure.reject(query, year, candidate)
 			continue
 		}
-		score := automaticMetadataMatchScore(query, year, candidate) - index
-		if score > bestScore {
-			bestScore = score
-			best = candidate
+		if unique != nil && (unique.TMDbID <= 0 || unique.TMDbID != candidate.TMDbID) {
+			failure.ambiguous = true
+			return nil
 		}
+		unique = candidate
 	}
-	return best
-}
-
-func automaticMetadataMatchScore(query string, year int, match *Match) int {
-	queryKey := metadataTrustKey(query)
-	score := 0
-	titles := make([]string, 0, 2+len(match.Aliases))
-	titles = append(titles, match.Title, match.OriginalName)
-	titles = append(titles, match.Aliases...)
-	for _, title := range titles {
-		titleKey := metadataTrustKey(title)
-		switch {
-		case titleKey != "" && metadataTitlesEquivalent(queryKey, titleKey):
-			if score < 1000 {
-				score = 1000
-			}
-		case metadataTrustTokenOverlap(queryKey, titleKey):
-			if score < 700 {
-				score = 700
-			}
-		}
-	}
-	if year > 0 && match.Year > 0 {
-		diff := year - match.Year
-		if diff < 0 {
-			diff = -diff
-		}
-		switch diff {
-		case 0:
-			score += 200
-		case 1:
-			score += 100
-		}
-	}
-	if metadataMatchHasExternalID(match) {
-		score += 20
-	}
-	if strings.TrimSpace(match.PosterURL) != "" {
-		score += 5
-	}
-	return score
+	return unique
 }
 
 func metadataMatchCompatibleWithType(expectedType string, match *Match) bool {
