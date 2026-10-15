@@ -8,6 +8,7 @@ import { useAuthStore } from '../stores/auth'
 import { libraryAPI, type LibraryFacets } from '../api/library'
 import {
   EMPTY_LIBRARY_FILTERS,
+  hasActiveFilters,
   parseLibraryFilters,
   withFilterParams,
   type LibraryFilterParams,
@@ -326,6 +327,7 @@ export function LibraryPage() {
         onReset={resetFilters}
         onRandom={(f) => void handleRandom(f)}
         randomBusy={randomBusy}
+        allowUnmatched={!library?.is_remote_emby}
       />
 
       <LibraryMediaSections
@@ -339,6 +341,7 @@ export function LibraryPage() {
         onLoadMore={handleLoadMore}
         cardActions={cardActions}
         onSeriesClick={handleSeriesClick}
+        emptyMessage={hasActiveFilters(libraryFilters) ? '没有符合当前筛选条件的媒体' : undefined}
       />
 
       <LibrarySeriesDetailSection

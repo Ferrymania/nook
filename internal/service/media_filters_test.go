@@ -85,4 +85,18 @@ func TestMediaListFiltersEmpty(t *testing.T) {
 	if (MediaListFilters{Unwatched: true}).empty() {
 		t.Fatal("unwatched filter must not be reported as empty")
 	}
+	if (MediaListFilters{Unmatched: true}).empty() {
+		t.Fatal("unmatched filter must not be reported as empty")
+	}
+}
+
+func TestMediaRowMatchesUnmatchedFilter(t *testing.T) {
+	for _, status := range []string{"", "pending", "no_match", "matched"} {
+		t.Run(status, func(t *testing.T) {
+			row := &model.Media{ScrapeStatus: status}
+			if got := mediaRowMatchesFilters(row, MediaListFilters{Unmatched: true}, nil); got != (status != "matched") {
+				t.Fatalf("status %q: unmatched = %t", status, got)
+			}
+		})
+	}
 }

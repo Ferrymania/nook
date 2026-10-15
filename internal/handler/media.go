@@ -418,12 +418,14 @@ func deleteLibraryHandler(svc *service.Container) gin.HandlerFunc {
 //   - year_min / year_max        年份区间，0 或非法值表示不限
 //   - rating_min                 评分下限（浮点）
 //   - unwatched=1                仅显示未看完；用户 ID 取自会话
+//   - unmatched=1                仅显示当前尚未匹配成功的媒体
 func parseLibraryFilters(c *gin.Context) service.MediaListFilters {
 	filters := service.MediaListFilters{
 		Genres:    parseRepeatedQueryValues(c, "genre"),
 		YearMin:   parseNonNegativeInt(firstQueryValue(c, "year_min", "yearMin")),
 		YearMax:   parseNonNegativeInt(firstQueryValue(c, "year_max", "yearMax")),
 		RatingMin: parseNonNegativeFloat(firstQueryValue(c, "rating_min", "ratingMin")),
+		Unmatched: isTruthyQuery(c.Query("unmatched")),
 	}
 	if isTruthyQuery(firstQueryValue(c, "unwatched", "unwatched_only", "unwatchedOnly")) {
 		filters.Unwatched = true

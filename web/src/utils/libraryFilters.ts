@@ -9,6 +9,7 @@ export type LibraryFilterParams = {
   year_max?: number
   rating_min?: number
   unwatched?: boolean
+  unmatched?: boolean
 }
 
 export const EMPTY_LIBRARY_FILTERS: LibraryFilterParams = { genres: [] }
@@ -18,6 +19,7 @@ const YEAR_MIN_PARAM = 'year_min'
 const YEAR_MAX_PARAM = 'year_max'
 const RATING_MIN_PARAM = 'rating_min'
 const UNWATCHED_PARAM = 'unwatched'
+const UNMATCHED_PARAM = 'unmatched'
 
 /** 判断是否有任何筛选生效（用于显示「清除筛选」与空态文案）。 */
 export function hasActiveFilters(filters: LibraryFilterParams): boolean {
@@ -26,7 +28,8 @@ export function hasActiveFilters(filters: LibraryFilterParams): boolean {
     Boolean(filters.year_min) ||
     Boolean(filters.year_max) ||
     Boolean(filters.rating_min) ||
-    Boolean(filters.unwatched)
+    Boolean(filters.unwatched) ||
+    Boolean(filters.unmatched)
   )
 }
 
@@ -42,6 +45,7 @@ export function parseLibraryFilters(search: string): LibraryFilterParams {
   const ratingMin = Number(params.get(RATING_MIN_PARAM))
   if (Number.isFinite(ratingMin) && ratingMin > 0) filters.rating_min = ratingMin
   if (isTruthy(params.get(UNWATCHED_PARAM))) filters.unwatched = true
+  if (isTruthy(params.get(UNMATCHED_PARAM))) filters.unmatched = true
   return filters
 }
 
@@ -59,6 +63,7 @@ export function serializeLibraryFilters(filters: LibraryFilterParams): string {
   if (filters.year_max) params.set(YEAR_MAX_PARAM, String(filters.year_max))
   if (filters.rating_min) params.set(RATING_MIN_PARAM, String(filters.rating_min))
   if (filters.unwatched) params.set(UNWATCHED_PARAM, '1')
+  if (filters.unmatched) params.set(UNMATCHED_PARAM, '1')
   return params.toString()
 }
 
@@ -73,6 +78,7 @@ export function toFilterQuery(filters: LibraryFilterParams): Record<string, unkn
   if (filters.year_max) query[YEAR_MAX_PARAM] = filters.year_max
   if (filters.rating_min) query[RATING_MIN_PARAM] = filters.rating_min
   if (filters.unwatched) query[UNWATCHED_PARAM] = 1
+  if (filters.unmatched) query[UNMATCHED_PARAM] = 1
   return query
 }
 
@@ -86,6 +92,7 @@ export function withFilterParams(search: string, filters: LibraryFilterParams): 
   params.delete(YEAR_MAX_PARAM)
   params.delete(RATING_MIN_PARAM)
   params.delete(UNWATCHED_PARAM)
+  params.delete(UNMATCHED_PARAM)
   filters.genres.forEach((genre) => {
     const trimmed = genre.trim()
     if (trimmed) params.append(GENRE_PARAM, trimmed)
@@ -94,6 +101,7 @@ export function withFilterParams(search: string, filters: LibraryFilterParams): 
   if (filters.year_max) params.set(YEAR_MAX_PARAM, String(filters.year_max))
   if (filters.rating_min) params.set(RATING_MIN_PARAM, String(filters.rating_min))
   if (filters.unwatched) params.set(UNWATCHED_PARAM, '1')
+  if (filters.unmatched) params.set(UNMATCHED_PARAM, '1')
   const query = params.toString()
   return query ? `?${query}` : ''
 }
