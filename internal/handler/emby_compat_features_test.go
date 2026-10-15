@@ -481,8 +481,9 @@ func TestEmbySeriesArtworkInheritanceAndRunTimeTicksFallback(t *testing.T) {
 	}
 	var seriesPayload map[string]any
 	_ = json.Unmarshal(wSeries.Body.Bytes(), &seriesPayload)
-	if seriesPayload["PrimaryImageTag"] != "s-test-1" {
-		t.Fatalf("series PrimaryImageTag should match series ID, got %v", seriesPayload["PrimaryImageTag"])
+	seriesImageTag, _ := seriesPayload["PrimaryImageTag"].(string)
+	if !strings.HasPrefix(seriesImageTag, series.ID+"-") {
+		t.Fatalf("series PrimaryImageTag should include its stable ID and image version, got %v", seriesPayload["PrimaryImageTag"])
 	}
 	if _, ok := seriesPayload["People"]; !ok {
 		t.Fatalf("series payload should include People array")
@@ -510,8 +511,8 @@ func TestEmbySeriesArtworkInheritanceAndRunTimeTicksFallback(t *testing.T) {
 	t.Logf("epPayload: %#v", epPayload)
 
 	// 验证图片继承
-	if epPayload["SeriesPrimaryImageTag"] != "s-test-1" {
-		t.Fatalf("ep SeriesPrimaryImageTag should inherit series ID, got %v", epPayload["SeriesPrimaryImageTag"])
+	if epPayload["SeriesPrimaryImageTag"] != seriesImageTag {
+		t.Fatalf("ep SeriesPrimaryImageTag should inherit series image tag %q, got %v", seriesImageTag, epPayload["SeriesPrimaryImageTag"])
 	}
 	if epPayload["ParentBackdropItemId"] != "s-test-1" {
 		t.Fatalf("ep ParentBackdropItemId should inherit series ID, got %v", epPayload["ParentBackdropItemId"])

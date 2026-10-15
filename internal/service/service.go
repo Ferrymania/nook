@@ -129,6 +129,7 @@ func (c *Container) Boot() {
 	// 启动刮削队列后台消费者
 	if c.Scraper != nil {
 		c.Scraper.Start(c.stopCtx)
+		helper.Go(c.Log, "service.backfillSeriesMetadata", func() { c.Scraper.backfillSeriesMetadata(c.stopCtx) })
 	}
 
 	// Mgo 保号规则巡检：默认关闭，由管理员通过 Telegram Bot 命令开启。

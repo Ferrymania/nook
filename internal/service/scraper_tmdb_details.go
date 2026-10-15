@@ -100,7 +100,7 @@ func tmdbEpisodeMetadataUpdates(m *model.Media, episode *TMDbEpisodeDetails, mat
 		updates["overview"] = strings.TrimSpace(episode.Overview)
 	}
 	if strings.TrimSpace(episode.StillURL) != "" && options.episodeArtworkEnabled() {
-		updates["backdrop_url"] = strings.TrimSpace(episode.StillURL)
+		updates["episode_still_url"] = strings.TrimSpace(episode.StillURL)
 	}
 	if episode.Rating > 0 {
 		updates["rating"] = episode.Rating

@@ -259,8 +259,8 @@ func TestEnrichOneWritesTMDbEpisodeMetadata(t *testing.T) {
 	if got.Overview != "单集剧情" {
 		t.Fatalf("episode overview not saved: overview=%q", got.Overview)
 	}
-	if !strings.HasSuffix(got.BackdropURL, "/images/w500/still.jpg") || got.DurationSec != 24*60 {
-		t.Fatalf("episode still/runtime not saved: backdrop=%q duration=%d", got.BackdropURL, got.DurationSec)
+	if !strings.HasSuffix(got.EpisodeStillURL, "/images/w500/still.jpg") || got.DurationSec != 24*60 {
+		t.Fatalf("episode still/runtime not saved: still=%q duration=%d", got.EpisodeStillURL, got.DurationSec)
 	}
 	if got.Rating < 9.09 || got.Rating > 9.11 {
 		t.Fatalf("episode rating = %v, want 9.1", got.Rating)
@@ -317,6 +317,9 @@ func TestEnrichOneSkipsTMDbEpisodeStillWhenDisabled(t *testing.T) {
 	}
 	if strings.HasSuffix(got.BackdropURL, "/images/w500/still.jpg") {
 		t.Fatalf("episode still should not be saved when disabled: backdrop=%q", got.BackdropURL)
+	}
+	if got.EpisodeStillURL != "" {
+		t.Fatalf("disabled episode artwork must not create a still: %q", got.EpisodeStillURL)
 	}
 	if !strings.HasSuffix(got.PosterURL, "/images/w500/poster.jpg") {
 		t.Fatalf("series poster should still be saved when episode artwork is disabled: got %q", got.PosterURL)

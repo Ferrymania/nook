@@ -5,10 +5,10 @@ func (e *EmbyService) seriesPayload(group embySeriesGroup) map[string]any {
 	imageTags := map[string]string{}
 	backdropTags := []string{}
 	if group.PosterURL != "" {
-		imageTags["Primary"] = embyVirtualImageTag(group.ID, embyVirtualPrimaryTagSuffix)
+		imageTags["Primary"] = embySeriesArtworkTag(group.ID, embyVirtualPrimaryTagSuffix, group.PosterURL)
 	}
 	if group.BackdropURL != "" || group.PosterURL != "" {
-		backdropTags = append(backdropTags, embyVirtualImageTag(group.ID, embyVirtualBackdropTagSuffix))
+		backdropTags = append(backdropTags, embySeriesArtworkTag(group.ID, embyVirtualBackdropTagSuffix, firstText(group.BackdropURL, group.PosterURL)))
 	}
 	lastMediaAdded := group.DateLastMediaAdded
 	if lastMediaAdded.IsZero() {
@@ -39,7 +39,7 @@ func (e *EmbyService) seriesPayload(group embySeriesGroup) map[string]any {
 		"UserData": emptyUserData(),
 	}
 	if group.PosterURL != "" {
-		item["PrimaryImageTag"] = embyVirtualImageTag(group.ID, embyVirtualPrimaryTagSuffix)
+		item["PrimaryImageTag"] = imageTags["Primary"]
 	}
 	if premiered, ok := embyPremiereDate(group.ReleaseDate); ok {
 		item["PremiereDate"] = premiered
@@ -52,10 +52,10 @@ func (e *EmbyService) seasonPayload(season embySeasonGroup) map[string]any {
 	imageTags := map[string]string{}
 	backdropTags := []string{}
 	if season.Series.PosterURL != "" {
-		imageTags["Primary"] = embyVirtualImageTag(season.ID, embyVirtualPrimaryTagSuffix)
+		imageTags["Primary"] = embySeriesArtworkTag(season.ID, embyVirtualPrimaryTagSuffix, season.Series.PosterURL)
 	}
 	if season.Series.BackdropURL != "" || season.Series.PosterURL != "" {
-		backdropTags = append(backdropTags, embyVirtualImageTag(season.ID, embyVirtualBackdropTagSuffix))
+		backdropTags = append(backdropTags, embySeriesArtworkTag(season.ID, embyVirtualBackdropTagSuffix, firstText(season.Series.BackdropURL, season.Series.PosterURL)))
 	}
 	item := map[string]any{
 		"Id":                season.ID,
@@ -75,12 +75,12 @@ func (e *EmbyService) seasonPayload(season embySeasonGroup) map[string]any {
 		"UserData":          emptyUserData(),
 	}
 	if season.Series.PosterURL != "" {
-		item["PrimaryImageTag"] = embyVirtualImageTag(season.ID, embyVirtualPrimaryTagSuffix)
-		item["SeriesPrimaryImageTag"] = embyVirtualImageTag(season.Series.ID, embyVirtualPrimaryTagSuffix)
+		item["PrimaryImageTag"] = imageTags["Primary"]
+		item["SeriesPrimaryImageTag"] = embySeriesArtworkTag(season.Series.ID, embyVirtualPrimaryTagSuffix, season.Series.PosterURL)
 	}
 	if season.Series.BackdropURL != "" || season.Series.PosterURL != "" {
 		item["ParentBackdropItemId"] = season.Series.ID
-		item["ParentBackdropImageTags"] = []string{embyVirtualImageTag(season.Series.ID, embyVirtualBackdropTagSuffix)}
+		item["ParentBackdropImageTags"] = []string{embySeriesArtworkTag(season.Series.ID, embyVirtualBackdropTagSuffix, firstText(season.Series.BackdropURL, season.Series.PosterURL))}
 	}
 	return item
 }

@@ -20,6 +20,7 @@ func AutoMigrate(db *gorm.DB) error {
 // 配置用来决定可选的 PostgreSQL 搜索索引，日志用来记录耗时步骤
 // （首次在已有大库上重建索引可能需要数十秒）。两者都可以为 nil。
 func AutoMigrateWithConfig(db *gorm.DB, cfg *config.Config, log *zap.Logger) error {
+	legacyEpisodeArtwork := db.Migrator().HasTable(&model.Media{}) && !db.Migrator().HasColumn(&model.Media{}, "EpisodeStillURL")
 	// 必须先于 AutoMigrate：旧库中可能已有重复的 (user_id, media_id) 历史行，
 	// 不去重会导致唯一索引 uniq_user_history 创建失败。
 	if err := dedupePlaybackHistories(db); err != nil {
@@ -32,6 +33,9 @@ func AutoMigrateWithConfig(db *gorm.DB, cfg *config.Config, log *zap.Logger) err
 		return err
 	}
 	if err := db.AutoMigrate(model.AllModels()...); err != nil {
+		return err
+	}
+	if err := backfillLegacyEpisodeStills(db, legacyEpisodeArtwork); err != nil {
 		return err
 	}
 	// 回填书源归属：老库的书源没有 user_id，按「谁书架上有这本书」分配或复制副本。
@@ -60,6 +64,19 @@ func AutoMigrateWithConfig(db *gorm.DB, cfg *config.Config, log *zap.Logger) err
 		return ensureSQLiteQueryOptimizer(db)
 	}
 	return ensurePostgresSearchIndexes(db, cfg, log)
+}
+
+// On upgrade, retain exactly the images previously exposed as episode Primary.
+// Subsequent runs only recover the unambiguous legacy TMDb w500 format.
+func backfillLegacyEpisodeStills(db *gorm.DB, legacy bool) error {
+	q := db.Model(&model.Media{}).
+		Where("season_num > 0 OR episode_num > 0").
+		Where("episode_still_url IS NULL OR episode_still_url = ''").
+		Where("backdrop_url IS NOT NULL AND backdrop_url <> ''")
+	if !legacy {
+		q = q.Where("tm_db_id > 0 AND backdrop_url LIKE ?", "%/w500/%")
+	}
+	return q.UpdateColumn("episode_still_url", gorm.Expr("backdrop_url")).Error
 }
 
 // ensureMediaPathIndex 建立 media.path 的唯一约束与等值查找索引。

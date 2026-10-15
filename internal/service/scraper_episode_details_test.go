@@ -201,6 +201,9 @@ func TestEnrichLibrarySkipsDeferredEpisodeStillWhenDisabled(t *testing.T) {
 	if got.Overview != "单集剧情" || got.DurationSec != 24*60 {
 		t.Fatalf("deferred episode text metadata should still be saved: overview=%q duration=%d", got.Overview, got.DurationSec)
 	}
+	if got.EpisodeStillURL != "" {
+		t.Fatalf("disabled episode artwork must not create a still: %q", got.EpisodeStillURL)
+	}
 	if strings.HasSuffix(got.BackdropURL, "/images/w500/still.jpg") {
 		t.Fatalf("deferred episode still should not be saved when disabled: backdrop=%q", got.BackdropURL)
 	}

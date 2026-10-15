@@ -1,6 +1,8 @@
 package service
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"sort"
 	"strings"
 	"time"
@@ -252,4 +254,17 @@ func embyVirtualImageTag(id, suffix string) string {
 		return id + suffix
 	}
 	return id
+}
+
+func embySeriesArtworkTag(id, suffix, source string) string {
+	sum := sha256.Sum256([]byte(source))
+	return embyVirtualImageTag(id, suffix) + "-" + hex.EncodeToString(sum[:6])
+}
+
+func (e *EmbyService) invalidateSeriesMetadata() {
+	e.virtualMu.Lock()
+	e.virtualSeries = nil
+	e.virtualSeasons = nil
+	e.virtualArtwork = nil
+	e.virtualMu.Unlock()
 }

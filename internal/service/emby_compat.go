@@ -326,6 +326,9 @@ func (e *EmbyService) Items(ctx context.Context, p ItemsParams) (map[string]any,
 	}
 
 	if containsItemType(p.IncludeItemTypes, "Series") && !containsItemType(p.IncludeItemTypes, "Episode") {
+		if containsItemType(p.IncludeItemTypes, "Movie") || containsItemType(p.IncludeItemTypes, "Video") {
+			return e.movieLibraryItems(ctx, p)
+		}
 		return e.seriesItemsForLibrary(ctx, p.ParentID, p)
 	}
 

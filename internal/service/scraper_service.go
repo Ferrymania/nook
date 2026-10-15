@@ -33,7 +33,8 @@ type ScraperService struct {
 
 	// Serializes final sidecar replacement. Windows cannot rename over an
 	// existing file, and concurrent scrapes can target the same sidecar.
-	artworkWriteMu sync.Mutex
+	artworkWriteMu          sync.Mutex
+	onSeriesMetadataChanged func()
 }
 
 // NewScraperService is the constructor.

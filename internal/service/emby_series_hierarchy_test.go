@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -211,7 +212,7 @@ func TestEmbyItemsKeepSpecialsInSeasonZero(t *testing.T) {
 	if episodeItems[0]["ParentIndexNumber"] != 0 || episodeItems[0]["SeasonId"] != seasonItems[0]["Id"] || episodeItems[0]["ParentId"] != seasonItems[0]["Id"] {
 		t.Fatalf("special episode linked to wrong season: %#v season=%#v", episodeItems[0], seasonItems[0])
 	}
-	if tags, ok := episodeItems[0]["ImageTags"].(map[string]string); !ok || tags["Primary"] != "sp-1" {
+	if tags, ok := episodeItems[0]["ImageTags"].(map[string]string); !ok || !strings.HasPrefix(tags["Primary"], "sp-1-") {
 		t.Fatalf("episode still should be exposed as Primary image: %#v", episodeItems[0]["ImageTags"])
 	}
 }
@@ -378,7 +379,7 @@ func TestEmbyEpisodeStillIsPrimaryImageNotArt(t *testing.T) {
 	}
 
 	item := svc.itemPayload(t.Context(), &media, false, 0, false)
-	if tags, ok := item["ImageTags"].(map[string]string); !ok || tags["Primary"] != "ep-still" {
+	if tags, ok := item["ImageTags"].(map[string]string); !ok || !strings.HasPrefix(tags["Primary"], "ep-still-") {
 		t.Fatalf("episode should expose a primary image tag: %#v", item["ImageTags"])
 	}
 	if tags, ok := item["BackdropImageTags"].([]string); !ok || len(tags) != 0 {
@@ -474,7 +475,7 @@ func TestEmbyVirtualSeriesArtworkRebuildsAfterMemoryDrop(t *testing.T) {
 	}
 	seriesID, _ := items[0]["Id"].(string)
 	tags, _ := items[0]["BackdropImageTags"].([]string)
-	if seriesID == "" || len(tags) != 1 || tags[0] != seriesID+embyVirtualBackdropTagSuffix {
+	if seriesID == "" || len(tags) != 1 || !strings.HasPrefix(tags[0], seriesID+embyVirtualBackdropTagSuffix+"-") {
 		t.Fatalf("hero item should advertise a cache-busted backdrop tag, got id=%q tags=%#v", seriesID, items[0]["BackdropImageTags"])
 	}
 

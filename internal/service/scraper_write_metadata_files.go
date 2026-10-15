@@ -69,6 +69,11 @@ func (s *ScraperService) writeMediaArtworkFilesAfterScrape(ctx context.Context, 
 			artworkUpdates["backdrop_url"] = filepath.Join(filepath.Dir(refreshed.Path), filepath.Base(dst))
 		}
 	}
+	if refreshed.EpisodeStillURL != "" {
+		if dst := s.downloadArtworkToPath(ctx, dir, base+"-thumb", refreshed.EpisodeStillURL); dst != "" && !isHTTPish(refreshed.EpisodeStillURL) {
+			artworkUpdates["episode_still_url"] = filepath.Join(filepath.Dir(refreshed.Path), filepath.Base(dst))
+		}
+	}
 	if len(artworkUpdates) > 0 {
 		if err := s.repo.DB.WithContext(ctx).Model(&model.Media{}).
 			Where("id = ?", refreshed.ID).Updates(artworkUpdates).Error; err != nil {

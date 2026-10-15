@@ -139,22 +139,22 @@ func (e *EmbyService) prefetchPayloadCache(ctx context.Context, rows []model.Med
 			}
 		}
 	}
-		if len(seriesIDs) > 0 {
-			var series []model.Series
-			if err := e.repo.DB.WithContext(ctx).Select("id, title, poster_url, backdrop_url").Where("id IN ?", seriesIDs).Find(&series).Error; err == nil {
-				for _, s := range series {
-					cache.setSeriesEntry(s.ID, embyPayloadSeriesEntry{
-						title:       s.Title,
-						posterURL:   s.PosterURL,
-						backdropURL: s.BackdropURL,
-						found:       true,
-					})
-				}
+	if len(seriesIDs) > 0 {
+		var series []model.Series
+		if err := e.repo.DB.WithContext(ctx).Select("id, title, poster_url, backdrop_url").Where("id IN ?", seriesIDs).Find(&series).Error; err == nil {
+			for _, s := range series {
+				cache.setSeriesEntry(s.ID, embyPayloadSeriesEntry{
+					title:       s.Title,
+					posterURL:   s.PosterURL,
+					backdropURL: s.BackdropURL,
+					found:       true,
+				})
 			}
 		}
 	}
+}
 
-	// payloadLibraryType resolves a library type through the request cache,
+// payloadLibraryType resolves a library type through the request cache,
 // falling back to a direct lookup when no cache is attached. found=false
 // means the library row does not exist (soft-deleted or orphaned id).
 func (e *EmbyService) payloadLibraryType(ctx context.Context, libraryID string) (typ string, found bool, err error) {
@@ -190,43 +190,43 @@ func (e *EmbyService) payloadSeriesTitle(ctx context.Context, seriesID string) (
 	return entry.title, true, nil
 }
 
-	// payloadSeriesEntry resolves a series entry through the request cache,
-	// falling back to a direct lookup when no cache is attached.
-	func (e *EmbyService) payloadSeriesEntry(ctx context.Context, seriesID string) (embyPayloadSeriesEntry, bool, error) {
-		if cache, ok := ctx.Value(embyPayloadCacheKey{}).(*embyPayloadCache); ok {
-			if entry, hit := cache.seriesEntry(seriesID); hit {
-				return entry, entry.found, nil
-			}
-			if e.repo != nil && e.repo.Series != nil {
-				s, err := e.repo.Series.FindByID(ctx, seriesID)
-				if err != nil || s == nil {
-					cache.setSeriesEntry(seriesID, embyPayloadSeriesEntry{})
-					return embyPayloadSeriesEntry{}, false, err
-				}
-				entry := embyPayloadSeriesEntry{
-					title:       s.Title,
-					posterURL:   s.PosterURL,
-					backdropURL: s.BackdropURL,
-					found:       true,
-				}
-				cache.setSeriesEntry(seriesID, entry)
-				return entry, true, nil
-			}
+// payloadSeriesEntry resolves a series entry through the request cache,
+// falling back to a direct lookup when no cache is attached.
+func (e *EmbyService) payloadSeriesEntry(ctx context.Context, seriesID string) (embyPayloadSeriesEntry, bool, error) {
+	if cache, ok := ctx.Value(embyPayloadCacheKey{}).(*embyPayloadCache); ok {
+		if entry, hit := cache.seriesEntry(seriesID); hit {
+			return entry, entry.found, nil
 		}
 		if e.repo != nil && e.repo.Series != nil {
-			series, err := e.repo.Series.FindByID(ctx, seriesID)
-			if err != nil {
+			s, err := e.repo.Series.FindByID(ctx, seriesMetadataStorageID(seriesID))
+			if err != nil || s == nil {
+				cache.setSeriesEntry(seriesID, embyPayloadSeriesEntry{})
 				return embyPayloadSeriesEntry{}, false, err
 			}
-			if series == nil {
-				return embyPayloadSeriesEntry{}, false, nil
-			}
-			return embyPayloadSeriesEntry{
-				title:       series.Title,
-				posterURL:   series.PosterURL,
-				backdropURL: series.BackdropURL,
+			entry := embyPayloadSeriesEntry{
+				title:       s.Title,
+				posterURL:   s.PosterURL,
+				backdropURL: s.BackdropURL,
 				found:       true,
-			}, true, nil
+			}
+			cache.setSeriesEntry(seriesID, entry)
+			return entry, true, nil
 		}
-		return embyPayloadSeriesEntry{}, false, nil
 	}
+	if e.repo != nil && e.repo.Series != nil {
+		series, err := e.repo.Series.FindByID(ctx, seriesMetadataStorageID(seriesID))
+		if err != nil {
+			return embyPayloadSeriesEntry{}, false, err
+		}
+		if series == nil {
+			return embyPayloadSeriesEntry{}, false, nil
+		}
+		return embyPayloadSeriesEntry{
+			title:       series.Title,
+			posterURL:   series.PosterURL,
+			backdropURL: series.BackdropURL,
+			found:       true,
+		}, true, nil
+	}
+	return embyPayloadSeriesEntry{}, false, nil
+}

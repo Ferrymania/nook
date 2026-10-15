@@ -50,7 +50,9 @@ func (e *EmbyService) movieLibraryItems(ctx context.Context, p ItemsParams) (map
 	libIDs := e.mergedLibraryIDs(ctx, p.ParentID)
 	apply := func(q *gorm.DB) *gorm.DB {
 		q = e.applyUserMediaVisibility(ctx, q, p.UserID)
-		q = q.Where("library_id IN ?", libIDs)
+		if p.ParentID != "" {
+			q = q.Where("library_id IN ?", libIDs)
+		}
 		if p.SearchTerm != "" {
 			// 方言相关的 ILIKE/LIKE：PostgreSQL 的 LIKE 区分大小写，
 			// 直接用 LIKE 会让客户端搜索的大小写与入库标题不一致时搜不到。
@@ -75,7 +77,12 @@ func (e *EmbyService) movieLibraryItems(ctx context.Context, p ItemsParams) (map
 		if epQ == nil {
 			return map[string]any{"Items": []map[string]any{}, "TotalRecordCount": 0, "StartIndex": p.StartIndex}, nil
 		}
-		epQ = epQ.Where("(season_num > 0 OR episode_num > 0) AND ("+clause+")", args...).
+		episodicClause := clause
+		if ids := e.episodicLibraryIDs(ctx); len(ids) > 0 {
+			episodicClause += " OR library_id IN ?"
+			args = append(args, ids)
+		}
+		epQ = epQ.Where("(season_num > 0 OR episode_num > 0) AND ("+episodicClause+")", args...).
 			Order(mediaReleaseOrderSQL(true)).Limit(embySeriesGroupingLimit)
 		if err := epQ.Find(&episodicRows).Error; err != nil {
 			return nil, err
@@ -88,7 +95,7 @@ func (e *EmbyService) movieLibraryItems(ctx context.Context, p ItemsParams) (map
 	if movieQ == nil {
 		return map[string]any{"Items": []map[string]any{}, "TotalRecordCount": 0, "StartIndex": p.StartIndex}, nil
 	}
-	movieQ = filterLikelyEpisodicPathsFromMovieQuery(movieQ).
+	movieQ = e.filterMovieItems(ctx, movieQ).
 		Order(mediaReleaseOrderSQL(true)).Limit(embySeriesGroupingLimit)
 	var movieRows []model.Media
 	if err := movieQ.Find(&movieRows).Error; err != nil {
@@ -99,22 +106,48 @@ func (e *EmbyService) movieLibraryItems(ctx context.Context, p ItemsParams) (map
 	// 查询并把响应时间浪费在用户根本看不到的条目上。
 	movieRows = e.collapseMediaVersionRows(ctx, movieRows)
 
-	// 合并: Series 卡片 + Movie 项, 统一按首播/上映日期倒序。
+	// Merge before sorting/paging, so a mixed-type page includes both kinds.
 	type entry struct {
 		sortAt time.Time
+		name   string
+		rating float32
 		media  *model.Media
 		group  *embySeriesGroup
 	}
 	entries := make([]entry, 0, len(seriesGroups)+len(movieRows))
 	for i := range seriesGroups {
 		group := &seriesGroups[i]
-		entries = append(entries, entry{sortAt: embySeriesReleaseSortTime(*group), group: group})
+		at := embySeriesReleaseSortTime(*group)
+		switch primarySupportedEmbySort(p.SortBy, false) {
+		case "datecreated":
+			at = group.CreatedAt
+		case "datelastcontentadded", "datelastmediaadded":
+			at = group.DateLastMediaAdded
+		}
+		entries = append(entries, entry{sortAt: at, name: group.Name, rating: group.Rating, group: group})
 	}
 	for i := range movieRows {
 		media := &movieRows[i]
-		entries = append(entries, entry{sortAt: embyMediaReleaseSortTime(*media), media: media})
+		at := embyMediaReleaseSortTime(*media)
+		switch primarySupportedEmbySort(p.SortBy, false) {
+		case "datecreated", "datelastcontentadded", "datelastmediaadded":
+			at = media.CreatedAt
+		}
+		entries = append(entries, entry{sortAt: at, name: media.Title, rating: media.Rating, media: media})
 	}
+	sortKey := primarySupportedEmbySort(p.SortBy, false)
+	ascending := strings.EqualFold(firstCSVValue(p.SortOrder), "Ascending") ||
+		(strings.TrimSpace(p.SortOrder) == "" && (sortKey == "sortname" || sortKey == "name"))
 	sort.SliceStable(entries, func(i, j int) bool {
+		if ascending {
+			i, j = j, i
+		}
+		switch sortKey {
+		case "sortname", "name":
+			return strings.ToLower(entries[i].name) > strings.ToLower(entries[j].name)
+		case "communityrating":
+			return entries[i].rating > entries[j].rating
+		}
 		return entries[i].sortAt.After(entries[j].sortAt)
 	})
 	total := len(entries)
