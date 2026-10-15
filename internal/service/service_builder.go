@@ -123,6 +123,7 @@ func (b *serviceContainerBuilder) initContentServices() {
 	b.c.DLNA = NewDLNAService(b.log)
 	b.c.Storage = NewStorageService(b.log, b.repos)
 	b.c.Emby = NewEmbyService(b.cfg, b.log, b.repos).SetTMDbProvider(b.c.TMDb).SetAdultProvider(b.c.Scraper.adult)
+	b.c.Scraper.onSeriesMetadataChanged = b.c.Emby.invalidateSeriesMetadata
 	// 发现类查询（NextUp / Similar / Genres）：Emby 兼容层与媒体库筛选共用。
 	b.c.Discovery = NewMediaDiscoveryService(b.log, b.repos)
 	b.c.Emby.SetDiscovery(b.c.Discovery)

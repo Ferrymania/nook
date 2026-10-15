@@ -266,8 +266,15 @@ func (e *EmbyService) mediaPrimaryArtwork(ctx context.Context, m *model.Media) s
 	if m == nil {
 		return ""
 	}
-	if e.mediaShouldBeEpisode(ctx, m) && strings.TrimSpace(m.BackdropURL) != "" {
-		return m.BackdropURL
+	if e.mediaShouldBeEpisode(ctx, m) {
+		if strings.TrimSpace(m.EpisodeStillURL) != "" {
+			return m.EpisodeStillURL
+		}
+		// Keep unconverted local/legacy episode artwork visible. Once separate
+		// series metadata exists, its backdrop must never masquerade as a still.
+		if _, ok, _ := e.payloadSeriesEntry(ctx, e.seriesIDForMedia(ctx, m)); !ok && m.BackdropURL != "" {
+			return m.BackdropURL
+		}
 	}
 	return m.PosterURL
 }

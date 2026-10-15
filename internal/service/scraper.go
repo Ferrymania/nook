@@ -184,6 +184,7 @@ func (s *ScraperService) applyProviderMatchWithOptions(ctx context.Context, m *m
 		updates["episode_num"] = m.EpisodeNum
 		updates["episode_title"] = ""
 		updates["series_id"] = ""
+		updates["episode_still_url"] = ""
 	}
 	if match.ReleaseDate != "" {
 		updates["release_date"] = match.ReleaseDate
@@ -219,6 +220,15 @@ func (s *ScraperService) applyProviderMatchWithOptions(ctx context.Context, m *m
 		updates["languages"] = strings.Join(match.Languages, ",")
 	}
 	applyScrapeMediaTypeResets(updates, match)
+	if mediaIsEpisodic(m, lib) && s.determineMediaTypeForMedia(lib, m, match) == "tv" {
+		seriesMedia := *m
+		if options.RebuildIdentity {
+			seriesMedia.SeriesID = ""
+		}
+		if err := s.saveScrapedSeriesMetadata(ctx, &seriesMedia, match, posterURL, backdropURL); err != nil {
+			return err
+		}
+	}
 
 	if err := s.repo.DB.Model(&model.Media{}).Where("id = ?", m.ID).
 		Updates(updates).Error; err != nil {

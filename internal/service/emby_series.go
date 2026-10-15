@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/Ferrymania/nook/internal/model"
 )
 
@@ -225,7 +227,7 @@ func (e *EmbyService) seriesGroupsFromMedia(ctx context.Context, rows []model.Me
 		if group.PosterURL == "" && row.PosterURL != "" {
 			group.PosterURL = row.PosterURL
 		}
-		if group.BackdropURL == "" && row.BackdropURL != "" {
+		if group.BackdropURL == "" && row.BackdropURL != "" && row.BackdropURL != row.EpisodeStillURL && !legacyTMDbEpisodeStill(&row, row.BackdropURL) {
 			group.BackdropURL = row.BackdropURL
 		}
 		if group.Overview == "" && row.Overview != "" {
@@ -255,6 +257,16 @@ func (e *EmbyService) seriesGroupsFromMedia(ctx context.Context, rows []model.Me
 			return group.Episodes[i].CreatedAt.Before(group.Episodes[j].CreatedAt)
 		})
 		groups = append(groups, group)
+	}
+	metadata, err := seriesMetadataForGroups(ctx, e.repo, groups)
+	if err != nil && e.log != nil {
+		e.log.Warn("load series metadata failed", zap.Error(err))
+	}
+	for i := range groups {
+		if row, ok := metadata[seriesMetadataStorageID(groups[i].ID)]; ok {
+			groups[i].PosterURL, groups[i].BackdropURL = row.PosterURL, row.BackdropURL
+			groups[i].Overview, groups[i].Rating, groups[i].Year = row.Overview, row.Rating, row.Year
+		}
 	}
 	return groups
 }

@@ -103,6 +103,7 @@ func (s *MediaService) libraryRowsWithIndex(ctx context.Context, libraryID strin
 			episodes[k] = append(episodes[k], row)
 		}
 		cards := groupMediaSeriesCardsByKeys(rows, keys)
+		s.attachSeriesMetadataToCards(loadCtx, cards)
 		value := &libraryRowsCacheValue{Rows: rows, Resolver: resolver, Episodes: episodes, Cards: cards}
 		if s.cache != nil {
 			s.cache.SetObject(cacheKey, value, s.derivedReadCacheTTL())
@@ -176,6 +177,7 @@ func (s *MediaService) ListLibrarySeriesCardsFiltered(
 		kept = append(kept, row)
 	}
 	cards := groupMediaSeriesCards(kept)
+	s.attachSeriesMetadataToCards(ctx, cards)
 	if cards == nil {
 		cards = []SeriesCard{}
 	}

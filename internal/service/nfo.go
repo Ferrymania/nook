@@ -157,7 +157,7 @@ func WriteMediaNFO(m *model.Media) (string, error) {
 			Year:      m.Year,
 			Plot:      m.Overview,
 			Rating:    m.Rating,
-			Poster:    m.PosterURL,
+			Poster:    firstText(m.EpisodeStillURL, m.PosterURL),
 			Fanart:    m.BackdropURL,
 			TMDb:      m.TMDbID,
 			Genre:     splitNFOList(m.Genres),

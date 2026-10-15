@@ -47,6 +47,7 @@ type Media struct {
 	Container       string  `gorm:"size:128" json:"container,omitempty"`
 	PosterURL       string  `gorm:"size:1024" json:"poster_url,omitempty"`
 	BackdropURL     string  `gorm:"size:1024" json:"backdrop_url,omitempty"`
+	EpisodeStillURL string  `gorm:"size:1024;default:''" json:"episode_still_url,omitempty"`
 	Overview        string  `gorm:"type:text" json:"overview,omitempty"`
 	Rating          float32 `json:"rating"`
 	Year            int     `json:"year"`

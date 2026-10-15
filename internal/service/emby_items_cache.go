@@ -62,8 +62,8 @@ func formatSeasonIndexCacheKeyPart(seasonIndex *int) string {
 }
 
 func (e *EmbyService) embyLatestCacheKey(userID, parentID string, limit int) string {
-	// v2: payload tags for virtual artwork changed so clients drop cached placeholders.
-	sum := sha256.Sum256([]byte(strings.Join([]string{"latest-v2", userID, parentID, strconv.Itoa(limit)}, "|")))
+	// v3: series metadata and source-dependent artwork tags replace episode stills.
+	sum := sha256.Sum256([]byte(strings.Join([]string{"latest-v3", userID, parentID, strconv.Itoa(limit)}, "|")))
 	return "media:emby:" + hex.EncodeToString(sum[:])
 }
 

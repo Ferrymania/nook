@@ -81,7 +81,8 @@ func mergeLocalMetadataIntoMatch(match *Match, local *LocalMetadata) {
 		match.OriginalName = local.AdultCode
 		match.NSFW = true
 	}
-	if local.Overview != "" {
+	episode := local.SeasonNum > 0 || local.EpisodeNum > 0
+	if local.Overview != "" && !episode {
 		match.Overview = local.Overview
 	}
 	// Artwork from local metadata (sidecar NFO / folder poster) should only be
@@ -92,10 +93,10 @@ func mergeLocalMetadataIntoMatch(match *Match, local *LocalMetadata) {
 	if local.PosterURL != "" && !isHTTPish(match.PosterURL) {
 		match.PosterURL = local.PosterURL
 	}
-	if local.BackdropURL != "" && !isHTTPish(match.BackdropURL) {
+	if local.BackdropURL != "" && !episode && !isHTTPish(match.BackdropURL) {
 		match.BackdropURL = local.BackdropURL
 	}
-	if local.Rating > 0 {
+	if local.Rating > 0 && !episode {
 		match.Rating = local.Rating
 	}
 	if local.Year > 0 {

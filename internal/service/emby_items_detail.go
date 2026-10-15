@@ -705,8 +705,12 @@ func (e *EmbyService) itemPayload(ctx context.Context, m *model.Media, fav bool,
 	backdropTags := []string{}
 	primaryArtwork := e.mediaPrimaryArtwork(ctx, m)
 	backdropArtwork := e.mediaBackdropArtwork(ctx, m)
+	primaryTag := m.ID
+	if itemType == "Episode" {
+		primaryTag = embySeriesArtworkTag(m.ID, "", primaryArtwork)
+	}
 	if primaryArtwork != "" {
-		imageTags["Primary"] = m.ID
+		imageTags["Primary"] = primaryTag
 	}
 	if backdropArtwork != "" {
 		backdropTags = append(backdropTags, m.ID+"-bd")
@@ -773,16 +777,16 @@ func (e *EmbyService) itemPayload(ctx context.Context, m *model.Media, fav bool,
 		"MediaStreams": primarySource["MediaStreams"],
 	}
 	if primaryArtwork != "" {
-		item["PrimaryImageTag"] = m.ID
+		item["PrimaryImageTag"] = primaryTag
 	}
 	if seriesID != "" {
 		if sEntry, ok, _ := e.payloadSeriesEntry(ctx, seriesID); ok {
 			if sEntry.posterURL != "" {
-				item["SeriesPrimaryImageTag"] = embyVirtualImageTag(seriesID, embyVirtualPrimaryTagSuffix)
+				item["SeriesPrimaryImageTag"] = embySeriesArtworkTag(seriesID, embyVirtualPrimaryTagSuffix, sEntry.posterURL)
 			}
 			if len(backdropTags) == 0 && (sEntry.backdropURL != "" || sEntry.posterURL != "") {
 				item["ParentBackdropItemId"] = seriesID
-				item["ParentBackdropImageTags"] = []string{embyVirtualImageTag(seriesID, embyVirtualBackdropTagSuffix)}
+				item["ParentBackdropImageTags"] = []string{embySeriesArtworkTag(seriesID, embyVirtualBackdropTagSuffix, firstText(sEntry.backdropURL, sEntry.posterURL))}
 			}
 		}
 	}
