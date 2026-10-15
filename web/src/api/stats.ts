@@ -9,6 +9,9 @@ export interface TopUserEntry {
   user_id: string
   username: string
   plays: number
+  last_active_at?: string | null
+  device_name?: string
+  client?: string
 }
 
 interface TopUsersResponse {

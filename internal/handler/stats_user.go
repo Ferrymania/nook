@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 
 	"github.com/Ferrymania/nook/internal/middleware"
 	"github.com/Ferrymania/nook/internal/model"
@@ -39,8 +40,8 @@ func statsUserHandler(svc *service.Container) gin.HandlerFunc {
 	}
 }
 
-// statsTopUsersHandler returns the most active users by play count.
-// 全员排行含用户名与精确时长，仅管理员可查。
+// statsTopUsersHandler ranks users by watch-history entries, with their latest reported device activity.
+// 全员排行及设备活动信息仅管理员可查。
 func statsTopUsersHandler(svc *service.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, _ := c.Get(middleware.CtxUserRole)
@@ -77,11 +78,32 @@ func statsTopUsersHandler(svc *service.Container) gin.HandlerFunc {
 		}
 		out := make([]gin.H, 0, len(rows))
 		for _, r := range rows {
-			out = append(out, gin.H{
-				"user_id":  r.UserID,
-				"username": nameIdx[r.UserID],
-				"plays":    r.Plays,
-			})
+			entry := gin.H{
+				"user_id":        r.UserID,
+				"username":       nameIdx[r.UserID],
+				"plays":          r.Plays,
+				"last_active_at": nil,
+				"device_name":    "",
+				"client":         "",
+			}
+			if svc.Device != nil {
+				// Reuse the device list's persisted/realtime merge. Time and labels
+				// come from the same latest device, not an unrelated login or film.
+				devices, err := svc.Device.ListDevices(c.Request.Context(), r.UserID)
+				if err != nil {
+					if svc.Log != nil {
+						svc.Log.Warn("load top user device activity", zap.String("user_id", r.UserID), zap.Error(err))
+					}
+				} else if len(devices) > 0 {
+					latest := devices[0]
+					if !latest.LastSeenAt.IsZero() {
+						entry["last_active_at"] = latest.LastSeenAt
+					}
+					entry["device_name"] = latest.DeviceName
+					entry["client"] = latest.Client
+				}
+			}
+			out = append(out, entry)
 		}
 		c.JSON(http.StatusOK, gin.H{"items": out})
 	}
