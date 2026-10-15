@@ -103,6 +103,7 @@ func (s *ScraperService) EnrichOneWithOptions(ctx context.Context, m *model.Medi
 	}
 	if match == nil {
 		if local != nil && !local.PathHint {
+			fillNumberedPartEpisodeIdentity(m, lib)
 			err := s.applyLocalMetadataMatch(ctx, m, local)
 			if err == nil {
 				options.recordProvider("local")
@@ -166,6 +167,11 @@ func (s *ScraperService) applyProviderMatchWithOptions(ctx context.Context, m *m
 		"rating":        match.Rating,
 		"year":          match.Year,
 		"scrape_status": "matched",
+	}
+	if s.determineMediaTypeForMedia(lib, m, match) == "tv" && fillNumberedPartEpisodeIdentity(m, lib) {
+		updates["season_num"] = m.SeasonNum
+		updates["episode_num"] = m.EpisodeNum
+		updates["episode_fraction"] = m.EpisodeFraction
 	}
 	if options.ForceRematch {
 		updates["original_name"] = strings.TrimSpace(match.OriginalName)

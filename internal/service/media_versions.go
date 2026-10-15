@@ -74,6 +74,10 @@ func FirstMediaItems(items []MediaItem, limit int) []MediaItem {
 }
 
 func groupMediaVersions(items []model.Media) []MediaItem {
+	return groupMediaVersionsByKey(items, mediaVersionGroupKeyWithAdultVouch)
+}
+
+func groupMediaVersionsByKey(items []model.Media, groupKey func(model.Media, map[string]bool) string) []MediaItem {
 	if len(items) == 0 {
 		return nil
 	}
@@ -88,7 +92,7 @@ func groupMediaVersions(items []model.Media) []MediaItem {
 	groups := make([]group, 0, len(items))
 	byKey := make(map[string]int, len(items))
 	for _, item := range items {
-		key := mediaVersionGroupKeyWithAdultVouch(item, adultCodes)
+		key := groupKey(item, adultCodes)
 		if key == "" {
 			groups = append(groups, group{rows: []model.Media{item}})
 			continue
@@ -123,7 +127,14 @@ func GroupMediaVersions(items []model.Media) []MediaItem {
 // GroupEpisodeVersionsForDisplay folds encoding/container variants into one
 // episode while preserving season/episode ordering for episode-list APIs.
 func GroupEpisodeVersionsForDisplay(items []model.Media) []MediaItem {
-	grouped := groupMediaVersions(items)
+	grouped := groupMediaVersionsByKey(items, func(item model.Media, adultCodes map[string]bool) string {
+		// A shared show ID does not prove that unnumbered files are the same episode.
+		// Theatrical extras still use movie version grouping within anime libraries.
+		if item.EpisodeNum <= 0 && !mediaLooksLikeTheatricalFeature(&item) {
+			return ""
+		}
+		return mediaVersionGroupKeyWithAdultVouch(item, adultCodes)
+	})
 	if grouped == nil {
 		return []MediaItem{}
 	}
