@@ -149,6 +149,7 @@ export const libraryAPI = {
       cover_url?: string
       sort_order?: number | null
       carousel_enabled?: boolean | null
+      auto_probe?: boolean
     },
   ) => api.patch<Library>(`/libraries/${id}`, payload).then((r) => r.data),
 

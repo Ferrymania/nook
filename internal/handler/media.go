@@ -341,6 +341,7 @@ type updateLibraryReq struct {
 	CoverURL        *string `json:"cover_url"`
 	SortOrder       *int    `json:"sort_order"`
 	CarouselEnabled *bool   `json:"carousel_enabled"`
+	AutoProbe       *bool   `json:"auto_probe"`
 }
 
 func updateLibraryHandler(svc *service.Container) gin.HandlerFunc {
@@ -356,8 +357,8 @@ func updateLibraryHandler(svc *service.Container) gin.HandlerFunc {
 				return
 			}
 		}
-		if req.SortOrder != nil || req.CarouselEnabled != nil {
-			if err := svc.Media.UpdateLibraryFields(c.Request.Context(), c.Param("id"), req.SortOrder, req.CarouselEnabled); err != nil {
+		if req.SortOrder != nil || req.CarouselEnabled != nil || req.AutoProbe != nil {
+			if err := svc.Media.UpdateLibraryFields(c.Request.Context(), c.Param("id"), req.SortOrder, req.CarouselEnabled, req.AutoProbe); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}

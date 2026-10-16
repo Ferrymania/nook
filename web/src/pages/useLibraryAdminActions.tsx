@@ -19,6 +19,7 @@ type UseLibraryAdminActionsOptions = {
   selectedSeries: SeriesCard | null
   selectedSeriesEpisodes: Media[]
   reloadCurrentLibrary: () => void
+  onLibraryUpdated: (library: Library) => void
   clearSelectedSeries: () => void
   setManualMovie: (media: Media | null) => void
 }
@@ -30,6 +31,7 @@ export function useLibraryAdminActions({
   selectedSeries,
   selectedSeriesEpisodes,
   reloadCurrentLibrary,
+  onLibraryUpdated,
   clearSelectedSeries,
   setManualMovie,
 }: UseLibraryAdminActionsOptions) {
@@ -38,6 +40,21 @@ export function useLibraryAdminActions({
   const [repairing, setRepairing] = useState(false)
   const [seriesToolBusy, setSeriesToolBusy] = useState('')
   const [movieToolBusy, setMovieToolBusy] = useState('')
+  const [savingAutoProbe, setSavingAutoProbe] = useState(false)
+
+  const handleAutoProbeChange = async (enabled: boolean) => {
+    if (savingAutoProbe || role !== 'admin' || !library || library.is_remote_emby) return
+    setSavingAutoProbe(true)
+    try {
+      const updated = await libraryAPI.update(libraryID, { auto_probe: enabled })
+      onLibraryUpdated(updated)
+      toast.success(enabled ? '本库刮削时自动探测已开启' : '本库刮削时自动探测已关闭')
+    } catch {
+      toast.error('保存自动探测设置失败')
+    } finally {
+      setSavingAutoProbe(false)
+    }
+  }
 
   const handleScrape = async () => {
     setScraping(true)
@@ -212,6 +229,8 @@ export function useLibraryAdminActions({
     handleSeriesOrganize,
     handleSeriesDelete,
     movieActions,
+    savingAutoProbe,
+    handleAutoProbeChange,
   }
 }
 

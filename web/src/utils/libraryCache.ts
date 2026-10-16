@@ -28,6 +28,14 @@ function rememberList(data: Library[]) {
   }
 }
 
+// Save a library update immediately so navigating back cannot restore stale settings.
+export function rememberLibrary(library: Library) {
+  byId.set(library.id, { at: Date.now(), data: library })
+  if (listData) {
+    listData = listData.map((item) => item.id === library.id ? library : item)
+  }
+}
+
 // fetchLibraries 拉取库列表：TTL 内命中缓存立即返回（含 peek 先行渲染），
 // 过期或未缓存时发起请求，并发调用共享在途请求。
 export function fetchLibraries(): Promise<Library[]> {

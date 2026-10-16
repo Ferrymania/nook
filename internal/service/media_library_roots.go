@@ -112,14 +112,17 @@ func (s *MediaService) UpdateLibraryCover(ctx context.Context, libraryID, coverU
 		Update("cover_url", strings.TrimSpace(coverURL)).Error
 }
 
-// UpdateLibraryFields updates sort_order / carousel_enabled on a library.
-func (s *MediaService) UpdateLibraryFields(ctx context.Context, libraryID string, sortOrder *int, carouselEnabled *bool) error {
+// UpdateLibraryFields updates the library's display and automatic probe settings.
+func (s *MediaService) UpdateLibraryFields(ctx context.Context, libraryID string, sortOrder *int, carouselEnabled, autoProbe *bool) error {
 	updates := map[string]any{}
 	if sortOrder != nil {
 		updates["sort_order"] = *sortOrder
 	}
 	if carouselEnabled != nil {
 		updates["carousel_enabled"] = *carouselEnabled
+	}
+	if autoProbe != nil {
+		updates["auto_probe"] = *autoProbe
 	}
 	if len(updates) == 0 || strings.TrimSpace(libraryID) == "" {
 		return nil

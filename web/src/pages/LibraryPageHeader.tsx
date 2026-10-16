@@ -1,6 +1,7 @@
 import type { Library } from '../types'
 import { EpisodeArtworkToggle } from '../components/EpisodeArtworkToggle'
 import { MediaSortDropdown } from '../components/MediaSortDropdown'
+import { MediaProbeToggle } from '../components/MediaProbeToggle'
 import type { SortField, SortOrder } from '../utils/mediaSort'
 import { libraryDisplayPath } from './libraryDisplayModel'
 
@@ -11,6 +12,8 @@ type LibraryPageHeaderProps = {
   scanProgress: string
   isAdmin: boolean
   scrapeEpisodeArtwork: boolean
+  savingAutoProbe: boolean
+  onAutoProbeChange: (checked: boolean) => void
   scanning: boolean
   scraping: boolean
   repairing: boolean
@@ -31,6 +34,8 @@ export function LibraryPageHeader({
   scanProgress,
   isAdmin,
   scrapeEpisodeArtwork,
+  savingAutoProbe,
+  onAutoProbeChange,
   scanning,
   scraping,
   repairing,
@@ -70,6 +75,11 @@ export function LibraryPageHeader({
               onChange={onScrapeEpisodeArtworkChange}
               title="关闭后仍会获取主海报和每集文字元数据，只跳过每集图片"
               className="h-9 text-xs sm:text-sm"
+            />
+            <MediaProbeToggle
+              checked={library?.auto_probe ?? false}
+              saving={savingAutoProbe || !library}
+              onChange={onAutoProbeChange}
             />
             <button
               onClick={onScan}

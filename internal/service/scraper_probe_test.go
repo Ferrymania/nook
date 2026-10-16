@@ -23,7 +23,7 @@ func TestScraperCompletesMetadataIndependentlyOfProbe(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			probe, repos, m := newProbeFixture(t)
-			lib := model.Library{Base: model.Base{ID: m.LibraryID}, Name: "Movies", Path: filepath.Dir(m.Path), Type: "movie"}
+			lib := model.Library{Base: model.Base{ID: m.LibraryID}, Name: "Movies", Path: filepath.Dir(m.Path), Type: "movie", AutoProbe: true}
 			if err := repos.DB.Create(&lib).Error; err != nil {
 				t.Fatal(err)
 			}
@@ -69,6 +69,92 @@ func TestScraperCompletesMetadataIndependentlyOfProbe(t *testing.T) {
 			}
 			if stub.callCount() != 1 {
 				t.Fatal("another scrape ignored the successful cache or failure cooldown")
+			}
+		})
+	}
+}
+
+func TestScraperProbeRequiresOptInAndKeepsManualProbeAvailable(t *testing.T) {
+	for _, manualMatch := range []bool{false, true} {
+		name := "scrape"
+		if manualMatch {
+			name = "manual_match"
+		}
+		t.Run(name, func(t *testing.T) {
+			probe, repos, m := newProbeFixture(t)
+			lib := model.Library{Base: model.Base{ID: m.LibraryID}, Name: "Movies", Path: filepath.Dir(m.Path), Type: "movie"}
+			if err := repos.DB.Create(&lib).Error; err != nil {
+				t.Fatal(err)
+			}
+			m.Path = filepath.Join(lib.Path, "Movie.2026.mkv")
+			m.SeasonNum, m.EpisodeNum, m.SeriesID = 0, 0, ""
+			if err := os.WriteFile(m.Path, []byte("fixture"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(strings.TrimSuffix(m.Path, ".mkv")+".nfo", []byte(`<movie><title>Probe Movie</title><year>2026</year></movie>`), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if err := repos.DB.Save(m).Error; err != nil {
+				t.Fatal(err)
+			}
+			stub := &stubProber{result: chapterProbeResult()}
+			probe.probe = stub
+			scraper := NewScraperService(&config.Config{}, zap.NewNop(), repos, nil, nil, nil, nil, NewHub(zap.NewNop())).SetMediaProbe(probe)
+			scrape := func() {
+				t.Helper()
+				var err error
+				if manualMatch {
+					_, err = scraper.ApplyManualMatch(t.Context(), m.ID, ManualScrapeRequest{Source: "manual", MediaType: "movie", Title: "Probe Movie", Year: 2026})
+				} else {
+					err = scraper.EnrichOne(t.Context(), m)
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				refreshed, err := repos.Media.FindByID(t.Context(), m.ID)
+				if err != nil || refreshed == nil || refreshed.ScrapeStatus != "matched" || refreshed.Title != "Probe Movie" {
+					t.Fatalf("metadata scrape did not complete: media=%#v, error=%v", refreshed, err)
+				}
+			}
+
+			scrape()
+			row, err := repos.MediaProbe.Get(t.Context(), m.ID)
+			if err != nil || row != nil || stub.callCount() != 0 {
+				t.Fatalf("probing must default to off: row=%#v, calls=%d, error=%v", row, stub.callCount(), err)
+			}
+			mediaService := NewMediaService(&config.Config{}, zap.NewNop(), repos)
+			enabled := true
+			if err := mediaService.UpdateLibraryFields(t.Context(), lib.ID, nil, nil, &enabled); err != nil {
+				t.Fatal(err)
+			}
+			scrape()
+			row, err = repos.MediaProbe.Get(t.Context(), m.ID)
+			if err != nil || row == nil || stub.callCount() != 1 {
+				t.Fatalf("enabling the setting must allow probing: row=%#v, calls=%d, error=%v", row, stub.callCount(), err)
+			}
+			savedSignature := row.Signature
+			// A changed file invalidates the cache, so disabling cannot pass just
+			// because Ensure happened to reuse an existing successful result.
+			if err := os.WriteFile(m.Path, []byte("changed fixture with a different size"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			enabled = false
+			if err := mediaService.UpdateLibraryFields(t.Context(), lib.ID, nil, nil, &enabled); err != nil {
+				t.Fatal(err)
+			}
+			scrape()
+			row, err = repos.MediaProbe.Get(t.Context(), m.ID)
+			if err != nil || row == nil || row.Signature != savedSignature || stub.callCount() != 1 {
+				t.Fatalf("disabling must skip probing and retain saved data: row=%#v, calls=%d, error=%v", row, stub.callCount(), err)
+			}
+
+			stream := NewStreamService(&config.Config{}, zap.NewNop(), repos, nil)
+			stream.SetMediaProbe(probe)
+			if err := stream.Probe(t.Context(), m.ID, nil); err != nil {
+				t.Fatal(err)
+			}
+			if stub.callCount() != 2 {
+				t.Fatal("explicit administrator probe must still run with automatic probing disabled")
 			}
 		})
 	}
