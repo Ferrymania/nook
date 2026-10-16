@@ -1637,6 +1637,7 @@ export function PlayerPage() {
       progressSessionRef.current = newPlaybackProgressSession(mediaId)
       lastSentRef.current = 0
     }
+    const reportSession = progressSessionRef.current
 
     // 本地 HLS 的播放列表 t=0 对应 hlsStartSec，云 HLS 的播放列表本身就是整条
     // 时间轴（起点恒为 0）。以前两种模式都叠加 hlsStartSec：只要本地转码残留过
@@ -1655,25 +1656,32 @@ export function PlayerPage() {
       const totalSec = Math.max(mediaDur, timelineOffsetSec() + streamDur)
       return Number.isFinite(totalSec) && totalSec > 0 ? Math.floor(totalSec * 1000) : 0
     }
-    const send = (keepalive: boolean) => {
+    let started = !video.paused && video.readyState >= 2
+    let lastPositionMs = 0
+    let lastDurationMs = 0
+    const send = (keepalive: boolean, stopped = false) => {
+      if (!started) return
       const currentMedia = mediaRef.current
-      if (!currentMedia || currentMedia.id !== mediaId) return
+      const sameMedia = currentMedia?.id === mediaId
+      if (!sameMedia && !stopped) return
       const now = Date.now()
       if (!keepalive && now - lastSentRef.current < 10_000) return
       lastSentRef.current = now
-      const positionMs = absolutePositionMs()
-      if (positionMs <= 0) return
-      const durationMs = absoluteDurationMs()
-      const session = progressSessionRef.current
-      if (!session || session.mediaId !== mediaId) return
+      const positionMs = sameMedia ? absolutePositionMs() : lastPositionMs
+      const durationMs = sameMedia ? absoluteDurationMs() : lastDurationMs
+      lastPositionMs = positionMs
+      lastDurationMs = durationMs
+      const session = reportSession
       session.sequence += 1
       const payload = {
-        media_id: currentMedia.id,
+        media_id: mediaId,
         position_ms: positionMs,
         duration_ms: durationMs,
         session_id: session.id,
         session_started_at_ms: session.startedAtMs,
         sequence: session.sequence,
+        is_paused: video.paused,
+        stopped: stopped || video.ended,
       }
       if (keepalive) {
         postPlaybackProgressKeepalive(payload)
@@ -1682,21 +1690,43 @@ export function PlayerPage() {
       playbackAPI.recordProgress(payload).catch(() => undefined)
     }
     const onTimeUpdate = () => send(false)
+    const onPlaying = () => {
+      started = true
+      send(true)
+    }
     const onPause = () => send(true)
-    const onPageHide = () => send(true)
+    const onStopped = () => {
+      send(true, true)
+      started = false
+    }
+    const onPageShow = () => {
+      if (!video.paused && !video.ended) onPlaying()
+    }
     const onVisibilityChange = () => {
       if (document.visibilityState === 'hidden') send(true)
     }
     video.addEventListener('timeupdate', onTimeUpdate)
+    video.addEventListener('playing', onPlaying)
     video.addEventListener('pause', onPause)
-    window.addEventListener('pagehide', onPageHide)
+    video.addEventListener('seeked', onPause)
+    video.addEventListener('ended', onStopped)
+    window.addEventListener('pagehide', onStopped)
+    window.addEventListener('pageshow', onPageShow)
     document.addEventListener('visibilitychange', onVisibilityChange)
+    // Paused playback still sends a heartbeat, keeping its live session visible.
+    const heartbeat = window.setInterval(() => send(false), 10000)
+    if (started) send(true)
     return () => {
+      window.clearInterval(heartbeat)
       video.removeEventListener('timeupdate', onTimeUpdate)
+      video.removeEventListener('playing', onPlaying)
       video.removeEventListener('pause', onPause)
-      window.removeEventListener('pagehide', onPageHide)
+      video.removeEventListener('seeked', onPause)
+      video.removeEventListener('ended', onStopped)
+      window.removeEventListener('pagehide', onStopped)
+      window.removeEventListener('pageshow', onPageShow)
       document.removeEventListener('visibilitychange', onVisibilityChange)
-      send(true)
+      onStopped()
     }
   }, [id, mediaId])
 

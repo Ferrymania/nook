@@ -13,6 +13,7 @@ import (
 const (
 	realtimeSessionTTL       = 30 * time.Minute
 	realtimeSessionOnlineTTL = 5 * time.Minute
+	realtimePlaybackTTL      = 2 * time.Minute
 )
 
 func RealtimeDeletionGuardWindow() time.Duration {
@@ -23,35 +24,47 @@ func RealtimeDeletionGuardWindow() time.Duration {
 // information reported by Emby clients through AuthenticateByName and
 // /Sessions/Playing/* without requiring Playback Reporting persistence.
 type RealtimeSession struct {
-	ID             string     `json:"id"`
-	UserID         string     `json:"user_id"`
-	UserName       string     `json:"user_name,omitempty"`
-	DeviceID       string     `json:"device_id"`
-	DeviceName     string     `json:"device_name,omitempty"`
-	Client         string     `json:"client,omitempty"`
-	RemoteEndPoint string     `json:"remote_end_point,omitempty"`
-	LastActivityAt time.Time  `json:"last_activity_at"`
-	ItemID         string     `json:"item_id,omitempty"`
-	PositionTicks  int64      `json:"position_ticks,omitempty"`
-	RuntimeTicks   int64      `json:"runtime_ticks,omitempty"`
-	IsPlaying      bool       `json:"is_playing"`
-	IsPaused       bool       `json:"is_paused"`
-	LastPlaybackAt *time.Time `json:"last_playback_at,omitempty"`
+	ID               string     `json:"id"`
+	UserID           string     `json:"user_id"`
+	UserName         string     `json:"user_name,omitempty"`
+	DeviceID         string     `json:"device_id"`
+	DeviceName       string     `json:"device_name,omitempty"`
+	Client           string     `json:"client,omitempty"`
+	RemoteEndPoint   string     `json:"remote_end_point,omitempty"`
+	LastActivityAt   time.Time  `json:"last_activity_at"`
+	ItemID           string     `json:"item_id,omitempty"`
+	PositionTicks    int64      `json:"position_ticks,omitempty"`
+	RuntimeTicks     int64      `json:"runtime_ticks,omitempty"`
+	IsPlaying        bool       `json:"is_playing"`
+	IsPaused         bool       `json:"is_paused"`
+	LastPlaybackAt   *time.Time `json:"last_playback_at,omitempty"`
+	PlaybackSequence int64      `json:"-"`
+}
+
+// PlaybackState is a client report, independent of ordinary login/browsing activity.
+type PlaybackState struct {
+	ItemID        string
+	PositionTicks int64
+	RuntimeTicks  int64
+	IsPaused      bool
+	Stopped       bool
+	Sequence      int64
 }
 
 type realtimeSessionInput struct {
-	UserID         string
-	UserName       string
-	DeviceID       string
-	DeviceName     string
-	Client         string
-	RemoteEndPoint string
-	ItemID         string
-	PositionTicks  int64
-	RuntimeTicks   int64
-	IsPlaying      bool
-	IsPaused       bool
-	PlaybackUpdate bool
+	UserID           string
+	UserName         string
+	DeviceID         string
+	DeviceName       string
+	Client           string
+	RemoteEndPoint   string
+	ItemID           string
+	PositionTicks    int64
+	RuntimeTicks     int64
+	IsPlaying        bool
+	IsPaused         bool
+	PlaybackUpdate   bool
+	PlaybackSequence int64
 }
 
 type userRealtimeActivity struct {
@@ -100,22 +113,40 @@ func (s *SessionTrackerService) RecordActivity(ctx context.Context, userID, user
 }
 
 func (s *SessionTrackerService) RecordPlayback(ctx context.Context, userID, userName, deviceID, deviceName, client, remoteEndPoint, itemID string, positionTicks, runtimeTicks int64, stopped bool) {
+	s.RecordPlaybackState(ctx, userID, userName, deviceID, deviceName, client, remoteEndPoint, PlaybackState{
+		ItemID: itemID, PositionTicks: positionTicks, RuntimeTicks: runtimeTicks, Stopped: stopped,
+	})
+}
+
+func (s *SessionTrackerService) RecordPlaybackState(ctx context.Context, userID, userName, deviceID, deviceName, client, remoteEndPoint string, state PlaybackState) {
 	if s == nil {
 		return
 	}
 	s.upsert(ctx, realtimeSessionInput{
-		UserID:         userID,
-		UserName:       userName,
-		DeviceID:       deviceID,
-		DeviceName:     deviceName,
-		Client:         client,
-		RemoteEndPoint: remoteEndPoint,
-		ItemID:         itemID,
-		PositionTicks:  positionTicks,
-		RuntimeTicks:   runtimeTicks,
-		IsPlaying:      !stopped,
-		PlaybackUpdate: true,
+		UserID:           userID,
+		UserName:         userName,
+		DeviceID:         deviceID,
+		DeviceName:       deviceName,
+		Client:           client,
+		RemoteEndPoint:   remoteEndPoint,
+		ItemID:           state.ItemID,
+		PositionTicks:    state.PositionTicks,
+		RuntimeTicks:     state.RuntimeTicks,
+		IsPlaying:        !state.Stopped,
+		IsPaused:         state.IsPaused && !state.Stopped,
+		PlaybackUpdate:   true,
+		PlaybackSequence: state.Sequence,
 	})
+}
+
+func (s *SessionTrackerService) ListPlaying(ctx context.Context) []RealtimeSession {
+	out := make([]RealtimeSession, 0)
+	for _, sess := range s.List(ctx) {
+		if sess.IsPlaying && sess.ItemID != "" {
+			out = append(out, sess)
+		}
+	}
+	return out
 }
 
 func (s *SessionTrackerService) Logout(ctx context.Context, userID, deviceID, remoteEndPoint string) {

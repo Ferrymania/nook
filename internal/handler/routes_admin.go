@@ -12,6 +12,7 @@ import (
 func registerAdminRoutes(api *gin.RouterGroup, cfg *config.Config, svc *service.Container) {
 	admin := api.Group("/admin")
 	admin.Use(middleware.AuthRequired(cfg.Secrets.JWTSecret), middleware.AdminRequired())
+	admin.GET("/playback-sessions", adminPlaybackSessionsHandler(svc))
 	registerAdminUserRoutes(admin, svc)
 	registerAdminPermissionRoutes(admin, svc)
 	registerAdminSystemRoutes(admin, svc)

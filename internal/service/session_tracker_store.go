@@ -28,8 +28,11 @@ func (s *SessionTrackerService) upsert(ctx context.Context, in realtimeSessionIn
 	if s.activity == nil {
 		s.activity = make(map[string]time.Time)
 	}
-	s.activity[userID] = now
 	existing, existed := s.sessions[key]
+	if in.PlaybackUpdate && in.PlaybackSequence > 0 && in.PlaybackSequence <= existing.PlaybackSequence {
+		return // Delayed web progress/stop requests must not replace a newer report.
+	}
+	s.activity[userID] = now
 	if strings.TrimSpace(in.UserName) == "" {
 		in.UserName = existing.UserName
 	}
@@ -48,6 +51,7 @@ func (s *SessionTrackerService) upsert(ctx context.Context, in realtimeSessionIn
 	runtimeTicks := existing.RuntimeTicks
 	isPlaying := existing.IsPlaying
 	isPaused := existing.IsPaused
+	sequence := existing.PlaybackSequence
 	if in.PlaybackUpdate {
 		itemID = firstNonEmptyString(in.ItemID, existing.ItemID)
 		if in.ItemID != "" || in.PositionTicks != 0 {
@@ -58,26 +62,28 @@ func (s *SessionTrackerService) upsert(ctx context.Context, in realtimeSessionIn
 		}
 		isPlaying = in.IsPlaying
 		isPaused = in.IsPaused
+		sequence = in.PlaybackSequence
 	}
 	if in.PlaybackUpdate && (in.ItemID != "" || in.IsPlaying) {
 		t := now
 		lastPlaybackAt = &t
 	}
 	s.sessions[key] = RealtimeSession{
-		ID:             key,
-		UserID:         userID,
-		UserName:       strings.TrimSpace(in.UserName),
-		DeviceID:       in.DeviceID,
-		DeviceName:     in.DeviceName,
-		Client:         in.Client,
-		RemoteEndPoint: in.RemoteEndPoint,
-		LastActivityAt: now,
-		ItemID:         itemID,
-		PositionTicks:  positionTicks,
-		RuntimeTicks:   runtimeTicks,
-		IsPlaying:      isPlaying,
-		IsPaused:       isPaused,
-		LastPlaybackAt: lastPlaybackAt,
+		ID:               key,
+		UserID:           userID,
+		UserName:         strings.TrimSpace(in.UserName),
+		DeviceID:         in.DeviceID,
+		DeviceName:       in.DeviceName,
+		Client:           in.Client,
+		RemoteEndPoint:   in.RemoteEndPoint,
+		LastActivityAt:   now,
+		ItemID:           itemID,
+		PositionTicks:    positionTicks,
+		RuntimeTicks:     runtimeTicks,
+		IsPlaying:        isPlaying,
+		IsPaused:         isPaused,
+		LastPlaybackAt:   lastPlaybackAt,
+		PlaybackSequence: sequence,
 	}
 	if !existed && s.log != nil {
 		s.log.Debug("realtime session started",
@@ -94,6 +100,12 @@ func (s *SessionTrackerService) pruneLocked(now time.Time) {
 	for key, sess := range s.sessions {
 		if sess.LastActivityAt.Before(expiresBefore) {
 			delete(s.sessions, key)
+			continue
+		}
+		if sess.IsPlaying && (sess.LastPlaybackAt == nil || !sess.LastPlaybackAt.After(now.Add(-realtimePlaybackTTL))) {
+			sess.IsPlaying = false
+			sess.IsPaused = false
+			s.sessions[key] = sess
 		}
 	}
 	for userID, lastActivity := range s.activity {

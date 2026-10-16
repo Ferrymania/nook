@@ -10,6 +10,7 @@ import { AdminUserDevicesDialog } from './AdminUserDevicesDialog'
 import { AdminUsersForm } from './AdminUsersForm'
 import { AdminUsersTable } from './AdminUsersTable'
 import { ActiveUsersStrip } from './ActiveUsersStrip'
+import { CurrentPlaybackPanel } from './CurrentPlaybackPanel'
 
 const DEFAULT_MAX_USERS = 20
 
@@ -189,6 +190,8 @@ export function AdminUsersPanel() {
         onPasswordChange={setPassword}
         onSubmit={handleCreate}
       />
+
+      <CurrentPlaybackPanel />
 
       <ActiveUsersStrip users={users} />
 

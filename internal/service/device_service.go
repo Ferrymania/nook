@@ -150,16 +150,11 @@ func (s *DeviceService) RecordPlayback(ctx context.Context, userID, deviceID, de
 	if userID == "" {
 		return
 	}
-	username := ""
-	if u, _ := s.repo.User.FindByID(ctx, userID); u != nil {
-		username = u.Username
-	}
 	if deviceID == "" {
 		deviceID = "fp-" + fingerprint(client, deviceName)
 	}
-	if s.sessions != nil {
-		s.sessions.RecordPlayback(ctx, userID, username, deviceID, deviceName, client, "", "", 0, 0, false)
-	}
+	// Playback state is recorded by the reporting handler. Device policy bookkeeping
+	// must not overwrite its pause/stop state or turn "mark watched" into playback.
 	now := s.now()
 	fp := fingerprint(client, deviceName)
 	existing, _ := s.findTerminalDevice(ctx, userID, deviceID, fp)

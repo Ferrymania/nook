@@ -21,6 +21,8 @@ type embyPlayingReq struct {
 	RunTimeLower  int64  `json:"runTimeTicks"`
 	PlaySessionID string `json:"PlaySessionId"`
 	PlaySession   string `json:"playSessionId"`
+	IsPaused      *bool  `json:"IsPaused"`
+	EventName     string `json:"EventName"`
 }
 
 func embyPlayingProgressHandler(svc *service.Container) gin.HandlerFunc {
@@ -69,16 +71,21 @@ func embyPlayingProgressHandler(svc *service.Container) gin.HandlerFunc {
 			return
 		}
 		stopped := strings.Contains(strings.ToLower(c.FullPath()+" "+c.Request.URL.Path), "stopped")
+		paused := false
+		if req.IsPaused != nil {
+			paused = *req.IsPaused
+		} else if value := firstQueryValue(c, "IsPaused", "isPaused"); value != "" {
+			paused, _ = strconv.ParseBool(value)
+		} else {
+			paused = strings.EqualFold(embyFirstNonEmptyString(req.EventName, firstQueryValue(c, "EventName", "eventName")), "Pause")
+		}
 		if svc.Sessions != nil {
-			svc.Sessions.RecordPlayback(c.Request.Context(), uid, "",
+			svc.Sessions.RecordPlaybackState(c.Request.Context(), uid, embyContextUserName(c),
 				clientInfo.DeviceID,
 				clientInfo.DeviceName,
 				clientInfo.Client,
 				c.ClientIP(),
-				itemID,
-				pos,
-				runTime,
-				stopped)
+				service.PlaybackState{ItemID: itemID, PositionTicks: pos, RuntimeTicks: runTime, IsPaused: paused, Stopped: stopped})
 		}
 		if svc.Device != nil && !stopped {
 			svc.Device.RecordPlayback(c.Request.Context(), uid,
