@@ -34,6 +34,8 @@ export interface PlaybackProgressRequest {
   session_id?: string
   session_started_at_ms?: number
   sequence?: number
+  is_paused?: boolean
+  stopped?: boolean
 }
 
 function publicOriginHeader() {

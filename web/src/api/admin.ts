@@ -75,7 +75,27 @@ export interface UserLimitResponse {
   current_users: number
 }
 
+export interface CurrentPlaybackSession {
+  id: string
+  user_id: string
+  username: string
+  device_name: string
+  client: string
+  media_id: string
+  title: string
+  series_name?: string
+  season_num: number
+  episode_num: number
+  position_ms: number
+  duration_ms: number
+  is_paused: boolean
+  last_report_at: string
+}
+
 export const adminAPI = {
+  playbackSessions: (signal?: AbortSignal) =>
+    api.get<{ items: CurrentPlaybackSession[] }>('/admin/playback-sessions', { signal, timeout: 8000 })
+      .then((r) => r.data.items),
   listUsers: () => api.get<UserListResponse>('/admin/users').then((r) => r.data),
 
   getUserLimit: () => api.get<UserLimitResponse>('/admin/users/limit').then((r) => r.data),

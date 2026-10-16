@@ -21,6 +21,8 @@ type progressReq struct {
 	SessionID          string `json:"session_id"`
 	SessionStartedAtMs int64  `json:"session_started_at_ms"`
 	Sequence           int64  `json:"sequence"`
+	IsPaused           *bool  `json:"is_paused"`
+	Stopped            *bool  `json:"stopped"`
 }
 
 func recordProgressHandler(svc *service.Container) gin.HandlerFunc {
@@ -42,6 +44,13 @@ func recordProgressHandler(svc *service.Container) gin.HandlerFunc {
 		}); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
+		}
+		if svc.Sessions != nil && req.SessionID != "" && req.IsPaused != nil {
+			svc.Sessions.RecordPlaybackState(c.Request.Context(), toString(uid), "",
+				"web:"+req.SessionID, "", "Nook Web", c.ClientIP(), service.PlaybackState{
+					ItemID: req.MediaID, PositionTicks: req.PositionMs * 10000, RuntimeTicks: req.DurationMs * 10000,
+					IsPaused: *req.IsPaused, Stopped: req.Stopped != nil && *req.Stopped, Sequence: req.Sequence,
+				})
 		}
 		c.Status(http.StatusNoContent)
 	}

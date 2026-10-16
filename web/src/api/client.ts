@@ -202,6 +202,8 @@ export function postPlaybackProgressKeepalive(payload: {
   session_id?: string
   session_started_at_ms?: number
   sequence?: number
+  is_paused?: boolean
+  stopped?: boolean
 }): void {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   const token = useAuthStore.getState().token
