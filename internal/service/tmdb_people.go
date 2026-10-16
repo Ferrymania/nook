@@ -62,7 +62,7 @@ func (t *TMDbProvider) GetPeople(ctx context.Context, tmdbID int, mediaType stri
 	}
 	q := url.Values{}
 	q.Set("api_key", apiKey)
-	q.Set("language", "zh-CN")
+	q.Set("language", tmdbMetadataLanguage(ctx))
 	var out tmdbCreditsResponse
 	if err := t.getJSON(ctx, t.resolveBaseURL(ctx)+endpoint+"?"+q.Encode(), &out); err != nil {
 		return nil, err
@@ -259,7 +259,7 @@ func (t *TMDbProvider) PersonProfilePathByID(ctx context.Context, personID int) 
 	}
 	q := url.Values{}
 	q.Set("api_key", apiKey)
-	q.Set("language", "zh-CN")
+	q.Set("language", tmdbMetadataLanguage(ctx))
 	endpoint := t.resolveBaseURL(ctx) + "/person/" + strconv.Itoa(personID) + "?" + q.Encode()
 	var out struct {
 		ProfilePath string `json:"profile_path"`

@@ -9,7 +9,7 @@
 //	GET /search/subject/{keywords}?type=2&responseGroup=small
 //	GET /v0/subjects/{id}                                           (cover)
 //
-// The provider gracefully no-ops when bangumi_access_token is empty.
+// Public reads work anonymously; an optional token adds user authentication.
 package service
 
 import (
@@ -28,10 +28,11 @@ import (
 
 // BangumiProvider talks to https://api.bgm.tv.
 type BangumiProvider struct {
-	cfg    *config.Config
-	log    *zap.Logger
-	client *http.Client
-	base   string
+	cfg       *config.Config
+	log       *zap.Logger
+	client    *http.Client
+	base      string
+	apiConfig *APIConfigService
 }
 
 // NewBangumiProvider is the constructor.
@@ -44,13 +45,9 @@ func NewBangumiProvider(cfg *config.Config, log *zap.Logger) *BangumiProvider {
 	}
 }
 
-// Enabled reports whether a token is configured. Bangumi works without
-// auth for read-only endpoints, but configuring a token raises the rate
-// limit so we treat presence as a soft "enabled" flag.
+// Public reads do not require a token, but obey the global API switch.
 func (b *BangumiProvider) Enabled() bool {
-	// Bangumi search works without auth — keep the provider enabled
-	// unconditionally, but pass the token when we have one.
-	return true
+	return b.runtimeConfig(context.Background()).Enabled
 }
 
 // Search runs a Bangumi keyword search and returns the top match. Type 2
@@ -60,7 +57,7 @@ func (b *BangumiProvider) Search(ctx context.Context, query string) (*Match, err
 		return nil, nil
 	}
 	u := fmt.Sprintf("%s/search/subject/%s?type=2&responseGroup=small",
-		b.base, url.PathEscape(query))
+		b.runtimeConfig(ctx).BaseURL, url.PathEscape(query))
 
 	type subject struct {
 		ID      int    `json:"id"`
@@ -111,7 +108,7 @@ func (b *BangumiProvider) GetSubject(ctx context.Context, bangumiID int) (*Match
 	if bangumiID <= 0 {
 		return nil, nil
 	}
-	u := fmt.Sprintf("%s/v0/subjects/%d", b.base, bangumiID)
+	u := fmt.Sprintf("%s/v0/subjects/%d", b.runtimeConfig(ctx).BaseURL, bangumiID)
 	type subject struct {
 		ID      int    `json:"id"`
 		Name    string `json:"name"`
@@ -162,7 +159,7 @@ func (b *BangumiProvider) GetEpisodeCount(ctx context.Context, bangumiID int) (i
 	if bangumiID <= 0 {
 		return 0, nil
 	}
-	u := fmt.Sprintf("%s/v0/subjects/%d", b.base, bangumiID)
+	u := fmt.Sprintf("%s/v0/subjects/%d", b.runtimeConfig(ctx).BaseURL, bangumiID)
 	var subject struct {
 		Eps           int `json:"eps"`
 		TotalEpisodes int `json:"total_episodes"`
@@ -177,12 +174,16 @@ func (b *BangumiProvider) GetEpisodeCount(ctx context.Context, bangumiID int) (i
 }
 
 func (b *BangumiProvider) getJSON(ctx context.Context, u string, out any) error {
+	cfg := b.runtimeConfig(ctx)
+	if !cfg.Enabled {
+		return fmt.Errorf("Bangumi 已在系统设置中关闭")
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
 		return err
 	}
 	req.Header.Set("User-Agent", "Nook/0.1 (https://github.com/Ferrymania/nook)")
-	if t := strings.TrimSpace(b.cfg.Secrets.BangumiToken); t != "" {
+	if t := cfg.APIKey; t != "" {
 		req.Header.Set("Authorization", "Bearer "+t)
 	}
 	resp, err := b.client.Do(req)

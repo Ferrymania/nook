@@ -29,13 +29,15 @@ import (
 
 // TheTVDBProvider talks to https://api4.thetvdb.com/v4.
 type TheTVDBProvider struct {
-	cfg    *config.Config
-	log    *zap.Logger
-	client *http.Client
+	cfg       *config.Config
+	log       *zap.Logger
+	client    *http.Client
+	apiConfig *APIConfigService
 
-	mu       sync.Mutex
-	token    string
-	tokenExp time.Time
+	mu          sync.Mutex
+	token       string
+	tokenExp    time.Time
+	tokenConfig string
 }
 
 // NewTheTVDBProvider is the constructor.
@@ -48,18 +50,25 @@ func NewTheTVDBProvider(cfg *config.Config, log *zap.Logger) *TheTVDBProvider {
 }
 
 // Enabled reports whether an API key is present.
-func (t *TheTVDBProvider) Enabled() bool { return t.cfg.Secrets.TheTVDBAPIKey != "" }
+func (t *TheTVDBProvider) Enabled() bool {
+	cfg := t.runtimeConfig(context.Background())
+	return cfg.Enabled && cfg.APIKey != ""
+}
 
 // Login fetches a fresh JWT, cached for 24h.
 func (t *TheTVDBProvider) Login(ctx context.Context) (string, error) {
+	cfg := t.runtimeConfig(ctx)
+	if !cfg.Enabled || cfg.APIKey == "" {
+		return "", fmt.Errorf("TheTVDB API 未配置或已关闭")
+	}
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	if time.Now().Before(t.tokenExp) && t.token != "" {
+	if time.Now().Before(t.tokenExp) && t.token != "" && t.tokenConfig == cfg.BaseURL+"|"+cfg.APIKey {
 		return t.token, nil
 	}
-	body, _ := json.Marshal(map[string]string{"apikey": t.cfg.Secrets.TheTVDBAPIKey})
+	body, _ := json.Marshal(map[string]string{"apikey": cfg.APIKey})
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
-		"https://api4.thetvdb.com/v4/login", bytes.NewReader(body))
+		cfg.BaseURL+"/login", bytes.NewReader(body))
 	if err != nil {
 		return "", err
 	}
@@ -81,6 +90,7 @@ func (t *TheTVDBProvider) Login(ctx context.Context) (string, error) {
 		return "", err
 	}
 	t.token = out.Data.Token
+	t.tokenConfig = cfg.BaseURL + "|" + cfg.APIKey
 	t.tokenExp = time.Now().Add(24 * time.Hour)
 	return t.token, nil
 }
@@ -94,8 +104,7 @@ func (t *TheTVDBProvider) SearchSeries(ctx context.Context, query string) (*Matc
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("https://api4.thetvdb.com/v4/search?query=%s&type=series",
-		urlEscape(query))
+	u := fmt.Sprintf("%s/search?query=%s&type=series", t.runtimeConfig(ctx).BaseURL, urlEscape(query))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
 		return nil, err
@@ -150,7 +159,7 @@ func (t *TheTVDBProvider) GetSeriesEpisodeCount(ctx context.Context, seriesID st
 		return 0, err
 	}
 	id := normalizeTheTVDBSeriesID(seriesID)
-	u := fmt.Sprintf("https://api4.thetvdb.com/v4/series/%s/extended?meta=episodes", urlEscape(id))
+	u := fmt.Sprintf("%s/series/%s/extended?meta=episodes", t.runtimeConfig(ctx).BaseURL, urlEscape(id))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
 		return 0, err
@@ -200,7 +209,7 @@ func (t *TheTVDBProvider) GetSeriesMatchByID(ctx context.Context, seriesID strin
 		return nil, err
 	}
 	id := normalizeTheTVDBSeriesID(seriesID)
-	u := fmt.Sprintf("https://api4.thetvdb.com/v4/series/%s/extended", urlEscape(id))
+	u := fmt.Sprintf("%s/series/%s/extended", t.runtimeConfig(ctx).BaseURL, urlEscape(id))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
 		return nil, err

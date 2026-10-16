@@ -29,7 +29,9 @@ type ScraperService struct {
 
 	// Caches provider-chain results keyed by media kind/query/year. Per-instance
 	// so services with different provider config never share results.
-	lookupCache *scrapeLookupCache
+	lookupCache  *scrapeLookupCache
+	paceMu       sync.Mutex
+	nextScrapeAt time.Time
 
 	// Serializes final sidecar replacement. Windows cannot rename over an
 	// existing file, and concurrent scrapes can target the same sidecar.

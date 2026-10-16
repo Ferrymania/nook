@@ -32,9 +32,10 @@ import (
 
 // DoubanProvider talks to the unofficial Douban movie API.
 type DoubanProvider struct {
-	cfg    *config.Config
-	log    *zap.Logger
-	client *http.Client
+	cfg       *config.Config
+	log       *zap.Logger
+	client    *http.Client
+	apiConfig *APIConfigService
 }
 
 // NewDoubanProvider is the constructor.
@@ -50,7 +51,7 @@ func NewDoubanProvider(cfg *config.Config, log *zap.Logger) *DoubanProvider {
 // suggest endpoints work without an API key; a cookie is optional and only
 // helps when Douban applies stricter anti-scraping rules.
 func (d *DoubanProvider) Enabled() bool {
-	return true
+	return d.runtimeConfig(context.Background()).Enabled
 }
 
 // userAgents for anti-scraping randomization.
@@ -138,6 +139,9 @@ func (d *DoubanProvider) SearchMatch(ctx context.Context, query string) (*Match,
 }
 
 func (d *DoubanProvider) GetMatchByID(ctx context.Context, doubanID string) (*Match, error) {
+	if !d.runtimeConfig(ctx).Enabled {
+		return nil, nil
+	}
 	doubanID = strings.TrimSpace(doubanID)
 	if doubanID == "" {
 		return nil, nil
@@ -194,6 +198,9 @@ func (d *DoubanProvider) GetEpisodeCount(ctx context.Context, query string) (int
 }
 
 func (d *DoubanProvider) GetEpisodeCountByID(ctx context.Context, doubanID string) (int, error) {
+	if !d.runtimeConfig(ctx).Enabled {
+		return 0, nil
+	}
 	doubanID = strings.TrimSpace(doubanID)
 	if doubanID == "" {
 		return 0, nil
@@ -239,7 +246,7 @@ func (d *DoubanProvider) setHeaders(req *http.Request) {
 	req.Header.Set("Referer", "https://movie.douban.com/")
 	req.Header.Set("Accept", "application/json, text/plain, */*")
 	req.Header.Set("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
-	if cookie := strings.TrimSpace(d.cfg.Secrets.DoubanCookie); cookie != "" {
+	if cookie := d.runtimeConfig(req.Context()).APIKey; cookie != "" {
 		req.Header.Set("Cookie", cookie)
 	}
 }

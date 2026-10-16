@@ -37,6 +37,8 @@ func registerAuthedLibraryRoutes(authed *gin.RouterGroup, svc *service.Container
 	authed.POST("/libraries", middleware.AdminRequired(), createLibraryHandler(svc))
 	authed.GET("/libraries/:id", getLibraryHandler(svc))
 	authed.PATCH("/libraries/:id", middleware.AdminRequired(), updateLibraryHandler(svc))
+	authed.GET("/libraries/:id/scrape-settings", middleware.AdminRequired(), libraryScrapeSettingsHandler(svc))
+	authed.PUT("/libraries/:id/scrape-settings", middleware.AdminRequired(), saveLibraryScrapeSettingsHandler(svc))
 	authed.PUT("/libraries/reorder", middleware.AdminRequired(), reorderLibrariesHandler(svc))
 	authed.DELETE("/libraries/:id", middleware.AdminRequired(), deleteLibraryHandler(svc))
 	authed.GET("/libraries/:id/roots", middleware.AdminRequired(), listLibraryRootsHandler(svc))

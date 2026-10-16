@@ -81,6 +81,10 @@ func (b *serviceContainerBuilder) initProviderServices() {
 	b.c.TheTVDB = NewTheTVDBProvider(b.cfg, b.log)
 	b.c.Douban = NewDoubanProvider(b.cfg, b.log)
 	b.c.Fanart = NewFanartProvider(b.cfg, b.log)
+	b.c.Bangumi.apiConfig = b.c.APIConfig
+	b.c.TheTVDB.apiConfig = b.c.APIConfig
+	b.c.Douban.apiConfig = b.c.APIConfig
+	b.c.Fanart.apiConfig = b.c.APIConfig
 	b.c.RecognitionWords = NewRecognitionWordsService(b.log, b.repos)
 	b.c.Danmaku = NewDanmakuService(b.log, b.repos)
 	b.c.Reader = reader.NewReaderService(b.cfg, b.log, b.repos)
@@ -93,6 +97,7 @@ func (b *serviceContainerBuilder) initProviderServices() {
 	)
 	b.c.Scraper.SetRuntimeCache(b.c.Cache)
 	b.c.Scraper.SetDouban(b.c.Douban)
+	b.c.APIConfig.onChange = b.c.Scraper.lookupCache.clear
 }
 
 func (b *serviceContainerBuilder) configureMediaSearchBackend() {

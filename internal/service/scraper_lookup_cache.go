@@ -39,6 +39,12 @@ func newScrapeLookupCache() *scrapeLookupCache {
 	return &scrapeLookupCache{entries: map[string]scrapeLookupCacheEntry{}}
 }
 
+func (c *scrapeLookupCache) clear() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.entries = map[string]scrapeLookupCacheEntry{}
+}
+
 func scrapeLookupCacheKey(kind, query string, year int, isTheatrical bool) string {
 	theatrical := "0"
 	if isTheatrical {

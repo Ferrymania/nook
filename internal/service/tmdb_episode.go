@@ -12,7 +12,7 @@ func (t *TMDbProvider) GetTVSeasonYear(ctx context.Context, tmdbID, season int) 
 	if apiKey == "" || tmdbID <= 0 || season < 0 {
 		return 0, fmt.Errorf("tmdb: season identity unavailable")
 	}
-	q := url.Values{"api_key": {apiKey}, "language": {"zh-CN"}}
+	q := url.Values{"api_key": {apiKey}, "language": {tmdbMetadataLanguage(ctx)}}
 	u := fmt.Sprintf("%s/tv/%d/season/%d?%s", t.resolveBaseURL(ctx), tmdbID, season, q.Encode())
 	var r struct {
 		AirDate string `json:"air_date"`
@@ -39,7 +39,7 @@ func (t *TMDbProvider) GetTVEpisodeDetails(ctx context.Context, tmdbID, season, 
 	base := t.resolveBaseURL(ctx)
 	q := url.Values{}
 	q.Set("api_key", apiKey)
-	q.Set("language", "zh-CN")
+	q.Set("language", tmdbMetadataLanguage(ctx))
 	u := base + "/tv/" + fmt.Sprint(tmdbID) + "/season/" + fmt.Sprint(season) + "/episode/" + fmt.Sprint(episode) + "?" + q.Encode()
 	var r struct {
 		Name        string  `json:"name"`
@@ -78,7 +78,7 @@ func (t *TMDbProvider) GetTVEpisodeCount(ctx context.Context, tmdbID int) (int, 
 	base := t.resolveBaseURL(ctx)
 	q := url.Values{}
 	q.Set("api_key", apiKey)
-	q.Set("language", "zh-CN")
+	q.Set("language", tmdbMetadataLanguage(ctx))
 	u := base + "/tv/" + fmt.Sprint(tmdbID) + "?" + q.Encode()
 	var r struct {
 		NumberOfEpisodes int `json:"number_of_episodes"`

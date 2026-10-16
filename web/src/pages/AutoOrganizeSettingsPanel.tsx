@@ -1,5 +1,3 @@
-import { RefreshCw } from 'lucide-react'
-
 import {
   type AutoOrganizeConfig,
   type AutoOrganizeTab,
@@ -7,7 +5,6 @@ import {
 import {
   AutoOrganizeBasicTab,
   AutoOrganizeNamingTab,
-  AutoOrganizeScrapeTab,
 } from './AutoOrganizeSettingsTabs'
 
 type AutoOrganizeSettingsPanelProps = {
@@ -18,7 +15,6 @@ type AutoOrganizeSettingsPanelProps = {
   loading: boolean
   saving: boolean
   running: boolean
-  onRefresh: () => void
   onSave: () => void
   onRunNow: () => void
   onTabChange: (tab: AutoOrganizeTab) => void
@@ -28,7 +24,6 @@ type AutoOrganizeSettingsPanelProps = {
 const AUTO_ORGANIZE_TABS: Array<[AutoOrganizeTab, string]> = [
   ['basic', '基础设置'],
   ['naming', '命名规则'],
-  ['scrape', '刮削联动'],
 ]
 
 export function AutoOrganizeSettingsPanel({
@@ -39,7 +34,6 @@ export function AutoOrganizeSettingsPanel({
   loading,
   saving,
   running,
-  onRefresh,
   onSave,
   onRunNow,
   onTabChange,
@@ -55,14 +49,6 @@ export function AutoOrganizeSettingsPanel({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            className="neon-button !border-primary-400/30 !bg-white !text-brand-500"
-            disabled={loading || saving}
-            onClick={onRefresh}
-          >
-            <RefreshCw size={14} /> 重新读取
-          </button>
           <button
             type="button"
             className="neon-button !border-primary-400/30 !bg-white !text-brand-500"
@@ -111,9 +97,6 @@ export function AutoOrganizeSettingsPanel({
       )}
       {activeTab === 'naming' && (
         <AutoOrganizeNamingTab config={config} onConfigChange={onConfigChange} />
-      )}
-      {activeTab === 'scrape' && (
-        <AutoOrganizeScrapeTab config={config} onConfigChange={onConfigChange} />
       )}
     </section>
   )

@@ -96,7 +96,7 @@ func (s *ScraperService) lookupAutomaticTMDbCandidates(ctx context.Context, kind
 	if failure.ambiguous {
 		return nil, true
 	}
-	if queryNeedsEnglishTMDbFallback(query) {
+	if queryNeedsEnglishTMDbFallback(query) && tmdbMetadataLanguage(ctx) != "en-US" {
 		var alternate []*Match
 		if isTVMetadataKind(kind) {
 			alternate, err = s.tmdb.searchTVCandidates(ctx, query, searchYear, "en-US")
@@ -141,7 +141,7 @@ func (s *ScraperService) lookupAutomaticTMDbCandidates(ctx context.Context, kind
 }
 
 func (s *ScraperService) localizeAutomaticTMDbMatch(ctx context.Context, kind, query string, match *Match) *Match {
-	if s == nil || s.tmdb == nil || match == nil || match.TMDbID <= 0 || !metadataTitleNeedsChineseLocalization(match) {
+	if !chineseMetadataLanguage(ctx) || s == nil || s.tmdb == nil || match == nil || match.TMDbID <= 0 || !metadataTitleNeedsChineseLocalization(match) {
 		return match
 	}
 	var (

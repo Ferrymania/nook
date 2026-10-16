@@ -22,7 +22,7 @@ func (s *ScannerService) startAutoScrape(ctx context.Context, libraryID string) 
 		defer cancel()
 		// 扫描触发的后台刮削与请求线程无关，panic 只记日志，不能带崩进程。
 		helper.Run(s.log, "scanner.autoScrape", func() {
-			_, err := s.scraper.EnrichLibraryDetailedWithOptions(scrapeCtx, libraryID, skipEpisodeArtworkOptions(false))
+			_, err := s.scraper.EnqueueLibrary(scrapeCtx, libraryID, skipEpisodeArtworkOptions(false))
 			if err != nil {
 				s.log.Warn("scraper enrich failed", zap.Error(err))
 			}

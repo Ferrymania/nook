@@ -130,7 +130,7 @@ func (s *ScraperService) processScrapeTask(ctx context.Context, task *model.Scra
 	task.FinishedAt = &now
 
 	refreshed, _ := s.repo.Media.FindByID(ctx, media.ID)
-	if refreshed != nil && refreshed.ScrapeStatus == "matched" {
+	if enrichErr == nil && refreshed != nil && refreshed.ScrapeStatus == "matched" {
 		task.Status = model.ScrapeTaskDone
 		task.Error = ""
 		task.MatchedTitle = refreshed.Title

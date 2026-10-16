@@ -186,7 +186,8 @@ func TestMovieScrapeFailureReasonsReachQueue(t *testing.T) {
 			}
 			// A cached miss must retain the same explanation without another lookup.
 			failure := scrapeLookupFailure{}
-			if _, ok := scraper.lookupCache.get(scrapeLookupCacheKey("movie", "Example Film", 2023, false), &failure); !ok || !strings.Contains(failure.message(), tc.want) {
+			cacheCtx := withLibraryScrapeSettings(t.Context(), libraryScrapeSettings(t.Context(), repos, &lib))
+			if _, ok := scraper.lookupCache.get(scraper.lookupSettingsCacheKey(cacheCtx, "movie", "Example Film", 2023, false, 0), &failure); !ok || !strings.Contains(failure.message(), tc.want) {
 				t.Fatalf("cached failure lost its explanation: %s", failure.message())
 			}
 		})

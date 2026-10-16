@@ -1,7 +1,9 @@
 import type { Library } from '../types'
 import { EpisodeArtworkToggle } from '../components/EpisodeArtworkToggle'
 import { MediaSortDropdown } from '../components/MediaSortDropdown'
-import { MediaProbeToggle } from '../components/MediaProbeToggle'
+import { useState } from 'react'
+import { Settings2 } from 'lucide-react'
+import { LibraryScrapeSettingsDialog } from './LibraryScrapeSettingsDialog'
 import type { SortField, SortOrder } from '../utils/mediaSort'
 import { libraryDisplayPath } from './libraryDisplayModel'
 
@@ -12,8 +14,7 @@ type LibraryPageHeaderProps = {
   scanProgress: string
   isAdmin: boolean
   scrapeEpisodeArtwork: boolean
-  savingAutoProbe: boolean
-  onAutoProbeChange: (checked: boolean) => void
+  onLibraryUpdated: (library: Library) => void
   scanning: boolean
   scraping: boolean
   repairing: boolean
@@ -34,8 +35,7 @@ export function LibraryPageHeader({
   scanProgress,
   isAdmin,
   scrapeEpisodeArtwork,
-  savingAutoProbe,
-  onAutoProbeChange,
+  onLibraryUpdated,
   scanning,
   scraping,
   repairing,
@@ -48,6 +48,7 @@ export function LibraryPageHeader({
   onScrape,
   onRepairRescrape,
 }: LibraryPageHeaderProps) {
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const displayPath = library ? libraryDisplayPath(library.path) : ''
 
   return (
@@ -76,11 +77,7 @@ export function LibraryPageHeader({
               title="关闭后仍会获取主海报和每集文字元数据，只跳过每集图片"
               className="h-9 text-xs sm:text-sm"
             />
-            <MediaProbeToggle
-              checked={library?.auto_probe ?? false}
-              saving={savingAutoProbe || !library}
-              onChange={onAutoProbeChange}
-            />
+            <button type="button" onClick={() => setSettingsOpen(true)} disabled={!library} style={{ backgroundColor: 'var(--app-brand-soft)', borderColor: 'var(--app-brand-border)', color: 'var(--app-brand-text)' }} className="btn-outline !px-3 !py-1.5 text-xs sm:text-sm"><Settings2 size={16} />刮削设置</button>
             <button
               onClick={onScan}
               disabled={scanning}
@@ -107,6 +104,7 @@ export function LibraryPageHeader({
           </>
         )}
       </div>
+      {settingsOpen && library && <LibraryScrapeSettingsDialog key={library.id} library={library} onClose={() => setSettingsOpen(false)} onSaved={autoProbe => onLibraryUpdated({ ...library, auto_probe: autoProbe })} />}
     </div>
   )
 }

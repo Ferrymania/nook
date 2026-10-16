@@ -87,6 +87,7 @@ export function AutoOrganizeBasicTab({
         <BooleanSetting config={config} settingKey="enabled" label="整理源目录定时自动整理" onConfigChange={onConfigChange} />
         <BooleanSetting config={config} settingKey="smartClassify" label="智能分类到子库" onConfigChange={onConfigChange} />
         <BooleanSetting config={config} settingKey="autoAddLibrary" label="自动注册目的地媒体库" onConfigChange={onConfigChange} />
+        <BooleanSetting config={config} settingKey="scrapeAfter" label="整理后自动刮削" onConfigChange={onConfigChange} />
       </div>
     </>
   )
@@ -102,29 +103,6 @@ export function AutoOrganizeNamingTab({ config, onConfigChange }: AutoOrganizeTa
         可用占位符：{'{title}'} {'{year}'} {'{season}'} {'{season:02}'} {'{episode}'} {'{episode:02}'} {'{category}'}。扩展名会自动补齐。
       </p>
     </div>
-  )
-}
-
-export function AutoOrganizeScrapeTab({ config, onConfigChange }: AutoOrganizeTabProps) {
-  return (
-    <>
-      <div className="flex flex-wrap items-center gap-3">
-        <BooleanSetting config={config} settingKey="scrapeAfter" label="整理后自动刮削" onConfigChange={onConfigChange} />
-        <BooleanSetting config={config} settingKey="scrapeAutoOnScan" label="扫描后自动刮削" onConfigChange={onConfigChange} />
-      </div>
-      <div className="grid gap-3 lg:grid-cols-[1fr_160px_160px_160px]">
-        <TextSetting
-          config={config}
-          settingKey="scrapeProviders"
-          label="刮削源优先级"
-          placeholder="tmdb,douban,bangumi,thetvdb,fanart"
-          onConfigChange={onConfigChange}
-        />
-        <TextSetting config={config} settingKey="scrapeLanguage" label="首选语言" onConfigChange={onConfigChange} />
-        <NumberSetting config={config} settingKey="scrapeDelayMinMs" label="最小间隔 ms" onConfigChange={onConfigChange} />
-        <NumberSetting config={config} settingKey="scrapeDelayMaxMs" label="最大间隔 ms" onConfigChange={onConfigChange} />
-      </div>
-    </>
   )
 }
 
@@ -168,29 +146,6 @@ function TextSetting({
       <input
         className={className}
         placeholder={placeholder}
-        value={config[settingKey]}
-        onChange={(event) => onConfigChange(settingKey, event.target.value)}
-      />
-    </label>
-  )
-}
-
-function NumberSetting({
-  config,
-  settingKey,
-  label,
-  onConfigChange,
-}: AutoOrganizeTabProps & {
-  settingKey: keyof AutoOrganizeConfig
-  label: string
-}) {
-  return (
-    <label className="space-y-1">
-      <span className="text-xs text-ink-50">{label}</span>
-      <input
-        type="number"
-        min={0}
-        className="input-base w-full"
         value={config[settingKey]}
         onChange={(event) => onConfigChange(settingKey, event.target.value)}
       />

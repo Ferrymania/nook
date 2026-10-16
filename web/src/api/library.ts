@@ -1,6 +1,19 @@
 import { api, BATCH_REQUEST_TIMEOUT, LONG_REQUEST_TIMEOUT } from './client'
 import type { Library, LibraryRoot, Media, PlaybackInfo, ScanResult } from '../types'
 import type { SeriesCard } from '../utils/groupSeries'
+
+export interface LibraryScrapeSettings {
+  auto_on_scan: boolean
+  providers: string[]
+  language: string
+  delay_min_ms: number
+  delay_max_ms: number
+}
+export interface LibraryScrapeSettingsView {
+  settings: LibraryScrapeSettings
+  auto_probe: boolean
+  providers: Array<{ id: string; name: string; available: boolean; status: string }>
+}
 import {
   EMPTY_LIBRARY_FILTERS,
   toFilterQuery,
@@ -152,6 +165,10 @@ export const libraryAPI = {
       auto_probe?: boolean
     },
   ) => api.patch<Library>(`/libraries/${id}`, payload).then((r) => r.data),
+
+  scrapeSettings: (id: string) => api.get<LibraryScrapeSettingsView>(`/libraries/${id}/scrape-settings`).then(r => r.data),
+  saveScrapeSettings: (id: string, payload: Pick<LibraryScrapeSettingsView, 'settings' | 'auto_probe'>) =>
+    api.put<LibraryScrapeSettingsView>(`/libraries/${id}/scrape-settings`, payload).then(r => r.data),
 
   reorder: (ids: string[]) => api.put('/libraries/reorder', { ids }).then((r) => r.data),
 

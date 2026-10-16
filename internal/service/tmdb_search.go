@@ -47,7 +47,7 @@ func (t *TMDbProvider) SearchMovie(ctx context.Context, query string, year int) 
 // SearchMovieCandidates returns the first localized TMDb result page. Manual
 // scrape exposes the full page; automatic scrape requires a unique verified match.
 func (t *TMDbProvider) SearchMovieCandidates(ctx context.Context, query string, year int) ([]*Match, error) {
-	return t.searchMovieCandidates(ctx, query, year, "zh-CN")
+	return t.searchMovieCandidates(ctx, query, year, tmdbMetadataLanguage(ctx))
 }
 
 func (t *TMDbProvider) searchMovieCandidates(ctx context.Context, query string, year int, language string) ([]*Match, error) {
@@ -135,7 +135,7 @@ func (t *TMDbProvider) SearchTV(ctx context.Context, query string, year int) (*M
 
 // SearchTVCandidates returns the first TMDb TV result page for manual scrape.
 func (t *TMDbProvider) SearchTVCandidates(ctx context.Context, query string, year int) ([]*Match, error) {
-	return t.searchTVCandidates(ctx, query, year, "zh-CN")
+	return t.searchTVCandidates(ctx, query, year, tmdbMetadataLanguage(ctx))
 }
 
 func (t *TMDbProvider) searchTVCandidates(ctx context.Context, query string, year int, language string) ([]*Match, error) {

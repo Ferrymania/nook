@@ -13,6 +13,7 @@ func (s *ScraperService) ManualSearch(ctx context.Context, media *model.Media, q
 		return nil, errors.New("media required")
 	}
 	lib, _ := s.repo.Library.FindByID(ctx, media.LibraryID)
+	ctx = withLibraryScrapeSettings(ctx, libraryScrapeSettings(ctx, s.repo, lib))
 	queries := s.manualSearchQueries(ctx, media, lib, query)
 	if len(queries) == 0 {
 		return nil, errors.New("search query required")
@@ -33,6 +34,9 @@ func (s *ScraperService) ManualSearch(ctx context.Context, media *model.Media, q
 	}
 	mediaType = normalizeMediaType(mediaType, queries[0], "")
 	providers := manualSearchProviderSet(provider)
+	if len(providers) == 0 {
+		providers = manualSearchProviderSet(strings.Join(scrapeProviders(ctx), ","))
+	}
 	year := mediaYearHint(media)
 	if year <= 0 {
 		_, year = CleanQueryWithRecognition(ctx, s.repo, queries[0])
