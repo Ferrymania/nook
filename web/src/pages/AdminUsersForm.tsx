@@ -36,7 +36,7 @@ export function AdminUsersForm({
   const limitChanged = maxUsersDraft.trim() !== '' && Number.isFinite(draftValue) && draftValue !== maxUsers
 
   return (
-    <form onSubmit={onSubmit} className="glass-panel grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+    <form name="admin-create-user" autoComplete="off" onSubmit={onSubmit} className="glass-panel grid gap-3 md:grid-cols-[1fr_1fr_auto]">
       <div className="md:col-span-3 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-display text-lg font-semibold text-ink-600">用户管理</h2>
@@ -76,14 +76,21 @@ export function AdminUsersForm({
       </div>
 
       <input
+        id="admin-new-username"
+        name="admin-new-username"
+        autoComplete="off"
+        spellCheck={false}
         required
         className="input-base"
-        placeholder="用户名"
+        placeholder="新用户用户名"
         value={username}
         onChange={(e) => onUsernameChange(e.target.value)}
         disabled={userLimitReached}
       />
       <input
+        id="admin-new-password"
+        name="admin-new-password"
+        autoComplete="new-password"
         required
         minLength={6}
         className="input-base"
