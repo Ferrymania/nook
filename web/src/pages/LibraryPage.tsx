@@ -138,6 +138,7 @@ export function LibraryPage() {
     seriesCards,
     loadingAllText,
     reloadCurrentLibrary,
+    updateLibrary,
   } = useLibraryData(id, selectedSeries, serverSortField, serverSortOrder, libraryFilters)
 
   // 常规排序由服务端全局完成；只有 random 模式才在客户端洗牌。
@@ -230,6 +231,8 @@ export function LibraryPage() {
     handleSeriesOrganize,
     handleSeriesDelete,
     movieActions,
+    savingAutoProbe,
+    handleAutoProbeChange,
   } = useLibraryAdminActions({
     libraryID: id,
     role,
@@ -237,6 +240,7 @@ export function LibraryPage() {
     selectedSeries,
     selectedSeriesEpisodes: selectedSeriesAllEpisodes,
     reloadCurrentLibrary,
+    onLibraryUpdated: updateLibrary,
     clearSelectedSeries,
     setManualMovie,
   })
@@ -305,6 +309,8 @@ export function LibraryPage() {
           scanProgress={scanProgress}
           isAdmin={role === 'admin'}
           scrapeEpisodeArtwork={scrapeEpisodeArtwork}
+          savingAutoProbe={savingAutoProbe}
+          onAutoProbeChange={handleAutoProbeChange}
           scanning={scanning}
           scraping={scraping}
           repairing={repairing}

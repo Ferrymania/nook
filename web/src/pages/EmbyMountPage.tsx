@@ -129,7 +129,7 @@ function AccountDialog({
             <X size={18} />
           </button>
         </div>
-        <form onSubmit={submit} className="space-y-4">
+        <form name="remote-emby-account" autoComplete="off" onSubmit={submit} className="space-y-4">
           <label className="block text-sm">
             <span className="mb-1 block font-semibold text-ink-600">账号名称</span>
             <input className={inputCls} value={name} placeholder="例如：家庭影院" onChange={(e) => setName(e.target.value)} />
@@ -179,16 +179,36 @@ function AccountDialog({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block text-sm">
               <span className="mb-1 block font-semibold text-ink-600">用户名</span>
-              <input className={inputCls} value={username} onChange={(e) => setUsername(e.target.value)} />
+              <input
+                id="remote-emby-username"
+                name="remote-emby-username"
+                autoComplete="off"
+                spellCheck={false}
+                className={inputCls}
+                placeholder="远程 Emby 用户名"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
             </label>
             <label className="block text-sm">
               <span className="mb-1 block font-semibold text-ink-600">密码</span>
-              <input className={inputCls} type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+              <input
+                id="remote-emby-password"
+                name="remote-emby-password"
+                autoComplete="new-password"
+                className={inputCls}
+                type="password"
+                placeholder="远程 Emby 密码"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
             </label>
           </div>
           <label className="block text-sm">
             <span className="mb-1 block font-semibold text-ink-600">API Key（可选）</span>
             <input
+              name="remote-emby-api-key"
+              autoComplete="off"
               className={inputCls}
               value={token}
               placeholder="留空则用用户名/密码自动认证"

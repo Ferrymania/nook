@@ -18,6 +18,8 @@ export interface Library {
   enabled: boolean
   sort_order?: number
   carousel_enabled?: boolean
+  /** 刮削时按需探测媒体技术信息，默认关闭。 */
+  auto_probe?: boolean
   roots?: LibraryRoot[]
   created_at: string
   updated_at: string

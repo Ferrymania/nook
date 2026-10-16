@@ -3,7 +3,7 @@ import toast from 'react-hot-toast'
 
 import { libraryAPI } from '../api/library'
 import type { Library, Media } from '../types'
-import { peekLibrary, resolveLibrary } from '../utils/libraryCache'
+import { peekLibrary, rememberLibrary, resolveLibrary } from '../utils/libraryCache'
 import { groupSeries, isEpisodeLike, type SeriesCard } from '../utils/groupSeries'
 import {
   EMPTY_LIBRARY_FILTERS,
@@ -259,6 +259,13 @@ export function useLibraryData(
     setReloadTick((tick) => tick + 1)
   }, [])
 
+  const updateLibrary = useCallback((updated: Library) => {
+    rememberLibrary(updated)
+    if (libraryRef.current?.id !== updated.id) return
+    libraryRef.current = updated
+    setLibrary(updated)
+  }, [])
+
   const loadedCount = isSeriesLibrary ? serverSeriesCards.length : items.length
   const loadingAllText =
     !loading && hasMore
@@ -281,6 +288,7 @@ export function useLibraryData(
     seriesCards,
     loadingAllText,
     reloadCurrentLibrary,
+    updateLibrary,
   }
 }
 

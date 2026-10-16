@@ -24,9 +24,9 @@ func (s *ScraperService) EnrichOneWithOptions(ctx context.Context, m *model.Medi
 	if err != nil {
 		return err
 	}
-	// 在同一个刮削工作协程中补齐技术信息。影片未匹配也可以探测，反之探测
-	// 失败不会改变已保存的影片匹配结果。
-	defer s.probeAfterScrape(ctx, m)
+	// 管理员开启自动探测后，在同一个刮削工作协程中补齐技术信息。
+	// 影片未匹配也可以探测，探测失败不会改变已保存的影片匹配结果。
+	defer s.probeAfterScrape(ctx, m, lib)
 
 	seriesLike := mediaIsEpisodic(m, lib)
 	cloudMedia := isCloudMediaPath(m.Path) || (lib != nil && isCloudMediaPath(lib.Path))
@@ -139,8 +139,10 @@ func (s *ScraperService) EnrichOneWithOptions(ctx context.Context, m *model.Medi
 	return s.applyProviderMatchWithOptions(ctx, m, lib, match, options)
 }
 
-func (s *ScraperService) probeAfterScrape(ctx context.Context, m *model.Media) {
-	if s != nil && s.probe != nil && ctx.Err() == nil {
+func (s *ScraperService) probeAfterScrape(ctx context.Context, m *model.Media, lib *model.Library) {
+	// 缺省关闭，避免大库首次刮削时逐个换取直链并读取远端视频。
+	// 只控制该库刮削时的附带探测，管理员仍可单独手动探测。
+	if s != nil && s.probe != nil && lib != nil && lib.AutoProbe && ctx.Err() == nil {
 		_ = s.probe.Ensure(ctx, m) // 失败由探测服务独立记录，不向刮削状态传播。
 	}
 }
