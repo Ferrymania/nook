@@ -107,7 +107,6 @@ export function AdminUsersTable({
                 <span className="inline-flex flex-wrap items-center gap-2">
                   <span>{u.last_login_at ? new Date(u.last_login_at).toLocaleString() : '从未登录'}</span>
                   {u.realtime_online && <span className="rounded border border-green-400/40 px-1.5 py-0.5 text-[11px] text-green-500">在线</span>}
-                  {(u.realtime_device_count ?? 0) > 0 && <span className="text-xs text-ink-50">{u.realtime_device_count} 台</span>}
                 </span>
               </td>
               <td className="space-x-2 py-2 text-right">
