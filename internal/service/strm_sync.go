@@ -80,6 +80,20 @@ type remoteVideoCandidate struct {
 // StartSync 启动一次同步（异步执行，同一目录同时只允许一个任务）。
 // syncType 支持 "incremental"（默认增量）和 "full"（全量同步）。
 func (s *StrmService) StartSync(ctx context.Context, pathID string, syncType ...string) error {
+	return s.startSync(ctx, pathID, nil, syncType...)
+}
+
+// StartSyncWithResult uses the same sync engine and returns this specific run's
+// result. The buffered channel never blocks the worker if its caller leaves.
+func (s *StrmService) StartSyncWithResult(ctx context.Context, pathID, syncType string) (<-chan model.StrmSyncRecord, error) {
+	completed := make(chan model.StrmSyncRecord, 1)
+	if err := s.startSync(ctx, pathID, completed, syncType); err != nil {
+		return nil, err
+	}
+	return completed, nil
+}
+
+func (s *StrmService) startSync(ctx context.Context, pathID string, completed chan<- model.StrmSyncRecord, syncType ...string) error {
 	p, err := s.repo.StrmSyncPath.FindByID(ctx, pathID)
 	if err != nil || p == nil {
 		return errNotFoundOr(err, "同步目录不存在")
@@ -131,7 +145,20 @@ func (s *StrmService) StartSync(ctx context.Context, pathID string, syncType ...
 	p.LastSyncMessage = "同步进行中"
 	_ = s.repo.StrmSyncPath.Update(ctx, p)
 
-	helper.Go(s.log, "strm.sync", func() { s.runSync(runCtx, p, rec, cancel) })
+	helper.Go(s.log, "strm.sync", func() {
+		if completed != nil {
+			stopCancel := context.AfterFunc(ctx, cancel)
+			defer stopCancel()
+		}
+		helper.Run(s.log, "strm.sync.run", func() { s.runSync(runCtx, p, rec, cancel) })
+		if rec.Status == model.StrmSyncRecordRunning {
+			s.finishSync(p, rec, model.StrmSyncRecordFailed, "同步任务异常退出，请查看服务日志")
+		}
+		if completed != nil {
+			completed <- *rec
+			close(completed)
+		}
+	})
 	return nil
 }
 

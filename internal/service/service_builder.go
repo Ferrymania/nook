@@ -242,6 +242,7 @@ func (b *serviceContainerBuilder) initIdentityServices() {
 	b.c.Device.SetSessionTracker(b.c.Sessions)
 	// Telegram 通知：未启用时 Start 不会占用 goroutine，SendToUser 静默跳过。
 	b.c.Telegram = NewTelegramService(b.log, b.repos)
+	b.c.Telegram.SetStrmService(b.c.Strm)
 	b.c.Device.SetNotifier(b.c.Telegram.SendToUser)
 	b.c.Device.SetAdminNotifier(b.c.Telegram.SendToAdmin)
 	// 账号到期巡检：只负责发现与去重，发送复用同一个 Telegram 通道。

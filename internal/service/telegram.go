@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"sync"
@@ -23,8 +24,8 @@ import (
 // Telegram 通知相关的设置键。全部存在 settings 表，由管理员在「设备与通知」
 // 设置分组里维护；带安全默认值：未启用时所有发送静默跳过。
 const (
-	SettingTelegramEnabled     = "telegram.enabled"      // 总开关（默认关）
-	SettingTelegramBotToken    = "telegram.bot_token"    // Bot API Token
+	SettingTelegramEnabled     = "telegram.enabled"       // 总开关（默认关）
+	SettingTelegramBotToken    = "telegram.bot_token"     // Bot API Token
 	SettingTelegramAdminChatID = "telegram.admin_chat_id" // 管理员接收运维通知的会话 ID
 )
 
@@ -61,9 +62,8 @@ type telegramBindPending struct {
 
 // TelegramService 负责把通知发到 Telegram，并提供账号绑定。
 //
-// 范围被刻意收窄：Bot 只处理 /bind 与 /start 两条命令，不做开注、签到、
-// 兑换码等命令体系。绑定走「网页生成一次性码 → Bot 端 /bind <code>」，
-// 这样服务端不需要用户手工填写 chat id。
+// 用户通知绑定使用一次性码；同步控制仅接受系统设置里的管理员私聊 ID，
+// 不要求个人资料绑定，也不向其他用户开放管理命令。
 type TelegramService struct {
 	log  *zap.Logger
 	repo *repository.Container
@@ -80,6 +80,8 @@ type TelegramService struct {
 	client *http.Client
 	// pollClient 专用于 getUpdates 长轮询，超时须 > telegramPollTimeout。
 	pollClient *http.Client
+	strm       *StrmService
+	syncRun    *telegramSyncRun // guarded by mu; at most one Telegram batch
 }
 
 // NewTelegramService 构建 TelegramService。
@@ -230,8 +232,8 @@ func (s *TelegramService) callWithClient(ctx context.Context, client *http.Clien
 	if err != nil {
 		return err
 	}
-	url := fmt.Sprintf("%s/bot%s/%s", s.apiBase, token, method)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	endpoint := fmt.Sprintf("%s/bot%s/%s", s.apiBase, token, method)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
@@ -242,7 +244,11 @@ func (s *TelegramService) callWithClient(ctx context.Context, client *http.Clien
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		var requestError *url.Error
+		if errors.As(err, &requestError) {
+			err = requestError.Err
+		}
+		return fmt.Errorf("telegram %s: %w", method, redactSensitiveError(err))
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -389,9 +395,12 @@ func randomBindCode() (string, error) {
 
 var telegramBindCommandPattern = regexp.MustCompile(`(?i)^/bind(?:@\w+)?\s+(\S+)\s*$`)
 
-// pollLoop 长轮询 Bot 更新，只处理绑定相关的两条命令。
+// pollLoop 长轮询 Bot 更新，并按配置自动注册管理员命令菜单。
 // 当 Telegram 未启用或 Token 未配置时，休眠后继续循环以便配置变更后自动激活。
 func (s *TelegramService) pollLoop(ctx context.Context) {
+	startedAt := time.Now().Unix()
+	var previousToken, menuToken, menuAdmin string
+	var nextMenuAttempt time.Time
 	for {
 		select {
 		case <-ctx.Done():
@@ -401,10 +410,33 @@ func (s *TelegramService) pollLoop(ctx context.Context) {
 
 		cfg := s.config(ctx)
 		if !cfg.Enabled || cfg.BotToken == "" {
+			previousToken = ""
 			if !sleepCtx(ctx, telegramDisabledCheckInterval) {
 				return
 			}
 			continue
+		}
+		if cfg.BotToken != previousToken {
+			// Establish a fresh watermark before registering menus: do not
+			// replay commands or button presses queued before startup/token change.
+			if err := s.initializePolling(ctx, cfg.BotToken); err != nil {
+				s.warn("telegram poll initialization failed", "bot", err)
+				if !sleepCtx(ctx, telegramPollBackoff) {
+					return
+				}
+				continue
+			}
+			previousToken = cfg.BotToken
+			startedAt = time.Now().Unix()
+		}
+		if (cfg.BotToken != menuToken || cfg.AdminID != menuAdmin) && time.Now().After(nextMenuAttempt) {
+			if err := s.registerAdminCommands(ctx, cfg, menuToken, menuAdmin); err != nil {
+				s.warn("telegram command menu registration failed", "admin", err)
+				nextMenuAttempt = time.Now().Add(time.Minute)
+			} else {
+				menuToken, menuAdmin = cfg.BotToken, cfg.AdminID
+				nextMenuAttempt = time.Time{}
+			}
 		}
 		updates, err := s.fetchUpdates(ctx, cfg.BotToken)
 		if err != nil {
@@ -417,22 +449,68 @@ func (s *TelegramService) pollLoop(ctx context.Context) {
 			continue
 		}
 		for _, u := range updates {
-			if u.UpdateID >= s.lastUpdateID {
+			s.mu.Lock()
+			duplicate := u.UpdateID < s.lastUpdateID
+			if !duplicate {
 				s.lastUpdateID = u.UpdateID + 1
+			}
+			s.mu.Unlock()
+			if duplicate {
+				continue
+			}
+			// Commands sent while Nook was stopped must not start old sync jobs.
+			if u.Message != nil && u.Message.Date > 0 && u.Message.Date < startedAt && isTelegramControlCommand(u.Message.Text) {
+				continue
 			}
 			s.handleUpdate(ctx, cfg.BotToken, u)
 		}
 	}
 }
 
+func (s *TelegramService) initializePolling(ctx context.Context, token string) error {
+	var updates []telegramUpdate
+	if err := s.callWithClient(ctx, s.pollClient, token, "getUpdates", map[string]any{
+		"offset": -1, "timeout": 0, "allowed_updates": []string{"message", "callback_query"},
+	}, &updates); err != nil {
+		return err
+	}
+	var offset int64
+	for _, u := range updates {
+		offset = max(offset, u.UpdateID+1)
+	}
+	s.mu.Lock()
+	s.lastUpdateID = offset
+	s.mu.Unlock()
+	return nil
+}
+
 type telegramUpdate struct {
-	UpdateID int64 `json:"update_id"`
-	Message  *struct {
-		Text string `json:"text"`
-		Chat struct {
-			ID int64 `json:"id"`
-		} `json:"chat"`
-	} `json:"message"`
+	UpdateID      int64                  `json:"update_id"`
+	Message       *telegramMessage       `json:"message"`
+	CallbackQuery *telegramCallbackQuery `json:"callback_query"`
+}
+
+type telegramChat struct {
+	ID   int64  `json:"id"`
+	Type string `json:"type"`
+}
+
+type telegramSender struct {
+	ID int64 `json:"id"`
+}
+
+type telegramMessage struct {
+	Text string         `json:"text"`
+	Date int64          `json:"date"`
+	Chat telegramChat   `json:"chat"`
+	From telegramSender `json:"from"`
+}
+
+type telegramCallbackQuery struct {
+	ID      string           `json:"id"`
+	Data    string           `json:"data"`
+	From    telegramSender   `json:"from"`
+	Message *telegramMessage `json:"message"`
 }
 
 func (s *TelegramService) fetchUpdates(ctx context.Context, token string) ([]telegramUpdate, error) {
@@ -441,9 +519,8 @@ func (s *TelegramService) fetchUpdates(ctx context.Context, token string) ([]tel
 	s.mu.Unlock()
 
 	payload := map[string]any{
-		"timeout": telegramPollTimeout,
-		// 只取消息更新，避免把频道/回调查询也塞进来。
-		"allowed_updates": []string{"message"},
+		"timeout":         telegramPollTimeout,
+		"allowed_updates": []string{"message", "callback_query"},
 	}
 	if offset > 0 {
 		payload["offset"] = offset
@@ -456,6 +533,10 @@ func (s *TelegramService) fetchUpdates(ctx context.Context, token string) ([]tel
 }
 
 func (s *TelegramService) handleUpdate(ctx context.Context, token string, u telegramUpdate) {
+	if u.CallbackQuery != nil {
+		s.handleAdminCallback(ctx, token, u.CallbackQuery)
+		return
+	}
 	if u.Message == nil {
 		return
 	}
@@ -469,10 +550,21 @@ func (s *TelegramService) handleUpdate(ctx context.Context, token string, u tele
 		s.replyBind(ctx, token, chatID, match[1])
 		return
 	}
-	if strings.HasPrefix(strings.ToLower(text), "/start") {
+	command := telegramCommand(text)
+	if isTelegramControlCommand(text) || command == "/start" {
+		if s.adminControlAllowed(ctx, token, u.Message.Chat, u.Message.From.ID) {
+			s.handleAdminCommand(ctx, token, chatID, command)
+			return
+		}
+	}
+	if command == "/start" {
+		message := "Nook 通知绑定：在网页「个人资料 → Telegram 通知」生成 6 位绑定码，然后发送 <code>/bind 绑定码</code>。"
+		if u.Message.Chat.Type == "private" {
+			message += "\n\n当前私聊 Chat ID：<code>" + chatID + "</code>。管理员可将此 ID 填入系统设置，使用同步控制命令。"
+		}
 		if err := s.call(ctx, token, "sendMessage", map[string]any{
 			"chat_id":    chatID,
-			"text":       "Nook 通知绑定：在网页「个人资料 → Telegram 通知」生成 6 位绑定码，然后发送 <code>/bind 绑定码</code>。",
+			"text":       message,
 			"parse_mode": "HTML",
 		}, nil); err != nil {
 			s.warn("telegram /start reply failed", chatID, err)
