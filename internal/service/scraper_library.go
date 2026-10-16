@@ -20,6 +20,9 @@ import (
 // provider round-trip for user-triggered rematches but still refreshes the
 // cache so later episodes reuse the corrected result.
 func (s *ScraperService) lookup(ctx context.Context, lib *model.Library, media *model.Media, query string, year int, bypassCache bool, failure *scrapeLookupFailure) *Match {
+	if _, bound := ctx.Value(libraryScrapeContextKey{}).(model.LibraryScrapeSettings); !bound || (lib != nil && lib.ID != "") {
+		ctx = withLibraryScrapeSettings(ctx, libraryScrapeSettings(ctx, s.repo, lib))
+	}
 	kind := ""
 	if lib != nil {
 		kind = lib.Type
@@ -39,10 +42,7 @@ func (s *ScraperService) lookup(ctx context.Context, lib *model.Library, media *
 	if media != nil {
 		season = media.SeasonNum
 	}
-	cacheKey := scrapeLookupCacheKey(kind, query, year, isTheatrical)
-	if season > 0 {
-		cacheKey += "|season:" + strconv.Itoa(season)
-	}
+	cacheKey := s.lookupSettingsCacheKey(ctx, kind, query, year, isTheatrical, season)
 	if !bypassCache {
 		if cached, ok := s.lookupCache.get(cacheKey, failure); ok {
 			return cached
@@ -57,50 +57,72 @@ func (s *ScraperService) lookup(ctx context.Context, lib *model.Library, media *
 	return match
 }
 
+func (s *ScraperService) lookupSettingsCacheKey(ctx context.Context, kind, query string, year int, theatrical bool, season int) string {
+	key := scrapeLookupCacheKey(kind, query, year, theatrical) + "|language:" + tmdbMetadataLanguage(ctx) + "|providers:" + strings.Join(scrapeProviders(ctx), ",")
+	for _, p := range scrapeProviders(ctx) {
+		cfg := s.scrapeProviderConfig(ctx, p)
+		key += "|" + p + ":" + strconv.FormatBool(cfg.Enabled) + ":" + strconv.FormatBool(cfg.APIKey != "") + ":" + cfg.BaseURL
+	}
+	if season > 0 {
+		key += "|season:" + strconv.Itoa(season)
+	}
+	return key
+}
+
 func (s *ScraperService) lookupUncached(ctx context.Context, kind string, isTheatrical bool, query string, year, season int, failure *scrapeLookupFailure) *Match {
-	if s.tmdb != nil && s.tmdb.Enabled() {
-		if match := s.lookupAutomaticTMDb(ctx, kind, query, year, season, failure); match != nil {
-			match.Provider = "tmdb"
-			return match
+	if failure == nil {
+		failure = &scrapeLookupFailure{}
+	}
+	for _, provider := range scrapeProviders(ctx) {
+		var match *Match
+		var err error
+		switch provider {
+		case "tmdb":
+			if s.tmdb == nil || !s.tmdb.Enabled() {
+				continue
+			}
+			match = s.lookupAutomaticTMDb(ctx, kind, query, year, season, failure)
+			if match == nil && !failure.ambiguous && isTheatrical {
+				match = s.lookupAutomaticTMDb(ctx, "tv", query, year, 0, failure)
+			}
+		case "douban":
+			if s.douban == nil || !s.douban.Enabled() {
+				continue
+			}
+			match, err = s.douban.SearchMatch(ctx, query)
+			if !metadataMatchCompatibleWithTheatrical(kind, isTheatrical, match) {
+				match = nil
+			}
+		case "bangumi":
+			if s.bangumi == nil || !s.bangumi.Enabled() {
+				continue
+			}
+			match, err = s.bangumi.Search(ctx, query)
+			if !metadataMatchCompatibleWithTheatrical(kind, isTheatrical, match) {
+				match = nil
+			}
+		case "thetvdb":
+			if !isTVMetadataKind(kind) || s.thetvdb == nil || !s.thetvdb.Enabled() {
+				continue
+			}
+			match, err = s.thetvdb.SearchSeries(ctx, query)
+			if !metadataMatchCompatibleWithType(kind, match) {
+				match = nil
+			}
+		default:
+			continue // Fanart augments artwork only.
 		}
-		if failure != nil && failure.ambiguous {
+		if failure.ambiguous {
 			return nil
 		}
-		if isTheatrical {
-			if match := s.lookupAutomaticTMDb(ctx, "tv", query, year, 0, failure); match != nil {
-				match.Provider = "tmdb"
-				return match
-			}
-			if failure != nil && failure.ambiguous {
-				return nil
-			}
-		}
-	}
-	if s.douban != nil && s.douban.Enabled() {
-		if m, err := s.douban.SearchMatch(ctx, query); err == nil && m != nil && metadataMatchCompatibleWithTheatrical(kind, isTheatrical, m) {
-			m.Provider = "douban"
-			return m
-		} else if err != nil {
+		if err != nil {
 			failure.requestFailed = true
-			s.log.Debug("douban search failed", zap.String("query", query), zap.Error(err))
+			s.log.Debug("metadata provider search failed", zap.String("provider", provider), zap.Error(redactSensitiveError(err)))
+			continue
 		}
-	}
-	if s.bangumi != nil && s.bangumi.Enabled() {
-		if m, err := s.bangumi.Search(ctx, query); err == nil && m != nil && metadataMatchCompatibleWithTheatrical(kind, isTheatrical, m) {
-			m.Provider = "bangumi"
-			return m
-		} else if err != nil {
-			failure.requestFailed = true
-			s.log.Debug("bangumi search failed", zap.String("query", query), zap.Error(err))
-		}
-	}
-	if (kind == "anime" || kind == "tv" || kind == "variety" || kind == "show" || kind == "shows") && s.thetvdb != nil && s.thetvdb.Enabled() {
-		if m, err := s.thetvdb.SearchSeries(ctx, query); err == nil && m != nil && metadataMatchCompatibleWithType(kind, m) {
-			m.Provider = "thetvdb"
-			return m
-		} else if err != nil {
-			failure.requestFailed = true
-			s.log.Debug("thetvdb search failed", zap.String("query", query), zap.Error(err))
+		if match != nil {
+			match.Provider = provider
+			return match
 		}
 	}
 	return nil
@@ -175,15 +197,6 @@ func (s *ScraperService) EnrichLibraryDetailedWithOptions(ctx context.Context, l
 		if s.mediaIsMatched(ctx, rows[i].ID) {
 			result.Matched++
 		}
-		if i < len(rows)-1 {
-			if delay := s.scrapeDelay(ctx); delay > 0 {
-				select {
-				case <-ctx.Done():
-					return result, ctx.Err()
-				case <-time.After(delay):
-				}
-			}
-		}
 	}
 	if err := s.enrichDeferredEpisodeDetails(ctx, rows, options); err != nil {
 		return result, err
@@ -253,8 +266,14 @@ func shouldScrapeCandidateRow(media model.Media) bool {
 }
 
 func (s *ScraperService) scrapeDelay(ctx context.Context) time.Duration {
-	minMS := s.scrapeDelaySetting(ctx, "scrape.delay_min_ms", defaultScrapeDelayMinMS)
-	maxMS := s.scrapeDelaySetting(ctx, "scrape.delay_max_ms", defaultScrapeDelayMaxMS)
+	var minMS, maxMS int
+	if settings, ok := ctx.Value(libraryScrapeContextKey{}).(model.LibraryScrapeSettings); ok {
+		minMS = settings.DelayMinMS
+		maxMS = settings.DelayMaxMS
+	} else {
+		minMS = s.scrapeDelaySetting(ctx, "scrape.delay_min_ms", defaultScrapeDelayMinMS)
+		maxMS = s.scrapeDelaySetting(ctx, "scrape.delay_max_ms", defaultScrapeDelayMaxMS)
+	}
 	if minMS < 0 {
 		minMS = 0
 	}

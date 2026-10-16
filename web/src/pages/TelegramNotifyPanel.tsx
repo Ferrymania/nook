@@ -62,6 +62,21 @@ export function TelegramNotifyPanel() {
           </span>
         )}
       </div>
+
+      <div className="border-t border-sand-200/60 pt-3 text-xs text-ink-50">
+        <h4 className="font-semibold text-ink-100">Telegram 同步控制</h4>
+        <p className="mt-1">
+          启用 Telegram 并保存 Bot Token 与管理员的私聊 Chat ID 后，会自动注册命令菜单。
+          使用这里配置的同一个 Bot，无需在个人资料中绑定。群组 Chat ID 仅接收通知，不能控制同步。
+        </p>
+        <dl className="mt-2 grid gap-1 sm:grid-cols-2">
+          <div><dt className="inline font-mono">/strm_inc</dt><dd className="ml-2 inline">全部启用目录依次增量同步</dd></div>
+          <div><dt className="inline font-mono">/sync</dt><dd className="ml-2 inline">选择目录增量同步</dd></div>
+          <div><dt className="inline font-mono">/status</dt><dd className="ml-2 inline">查看同步状态及最近结果</dd></div>
+          <div><dt className="inline font-mono">/cancel</dt><dd className="ml-2 inline">取消单个目录或本次整批同步</dd></div>
+        </dl>
+        <p className="mt-2">首次使用请先与 Bot 私聊发送 /start。同步结束后会返回目录结果和汇总，元数据下载、上传数量表示已入队。</p>
+      </div>
     </div>
   )
 }

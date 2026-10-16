@@ -13,6 +13,7 @@ func (o *OrganizerService) lookupReclassifyMetadata(ctx context.Context, media m
 	if o == nil || o.scraper == nil || !o.scraper.AnyEnabled() {
 		return nil
 	}
+	ctx = withLibraryScrapeSettings(ctx, libraryScrapeSettings(ctx, o.repo, &lib))
 	title := strings.TrimSpace(media.Title)
 	if title == "" {
 		title, _ = CleanQuery(media.Path)

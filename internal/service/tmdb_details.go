@@ -26,7 +26,7 @@ func (t *TMDbProvider) GetDetails(ctx context.Context, tmdbID int, mediaType str
 
 	q := url.Values{}
 	q.Set("api_key", apiKey)
-	q.Set("language", "zh-CN")
+	q.Set("language", tmdbMetadataLanguage(ctx))
 	q.Set("append_to_response", "genres")
 	u := base + path + "?" + q.Encode()
 

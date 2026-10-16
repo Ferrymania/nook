@@ -3,15 +3,24 @@ package model
 // Library 表示一个逻辑媒体库。Path 保留为兼容字段，指向第一条 LibraryRoot。
 type Library struct {
 	Base
-	Name            string        `gorm:"size:128;not null" json:"name"`
-	Path            string        `gorm:"size:1024;not null" json:"path"`
-	Type            string        `gorm:"size:16;not null;default:movie" json:"type"` // movie / tv / anime / music
-	CoverURL        string        `gorm:"size:1024" json:"cover_url,omitempty"`
-	Enabled         bool          `gorm:"default:true" json:"enabled"`
-	SortOrder       int           `gorm:"index;default:0" json:"sort_order"`        // 手动拖拽排序用，越小越靠前
-	CarouselEnabled bool          `gorm:"default:false" json:"carousel_enabled"`    // 是否参与首页海报轮播（默认不参与）
-	AutoProbe       bool          `gorm:"not null;default:false" json:"auto_probe"` // 刮削时按需探测技术信息（默认关闭）
-	Roots           []LibraryRoot `gorm:"foreignKey:LibraryID" json:"roots,omitempty"`
+	Name            string                 `gorm:"size:128;not null" json:"name"`
+	Path            string                 `gorm:"size:1024;not null" json:"path"`
+	Type            string                 `gorm:"size:16;not null;default:movie" json:"type"` // movie / tv / anime / music
+	CoverURL        string                 `gorm:"size:1024" json:"cover_url,omitempty"`
+	Enabled         bool                   `gorm:"default:true" json:"enabled"`
+	SortOrder       int                    `gorm:"index;default:0" json:"sort_order"`        // 手动拖拽排序用，越小越靠前
+	CarouselEnabled bool                   `gorm:"default:false" json:"carousel_enabled"`    // 是否参与首页海报轮播（默认不参与）
+	AutoProbe       bool                   `gorm:"not null;default:false" json:"auto_probe"` // 刮削时按需探测技术信息（默认关闭）
+	ScrapeSettings  *LibraryScrapeSettings `gorm:"serializer:json;type:text" json:"-"`       // nil 保留升级前的设置，首次保存后独立于其他库。
+	Roots           []LibraryRoot          `gorm:"foreignKey:LibraryID" json:"roots,omitempty"`
+}
+
+type LibraryScrapeSettings struct {
+	AutoOnScan bool     `json:"auto_on_scan"`
+	Providers  []string `json:"providers"`
+	Language   string   `json:"language"`
+	DelayMinMS int      `json:"delay_min_ms"`
+	DelayMaxMS int      `json:"delay_max_ms"`
 }
 
 // LibraryRoot 是逻辑媒体库下的一条真实物理/挂载路径。

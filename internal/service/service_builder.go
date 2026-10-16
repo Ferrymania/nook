@@ -81,6 +81,10 @@ func (b *serviceContainerBuilder) initProviderServices() {
 	b.c.TheTVDB = NewTheTVDBProvider(b.cfg, b.log)
 	b.c.Douban = NewDoubanProvider(b.cfg, b.log)
 	b.c.Fanart = NewFanartProvider(b.cfg, b.log)
+	b.c.Bangumi.apiConfig = b.c.APIConfig
+	b.c.TheTVDB.apiConfig = b.c.APIConfig
+	b.c.Douban.apiConfig = b.c.APIConfig
+	b.c.Fanart.apiConfig = b.c.APIConfig
 	b.c.RecognitionWords = NewRecognitionWordsService(b.log, b.repos)
 	b.c.Danmaku = NewDanmakuService(b.log, b.repos)
 	b.c.Reader = reader.NewReaderService(b.cfg, b.log, b.repos)
@@ -93,6 +97,7 @@ func (b *serviceContainerBuilder) initProviderServices() {
 	)
 	b.c.Scraper.SetRuntimeCache(b.c.Cache)
 	b.c.Scraper.SetDouban(b.c.Douban)
+	b.c.APIConfig.onChange = b.c.Scraper.lookupCache.clear
 }
 
 func (b *serviceContainerBuilder) configureMediaSearchBackend() {
@@ -242,6 +247,7 @@ func (b *serviceContainerBuilder) initIdentityServices() {
 	b.c.Device.SetSessionTracker(b.c.Sessions)
 	// Telegram 通知：未启用时 Start 不会占用 goroutine，SendToUser 静默跳过。
 	b.c.Telegram = NewTelegramService(b.log, b.repos)
+	b.c.Telegram.SetStrmService(b.c.Strm)
 	b.c.Device.SetNotifier(b.c.Telegram.SendToUser)
 	b.c.Device.SetAdminNotifier(b.c.Telegram.SendToAdmin)
 	// 账号到期巡检：只负责发现与去重，发送复用同一个 Telegram 通道。

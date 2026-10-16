@@ -17,45 +17,53 @@ func (s *ScraperService) matchFromMediaExternalIDs(ctx context.Context, m *model
 	if lib != nil {
 		mediaType = lib.Type
 	}
-	if m.TMDbID > 0 {
+	if m.TMDbID > 0 && scrapeProviderSelected(ctx, "tmdb") {
 		if mediaIsEpisodic(m, lib) {
 			mediaType = "tv"
 		}
 		if match := s.manualTMDbMatchByID(ctx, m.TMDbID, normalizeMediaType(mediaType, m.Title, "")); match != nil {
 			if s.mediaExternalIDMatchTrusted(m, lib, match, "tmdb") {
 				match.Provider = "tmdb"
-				preferExistingLocalizedEpisodeTitle(m, lib, match)
+				if chineseMetadataLanguage(ctx) {
+					preferExistingLocalizedEpisodeTitle(m, lib, match)
+				}
 				return match
 			}
 		}
 	}
-	if strings.TrimSpace(m.DoubanID) != "" && s.douban != nil && s.douban.Enabled() {
+	if scrapeProviderSelected(ctx, "douban") && strings.TrimSpace(m.DoubanID) != "" && s.douban != nil && s.douban.Enabled() {
 		if match, err := s.douban.GetMatchByID(ctx, strings.TrimSpace(m.DoubanID)); err == nil && match != nil {
 			if s.mediaExternalIDMatchTrusted(m, lib, match, "douban") {
 				match.Provider = "douban"
-				preferExistingLocalizedEpisodeTitle(m, lib, match)
+				if chineseMetadataLanguage(ctx) {
+					preferExistingLocalizedEpisodeTitle(m, lib, match)
+				}
 				return match
 			}
 		} else if err != nil {
 			s.log.Debug("douban id lookup failed", zap.String("media_id", m.ID), zap.String("douban_id", m.DoubanID), zap.Error(err))
 		}
 	}
-	if m.BangumiID > 0 && s.bangumi != nil && s.bangumi.Enabled() {
+	if scrapeProviderSelected(ctx, "bangumi") && m.BangumiID > 0 && s.bangumi != nil && s.bangumi.Enabled() {
 		if match, err := s.bangumi.GetSubject(ctx, m.BangumiID); err == nil && match != nil {
 			if s.mediaExternalIDMatchTrusted(m, lib, match, "bangumi") {
 				match.Provider = "bangumi"
-				preferExistingLocalizedEpisodeTitle(m, lib, match)
+				if chineseMetadataLanguage(ctx) {
+					preferExistingLocalizedEpisodeTitle(m, lib, match)
+				}
 				return match
 			}
 		} else if err != nil {
 			s.log.Debug("bangumi id lookup failed", zap.String("media_id", m.ID), zap.Int("bangumi_id", m.BangumiID), zap.Error(err))
 		}
 	}
-	if strings.TrimSpace(m.TheTVDBID) != "" && s.thetvdb != nil && s.thetvdb.Enabled() {
+	if scrapeProviderSelected(ctx, "thetvdb") && strings.TrimSpace(m.TheTVDBID) != "" && s.thetvdb != nil && s.thetvdb.Enabled() {
 		if match, err := s.thetvdb.GetSeriesMatchByID(ctx, strings.TrimSpace(m.TheTVDBID)); err == nil && match != nil {
 			if s.mediaExternalIDMatchTrusted(m, lib, match, "thetvdb") {
 				match.Provider = "thetvdb"
-				preferExistingLocalizedEpisodeTitle(m, lib, match)
+				if chineseMetadataLanguage(ctx) {
+					preferExistingLocalizedEpisodeTitle(m, lib, match)
+				}
 				return match
 			}
 		} else if err != nil {
@@ -164,7 +172,7 @@ func preferExistingLocalizedEpisodeTitle(m *model.Media, lib *model.Library, mat
 }
 
 func (s *ScraperService) applyFanartArtwork(ctx context.Context, match *Match) {
-	if s == nil || s.fanart == nil || !s.fanart.Enabled() || match == nil {
+	if !scrapeProviderSelected(ctx, "fanart") || s == nil || s.fanart == nil || !s.fanart.Enabled() || match == nil {
 		return
 	}
 	apply := func(a *Artwork) {

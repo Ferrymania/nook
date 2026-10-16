@@ -86,7 +86,6 @@ export function useAutoOrganizeSettings({ onScrapeAfterChange }: UseAutoOrganize
     running,
     loading,
     activeTab,
-    refresh,
     save,
     runNow,
     setActiveTab,

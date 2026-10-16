@@ -76,11 +76,15 @@ export function APIConfigsPanel() {
                       {item.has_key ? (
                         <span className="text-brand-500">{item.masked_key}</span>
                       ) : (
-                        <span className="text-gray-500">未配置</span>
+                        <span className="text-gray-500">{item.provider === 'bangumi' ? 'Token 可选' : item.provider === 'douban' ? 'Cookie 可选' : '未配置'}</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {item.has_key ? (
+                      {!item.enabled ? (
+                        <span className="rounded-full bg-sand-300/40 px-2 py-0.5 text-xs text-sand-500">全局已关闭</span>
+                      ) : !item.has_key && ['bangumi', 'douban'].includes(item.provider) ? (
+                        <span className="rounded-full bg-emerald-400/10 px-2 py-0.5 text-xs text-emerald-600">可匿名使用</span>
+                      ) : item.has_key ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 px-2 py-0.5 text-xs text-emerald-400">
                           已配置
                         </span>
@@ -176,11 +180,11 @@ function EditingRow({
         <form onSubmit={submit} className="flex flex-wrap items-end gap-3">
           <span className="text-sm font-medium text-ink-600">{item.provider}</span>
           <label className="flex-1 text-xs text-ink-50">
-            API Key
+            {item.provider === 'bangumi' ? 'Access Token（可选）' : item.provider === 'douban' ? 'Cookie（可选）' : 'API Key'}
             <input
               className="input-base mt-1"
               type="password"
-              placeholder={item.has_key ? '•••••••••••• (留空保留原值)' : '输入密钥'}
+              placeholder={item.has_key ? '•••••••••••• (留空保留原值)' : ['bangumi', 'douban'].includes(item.provider) ? '留空匿名使用' : '输入密钥'}
               value={apiKey}
               onChange={(e) => setAPIKey(e.target.value)}
             />
@@ -200,7 +204,7 @@ function EditingRow({
               checked={enabled}
               onChange={(e) => setEnabled(e.target.checked)}
             />
-            启用
+            全局启用
           </label>
           <button type="submit" disabled={saving} className="neon-button !px-3 !py-1.5 !text-xs">
             <Save size={12} /> 保存

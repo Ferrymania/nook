@@ -26,9 +26,10 @@ import (
 
 // FanartProvider talks to https://webservice.fanart.tv.
 type FanartProvider struct {
-	cfg    *config.Config
-	log    *zap.Logger
-	client *http.Client
+	cfg       *config.Config
+	log       *zap.Logger
+	client    *http.Client
+	apiConfig *APIConfigService
 }
 
 // NewFanartProvider is the constructor.
@@ -41,7 +42,10 @@ func NewFanartProvider(cfg *config.Config, log *zap.Logger) *FanartProvider {
 }
 
 // Enabled reports whether an API key is configured.
-func (f *FanartProvider) Enabled() bool { return f.cfg.Secrets.FanartAPIKey != "" }
+func (f *FanartProvider) Enabled() bool {
+	cfg := f.runtimeConfig(context.Background())
+	return cfg.Enabled && cfg.APIKey != ""
+}
 
 // Artwork is the high-res image set returned by Fanart.tv.
 type Artwork struct {
@@ -66,8 +70,8 @@ func (f *FanartProvider) MovieArtwork(ctx context.Context, tmdbID int) (*Artwork
 		HDLogo      []entry `json:"hdmovielogo"`
 		MovieThumb  []entry `json:"moviethumb"`
 	}
-	u := fmt.Sprintf("https://webservice.fanart.tv/v3/movies/%d?api_key=%s",
-		tmdbID, f.cfg.Secrets.FanartAPIKey)
+	cfg := f.runtimeConfig(ctx)
+	u := fmt.Sprintf("%s/movies/%d?api_key=%s", cfg.BaseURL, tmdbID, cfg.APIKey)
 	var p page
 	if err := f.getJSON(ctx, u, &p); err != nil {
 		return nil, err
@@ -104,8 +108,8 @@ func (f *FanartProvider) TVArtwork(ctx context.Context, theTVDBID string) (*Artw
 		ClearLogo []entry `json:"clearlogo"`
 		TVThumb   []entry `json:"tvthumb"`
 	}
-	u := fmt.Sprintf("https://webservice.fanart.tv/v3/tv/%s?api_key=%s",
-		theTVDBID, f.cfg.Secrets.FanartAPIKey)
+	cfg := f.runtimeConfig(ctx)
+	u := fmt.Sprintf("%s/tv/%s?api_key=%s", cfg.BaseURL, theTVDBID, cfg.APIKey)
 	var p page
 	if err := f.getJSON(ctx, u, &p); err != nil {
 		return nil, err
@@ -129,6 +133,9 @@ func (f *FanartProvider) TVArtwork(ctx context.Context, theTVDBID string) (*Artw
 }
 
 func (f *FanartProvider) getJSON(ctx context.Context, u string, out any) error {
+	if cfg := f.runtimeConfig(ctx); !cfg.Enabled || cfg.APIKey == "" {
+		return fmt.Errorf("Fanart API 未配置或已关闭")
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
 		return err

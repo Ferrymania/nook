@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"strings"
-	"time"
 
 	"go.uber.org/zap"
 
@@ -139,19 +138,17 @@ func (s *ScraperService) enrichDeferredEpisodeDetails(ctx context.Context, rows 
 		if !mediaIsEpisodic(media, lib) {
 			continue
 		}
-		if s.fetchAndSaveTMDbEpisodeDetails(ctx, media, media.TMDbID, media.Year, options) {
+		episodeCtx := withLibraryScrapeSettings(ctx, libraryScrapeSettings(ctx, s.repo, lib))
+		if !scrapeProviderSelected(episodeCtx, "tmdb") {
+			continue
+		}
+		if err := s.waitScrapeTurn(episodeCtx); err != nil {
+			return err
+		}
+		if s.fetchAndSaveTMDbEpisodeDetails(episodeCtx, media, media.TMDbID, media.Year, options) {
 			s.writeMediaNFOAfterScrape(ctx, media, lib)
 			s.writeMediaArtworkFilesAfterScrape(ctx, media, lib)
 			s.invalidateMediaCache(ctx)
-		}
-		if i < len(rows)-1 {
-			if delay := s.scrapeDelay(ctx); delay > 0 {
-				select {
-				case <-ctx.Done():
-					return ctx.Err()
-				case <-time.After(delay):
-				}
-			}
 		}
 	}
 	return nil

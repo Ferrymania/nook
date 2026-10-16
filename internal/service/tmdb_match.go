@@ -17,7 +17,7 @@ func (t *TMDbProvider) GetMovieMatch(ctx context.Context, tmdbID int) (*Match, e
 	base := t.resolveBaseURL(ctx)
 	q := url.Values{}
 	q.Set("api_key", apiKey)
-	q.Set("language", "zh-CN")
+	q.Set("language", tmdbMetadataLanguage(ctx))
 	q.Set("append_to_response", "alternative_titles,translations")
 	u := base + "/movie/" + fmt.Sprint(tmdbID) + "?" + q.Encode()
 	var r struct {
@@ -61,7 +61,11 @@ func (t *TMDbProvider) GetMovieMatch(ctx context.Context, tmdbID int) (*Match, e
 	if m.Title == "" {
 		m.Title = r.OriginalTitle
 	}
+	localizedTitle := m.Title
 	applyTMDbChineseTitle(m, r.AlternativeTitles.Titles, r.Translations.Translations)
+	if tmdbMetadataLanguage(ctx) != "zh-CN" {
+		m.Title = localizedTitle
+	}
 	if r.PosterPath != "" {
 		m.PosterURL = t.imgCDN + "/w500" + r.PosterPath
 	}
@@ -98,7 +102,7 @@ func (t *TMDbProvider) GetTVMatch(ctx context.Context, tmdbID int) (*Match, erro
 	base := t.resolveBaseURL(ctx)
 	q := url.Values{}
 	q.Set("api_key", apiKey)
-	q.Set("language", "zh-CN")
+	q.Set("language", tmdbMetadataLanguage(ctx))
 	q.Set("append_to_response", "alternative_titles,translations")
 	u := base + "/tv/" + fmt.Sprint(tmdbID) + "?" + q.Encode()
 	var r struct {

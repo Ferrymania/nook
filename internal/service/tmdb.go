@@ -66,59 +66,26 @@ func NewTMDbProvider(cfg *config.Config, log *zap.Logger, apiConfig *APIConfigSe
 // Enabled reports whether the operator has supplied an API key.
 // It checks both the config file and the database (via apiConfig).
 func (t *TMDbProvider) Enabled() bool {
-	// Fast path: check config
-	if t.cfg.Secrets.TMDbAPIKey != "" {
-		return true
-	}
-	// Secondary check: if we have apiConfig, the key might be in the database
-	// We can't query the database here (no ctx), so we rely on the caller
-	// to check properly before making API calls.
-	// The actual key resolution happens in resolveAPIKey(ctx).
-	return t.apiConfig != nil
+	cfg := t.runtimeConfig(context.Background())
+	return cfg.Enabled && cfg.APIKey != ""
 }
 
-// resolveAPIKey returns the TMDb API key, checking config first, then database.
 func (t *TMDbProvider) resolveAPIKey(ctx context.Context) string {
-	// Check config first (fast path)
-	if t.cfg.Secrets.TMDbAPIKey != "" {
-		t.log.Debug("tmdb: using API key from config file")
-		return t.cfg.Secrets.TMDbAPIKey
+	cfg := t.runtimeConfig(ctx)
+	if !cfg.Enabled {
+		return ""
 	}
-	// Fall back to database
-	if t.apiConfig != nil {
-		resolved, err := t.apiConfig.Resolve(ctx, "tmdb")
-		if err != nil {
-			t.log.Warn("tmdb: failed to resolve API key from database", zap.Error(err))
-		} else if resolved.APIKey == "" {
-			t.log.Warn("tmdb: API key is empty in database")
-		} else {
-			t.log.Debug("tmdb: using API key from database")
-			return resolved.APIKey
-		}
-	} else {
-		t.log.Warn("tmdb: apiConfig is nil, cannot resolve API key from database")
-	}
-	return ""
+	return cfg.APIKey
 }
 
-// resolveBaseURL returns the TMDb base URL, checking config first, then database.
 func (t *TMDbProvider) resolveBaseURL(ctx context.Context) string {
-	// Check config first
-	base := t.cfg.Secrets.TMDbAPIProxy
-	if base == "" {
-		base = "https://api.themoviedb.org/3"
-	}
-	// Override from database if available
-	if t.apiConfig != nil {
-		resolved, err := t.apiConfig.Resolve(ctx, "tmdb")
-		if err == nil && resolved.BaseURL != "" {
-			base = resolved.BaseURL
-		}
-	}
-	return base
+	return t.runtimeConfig(ctx).BaseURL
 }
 
 func (t *TMDbProvider) getJSON(ctx context.Context, url string, out any) error {
+	if !t.runtimeConfig(ctx).Enabled {
+		return fmt.Errorf("TMDb 已在系统设置中关闭")
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return err

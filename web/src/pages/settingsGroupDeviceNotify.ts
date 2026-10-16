@@ -14,7 +14,7 @@ export const deviceNotifySettingsGroup: SettingGroup = {
       label: '启用 Telegram 通知',
       type: 'toggle',
       defaultValue: 'false',
-      hint: '总开关。关闭时所有通知静默跳过，不影响任何业务流程。',
+      hint: '通知与同步控制的总开关。关闭后不再发送通知或接收管理命令，已有同步任务按原流程结束。',
     },
     {
       key: 'telegram.bot_token',
@@ -28,7 +28,7 @@ export const deviceNotifySettingsGroup: SettingGroup = {
       label: '管理员 Chat ID',
       type: 'text',
       placeholder: '例如 123456789',
-      hint: '接收运维通知（任务失败、设备策略动作）的会话 ID。可先用 Bot 给管理员发消息，再从日志或 getUpdates 获取。',
+      hint: '接收运维通知，并授权此私聊控制同步。先与 Bot 私聊发送 /start 获取 Chat ID。填写群组 ID 时仅接收通知，不开放同步控制。',
     },
     {
       key: 'device.antishare_enabled',

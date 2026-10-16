@@ -3,19 +3,8 @@ import type { SettingGroup } from './settingsGroupTypes'
 export const generalSettingsGroup: SettingGroup = {
   key: 'general',
   label: '常规',
-  description: '语言 / 转码引擎参数（API 密钥请在管理后台 → 外部API 配置）',
+  description: '播放 / 转码引擎 / 缓存参数；刮削设置请进入对应媒体库',
   items: [
-    {
-      key: 'tmdb.language',
-      label: 'TMDb 元数据语言',
-      type: 'select',
-      options: [
-        { value: 'zh-CN', label: '简体中文' },
-        { value: 'zh-TW', label: '繁体中文' },
-        { value: 'en-US', label: 'English' },
-        { value: 'ja-JP', label: '日本語' },
-      ],
-    },
     {
       key: 'playback.direct_only',
       label: '客户端直连解码（释放宿主机资源）',

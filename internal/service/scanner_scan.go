@@ -226,7 +226,7 @@ func (s *ScannerService) finishLocalLibraryScan(ctx context.Context, lib *model.
 	})
 	s.invalidateMediaCache(ctx)
 
-	if scanHasImportChanges(res) && autoScrape && s.scraper != nil && s.scraper.AnyEnabled() && s.autoScrapeEnabled(ctx) {
+	if scanHasImportChanges(res) && autoScrape && s.scraper != nil && s.scraper.AnyEnabled() && s.autoScrapeEnabled(ctx, lib) {
 		s.startAutoScrape(ctx, lib.ID)
 	}
 }
@@ -263,6 +263,14 @@ func (s *ScannerService) IngestPath(ctx context.Context, libraryID, path string)
 	s.ingestFile(ctx, lib, root, path, fi.Size(), make(map[string]string), nil, nil, res)
 	if res.Added+res.Updated > 0 {
 		s.invalidateMediaCache(ctx)
+		if s.scraper != nil && s.autoScrapeEnabled(ctx, lib) {
+			var media model.Media
+			if err := s.repo.DB.WithContext(ctx).Select("id", "scrape_status").Where("library_id = ? AND path = ?", lib.ID, path).First(&media).Error; err == nil && (media.ScrapeStatus == "pending" || media.ScrapeStatus == "") {
+				if _, err := s.scraper.EnqueueMedia(ctx, media.ID, skipEpisodeArtworkOptions(false)); err != nil {
+					s.log.Warn("queue scrape after incremental ingest failed", zap.String("media_id", media.ID), zap.Error(err))
+				}
+			}
+		}
 	}
 	return res.Added+res.Updated > 0, nil
 }

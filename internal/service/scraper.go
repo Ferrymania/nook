@@ -24,6 +24,10 @@ func (s *ScraperService) EnrichOneWithOptions(ctx context.Context, m *model.Medi
 	if err != nil {
 		return err
 	}
+	ctx = withLibraryScrapeSettings(ctx, libraryScrapeSettings(ctx, s.repo, lib))
+	if err := s.waitScrapeTurn(ctx); err != nil {
+		return err
+	}
 	// 管理员开启自动探测后，在同一个刮削工作协程中补齐技术信息。
 	// 影片未匹配也可以探测，探测失败不会改变已保存的影片匹配结果。
 	defer s.probeAfterScrape(ctx, m, lib)
@@ -102,7 +106,9 @@ func (s *ScraperService) EnrichOneWithOptions(ctx context.Context, m *model.Medi
 				zap.String("thetvdb_id", candidateMatch.TheTVDBID))
 			continue
 		}
-		preferLocalizedSearchTitle(candidate, candidateMatch)
+		if chineseMetadataLanguage(ctx) {
+			preferLocalizedSearchTitle(candidate, candidateMatch)
+		}
 		match = candidateMatch
 		if match != nil {
 			break
@@ -116,6 +122,9 @@ func (s *ScraperService) EnrichOneWithOptions(ctx context.Context, m *model.Medi
 				options.recordProvider("local")
 			}
 			return err
+		}
+		if !s.onlineScrapeAvailable(ctx) && (s.adult == nil || !s.adult.Enabled()) {
+			return errNoScrapeProvider
 		}
 		if err := s.repo.DB.WithContext(ctx).Model(&model.Media{}).Where("id = ?", m.ID).
 			Update("scrape_status", "no_match").Error; err != nil {

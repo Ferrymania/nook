@@ -57,6 +57,10 @@ func (s *ScraperService) ApplyManualMatchWithOptions(ctx context.Context, mediaI
 		return nil, errors.New("media not found")
 	}
 	lib, _ := s.repo.Library.FindByID(ctx, media.LibraryID)
+	ctx = withLibraryScrapeSettings(ctx, libraryScrapeSettings(ctx, s.repo, lib))
+	if err := s.waitScrapeTurn(ctx); err != nil {
+		return nil, err
+	}
 	match, err := s.manualRequestMatch(ctx, req)
 	if err != nil {
 		return nil, err

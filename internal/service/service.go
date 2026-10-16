@@ -110,11 +110,6 @@ func (c *Container) Boot() {
 	// 启动调度器定时任务
 	c.Scheduler.Start(c.stopCtx)
 
-	// Telegram 通知轮询（未启用或未配置 Token 时直接返回）
-	if c.Telegram != nil {
-		c.Telegram.Start(c.stopCtx)
-	}
-
 	// 远程 Emby 挂载兼容迁移：清理已删账号的残留挂载；旧账号无挂载时自动全量挂载
 	if c.EmbyRemote != nil {
 		c.EmbyRemote.CleanupOrphanMounts(c.stopCtx)
@@ -124,6 +119,10 @@ func (c *Container) Boot() {
 	// STRM 元数据下载/上传队列与定时同步巡检
 	if c.Strm != nil {
 		c.Strm.Start(c.stopCtx)
+	}
+	// 同步引擎初始化后再接收 Telegram 管理命令。
+	if c.Telegram != nil {
+		c.Telegram.Start(c.stopCtx)
 	}
 
 	// 启动刮削队列后台消费者

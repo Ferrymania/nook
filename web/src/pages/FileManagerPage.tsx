@@ -99,7 +99,6 @@ export function FileManagerPage() {
         loading={autoOrganize.loading}
         saving={autoOrganize.saving}
         running={autoOrganize.running}
-        onRefresh={autoOrganize.refresh}
         onSave={() => void autoOrganize.save()}
         onRunNow={autoOrganize.runNow}
         onTabChange={autoOrganize.setActiveTab}

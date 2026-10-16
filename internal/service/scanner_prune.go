@@ -247,7 +247,10 @@ func (s *ScannerService) pruneMissingCloudMediaForLibraries(ctx context.Context,
 	return s.deleteMediaByIDs(ctx, stale, true)
 }
 
-func (s *ScannerService) autoScrapeEnabled(ctx context.Context) bool {
+func (s *ScannerService) autoScrapeEnabled(ctx context.Context, libraries ...*model.Library) bool {
+	if len(libraries) > 0 {
+		return libraryScrapeSettings(ctx, s.repo, libraries[0]).AutoOnScan
+	}
 	if s.repo == nil || s.repo.Setting == nil {
 		return false
 	}

@@ -24,9 +24,10 @@ import (
 
 // APIConfigService coordinates third-party API key storage.
 type APIConfigService struct {
-	log    *zap.Logger
-	repo   *repository.Container
-	crypto *CryptoService
+	log      *zap.Logger
+	repo     *repository.Container
+	crypto   *CryptoService
+	onChange func()
 }
 
 // NewAPIConfigService is the constructor.
@@ -109,6 +110,7 @@ func (s *APIConfigService) Get(ctx context.Context, provider string) (*PublicVie
 // client. Empty struct (with no error) when the provider is unknown or
 // the API key is empty.
 type Resolved struct {
+	Found   bool
 	APIKey  string
 	BaseURL string
 	Extra   string
@@ -128,6 +130,7 @@ func (s *APIConfigService) Resolve(ctx context.Context, provider string) (Resolv
 		return Resolved{}, nil
 	}
 	resolved := Resolved{
+		Found:   true,
 		APIKey:  s.crypto.Decrypt(row.APIKey),
 		BaseURL: row.BaseURL,
 		Extra:   row.Extra,
@@ -198,6 +201,9 @@ func (s *APIConfigService) Update(ctx context.Context, provider string, patch AP
 		}
 	}
 	row, _ = s.findByProvider(ctx, provider)
+	if s.onChange != nil {
+		s.onChange()
+	}
 	v := s.toPublic(row)
 	return &v, nil
 }
@@ -209,10 +215,14 @@ func (s *APIConfigService) Delete(ctx context.Context, provider string) error {
 	if err != nil || row == nil {
 		return err
 	}
-	return s.repo.DB.WithContext(ctx).
+	err = s.repo.DB.WithContext(ctx).
 		Model(&model.APIConfig{}).
 		Where("id = ?", row.ID).
 		Update("api_key", "").Error
+	if err == nil && s.onChange != nil {
+		s.onChange()
+	}
+	return err
 }
 
 func (s *APIConfigService) findByProvider(ctx context.Context, provider string) (*model.APIConfig, error) {
