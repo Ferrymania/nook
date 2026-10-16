@@ -215,13 +215,13 @@ func (e *EmbyService) SimilarItems(ctx context.Context, mediaID, userID string, 
 	// 新建库或换用户都会因为键名不同而自然隔离。
 	cacheKey := e.embySimilarCacheKey(mediaID, userID, limit)
 	if e.cache != nil {
-		var cached map[string]any
-		if e.cache.GetJSON(ctx, cacheKey, &cached) && cached != nil {
-			if _, ok := cached["Items"]; ok {
-				return cached, nil
-			}
+		var cached embyItemsCacheValue
+		if e.cache.GetJSON(ctx, cacheKey, &cached) && cached.Items != nil {
+			e.rememberArtworkRefs(cached.Artwork)
+			return map[string]any{"Items": cached.Items, "TotalRecordCount": cached.TotalRecordCount}, nil
 		}
 	}
+	ctx = e.withPayloadCache(ctx)
 
 	// Bug 2 fix: resolve virtual series IDs (msgo-series-*) and real series
 	// table IDs to a representative episode so SimilarCandidates (which calls
@@ -259,9 +259,13 @@ func (e *EmbyService) SimilarItems(ctx context.Context, mediaID, userID string, 
 	if err != nil {
 		return nil, err
 	}
-	// Bug 3 fix: use payloadsForMedia which attaches the request-scoped payload
-	// cache (withPayloadCache + prefetchPayloadCache) to avoid N+1 DB queries.
-	items, err := e.payloadsForMedia(ctx, rows, userID)
+	var items []map[string]any
+	var artwork map[string]embyArtworkRef
+	if len(rows) > 0 && mediaIsEpisode(&rows[0]) {
+		items, artwork, err = e.similarSeriesItems(ctx, rows, userID)
+	} else {
+		items, err = e.payloadsForMedia(ctx, rows, userID)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -270,7 +274,9 @@ func (e *EmbyService) SimilarItems(ctx context.Context, mediaID, userID string, 
 		"TotalRecordCount": int64(len(items)),
 	}
 	if e.cache != nil {
-		e.cache.SetJSON(ctx, cacheKey, out, embySimilarCacheTTL)
+		e.cache.SetJSON(ctx, cacheKey, embyItemsCacheValue{
+			Items: items, TotalRecordCount: int64(len(items)), Artwork: artwork,
+		}, embySimilarCacheTTL)
 	}
 	return out, nil
 }

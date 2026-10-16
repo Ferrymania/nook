@@ -424,16 +424,18 @@ func (s *MediaDiscoveryService) SimilarCandidates(ctx context.Context, mediaID s
 	if err != nil {
 		return nil, err
 	}
-	if len(pool) < limit {
+	rows := rankSimilar(source, pool, limit)
+	if len(rows) < limit {
 		// 同库不够时再扩到同类型库，保持「电影配电影、剧集配剧集」的直觉。
 		more, err := s.similarPool(ctx, filter, source, true)
 		if err != nil {
 			return nil, err
 		}
 		pool = append(pool, more...)
+		rows = rankSimilar(source, pool, limit)
 	}
 
-	return rankSimilar(source, pool, limit), nil
+	return rows, nil
 }
 
 // similarPool 取一批候选。expand=true 时排除源所在的库（用于补齐阶段），
@@ -543,12 +545,22 @@ func rankSimilar(source *model.Media, pool []model.Media, limit int) []model.Med
 		return scoredRows[i].media.Title < scoredRows[j].media.Title
 	})
 
-	if len(scoredRows) > limit {
-		scoredRows = scoredRows[:limit]
-	}
 	out := make([]model.Media, 0, len(scoredRows))
+	seenSeries := make(map[string]bool)
 	for _, row := range scoredRows {
+		// Rank first, then keep the best candidate per show before applying Limit.
+		// Different episodes/seasons must not consume separate recommendation slots.
+		if mediaIsEpisode(&row.media) {
+			key := seriesGroupKey(&row.media)
+			if seenSeries[key] {
+				continue
+			}
+			seenSeries[key] = true
+		}
 		out = append(out, row.media)
+		if len(out) >= limit {
+			break
+		}
 	}
 	return out
 }

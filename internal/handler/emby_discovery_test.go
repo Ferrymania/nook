@@ -237,6 +237,9 @@ func TestEmbySimilarReturnsCandidates(t *testing.T) {
 	if name, _ := items[0]["Name"].(string); name != "同类片" {
 		t.Fatalf("Name = %q, want 同类片", name)
 	}
+	if items[0]["Type"] != "Movie" || items[0]["Id"] != other.ID {
+		t.Fatalf("movie recommendations must remain individual movie items: %#v", items[0])
+	}
 }
 
 // Genres 必须返回真实类型与计数。
