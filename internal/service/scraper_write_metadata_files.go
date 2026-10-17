@@ -12,15 +12,13 @@ import (
 	"github.com/Ferrymania/nook/internal/model"
 )
 
-// writeMediaArtworkFilesAfterScrape downloads the scraped poster/backdrop into
-// the media folder as Jellyfin/Emby sidecars (<base>-poster.jpg /
-// <base>-backdrop.jpg), scoped by the media file's base name so multiple movies
-// sharing one directory never overwrite each other's artwork.
+// Movies retain base-scoped sidecars. Episodes share content-addressed show
+// artwork; only their individual stills are written beside each episode.
 //
 // Cloud media (cloud:// paths) are skipped entirely — the media folder is not
 // writable for cloud mounts, and sidecars would be meaningless. Mirrors the
 // local/cloud gating used by writeMediaNFOAfterScrape.
-func (s *ScraperService) writeMediaArtworkFilesAfterScrape(ctx context.Context, m *model.Media, lib *model.Library) {
+func (s *ScraperService) writeMediaArtworkFilesAfterScrape(ctx context.Context, m *model.Media, lib *model.Library, options ScrapeOptions) {
 	if s == nil || s.images == nil || m == nil {
 		return
 	}
@@ -33,6 +31,10 @@ func (s *ScraperService) writeMediaArtworkFilesAfterScrape(ctx context.Context, 
 	// before invoking this).
 	refreshed, err := s.repo.Media.FindByID(ctx, m.ID)
 	if err != nil || refreshed == nil {
+		return
+	}
+	if usesSharedSeriesArtwork(refreshed, lib) {
+		s.writeSharedSeriesArtwork(ctx, refreshed, options)
 		return
 	}
 	dir := filepath.Dir(resolveMappedDestinationPath(refreshed.Path))
@@ -104,6 +106,20 @@ func shouldCropAdultPoster(media *model.Media, lib *model.Library) bool {
 // downloadArtworkToPathWithOptions fetches an artwork URL via the image proxy cache and
 // writes it under dir/<name>.<ext>. For adult posters, it crops the right half of the cover.
 func (s *ScraperService) downloadArtworkToPathWithOptions(ctx context.Context, dir, name, raw string, cropAdultPoster bool) string {
+	data, ctype := s.loadArtworkData(ctx, raw)
+	if len(data) == 0 {
+		return ""
+	}
+	if cropAdultPoster {
+		if cropped, croppedType, err := CropAdultCoverPoster(data); err == nil && len(cropped) > 0 {
+			data = cropped
+			ctype = croppedType
+		}
+	}
+	return s.writeArtworkDataToPath(dir, name, ctype, data)
+}
+
+func (s *ScraperService) loadArtworkData(ctx context.Context, raw string) ([]byte, string) {
 	var (
 		data  []byte
 		ctype string
@@ -118,17 +134,16 @@ func (s *ScraperService) downloadArtworkToPathWithOptions(ctx context.Context, d
 			ctype = detectContentType(data)
 		}
 	default:
-		return ""
+		return nil, ""
 	}
 	if err != nil || len(data) == 0 {
 		s.log.Warn("scrape artwork download failed",
-			zap.String("name", name),
 			zap.String("url", redactSensitiveURL(raw)),
 			zap.Error(redactSensitiveError(err)))
-		return ""
+		return nil, ""
 	}
 	if !isImageContentType(ctype) || isTransparentPlaceholderData(data) {
-		return ""
+		return nil, ""
 	}
 	// Upstreams sometimes report non-standard values such as image/jpg.
 	// Use the decoded bytes as the source of truth so sidecars receive a
@@ -136,13 +151,7 @@ func (s *ScraperService) downloadArtworkToPathWithOptions(ctx context.Context, d
 	if detected := detectContentType(data); isImageContentType(detected) {
 		ctype = detected
 	}
-	if cropAdultPoster {
-		if cropped, croppedType, err := CropAdultCoverPoster(data); err == nil && len(cropped) > 0 {
-			data = cropped
-			ctype = croppedType
-		}
-	}
-	return s.writeArtworkDataToPath(dir, name, ctype, data)
+	return data, ctype
 }
 
 // writeArtworkDataToPath writes in-memory artwork bytes to dir/<name>.<ext>

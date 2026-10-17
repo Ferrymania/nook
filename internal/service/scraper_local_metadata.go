@@ -191,7 +191,7 @@ func isCloudMediaPath(value string) bool {
 	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(value)), "cloud://")
 }
 
-func (s *ScraperService) applyLocalMetadataMatch(ctx context.Context, m *model.Media, local *LocalMetadata) error {
+func (s *ScraperService) applyLocalMetadataMatch(ctx context.Context, m *model.Media, local *LocalMetadata, options ScrapeOptions) error {
 	next := *m
 	applyLocalMetadata(&next, local)
 	status := "matched"
@@ -264,7 +264,7 @@ func (s *ScraperService) applyLocalMetadataMatch(ctx context.Context, m *model.M
 	if m != nil && s.repo != nil && s.repo.Library != nil {
 		lib, _ = s.repo.Library.FindByID(ctx, m.LibraryID)
 	}
-	s.writeMediaArtworkFilesAfterScrape(ctx, m, lib)
+	s.writeMediaArtworkFilesAfterScrape(ctx, m, lib, options)
 	s.invalidateMediaCache(ctx)
 	s.hub.Publish("scrape", map[string]any{
 		"media_id":  m.ID,
