@@ -18,6 +18,18 @@ import (
 
 // Item 单条目详情。
 func (e *EmbyService) Item(ctx context.Context, mediaID, userID string) (map[string]any, error) {
+	item, err := e.item(ctx, mediaID, userID)
+	if err != nil || item == nil {
+		return item, err
+	}
+	items, err := e.withFolderUserData(ctx, userID, []map[string]any{item})
+	if err != nil {
+		return nil, err
+	}
+	return items[0], nil
+}
+
+func (e *EmbyService) item(ctx context.Context, mediaID, userID string) (map[string]any, error) {
 	if e == nil {
 		return nil, nil
 	}
@@ -116,6 +128,14 @@ func (e *EmbyService) Item(ctx context.Context, mediaID, userID string) (map[str
 
 // LatestItems 最近添加，全库或指定库。远程媒体库(parentID 带前缀)走远程并缓存。
 func (e *EmbyService) LatestItems(ctx context.Context, userID, parentID string, limit int) ([]map[string]any, error) {
+	items, err := e.latestItems(ctx, userID, parentID, limit)
+	if err != nil {
+		return nil, err
+	}
+	return e.withFolderUserData(ctx, userID, items)
+}
+
+func (e *EmbyService) latestItems(ctx context.Context, userID, parentID string, limit int) ([]map[string]any, error) {
 	if e == nil {
 		return nil, nil
 	}
