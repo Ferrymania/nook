@@ -146,12 +146,23 @@ func (s *ScraperService) enrichDeferredEpisodeDetails(ctx context.Context, rows 
 			return err
 		}
 		if s.fetchAndSaveTMDbEpisodeDetails(episodeCtx, media, media.TMDbID, media.Year, options) {
-			s.writeMediaNFOAfterScrape(ctx, media, lib)
-			s.writeMediaArtworkFilesAfterScrape(ctx, media, lib)
+			s.writeScrapedMetadataFiles(ctx, media, lib, options)
 			s.invalidateMediaCache(ctx)
 		}
 	}
 	return nil
+}
+
+func (s *ScraperService) writeScrapedMetadataFiles(ctx context.Context, m *model.Media, lib *model.Library, options ScrapeOptions) {
+	if usesSharedSeriesArtwork(m, lib) {
+		// Export the shared paths, not the remote URLs/old episode copies.
+		s.writeMediaArtworkFilesAfterScrape(ctx, m, lib, options)
+		s.writeMediaNFOAfterScrape(ctx, m, lib)
+		return
+	}
+	// Preserve existing movie/adult export behavior.
+	s.writeMediaNFOAfterScrape(ctx, m, lib)
+	s.writeMediaArtworkFilesAfterScrape(ctx, m, lib, options)
 }
 
 func (s *ScraperService) writeMediaNFOAfterScrape(ctx context.Context, m *model.Media, lib *model.Library) {

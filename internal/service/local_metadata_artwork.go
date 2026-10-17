@@ -25,13 +25,16 @@ func mergeArtworkMetadata(meta *LocalMetadata, mediaPath, showBaseDir string) {
 		return
 	}
 	mediaDir := filepath.Dir(mediaPath)
-	if localPoster := firstLocalPoster(mediaPath, showBaseDir); localPoster != "" {
+	if localPoster := firstLocalPoster(mediaPath, showBaseDir); localPoster != "" && !existingSharedSeriesArtwork(meta.PosterURL) {
 		meta.PosterURL = localPoster
 	} else if meta.PosterURL == "" {
 		meta.PosterURL = firstAdultLooseImage(mediaDir, "poster")
 	}
 	dirs := []string{mediaDir, showBaseDir}
 	for _, dir := range dirs {
+		if existingSharedSeriesArtwork(meta.BackdropURL) {
+			break
+		}
 		if dir == "" {
 			continue
 		}

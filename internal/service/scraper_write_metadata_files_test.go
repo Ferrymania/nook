@@ -181,7 +181,7 @@ func TestWriteMediaArtworkFilesAfterScrapeSkipsCloud(t *testing.T) {
 		PosterURL:   "https://image.tmdb.org/t/p/poster.jpg",
 		BackdropURL: "https://image.tmdb.org/t/p/backdrop.jpg",
 	}
-	scraper.writeMediaArtworkFilesAfterScrape(t.Context(), cloud, nil)
+	scraper.writeMediaArtworkFilesAfterScrape(t.Context(), cloud, nil, ScrapeOptions{})
 	// No panic and no files written; the method should return early.
 }
 
@@ -246,7 +246,7 @@ func TestLocalAdultArtworkStoresFaceAwarePosterPath(t *testing.T) {
 	}
 
 	scraper := &ScraperService{cfg: cfg, log: zap.NewNop(), repo: repos, images: images}
-	scraper.writeMediaArtworkFilesAfterScrape(t.Context(), &media, &model.Library{Type: "adult"})
+	scraper.writeMediaArtworkFilesAfterScrape(t.Context(), &media, &model.Library{Type: "adult"}, ScrapeOptions{})
 
 	var got model.Media
 	if err := repos.DB.First(&got, "id = ?", media.ID).Error; err != nil {

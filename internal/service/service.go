@@ -99,6 +99,19 @@ func (c *Container) Boot() {
 	if err := c.NormalizeLocalLibraryPaths(c.stopCtx); err != nil {
 		c.Log.Warn("normalize local library paths failed", zap.Error(err))
 	}
+	if c.Scraper != nil {
+		// Run before watchers/queue workers so reference checks and file removal
+		// cannot race our own scanner or scraper. No network requests are made.
+		ctx, cancel := context.WithTimeout(c.stopCtx, 2*time.Minute)
+		result, err := c.Scraper.consolidateSeriesArtworkOnce(ctx)
+		cancel()
+		if err != nil {
+			c.Log.Warn("consolidate series artwork failed", zap.Error(err))
+		}
+		if result.Removed > 0 {
+			c.Log.Info("consolidated duplicate series artwork", zap.Int("removed", result.Removed), zap.Int64("saved_bytes", result.FreedBytes))
+		}
+	}
 	if err := c.Watcher.Start(c.stopCtx); err != nil {
 		c.Log.Warn("watcher start failed", zap.Error(err))
 	}

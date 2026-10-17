@@ -117,7 +117,7 @@ func (s *ScraperService) EnrichOneWithOptions(ctx context.Context, m *model.Medi
 	if match == nil {
 		if local != nil && !local.PathHint && !options.ForceRematch && !failure.ambiguous {
 			fillNumberedPartEpisodeIdentity(m, lib)
-			err := s.applyLocalMetadataMatch(ctx, m, local)
+			err := s.applyLocalMetadataMatch(ctx, m, local, options)
 			if err == nil {
 				options.recordProvider("local")
 			}
@@ -273,8 +273,7 @@ func (s *ScraperService) applyProviderMatchWithOptions(ctx context.Context, m *m
 		}
 	}
 	if !(options.DeferEpisodeDetails && m != nil && m.EpisodeNum > 0) {
-		s.writeMediaNFOAfterScrape(ctx, m, lib)
-		s.writeMediaArtworkFilesAfterScrape(ctx, m, lib)
+		s.writeScrapedMetadataFiles(ctx, m, lib, options)
 	}
 	s.invalidateMediaCache(ctx)
 	s.hub.Publish("scrape", map[string]any{
