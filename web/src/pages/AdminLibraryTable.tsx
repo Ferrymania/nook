@@ -439,7 +439,10 @@ function ActionMenu({ label, children }: { label: string; children: ReactNode })
               zIndex: 99999,
             }}
             className="min-w-32 rounded-xl border border-gray-200/90 bg-white p-1.5 shadow-2xl backdrop-blur"
-            onClick={() => setIsOpen(false)}
+            onClick={() => {
+              setIsOpen(false)
+              triggerRef.current?.focus()
+            }}
           >
             {children}
           </div>,
@@ -471,10 +474,7 @@ function MenuButton({
           : 'text-ink-100 hover:bg-gray-100 hover:text-brand-500'
       }`}
       title={label}
-      onClick={(e) => {
-        e.stopPropagation()
-        onClick()
-      }}
+      onClick={onClick}
     >
       {icon}
       <span>{children}</span>

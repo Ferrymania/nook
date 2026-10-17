@@ -199,6 +199,14 @@ func (e *EmbyService) nextUpForRemoteSeries(ctx context.Context, userID, seriesI
 // 找不到条目（或该条目对当前用户不可见）时返回空列表而不是错误：客户端会在
 // 详情页无条件请求它，404/500 会让客户端把条目判定为不完整。
 func (e *EmbyService) SimilarItems(ctx context.Context, mediaID, userID string, limit int) (map[string]any, error) {
+	out, err := e.similarItems(ctx, mediaID, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	return e.withFolderUserDataEnvelope(ctx, userID, out)
+}
+
+func (e *EmbyService) similarItems(ctx context.Context, mediaID, userID string, limit int) (map[string]any, error) {
 	if limit <= 0 {
 		limit = embySimilarDefaultLimit
 	}
