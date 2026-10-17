@@ -174,6 +174,8 @@ function useEditableLibraryRootActions(refresh: () => Promise<void>, drafts: Edi
 }
 
 function useLibraryActions(refresh: () => Promise<void>) {
+  const [coverLibrary, setCoverLibrary] = useState<Library | null>(null)
+
   const scanLibrary = async (library: Library) => {
     const result = await libraryAPI.scan(library.id)
     if (result.queued) toast.success(result.message || '媒体库扫描已加入后台队列，会自动入库')
@@ -211,13 +213,16 @@ function useLibraryActions(refresh: () => Promise<void>) {
     await refresh()
   }
 
-  const editLibraryCover = async (library: Library) => {
-    const coverURL = window.prompt('自定义封面 URL（留空可清除）：', library.cover_url ?? '')
-    if (coverURL === null) return
-    await libraryAPI.update(library.id, { cover_url: coverURL.trim() })
-    toast.success(coverURL.trim() ? '媒体库封面已保存' : '媒体库封面已清除')
-    await refresh()
+  const saveLibraryCover = async (library: Library, coverURL: string) => {
+    const value = coverURL.trim()
+    await libraryAPI.update(library.id, { cover_url: value })
+    toast.success(value ? '媒体库封面已保存' : '已恢复自动封面')
+    setCoverLibrary(null)
+    await refresh().catch(() => toast.error('封面已保存，媒体库列表刷新失败，请刷新页面'))
   }
 
-  return { scanLibrary, removeLibrary, addLibraryRoot, editLibraryCover, toggleCarouselLibrary, reorderLibraries }
+  return {
+    scanLibrary, removeLibrary, addLibraryRoot, toggleCarouselLibrary, reorderLibraries,
+    coverLibrary, editLibraryCover: setCoverLibrary, closeLibraryCover: () => setCoverLibrary(null), saveLibraryCover,
+  }
 }

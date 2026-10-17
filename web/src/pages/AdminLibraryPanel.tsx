@@ -1,6 +1,7 @@
 import { AdminLibraryCreateForm } from './AdminLibraryPanelSections'
 import { AdminLibraryTable } from './AdminLibraryTable'
 import { LibraryStorageStats } from './LibraryStorageStats'
+import { LibraryCoverDialog } from './LibraryCoverDialog'
 import { useAdminLibraryPanel } from './useAdminLibraryPanel'
 
 export function AdminLibraryPanel() {
@@ -40,6 +41,14 @@ export function AdminLibraryPanel() {
         onReorder={libraryActions.reorderLibraries}
       />
       <LibraryStorageStats />
+      {libraryActions.coverLibrary && (
+        <LibraryCoverDialog
+          key={libraryActions.coverLibrary.id}
+          library={libraryActions.coverLibrary}
+          onClose={libraryActions.closeLibraryCover}
+          onSave={libraryActions.saveLibraryCover}
+        />
+      )}
     </div>
   )
 }
