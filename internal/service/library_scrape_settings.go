@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
+
+	"gorm.io/gorm"
 
 	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/repository"
@@ -16,7 +19,7 @@ var scrapeProviderNames = map[string]string{"tmdb": "TMDb", "douban": "豆瓣", 
 var defaultScrapeProviders = []string{"tmdb", "douban", "bangumi", "thetvdb", "fanart"}
 
 // Legacy settings are read only for libraries that have never saved their own
-// preferences. Saving one library does not update any global setting.
+// preferences. Library-specific preferences never rewrite legacy defaults.
 func libraryScrapeSettings(ctx context.Context, repo *repository.Container, lib *model.Library) model.LibraryScrapeSettings {
 	if lib != nil && lib.ScrapeSettings != nil {
 		return *lib.ScrapeSettings
@@ -116,9 +119,10 @@ type ScrapeProviderAvailability struct {
 	Status    string `json:"status"`
 }
 type LibraryScrapeSettingsView struct {
-	Settings  model.LibraryScrapeSettings  `json:"settings"`
-	AutoProbe bool                         `json:"auto_probe"`
-	Providers []ScrapeProviderAvailability `json:"providers"`
+	EpisodeImages bool                         `json:"episode_images"`
+	Settings      model.LibraryScrapeSettings  `json:"settings"`
+	AutoProbe     bool                         `json:"auto_probe"`
+	Providers     []ScrapeProviderAvailability `json:"providers"`
 }
 
 func (s *ScraperService) GetLibraryScrapeSettings(ctx context.Context, id string) (*LibraryScrapeSettingsView, error) {
@@ -129,7 +133,11 @@ func (s *ScraperService) GetLibraryScrapeSettings(ctx context.Context, id string
 	if lib == nil {
 		return nil, errors.New("媒体库不存在")
 	}
-	view := &LibraryScrapeSettingsView{Settings: libraryScrapeSettings(ctx, s.repo, lib), AutoProbe: lib.AutoProbe}
+	episodeImages, err := s.repo.Setting.Get(ctx, "scrape.episode_images")
+	if err != nil {
+		return nil, err
+	}
+	view := &LibraryScrapeSettingsView{EpisodeImages: parseBoolSetting(episodeImages, false), Settings: libraryScrapeSettings(ctx, s.repo, lib), AutoProbe: lib.AutoProbe}
 	for _, p := range defaultScrapeProviders {
 		cfg := s.scrapeProviderConfig(ctx, p)
 		optional := p == "bangumi" || p == "douban"
@@ -146,7 +154,7 @@ func (s *ScraperService) GetLibraryScrapeSettings(ctx context.Context, id string
 	}
 	return view, nil
 }
-func (s *ScraperService) SaveLibraryScrapeSettings(ctx context.Context, id string, settings model.LibraryScrapeSettings, autoProbe bool) (*LibraryScrapeSettingsView, error) {
+func (s *ScraperService) SaveLibraryScrapeSettings(ctx context.Context, id string, settings model.LibraryScrapeSettings, autoProbe bool, episodeImages *bool) (*LibraryScrapeSettingsView, error) {
 	if err := validateLibraryScrapeSettings(settings); err != nil {
 		return nil, err
 	}
@@ -157,7 +165,15 @@ func (s *ScraperService) SaveLibraryScrapeSettings(ctx context.Context, id strin
 	if err != nil {
 		return nil, err
 	}
-	if err = s.repo.DB.WithContext(ctx).Model(&model.Library{}).Where("id = ?", id).Updates(map[string]any{"scrape_settings": string(data), "auto_probe": autoProbe}).Error; err != nil {
+	if err = s.repo.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&model.Library{}).Where("id = ?", id).Updates(map[string]any{"scrape_settings": string(data), "auto_probe": autoProbe}).Error; err != nil {
+			return err
+		}
+		if episodeImages != nil {
+			return repository.New(tx).Setting.Set(ctx, "scrape.episode_images", strconv.FormatBool(*episodeImages))
+		}
+		return nil
+	}); err != nil {
 		return nil, err
 	}
 	s.invalidateMediaCache(ctx)

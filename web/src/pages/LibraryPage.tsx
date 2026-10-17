@@ -182,6 +182,7 @@ export function LibraryPage() {
   const {
     scanning,
     scanProgress,
+    scanLabel,
     handleScan,
   } = useLibraryScanStatus({
     libraryID: id,
@@ -305,16 +306,15 @@ export function LibraryPage() {
           loadingAllText={loadingAllText}
           scanProgress={scanProgress}
           isAdmin={role === 'admin'}
-          scrapeEpisodeArtwork={scrapeEpisodeArtwork}
           onLibraryUpdated={updateLibrary}
           scanning={scanning}
+          scanLabel={scanLabel}
           scraping={scraping}
           repairing={repairing}
           sortField={sortField}
           sortOrder={sortOrder}
           onSortChange={handleSortChange}
           onReshuffle={handleReshuffle}
-          onScrapeEpisodeArtworkChange={setScrapeEpisodeArtwork}
           onScan={handleScan}
           onScrape={() => setScrapeDialogOpen(true)}
           onRepairRescrape={handleRepairRescrape}

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { libraryAPI } from '../api/library'
 import { toolsAPI } from '../api/tools'
+import { confirmAction } from '../components/confirmAction'
 import { LibraryTagBar } from '../components/LibraryTagBar'
 import { ManageLibraryTagsDialogView } from '../components/ManageLibraryTagsDialogView'
 import { openManageLibrariesDialog } from '../components/manageLibrariesDialog'
@@ -38,7 +39,7 @@ export function LibrariesPage() {
   const libraryTags = useLibraryTags()
   const [loading, setLoading] = useState(() => peekLibraries() === null)
   const [repairing, setRepairing] = useState(false)
-  const [repairEpisodeArtwork, setRepairEpisodeArtwork] = useEpisodeArtworkPreference()
+  const [repairEpisodeArtwork] = useEpisodeArtworkPreference()
   const [repairMsg, setRepairMsg] = useState('')
   const { field: sortField, order: sortOrder, setSort: setLibrarySort } = useLibraryListSort()
 
@@ -120,6 +121,7 @@ export function LibrariesPage() {
 
   async function handleRepairRescrape() {
     if (!isAdmin || repairing) return
+    if (!await confirmAction({ title: '全库修复并重新刮削', message: '将重新识别并刮削所有媒体库中的媒体，可能产生较多请求。', confirmText: '确认修复' })) return
     setRepairing(true)
     setRepairMsg('')
     try {
@@ -193,12 +195,10 @@ export function LibrariesPage() {
         total={taggedTotal}
         isAdmin={isAdmin}
         repairMsg={repairMsg}
-        repairEpisodeArtwork={repairEpisodeArtwork}
         repairing={repairing}
         sortField={sortField}
         sortOrder={sortOrder}
         onSortChange={handleSortChange}
-        onRepairEpisodeArtworkChange={setRepairEpisodeArtwork}
         onRepairRescrape={handleRepairRescrape}
         onManageLibraries={handleManageLibraries}
       />

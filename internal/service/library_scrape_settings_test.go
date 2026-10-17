@@ -73,10 +73,10 @@ func TestLibraryScrapeSettingsPreserveLegacyAndIsolateLibraries(t *testing.T) {
 		t.Fatalf("legacy preferences lost: %#v, %v", initial, err)
 	}
 	settings := model.LibraryScrapeSettings{AutoOnScan: false, Providers: []string{"tmdb"}, Language: "en-US", DelayMinMS: 0, DelayMaxMS: 0}
-	if _, err := s.SaveLibraryScrapeSettings(t.Context(), a.ID, settings, true); err != nil {
+	if _, err := s.SaveLibraryScrapeSettings(t.Context(), a.ID, settings, true, nil); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.SaveLibraryScrapeSettings(t.Context(), a.ID, settings, false); err != nil {
+	if _, err := s.SaveLibraryScrapeSettings(t.Context(), a.ID, settings, false, nil); err != nil {
 		t.Fatal(err)
 	}
 	stored, err := s.repo.Library.FindByID(t.Context(), a.ID)
@@ -93,12 +93,12 @@ func TestLibraryScrapeSettingsPreserveLegacyAndIsolateLibraries(t *testing.T) {
 	}
 	invalid := settings
 	invalid.DelayMaxMS = -1
-	if _, err := s.SaveLibraryScrapeSettings(t.Context(), a.ID, invalid, true); err == nil {
+	if _, err := s.SaveLibraryScrapeSettings(t.Context(), a.ID, invalid, true, nil); err == nil {
 		t.Fatal("invalid delay accepted")
 	}
 	invalid = settings
 	invalid.Providers = []string{"fanart"}
-	if _, err := s.SaveLibraryScrapeSettings(t.Context(), a.ID, invalid, true); err == nil {
+	if _, err := s.SaveLibraryScrapeSettings(t.Context(), a.ID, invalid, true, nil); err == nil {
 		t.Fatal("artwork-only metadata chain accepted")
 	}
 	view, _ := s.GetLibraryScrapeSettings(t.Context(), a.ID)

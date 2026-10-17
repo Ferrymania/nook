@@ -2,6 +2,18 @@ import { api, BATCH_REQUEST_TIMEOUT, LONG_REQUEST_TIMEOUT } from './client'
 import type { Library, LibraryRoot, Media, PlaybackInfo, ScanResult } from '../types'
 import type { SeriesCard } from '../utils/groupSeries'
 
+export interface LibraryScanTask {
+  id: string
+  library_id: string
+  kind: string
+  status: 'running' | 'completed' | 'failed'
+  message?: string
+  error?: string
+  metrics?: Record<string, number>
+  started_at: string
+  updated_at: string
+}
+
 export interface LibraryScrapeSettings {
   auto_on_scan: boolean
   providers: string[]
@@ -10,6 +22,7 @@ export interface LibraryScrapeSettings {
   delay_max_ms: number
 }
 export interface LibraryScrapeSettingsView {
+  episode_images: boolean
   settings: LibraryScrapeSettings
   auto_probe: boolean
   providers: Array<{ id: string; name: string; available: boolean; status: string }>
@@ -167,7 +180,7 @@ export const libraryAPI = {
   ) => api.patch<Library>(`/libraries/${id}`, payload).then((r) => r.data),
 
   scrapeSettings: (id: string) => api.get<LibraryScrapeSettingsView>(`/libraries/${id}/scrape-settings`).then(r => r.data),
-  saveScrapeSettings: (id: string, payload: Pick<LibraryScrapeSettingsView, 'settings' | 'auto_probe'>) =>
+  saveScrapeSettings: (id: string, payload: Pick<LibraryScrapeSettingsView, 'settings' | 'auto_probe'> & { episode_images?: boolean }) =>
     api.put<LibraryScrapeSettingsView>(`/libraries/${id}/scrape-settings`, payload).then(r => r.data),
 
   reorder: (ids: string[]) => api.put('/libraries/reorder', { ids }).then((r) => r.data),
@@ -186,6 +199,9 @@ export const libraryAPI = {
 
   scan: (id: string) =>
     api.post<ScanResult>(`/libraries/${id}/scan`, null, { timeout: BATCH_REQUEST_TIMEOUT }).then((r) => r.data),
+
+  scanStatus: (id: string, signal?: AbortSignal) =>
+    api.get<{ task: LibraryScanTask | null }>(`/libraries/${id}/scan-status`, { signal }).then(r => r.data),
 
   scanRoot: (id: string, rootID: string) =>
     api.post<ScanResult>(`/libraries/${id}/roots/${rootID}/scan`, null, { timeout: BATCH_REQUEST_TIMEOUT }).then((r) => r.data),

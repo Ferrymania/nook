@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, Info, Loader2, Save, Settings2, ShieldAlert, X } fr
 import toast from 'react-hot-toast'
 
 import { libraryAPI, type LibraryScrapeSettingsView } from '../api/library'
+import { notifyEpisodeArtworkPreference } from '../hooks/useEpisodeArtworkPreference'
 import type { Library } from '../types'
 
 const API_SETTINGS_URL = '/settings?group=api-configs'
@@ -18,13 +19,14 @@ export function LibraryScrapeSettingsDialog({ library, onClose, onSaved }: {
   const [data, setData] = useState<LibraryScrapeSettingsView | null>(null)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const originalEpisodeImages = useRef<boolean | null>(null)
   const formRef = useRef<HTMLFormElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     let active = true
     libraryAPI.scrapeSettings(library.id)
-      .then(value => { if (active) setData(value) })
+      .then(value => { if (active) { originalEpisodeImages.current = value.episode_images; setData(value) } })
       .catch(() => { if (active) setError('加载刮削设置失败，请关闭后重试') })
     return () => { active = false }
   }, [library.id])
@@ -43,8 +45,13 @@ export function LibraryScrapeSettingsDialog({ library, onClose, onSaved }: {
     if (data.settings.delay_min_ms > data.settings.delay_max_ms) { toast.error('最大间隔不能小于最小间隔'); return }
     setSaving(true)
     try {
-      await libraryAPI.saveScrapeSettings(library.id, { settings: data.settings, auto_probe: data.auto_probe })
-      onSaved(data.auto_probe)
+      const saved = await libraryAPI.saveScrapeSettings(library.id, {
+        settings: data.settings,
+        auto_probe: data.auto_probe,
+        ...(data.episode_images !== originalEpisodeImages.current ? { episode_images: data.episode_images } : {}),
+      })
+      notifyEpisodeArtworkPreference(saved.episode_images)
+      onSaved(saved.auto_probe)
       toast.success('本库刮削设置已保存')
       onClose()
     } catch (err: unknown) {
@@ -88,7 +95,7 @@ export function LibraryScrapeSettingsDialog({ library, onClose, onSaved }: {
         <header className="flex shrink-0 items-start justify-between gap-4 border-b border-[var(--app-border)] px-5 py-5 sm:px-7">
           <div className="flex items-start gap-3">
             <span className="rounded-xl bg-[var(--app-brand-soft)] p-2.5 text-[var(--app-brand-text)]"><Settings2 size={20} /></span>
-            <div><h2 id="library-scrape-settings-title" className="font-display text-xl font-semibold">刮削设置</h2><p className="mt-1 text-xs text-[var(--app-muted)]"><span className="font-medium text-[var(--app-subtle)]">{library.name}</span> · 仅对当前媒体库生效</p></div>
+            <div><h2 id="library-scrape-settings-title" className="font-display text-xl font-semibold">刮削设置</h2><p className="mt-1 text-xs text-[var(--app-muted)]"><span className="font-medium text-[var(--app-subtle)]">{library.name}</span> · 库级设置仅对当前媒体库生效</p></div>
           </div>
           <button ref={closeRef} type="button" aria-label="关闭" onClick={onClose} disabled={saving} className="rounded-lg p-1 text-[var(--app-muted)] hover:bg-[var(--app-panel-soft)]"><X size={20} /></button>
         </header>
@@ -100,6 +107,12 @@ export function LibraryScrapeSettingsDialog({ library, onClose, onSaved }: {
               <ScrapeSwitch label="扫描后自动刮削" description="扫描发现新增或变化的媒体后，自动补充影片资料。" checked={data.settings.auto_on_scan} onChange={value => updateSettings({ auto_on_scan: value })} />
               <ScrapeSwitch label="刮削时自动探测媒体信息" description="连续探测大量网盘媒体可能触发风控，建议按需开启。" title={PROBE_WARNING} warning checked={data.auto_probe} onChange={value => setData({ ...data, auto_probe: value })} />
             </div>
+            <section>
+              <h3 className="mb-2 text-sm font-semibold">全局图片偏好</h3>
+              <div className="overflow-hidden rounded-2xl border border-[var(--app-border)]">
+                <ScrapeSwitch label="刮削时获取每集图片" description="对所有媒体库生效。关闭后仍获取每集简介、评分和时长，仅跳过单集剧照；已有图片不受影响。" checked={data.episode_images} onChange={value => setData({ ...data, episode_images: value })} />
+              </div>
+            </section>
             <section>
               <h3 className="mb-2 text-sm font-semibold">刮削源与优先级</h3>
               <div className="divide-y divide-[var(--app-border)] overflow-hidden rounded-2xl border border-[var(--app-border)]">

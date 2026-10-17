@@ -50,3 +50,31 @@ func TestLibraryScrapeSettingsAdminOnlyAndValidated(t *testing.T) {
 		}
 	}
 }
+
+func TestLibraryScrapeSettingsPreserveGlobalEpisodeImagesScope(t *testing.T) {
+	router, svc, _, id := newLibraryFilterEnv(t)
+	svc.Scraper = service.NewScraperService(&config.Config{}, svc.Log, svc.Repo, nil, nil, nil, nil, service.NewHub(svc.Log))
+	router.PUT("/api/libraries/:id/scrape-settings", saveLibraryScrapeSettingsHandler(svc))
+	request := func(extra string) *httptest.ResponseRecorder {
+		body := `{"auto_probe":false,"settings":{"providers":["tmdb"],"language":"zh-CN","delay_min_ms":0,"delay_max_ms":0}` + extra + `}`
+		req := httptest.NewRequest("PUT", "/api/libraries/"+id+"/scrape-settings", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		return w
+	}
+	for _, step := range []struct {
+		extra string
+		want  bool
+	}{{`,"episode_images":true`, true}, {``, true}, {`,"episode_images":false`, false}} {
+		w := request(step.extra)
+		var result service.LibraryScrapeSettingsView
+		if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &result) != nil || result.EpisodeImages != step.want {
+			t.Fatalf("save: %d %s", w.Code, w.Body.String())
+		}
+		stored, err := svc.Repo.Setting.Get(t.Context(), "scrape.episode_images")
+		if err != nil || stored != map[bool]string{true: "true", false: "false"}[step.want] {
+			t.Fatalf("global preference: %q %v", stored, err)
+		}
+	}
+}

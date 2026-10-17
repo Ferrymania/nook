@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { Library as LibraryIcon, RefreshCw, Sparkles } from 'lucide-react'
+import { Library as LibraryIcon, Sparkles } from 'lucide-react'
 
-import { EpisodeArtworkToggle } from '../components/EpisodeArtworkToggle'
+import { LibraryScrapeMenu } from '../components/LibraryScrapeMenu'
 import { LibraryListSortDropdown } from '../components/LibraryListSortDropdown'
 import { useRememberedListPosition } from '../hooks/useListPositionMemory'
 import type { LibraryListSortField, LibraryListSortOrder } from '../utils/libraryListSort'
@@ -18,12 +18,10 @@ export function LibrariesHeader({
   total,
   isAdmin,
   repairMsg,
-  repairEpisodeArtwork,
   repairing,
   sortField,
   sortOrder,
   onSortChange,
-  onRepairEpisodeArtworkChange,
   onRepairRescrape,
   onManageLibraries,
 }: {
@@ -31,12 +29,10 @@ export function LibrariesHeader({
   total: number
   isAdmin: boolean
   repairMsg: string
-  repairEpisodeArtwork: boolean
   repairing: boolean
   sortField: LibraryListSortField
   sortOrder: LibraryListSortOrder
   onSortChange: (field: LibraryListSortField, order: LibraryListSortOrder) => void
-  onRepairEpisodeArtworkChange: (value: boolean) => void
   onRepairRescrape: () => void
   onManageLibraries: () => void
 }) {
@@ -49,40 +45,26 @@ export function LibrariesHeader({
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-        <LibraryListSortDropdown value={sortField} order={sortOrder} onChange={onSortChange} />
+        <LibraryListSortDropdown value={sortField} order={sortOrder} onChange={onSortChange} buttonClassName="library-toolbar-button" />
         {isAdmin && (
           <>
             {repairMsg && <span className="w-full text-xs text-ink-50">{repairMsg}</span>}
-            <EpisodeArtworkToggle
-              checked={repairEpisodeArtwork}
-              onChange={onRepairEpisodeArtworkChange}
-              title="关闭后仍会获取主海报和每集文字元数据，只跳过每集图片"
-              className="h-9 sm:h-10 text-xs sm:text-sm"
-            />
-            <button
-              type="button"
-              onClick={onRepairRescrape}
-              disabled={repairing}
-              className="btn-outline !px-3 !py-1.5 text-xs sm:!px-4 sm:!py-2.5 sm:text-sm disabled:cursor-not-allowed disabled:opacity-60"
-              title="从媒体路径回填缺失/错误的外部 ID，再批量重刮整库"
-            >
-              <RefreshCw size={14} className={repairing ? 'animate-spin' : ''} />
-              {repairing ? '正在启动…' : '全库修复+重刮'}
-            </button>
+            <LibraryScrapeMenu allLibraries repairing={repairing} onRepair={onRepairRescrape} />
             <Link
               to="/scraper/queue"
-              className="btn-outline inline-flex items-center gap-1.5 !px-3 !py-1.5 text-xs sm:!px-4 sm:!py-2.5 sm:text-sm"
+              className="library-toolbar-button"
               title="查看正在进行的刮削任务与进度"
             >
-              <Sparkles size={14} className="text-brand-500" />
+              <Sparkles size={16} />
               <span>刮削队列</span>
             </Link>
             <button
               type="button"
               onClick={onManageLibraries}
-              className="btn-outline !px-3 !py-1.5 text-xs sm:!px-4 sm:!py-2.5 sm:text-sm"
+              aria-haspopup="dialog"
+              className="library-toolbar-button"
             >
-              管理媒体库
+              管理媒体库…
             </button>
           </>
         )}

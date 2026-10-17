@@ -14,6 +14,7 @@ import (
 	"errors"
 	"strings"
 	"sync"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -107,16 +108,18 @@ func (s *ScannerService) SetImageProxy(imageProxy *ImageProxy) {
 
 // ScanResult summarises a scan run.
 type ScanResult struct {
-	LibraryID     string   `json:"library_id"`
-	Visited       int      `json:"visited"`
-	Added         int      `json:"added"`
-	Updated       int      `json:"updated"`
-	Skipped       int      `json:"skipped"`
-	Probed        int      `json:"probed"`
-	LocalMetadata int      `json:"local_metadata"`
-	Removed       int64    `json:"removed"`
-	ErrorCount    int      `json:"error_count,omitempty"`
-	Errors        []string `json:"errors,omitempty"`
+	task           *TaskHandle
+	taskProgressAt time.Time
+	LibraryID      string   `json:"library_id"`
+	Visited        int      `json:"visited"`
+	Added          int      `json:"added"`
+	Updated        int      `json:"updated"`
+	Skipped        int      `json:"skipped"`
+	Probed         int      `json:"probed"`
+	LocalMetadata  int      `json:"local_metadata"`
+	Removed        int64    `json:"removed"`
+	ErrorCount     int      `json:"error_count,omitempty"`
+	Errors         []string `json:"errors,omitempty"`
 }
 
 var ErrLocalScanAlreadyRunning = errors.New("local scan already running")

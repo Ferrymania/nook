@@ -250,6 +250,7 @@ func (b *localMediaWriteBatch) publish() {
 	if b == nil || b.scanner == nil || b.scanner.hub == nil || b.res == nil {
 		return
 	}
+	b.res.updateTaskProgress()
 	b.scanner.hub.Publish("scan", map[string]any{
 		"library_id": b.res.LibraryID,
 		"visited":    b.res.Visited,
