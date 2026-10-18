@@ -63,8 +63,10 @@ export function LibrariesHeader({
               onClick={onManageLibraries}
               aria-haspopup="dialog"
               className="library-toolbar-button"
+              title="打开媒体库管理"
             >
-              管理媒体库…
+              <LibraryIcon size={16} />
+              <span>管理媒体库</span>
             </button>
           </>
         )}
