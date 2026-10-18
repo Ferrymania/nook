@@ -75,7 +75,7 @@ export function LibraryPageHeader({
               {scanLabel}
             </button>
             <LibraryScrapeMenu scraping={scraping} repairing={repairing} onScrape={onScrape} onRepair={onRepairRescrape} />
-            <button type="button" onClick={() => setSettingsOpen(true)} disabled={!library} aria-haspopup="dialog" className="library-toolbar-button" title="打开刮削设置"><Settings2 size={16} />刮削设置…</button>
+            <button type="button" onClick={() => setSettingsOpen(true)} disabled={!library} aria-haspopup="dialog" className="library-toolbar-button" title="打开刮削设置"><Settings2 size={16} />刮削设置</button>
           </>
         )}
       </div>

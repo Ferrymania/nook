@@ -1,74 +1,76 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Download, ListChecks, Sparkles, Upload } from 'lucide-react'
+import { Download, Sparkles, Upload } from 'lucide-react'
 import clsx from 'clsx'
 
-import { scraperAPI } from '../api/scraper'
-import { strmAPI } from '../api/strm'
+import type { ScrapeQueueCounts } from '../types/scraper'
+import type { StrmQueueCounts } from '../types/strm'
 import { ScraperQueuePage } from './ScraperQueuePage'
 import { StrmQueuePanel } from './StrmQueuePage'
 
-type QueueType = 'all' | 'scrape' | 'download' | 'upload'
+type QueueType = 'scrape' | 'download' | 'upload'
+const QUEUE_TYPE_STORAGE_KEY = 'nook_task_queue_type'
 
-const QUEUE_TABS: { type: QueueType; label: string; icon: typeof ListChecks }[] = [
-  { type: 'all', label: '全部', icon: ListChecks },
+const QUEUE_TABS: { type: QueueType; label: string; icon: typeof Sparkles }[] = [
   { type: 'scrape', label: '刮削队列', icon: Sparkles },
   { type: 'download', label: '下载队列', icon: Download },
   { type: 'upload', label: '上传队列', icon: Upload },
 ]
 
-function normalizeType(raw: string | null): QueueType {
-  if (raw === 'scrape' || raw === 'download' || raw === 'upload' || raw === 'all') {
-    return raw
+function isQueueType(raw: string | null): raw is QueueType {
+  return raw === 'scrape' || raw === 'download' || raw === 'upload'
+}
+
+function preferredQueueType(): QueueType {
+  try {
+    const saved = localStorage.getItem(QUEUE_TYPE_STORAGE_KEY)
+    if (isQueueType(saved)) return saved
+  } catch {
+    // Storage may be disabled; explicit links and the default still work.
   }
-  return 'all'
+  return 'scrape'
 }
 
 /**
  * 任务队列：整合刮削 / 下载 / 上传 三类队列的统一入口，按类型 Tab 区分。
- * 单个类型视图直接复用原队列组件；「全部」纵向堆叠三个队列。
+ * 只挂载当前队列，复用其统计和轮询；有效链接优先，否则恢复上次类型。
  */
 export function TaskQueuePage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const type = normalizeType(searchParams.get('type'))
-
-  const [scrapeCounts, setScrapeCounts] = useState<Record<string, number> | null>(null)
-  const [downloadCounts, setDownloadCounts] = useState<Record<string, number> | null>(null) // StrmQueueCounts
-  const [uploadCounts, setUploadCounts] = useState<Record<string, number> | null>(null)
-
-  const loadOverview = useCallback(async () => {
-    try {
-      const scrape = await scraperAPI.queue(undefined, 1, 1)
-      setScrapeCounts(scrape.counts as unknown as Record<string, number>)
-    } catch {
-      setScrapeCounts(null)
-    }
-    try {
-      const dl = await strmAPI.downloads(undefined, 1, 1)
-      setDownloadCounts(dl.counts as unknown as Record<string, number>)
-    } catch {
-      setDownloadCounts(null)
-    }
-    try {
-      const ul = await strmAPI.uploads(undefined, 1, 1)
-      setUploadCounts(ul.counts as unknown as Record<string, number>)
-    } catch {
-      setUploadCounts(null)
-    }
-  }, [])
+  const rawType = searchParams.get('type')
+  const type = isQueueType(rawType) ? rawType : preferredQueueType()
 
   useEffect(() => {
-    loadOverview()
-  }, [loadOverview])
+    try {
+      localStorage.setItem(QUEUE_TYPE_STORAGE_KEY, type)
+    } catch {
+      // Remembering the selection is optional.
+    }
+    if (rawType !== type) {
+      setSearchParams((previous) => {
+        const next = new URLSearchParams(previous)
+        next.set('type', type)
+        return next
+      }, { replace: true })
+    }
+  }, [rawType, type, setSearchParams])
 
-  const countBadge = (counts: Record<string, number> | null) => {
+  const [scrapeCounts, setScrapeCounts] = useState<ScrapeQueueCounts | null>(null)
+  const [downloadCounts, setDownloadCounts] = useState<StrmQueueCounts | null>(null)
+  const [uploadCounts, setUploadCounts] = useState<StrmQueueCounts | null>(null)
+
+  const countBadge = (counts: ScrapeQueueCounts | StrmQueueCounts | null) => {
     if (!counts) return null
     const total = Object.values(counts).reduce((a, b) => a + (b || 0), 0)
     return <span className="tab-count">{total}</span>
   }
 
   const switchType = (next: QueueType) => {
-    setSearchParams(next === 'all' ? {} : { type: next }, { replace: true })
+    setSearchParams((previous) => {
+      const params = new URLSearchParams(previous)
+      params.set('type', next)
+      return params
+    }, { replace: true })
   }
 
   return (
@@ -78,10 +80,6 @@ export function TaskQueuePage() {
           <h1 className="font-display text-3xl font-bold text-ink-600">任务队列</h1>
           <p className="mt-0.5 text-sm text-ink-50">刮削 / 下载 / 上传三类任务统一管理，按类型切换查看</p>
         </div>
-        <button onClick={loadOverview} className="btn-outline" title="刷新概览计数">
-          <ListChecks size={14} />
-          刷新计数
-        </button>
       </div>
 
       {/* 类型 Tab */}
@@ -115,34 +113,9 @@ export function TaskQueuePage() {
       </div>
 
       {/* 内容 */}
-      {type === 'scrape' && <ScraperQueuePage embedded />}
-      {type === 'download' && <StrmQueuePanel kind="download" embedded />}
-      {type === 'upload' && <StrmQueuePanel kind="upload" embedded />}
-      {type === 'all' && (
-        <div className="space-y-10">
-          <section>
-            <h2 className="mb-2 flex items-center gap-2 font-display text-xl font-bold text-ink-600">
-              <Sparkles size={18} className="text-brand-500" />
-              刮削队列
-            </h2>
-            <ScraperQueuePage embedded />
-          </section>
-          <section>
-            <h2 className="mb-2 flex items-center gap-2 font-display text-xl font-bold text-ink-600">
-              <Download size={18} className="text-brand-500" />
-              下载队列
-            </h2>
-            <StrmQueuePanel kind="download" embedded />
-          </section>
-          <section>
-            <h2 className="mb-2 flex items-center gap-2 font-display text-xl font-bold text-ink-600">
-              <Upload size={18} className="text-brand-500" />
-              上传队列
-            </h2>
-            <StrmQueuePanel kind="upload" embedded />
-          </section>
-        </div>
-      )}
+      {type === 'scrape' && <ScraperQueuePage embedded onCountsChange={setScrapeCounts} />}
+      {type === 'download' && <StrmQueuePanel kind="download" embedded onCountsChange={setDownloadCounts} />}
+      {type === 'upload' && <StrmQueuePanel kind="upload" embedded onCountsChange={setUploadCounts} />}
     </div>
   )
 }

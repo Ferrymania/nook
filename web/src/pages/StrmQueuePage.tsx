@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 
 import { strmAPI } from '../api/strm'
-import type { StrmQueueSnapshot, StrmTask, StrmTaskStatus } from '../types/strm'
+import type { StrmQueueCounts, StrmQueueSnapshot, StrmTask, StrmTaskStatus } from '../types/strm'
 import { STRM_PROVIDER_LABELS } from '../types/strm'
 import { apiErrorMessage, formatBytes, formatTime, taskStatusMeta } from './StrmManagePage'
 import { TaskDetailModal } from './strm-queue/TaskDetailModal'
@@ -39,9 +39,11 @@ const PAGE_SIZE = 50
 export function StrmQueuePanel({
   kind,
   embedded = false,
+  onCountsChange,
 }: {
   kind: 'download' | 'upload'
   embedded?: boolean
+  onCountsChange?: (counts: StrmQueueCounts) => void
 }) {
   const [snapshot, setSnapshot] = useState<StrmQueueSnapshot | null>(null)
   const [filter, setFilter] = useState<'all' | StrmTaskStatus>('all')
@@ -57,6 +59,10 @@ export function StrmQueuePanel({
   // 轮询/翻页/切筛选并发时用递增序号丢弃过期响应
   const refreshSeqRef = useRef(0)
   const [pollFailures, setPollFailures] = useState(0)
+
+  useEffect(() => {
+    if (snapshot) onCountsChange?.(snapshot.counts)
+  }, [snapshot, onCountsChange])
 
   const isDownload = kind === 'download'
   const Icon = isDownload ? Download : Upload

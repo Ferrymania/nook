@@ -222,7 +222,7 @@ export function StrmAccountDialog({
       onClose={onClose}
       wide
     >
-      <form onSubmit={submit} className="space-y-5">
+      <form name="strm-remote-account" autoComplete="off" onSubmit={submit} className="space-y-5">
         {/* 提供方选择 */}
         {!existing && (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -257,6 +257,8 @@ export function StrmAccountDialog({
 
         <Field label="账号名称">
           <input
+            name="strm-account-label"
+            autoComplete="off"
             className={inputCls}
             value={name}
             placeholder={STRM_PROVIDER_LABELS[provider]}
@@ -376,37 +378,30 @@ export function StrmAccountDialog({
           </div>
         )}
 
-        {(provider === 'clouddrive2' || provider === 'emby_remote') && (
-          <div className="grid grid-cols-2 gap-3">
+        {(provider === 'clouddrive2' || provider === 'openlist' || provider === 'emby_remote') && (
+          <div key={provider} className="grid grid-cols-2 gap-3">
             <Field label="用户名">
-              <input className={inputCls} value={username} onChange={(e) => setUsername(e.target.value)} />
-            </Field>
-            <Field label="密码">
               <input
+                id={`strm-${provider}-username`}
+                name={`strm-${provider}-username`}
+                autoComplete="off"
+                autoCapitalize="none"
+                spellCheck={false}
                 className={inputCls}
-                type="password"
-                value={password}
-                placeholder={existing && hasPassword ? SECRET_PLACEHOLDER : undefined}
-                onChange={(e) => {
-                  setPassword(e.target.value)
-                  if (e.target.value) setHasPassword(false)
-                }}
+                placeholder={`${STRM_PROVIDER_LABELS[provider]} 用户名`}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
               />
             </Field>
-          </div>
-        )}
-
-        {provider === 'openlist' && (
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="用户名">
-              <input className={inputCls} value={username} onChange={(e) => setUsername(e.target.value)} />
-            </Field>
             <Field label="密码">
               <input
+                id={`strm-${provider}-password`}
+                name={`strm-${provider}-password`}
+                autoComplete="new-password"
                 className={inputCls}
                 type="password"
                 value={password}
-                placeholder={existing && hasPassword ? SECRET_PLACEHOLDER : undefined}
+                placeholder={existing && hasPassword ? SECRET_PLACEHOLDER : `${STRM_PROVIDER_LABELS[provider]} 密码`}
                 onChange={(e) => {
                   setPassword(e.target.value)
                   if (e.target.value) setHasPassword(false)
@@ -419,6 +414,10 @@ export function StrmAccountDialog({
         {provider === 'emby_remote' && (
           <Field label="API Key（可选）" hint="留空则用下方用户名/密码自动认证获取">
             <input
+              name="strm-emby-api-key"
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
               className={inputCls}
               value={token}
               placeholder={existing && hasToken ? SECRET_PLACEHOLDER : '留空自动认证'}
@@ -433,6 +432,10 @@ export function StrmAccountDialog({
         {provider === 'openlist' && (
           <Field label="Token（可选，优先于密码）">
             <input
+              name="strm-openlist-token"
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
               className={inputCls}
               value={token}
               placeholder={existing && hasToken ? SECRET_PLACEHOLDER : undefined}
