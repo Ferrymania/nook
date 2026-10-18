@@ -10,6 +10,18 @@ jobs:
   backend:
     name: Backend (Go)
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: nook-test
+          POSTGRES_DB: nook_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d nook_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      NOOK_TEST_POSTGRES_DSN: postgres://postgres:nook-test@localhost:5432/nook_test?sslmode=disable
     steps:
       - uses: actions/checkout@v4
 
@@ -36,6 +48,9 @@ jobs:
 
       - name: go build
         run: go build ./...
+
+      - name: Initialize test database
+        run: docker exec ${{ job.services.postgres.id }} psql -U postgres -d nook_test -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public'
 
       - name: go test
         run: go test ./...
@@ -67,16 +82,12 @@ jobs:
     needs: [backend, frontend]
     steps:
       - uses: actions/checkout@v4
-      - name: Validate single-image compose
-        run: docker compose -f docker-compose.simple.yml config --quiet
-      - name: Validate tier 1 compose
+      - name: Validate PostgreSQL compose
         run: docker compose -f docker-compose.yml config --quiet
       - name: Validate existing PostgreSQL compose
         run: docker compose -f docker-compose.external-postgres.yml config --quiet
-      - name: Validate tier 2 compose
+      - name: Validate PostgreSQL + Redis compose
         run: docker compose -f docker-compose.standard.yml config --quiet
-      - name: Validate tier 3 compose
-        run: docker compose -f docker-compose.search.yml config --quiet
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest

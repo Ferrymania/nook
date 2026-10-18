@@ -304,12 +304,7 @@ func filterLikelyEpisodicPathsFromMovieQuery(q *gorm.DB) *gorm.DB {
 	return q.Where("NOT ((media.season_num > 0 OR media.episode_num > 0) AND ("+clause+"))", args...)
 }
 
-// embyEpisodicPathExpr 把路径分隔符归一化成 '/' 后再小写化，供剧集路径判定使用。
-//
-// 反斜杠归一化必须放在 SQL 里做，而不是再生成一份反斜杠模式：PostgreSQL 的
-// LIKE 默认就把反斜杠当转义符，模式结尾的 `\%` 会被解析成「字面百分号」而不是
-// 「反斜杠 + 通配符」，那些模式在 PostgreSQL 下永不命中（SQLite 没有默认转义符，
-// 所以只有换库之后才会暴露）。归一化列值后两种方言结果一致。
+// embyEpisodicPathExpr normalizes path separators before matching episode folders.
 const embyEpisodicPathExpr = `LOWER(REPLACE(media.path, '\', '/'))`
 
 func embyLikelyEpisodicPathSQL() (string, []any) {

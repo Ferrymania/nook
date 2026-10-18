@@ -28,11 +28,8 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.App.MaxCPUThreads != 2 {
 		t.Fatalf("expected default MaxCPUThreads 2, got %d", cfg.App.MaxCPUThreads)
 	}
-	if cfg.Database.DBPath == "" {
-		t.Fatalf("expected non-empty DBPath")
-	}
-	if cfg.Database.Type != "auto" {
-		t.Fatalf("expected default database type auto, got %q", cfg.Database.Type)
+	if cfg.Database.Type != "postgres" {
+		t.Fatalf("expected default database type postgres, got %q", cfg.Database.Type)
 	}
 	if cfg.Logging.Level != "warn" || !cfg.Logging.EnableRotation || cfg.Logging.MaxSizeMB != 20 {
 		t.Fatalf("expected warn rotating logs by default, got level=%q rotation=%v max=%d", cfg.Logging.Level, cfg.Logging.EnableRotation, cfg.Logging.MaxSizeMB)
@@ -48,9 +45,6 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if cfg.Cache.MemoryMaxSizeMB != DefaultCacheMemoryMaxSizeMB {
 		t.Fatalf("expected default runtime cache memory limit %d, got %d", DefaultCacheMemoryMaxSizeMB, cfg.Cache.MemoryMaxSizeMB)
-	}
-	if cfg.Search.Index != "nook_media" {
-		t.Fatalf("expected default search index, got %q", cfg.Search.Index)
 	}
 	if cfg.Database.MaxIdleConns != defaultDatabaseMaxIdleConns {
 		t.Fatalf("expected default MaxIdleConns %d, got %d", defaultDatabaseMaxIdleConns, cfg.Database.MaxIdleConns)
@@ -92,8 +86,6 @@ func TestEnvOverride(t *testing.T) {
 	t.Setenv("NOOK_CACHE_REDIS_URL", "redis://redis:6379/0")
 	t.Setenv("NOOK_CACHE_MEDIA_TTL_SECONDS", "30")
 	t.Setenv("NOOK_CACHE_MEMORY_MAX_SIZE_MB", "48")
-	t.Setenv("NOOK_SEARCH_BACKEND", "opensearch")
-	t.Setenv("NOOK_SEARCH_OPENSEARCH_URL", "http://opensearch:9200")
 	t.Setenv("NOOK_LICENSE_SERVER_URL", "https://license.example.com")
 	t.Setenv("NOOK_LICENSE_HMAC_SECRET", "override-secret")
 	t.Setenv("NOOK_LICENSE_PUBLIC_KEY", "override-public-key")
@@ -109,9 +101,6 @@ func TestEnvOverride(t *testing.T) {
 	}
 	if cfg.Cache.RedisURL != "redis://redis:6379/0" || cfg.Cache.MediaTTLSeconds != 30 || cfg.Cache.MemoryMaxSizeMB != 48 {
 		t.Fatalf("expected redis cache config from env, got url=%q ttl=%d memory=%d", cfg.Cache.RedisURL, cfg.Cache.MediaTTLSeconds, cfg.Cache.MemoryMaxSizeMB)
-	}
-	if cfg.Search.Backend != "opensearch" || cfg.Search.OpenSearchURL != "http://opensearch:9200" {
-		t.Fatalf("expected opensearch config from env, got backend=%q url=%q", cfg.Search.Backend, cfg.Search.OpenSearchURL)
 	}
 	if cfg.License.ServerURL != "https://license.example.com" || cfg.License.HMACSecret != "override-secret" || cfg.License.PublicKey != "override-public-key" {
 		t.Fatalf("expected license config from env, got url=%q secret=%q public_key=%q", cfg.License.ServerURL, cfg.License.HMACSecret, cfg.License.PublicKey)

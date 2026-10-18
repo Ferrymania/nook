@@ -96,13 +96,7 @@ func scopeVisibilityToLibraries(visibility MediaVisibility, libraryIDs []string)
 	return visibility, true
 }
 
-// RandomMedia 在「可见性 + 筛选」的结果集里随机取一条。
-//
-// 实现是「先 COUNT 再随机 offset」的两段查询：SQLite 没有 TABLESAMPLE，
-// ORDER BY RANDOM() 又会对整库排序（大库上会拖垮磁盘），因此用等价的
-// 偏移量取法，且两种数据库方言完全一致。
-//
-// 返回 (nil, nil) 表示结果集为空，由调用方决定响应码。
+// RandomMedia selects one visible item using count and a random offset, avoiding a full random sort.
 func (s *MediaService) RandomMedia(
 	ctx context.Context,
 	libraryID string,
@@ -127,7 +121,6 @@ func (s *MediaService) RandomMedia(
 		return nil, nil
 	}
 
-	// 超大结果集直接对全部记录随机 OFFSET 会让数据库扫描海量行（SQLite 逐行计数）。
 	// 当总量超过阈值时，收窄到按更新时间最新的前 N 条（列表排序首列是
 	// release_date / updated_at，前 randomPoolCap 行即为"最新"子集），
 	// 偏移量取其中随机位置，兼顾性能与覆盖面。

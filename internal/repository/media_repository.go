@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
 
 	"gorm.io/gorm"
 
@@ -15,26 +14,6 @@ import (
 // MediaRepository persists model.Media records.
 type MediaRepository struct {
 	db *gorm.DB
-
-	searchIndexOnce      sync.Once
-	searchIndexAvailable bool
-	searchBackend        MediaSearchBackend
-}
-
-type MediaSearchBackend interface {
-	SearchMediaIDs(ctx context.Context, query string, offset, limit int, filter MediaQueryFilter) ([]string, int64, error)
-}
-
-type MediaSearchSyncBackend interface {
-	MediaSearchBackend
-	EnsureIndex(ctx context.Context) error
-	IndexMedia(ctx context.Context, rows []model.Media) error
-}
-
-func (r *MediaRepository) SetSearchBackend(backend MediaSearchBackend) {
-	if r != nil {
-		r.searchBackend = backend
-	}
 }
 
 // MediaQueryFilter is applied to user-facing media queries so NSFW items and
@@ -111,7 +90,6 @@ func applyMediaQueryFilter(q *gorm.DB, filter MediaQueryFilter) *gorm.DB {
 //
 // genres 列是逗号分隔字符串，直接 LIKE '%Action%' 会把 "ActionComedy" 也命中。
 // 这里统一补上首尾逗号（并用空格容错）后再按 "%,Action,%" 匹配，实现整词语义；
-// 该写法在 SQLite 与 PostgreSQL 上行为一致，因此不需要方言分支。
 //
 // 注意写法：参数本身带上首尾逗号，SQL 里只做一次 REPLACE 来保证列值两端也有
 // 分隔符，避免 OR 链里重复拼接列表达式。
@@ -127,7 +105,7 @@ func genreMatchClause(genres []string) string {
 //
 // 必须与 genreMatchClause 的列端处理完全对称：
 //   - TRIM                   → TrimSpace
-//   - REPLACE(…, ' ', '')    → ReplaceAll(…, " ", "")   ← 多词类型（如 "Science Fiction"）
+//   - REPLACE(…, ' ', ”)    → ReplaceAll(…, " ", "")   ← 多词类型（如 "Science Fiction"）
 //   - REPLACE(…, '，', ',')  → ReplaceAll(…, "，", ",")
 func genreMatchArgs(genres []string) []any {
 	args := make([]any, 0, len(genres))
@@ -181,14 +159,6 @@ func (r *MediaRepository) YearRange(ctx context.Context, filter MediaQueryFilter
 		max = *bounds.MaxYear
 	}
 	return min, max, nil
-}
-
-func (r *MediaRepository) indexMediaBestEffort(ctx context.Context, media model.Media) {
-	backend, ok := r.searchBackend.(MediaSearchSyncBackend)
-	if !ok {
-		return
-	}
-	_ = backend.IndexMedia(ctx, []model.Media{media})
 }
 
 // FindByID returns the media row or (nil, nil).

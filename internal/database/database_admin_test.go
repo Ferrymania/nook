@@ -3,7 +3,7 @@ package database
 import (
 	"testing"
 
-	"github.com/glebarez/sqlite"
+	"github.com/Ferrymania/nook/internal/testutil"
 	"gorm.io/gorm"
 
 	"github.com/Ferrymania/nook/internal/config"
@@ -24,8 +24,8 @@ func TestMaskDSN(t *testing.T) {
 			want: "host=localhost port=5432 user=admin password=****** dbname=nook sslmode=disable",
 		},
 		{
-			in:   "sqlite://data/nook.db",
-			want: "sqlite://data/nook.db",
+			in:   "postgres://localhost/nook",
+			want: "postgres://localhost/nook",
 		},
 		{
 			in:   "",
@@ -42,7 +42,7 @@ func TestMaskDSN(t *testing.T) {
 }
 
 func TestInspectDatabaseStatus(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,18 +52,14 @@ func TestInspectDatabaseStatus(t *testing.T) {
 	_ = db.Create(&model.User{Username: "testuser", PasswordHash: "h", Role: "user"}).Error
 
 	cfg := &config.Config{}
-	cfg.Database.Type = "sqlite"
-	cfg.Database.DBPath = "./data/nook.db"
+	cfg.Database.Type = "postgres"
 
 	st := InspectDatabaseStatus(db, cfg)
 	if st == nil {
 		t.Fatal("expected non-nil DatabaseStatus")
 	}
-	if st.Type != "sqlite" {
-		t.Fatalf("expected sqlite, got %s", st.Type)
-	}
-	if st.DBPath != "./data/nook.db" {
-		t.Fatalf("expected db_path, got %s", st.DBPath)
+	if st.Type != "postgres" {
+		t.Fatalf("expected postgres, got %s", st.Type)
 	}
 	if st.TableCounts["users"] != 1 {
 		t.Fatalf("expected 1 user, got %d", st.TableCounts["users"])

@@ -48,10 +48,6 @@ func (r *MediaRepository) UpsertWithAliases(ctx context.Context, m *model.Media,
 // UpsertBatch 在单个事务里逐条执行 Upsert：扫描一批只提交（fsync）一次，
 // 而不是每条一个隐式事务。任一条目落库失败不影响批内已成功的条目——
 // 事务回滚后由调用方退回逐条 Upsert 兜底。
-//
-// OpenSearch 索引同步（HTTP，4s 超时）必须在事务提交之后统一执行：放在
-// 事务内会把 SQLite 写锁挂起在网络 IO 上，且批内用非事务连接回读只能
-// 拿到提交前的旧版本数据，把陈旧内容写进索引。
 func (r *MediaRepository) UpsertBatch(ctx context.Context, items []*model.Media) error {
 	mapped := make([]MediaUpsertItem, 0, len(items))
 	for _, item := range items {
@@ -67,45 +63,20 @@ func (r *MediaRepository) UpsertBatchWithAliases(ctx context.Context, items []Me
 	if len(items) == 0 {
 		return nil
 	}
-	indexIDs := make([]string, 0, len(items))
-	err := withSQLiteBusyRetry(ctx, func() error {
-		indexIDs = indexIDs[:0]
-		return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-			for _, item := range items {
-				if item.Media == nil {
-					continue
-				}
-				id, err := r.upsertWithDB(ctx, tx, item.Media, item.AliasPaths)
-				if err != nil {
-					return err
-				}
-				if id != "" {
-					indexIDs = append(indexIDs, id)
-				}
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		for _, item := range items {
+			if item.Media == nil {
+				continue
 			}
-			return nil
-		})
+			if _, err := r.upsertWithDB(ctx, tx, item.Media, item.AliasPaths); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
-	if err != nil {
-		return err
-	}
-	r.indexByIDBestEffort(ctx, indexIDs)
-	return nil
 }
 
-// indexByIDBestEffort 在事务提交后按 ID 回读最新行并同步搜索索引。
-func (r *MediaRepository) indexByIDBestEffort(ctx context.Context, ids []string) {
-	for _, id := range ids {
-		if id == "" {
-			continue
-		}
-		if fresh, err := r.FindByID(ctx, id); err == nil && fresh != nil {
-			r.indexMediaBestEffort(ctx, *fresh)
-		}
-	}
-}
-
-// upsertWithDB 落库（新建、更新或从旧路径迁移），返回需要重建索引的媒体 ID。
+// upsertWithDB 落库（新建、更新或从旧路径迁移），返回保存后的媒体 ID。
 func (r *MediaRepository) upsertWithDB(ctx context.Context, db *gorm.DB, m *model.Media, aliasPaths []string) (string, error) {
 	existing, created, adopted, err := r.findOrCreateMediaByPath(ctx, db, m, aliasPaths)
 	if err != nil {

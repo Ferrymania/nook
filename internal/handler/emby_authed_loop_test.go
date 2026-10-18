@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Ferrymania/nook/internal/testutil"
 	"github.com/gin-gonic/gin"
-	"github.com/glebarez/sqlite"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -27,7 +27,7 @@ import (
 // fails downstream auth (the "每次登录后立刻 401 Invalid token" report).
 func TestEmbyLoginThenAuthedRequest(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
@@ -92,12 +92,11 @@ func TestEmbyLoginThenAuthedRequest(t *testing.T) {
 // bearer token in Authorization instead of X-Emby-Token.
 func TestEmbyLoginWithAuthorizationHeaderToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
 	if sqlDB, err := db.DB(); err == nil {
-		// :memory: SQLite 每个连接是独立库，必须锁单连接否则表在不同连接上互相不可见。
 		sqlDB.SetMaxOpenConns(1)
 	}
 	if err := db.AutoMigrate(model.AllModels()...); err != nil {

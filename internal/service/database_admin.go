@@ -13,7 +13,7 @@ import (
 	"github.com/Ferrymania/nook/internal/repository"
 )
 
-// DatabaseAdminService manages database configuration, connectivity testing, and migration.
+// DatabaseAdminService manages database configuration, and connectivity testing.
 type DatabaseAdminService struct {
 	cfg   *config.Config
 	log   *zap.Logger
@@ -44,21 +44,6 @@ func (s *DatabaseAdminService) TestPostgres(ctx context.Context, dsn string) (*d
 	return database.TestPostgres(dsn)
 }
 
-// MigrateToPostgres copies all records from the current active database to the target PostgreSQL database.
-func (s *DatabaseAdminService) MigrateToPostgres(ctx context.Context, targetDSN string) (*database.DatabaseMigrationResult, error) {
-	s.log.Info("starting user-initiated database migration to PostgreSQL", zap.String("target", database.MaskDSN(targetDSN)))
-	res, err := database.MigrateCurrentToPostgres(s.db, targetDSN, 500, s.log)
-	if err != nil {
-		s.log.Error("database migration to PostgreSQL failed", zap.Error(err))
-		return nil, err
-	}
-	s.log.Info("database migration to PostgreSQL completed successfully",
-		zap.Int64("total_rows", res.TotalRows),
-		zap.Int64("duration_ms", res.DurationMS),
-	)
-	return res, nil
-}
-
 // SaveConfig persists the database configuration to config.yaml and the database settings table.
 func (s *DatabaseAdminService) SaveConfig(ctx context.Context, dbType, dsn string) error {
 	dbType = strings.TrimSpace(dbType)
@@ -66,7 +51,10 @@ func (s *DatabaseAdminService) SaveConfig(ctx context.Context, dbType, dsn strin
 	if dbType == "" {
 		dbType = "postgres"
 	}
-	if dbType == "postgres" && dsn == "" {
+	if dbType != "postgres" {
+		return fmt.Errorf("仅支持 PostgreSQL")
+	}
+	if dsn == "" {
 		return fmt.Errorf("PostgreSQL DSN 不能为空")
 	}
 

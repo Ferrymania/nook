@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Ferrymania/nook/internal/testutil"
 	"github.com/gin-gonic/gin"
-	"github.com/glebarez/sqlite"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -70,7 +70,7 @@ func TestParseEmbyAuthByNameReqAcceptsJSONWithoutContentType(t *testing.T) {
 
 func TestEmbyAuthenticateByNameAcceptsCaseVariantUsernameAndPath(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
@@ -140,7 +140,7 @@ func TestEmbyAuthenticateByNameAcceptsCaseVariantUsernameAndPath(t *testing.T) {
 
 func TestEmbyAuthenticateRecordsMediaBrowserClientInfo(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
@@ -201,12 +201,11 @@ func TestEmbyAuthenticateRecordsMediaBrowserClientInfo(t *testing.T) {
 // let the request through (user validity is enforced by activeEmbyUserRequired).
 func TestEmbyUserIdDirectTokenCompatibility(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
 	if sqlDB, err := db.DB(); err == nil {
-		// :memory: SQLite 每个连接是独立库，必须锁单连接。
 		sqlDB.SetMaxOpenConns(1)
 	}
 	if err := db.AutoMigrate(model.AllModels()...); err != nil {

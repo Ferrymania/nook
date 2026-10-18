@@ -2,15 +2,14 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"slices"
 	"strings"
 	"testing"
 
+	"github.com/Ferrymania/nook/internal/testutil"
 	"github.com/gin-gonic/gin"
-	"github.com/glebarez/sqlite"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -27,8 +26,7 @@ func newReaderHandlerContainer(t *testing.T) *service.Container {
 	t.Helper()
 	// 唯一库名 + cache=shared：阅读链路会并发写会话状态，
 	// 而 :memory: 下每个连接各自一个库，并发写入对后续读取不可见。
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

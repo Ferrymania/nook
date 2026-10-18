@@ -9,7 +9,7 @@ import (
 	"testing"
 	"unicode/utf16"
 
-	"github.com/glebarez/sqlite"
+	"github.com/Ferrymania/nook/internal/testutil"
 	"go.uber.org/zap"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"gorm.io/gorm"
@@ -106,7 +106,7 @@ func TestDecodeSubtitleTextKeepsUnknownBytes(t *testing.T) {
 // 接口层回归：外挂 UTF-16 字幕经 /subtitles/:id/ass（libass 路径）与
 // /subtitles/:id（WebVTT 降级路径）下发时都必须是可解析的 UTF-8。
 func TestSubtitleHandlersNormaliseUTF16Sidecar(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file:subtitle-encoding?mode=memory&cache=shared"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

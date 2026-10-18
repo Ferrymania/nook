@@ -23,30 +23,30 @@ import (
 // without threading state through the container.
 var startedAt = time.Now()
 
-	func systemInfoHandler(svc *service.Container) gin.HandlerFunc {
-		return func(c *gin.Context) {
-			directOnly := false
-			if svc.Repo != nil && svc.Repo.Setting != nil {
-				if v, err := svc.Repo.Setting.Get(c.Request.Context(), service.PlaybackDirectOnlySettingKey); err == nil {
-					directOnly = service.ParseBoolSetting(v, false)
-				}
+func systemInfoHandler(svc *service.Container) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		directOnly := false
+		if svc.Repo != nil && svc.Repo.Setting != nil {
+			if v, err := svc.Repo.Setting.Get(c.Request.Context(), service.PlaybackDirectOnlySettingKey); err == nil {
+				directOnly = service.ParseBoolSetting(v, false)
 			}
-			version := svc.Version
-			if strings.TrimSpace(version) == "" {
-				version = "dev"
-			}
-			c.JSON(http.StatusOK, gin.H{
-				"name":             "Nook",
-				"version":          version,
-				"go":               runtime.Version(),
-				"os":               runtime.GOOS,
-				"arch":             runtime.GOARCH,
-				"data_dir":         svc.Cfg.App.DataDir,
-				"cache_dir":        svc.Cfg.Cache.CacheDir,
-				"direct_play_only": directOnly,
-			})
 		}
+		version := svc.Version
+		if strings.TrimSpace(version) == "" {
+			version = "dev"
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"name":             "Nook",
+			"version":          version,
+			"go":               runtime.Version(),
+			"os":               runtime.GOOS,
+			"arch":             runtime.GOARCH,
+			"data_dir":         svc.Cfg.App.DataDir,
+			"cache_dir":        svc.Cfg.Cache.CacheDir,
+			"direct_play_only": directOnly,
+		})
 	}
+}
 
 func systemStatusHandler(svc *service.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {

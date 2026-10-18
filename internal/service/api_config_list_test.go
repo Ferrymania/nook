@@ -18,13 +18,13 @@ func TestAPIConfigListHidesScraperSourcesAndPrioritizesConfigured(t *testing.T) 
 		t.Fatal(err)
 	}
 	var scraperDefaults int64
-	if err := db.Model(&model.APIConfig{}).Where("provider IN ?", []string{"adult", "metatube"}).Count(&scraperDefaults).Error; err != nil {
+	if err := db.Model(&model.APIConfig{}).Where("provider IN ?", []string{"adult", "retired_source"}).Count(&scraperDefaults).Error; err != nil {
 		t.Fatal(err)
 	}
 	if scraperDefaults != 0 {
 		t.Fatal("scraper providers must not be seeded")
 	}
-	for _, provider := range []string{"tmdb", "bangumi", "adult", "metatube"} {
+	for _, provider := range []string{"tmdb", "bangumi", "adult", "retired_source"} {
 		key := "configured-" + provider + "-key"
 		if _, err := svc.Update(ctx, provider, APIConfigPatch{APIKey: &key}); err != nil {
 			t.Fatal(err)

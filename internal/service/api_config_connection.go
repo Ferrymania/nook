@@ -32,8 +32,6 @@ func (s *ApiConfigService) TestConnection(ctx context.Context, provider string) 
 		return s.testSiliconFlow(cfg)
 	case "adult":
 		return s.testAdult(ctx, cfg)
-	case "metatube":
-		return s.testMetaTube(ctx, cfg)
 	default:
 		return "unknown", fmt.Errorf("no test implemented for provider: %s", provider)
 	}
@@ -242,21 +240,4 @@ func (s *ApiConfigService) testAdult(ctx context.Context, cfg *model.APIConfig) 
 		return "error", fmt.Errorf("adult sources test failed: %w", lastErr)
 	}
 	return "error", errors.New("no adult source available")
-}
-
-// testMetaTube 测试 MetaTube Server 连接与 Token。
-func (s *ApiConfigService) testMetaTube(ctx context.Context, cfg *model.APIConfig) (string, error) {
-	serverURL := strings.TrimRight(strings.TrimSpace(cfg.BaseURL), "/")
-	if serverURL == "" {
-		serverURL = "http://127.0.0.1:7700"
-	}
-	provider := NewMetaTubeProvider(s.log)
-	res, err := provider.TestConnection(ctx, serverURL, cfg.APIKey)
-	if err != nil {
-		return "error", err
-	}
-	if !res.Success {
-		return "error", errors.New(res.Error)
-	}
-	return "success", nil
 }

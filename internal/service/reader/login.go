@@ -34,8 +34,8 @@ type LoginField struct {
 
 // SourceLoginInfo 书源登录界面描述与当前状态。
 type SourceLoginInfo struct {
-	SourceID   string       `json:"source_id"`
-	SourceName string       `json:"source_name"`
+	SourceID   string `json:"source_id"`
+	SourceName string `json:"source_name"`
 	// HasLoginJS loginUrl 提供了登录逻辑。
 	HasLoginJS bool `json:"has_login_js"`
 	// LoginJS 登录逻辑 JS 原文（前端只作展示/调试，不执行）。

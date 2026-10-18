@@ -192,9 +192,6 @@ func httpsPairReady(svc *service.Container) bool {
 }
 
 type testAdultScraperReq struct {
-	Engine    string `json:"engine"`
-	ServerURL string `json:"server_url"`
-	Token     string `json:"token"`
 	JavDBURL  string `json:"javdb_url"`
 	JavBusURL string `json:"javbus_url"`
 	Cookie    string `json:"cookie"`
@@ -204,43 +201,6 @@ func testAdultScraperHandler(svc *service.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req testAdultScraperReq
 		_ = c.ShouldBindJSON(&req)
-
-		engine := strings.ToLower(strings.TrimSpace(req.Engine))
-		if engine == "" {
-			engine = "metatube"
-		}
-
-		if engine == "metatube" {
-			serverURL := strings.TrimSpace(req.ServerURL)
-			if serverURL == "" {
-				serverURL, _ = svc.Repo.Setting.Get(c.Request.Context(), "adult.scraper.metatube_server")
-			}
-			if serverURL == "" {
-				serverURL = "http://127.0.0.1:7700"
-			}
-			token := strings.TrimSpace(req.Token)
-			if token == "" {
-				token, _ = svc.Repo.Setting.Get(c.Request.Context(), "adult.scraper.metatube_token")
-			}
-
-			client := service.NewMetaTubeProvider(svc.Log)
-			res, err := client.TestConnection(c.Request.Context(), serverURL, token)
-			if err != nil {
-				c.JSON(http.StatusOK, gin.H{
-					"success":    false,
-					"latency_ms": res.LatencyMs,
-					"error":      err.Error(),
-				})
-				return
-			}
-			c.JSON(http.StatusOK, gin.H{
-				"success":    res.Success,
-				"latency_ms": res.LatencyMs,
-				"providers":  res.Providers,
-				"error":      res.Error,
-			})
-			return
-		}
 
 		// Builtin scraper test
 		bases := []string{}

@@ -155,8 +155,7 @@ func (b *localMediaWriteBatch) existingPathOrAliasSet(items []localMediaWriteIte
 	if len(paths) == 0 {
 		return out, true
 	}
-	// Keep SQL variables below the legacy SQLite limit (999). A batch can
-	// contain 100 STRM rows and every row has many sibling aliases.
+	// Bound each lookup batch when STRM rows have many sibling aliases.
 	const pathLookupChunk = 400
 	for start := 0; start < len(paths); start += pathLookupChunk {
 		end := start + pathLookupChunk

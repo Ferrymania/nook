@@ -7,8 +7,8 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/Ferrymania/nook/internal/testutil"
 	"github.com/gin-gonic/gin"
-	"github.com/glebarez/sqlite"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -41,7 +41,7 @@ const (
 func newEmbySegmentsTestRouter(t *testing.T, durationSec int) (*gin.Engine, string, *int32) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

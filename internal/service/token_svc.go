@@ -95,9 +95,7 @@ func (s *TokenService) IssuePair(ctx context.Context, userID, role, tier string)
 	return s.issuePair(ctx, userID, role, tier, false)
 }
 
-// IssuePairBestEffort 为登录签发令牌。SQLite 被后台扫描长期写锁占用时，
-// 登录不能因为 refresh token 暂时无法落库而失败：先返回可用 access token，
-// 再在后台把 refresh token 补写进库。
+// IssuePairBestEffort issues login tokens and persists the refresh token in the background if the database is temporarily unavailable.
 func (s *TokenService) IssuePairBestEffort(ctx context.Context, userID, role, tier string) (*TokenPair, error) {
 	return s.issuePair(ctx, userID, role, tier, true)
 }

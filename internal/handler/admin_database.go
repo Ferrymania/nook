@@ -92,27 +92,6 @@ func testDatabaseHandler(svc *service.Container) gin.HandlerFunc {
 	}
 }
 
-func migrateDatabaseHandler(svc *service.Container) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		var req DatabaseConnectionPayload
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload: " + err.Error()})
-			return
-		}
-		dsn := req.BuildDSN()
-		if dsn == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "请提供目标 PostgreSQL 连接信息或 DSN"})
-			return
-		}
-		res, err := svc.Database.MigrateToPostgres(c.Request.Context(), dsn)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "迁移失败: " + err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, res)
-	}
-}
-
 func saveDatabaseConfigHandler(svc *service.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req DatabaseConnectionPayload
@@ -124,13 +103,14 @@ func saveDatabaseConfigHandler(svc *service.Container) gin.HandlerFunc {
 		if dbType == "" {
 			dbType = "postgres"
 		}
-		var dsn string
-		if dbType == "postgres" {
-			dsn = req.BuildDSN()
-			if dsn == "" {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "请提供有效的 PostgreSQL 连接信息或 DSN"})
-				return
-			}
+		if dbType != "postgres" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "仅支持 PostgreSQL"})
+			return
+		}
+		dsn := req.BuildDSN()
+		if dsn == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "请提供有效的 PostgreSQL 连接信息或 DSN"})
+			return
 		}
 
 		if err := svc.Database.SaveConfig(c.Request.Context(), dbType, dsn); err != nil {

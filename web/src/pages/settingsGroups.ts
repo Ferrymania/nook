@@ -10,7 +10,7 @@ export type { SettingGroup } from './settingsGroupTypes'
 export const databaseSettingsGroup: SettingGroup = {
   key: 'database',
   label: '数据库',
-  description: '配置底层数据库（SQLite / PostgreSQL）及数据平滑迁移',
+  description: '配置 PostgreSQL 连接并查看数据库运行状态',
   items: [],
 }
 

@@ -8,14 +8,14 @@ import (
 	_ "image/png" // register PNG decoder
 	"strings"
 
-	"github.com/metatube-community/metatube-sdk-go/detector"
+	"github.com/Ferrymania/nook/internal/service/facefinder"
 	_ "golang.org/x/image/webp" // register WebP decoder for AVE covers
 )
 
 const adultPosterRatio = 2.0 / 3.0
 
 var findPrimaryFaceAxisRatio = func(img image.Image, ratio float64, advanced bool) (float64, bool) {
-	return detector.FindPrimaryFaceAxisRatio(img, ratio, advanced)
+	return facefinder.Axis(img, ratio, advanced)
 }
 
 // IsAdultMediaPathOrMetadata reports whether media is adult based on path, mediaType, nsfw flag, or adult code.
@@ -47,7 +47,7 @@ func IsAdultArtworkURL(raw string) bool {
 }
 
 // CropAdultCoverPoster checks if the image data is a wide full-jacket DVD cover (width > height * 1.15).
-// If so, it uses MetaTube's Pigo face detector to position a 2:3 poster crop.
+// If so, it uses the local Pigo face detector to position a 2:3 poster crop.
 // When no face is detected, it falls back to the conventional right-side front cover.
 // If the image is already portrait or cannot be decoded, it safely returns the original data.
 func CropAdultCoverPoster(data []byte) ([]byte, string, error) {

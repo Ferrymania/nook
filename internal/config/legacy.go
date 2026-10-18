@@ -2,7 +2,6 @@ package config
 
 import (
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -20,22 +19,4 @@ func legacyEnvName(name string) string {
 		return "MEBOX_" + strings.TrimPrefix(name, "NOOK_")
 	}
 	return name
-}
-
-// Reuse existing data without renaming a SQLite database or its WAL files.
-// A new database always takes precedence when both names exist.
-func existingSQLitePath(path string) string {
-	if filepath.Base(path) != "nook.db" {
-		return path
-	}
-	if _, err := os.Stat(path); !os.IsNotExist(err) {
-		return path
-	}
-	for _, name := range []string{"mebox.db", "mmtl.db"} {
-		legacy := filepath.Join(filepath.Dir(path), name)
-		if info, err := os.Stat(legacy); err == nil && !info.IsDir() {
-			return legacy
-		}
-	}
-	return path
 }

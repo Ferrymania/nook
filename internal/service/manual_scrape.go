@@ -137,17 +137,11 @@ func (s *ScraperService) manualRequestMatch(ctx context.Context, req ManualScrap
 			}
 		}
 	case source == "adult":
-		var match *Match
-		if s.adult != nil {
-			match, _ = s.adult.GetMetaTubeCandidate(ctx, req.TheTVDBID, req.DoubanID)
-		}
-		if match == nil {
-			match = s.manualAdultMatch(ctx, firstText(req.OriginalName, req.Title))
-		}
+		match := s.manualAdultMatch(ctx, firstText(req.OriginalName, req.Title))
 		if match != nil {
 			// Older search responses used the portrait poster as a backdrop
 			// fallback. Do not let that placeholder replace a real preview
-			// image or processed primary image fetched from MetaTube.
+			// image returned by the selected source.
 			if strings.TrimSpace(match.BackdropURL) != "" &&
 				strings.TrimSpace(req.BackdropURL) == strings.TrimSpace(req.PosterURL) {
 				req.BackdropURL = ""

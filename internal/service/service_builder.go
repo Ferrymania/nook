@@ -72,7 +72,6 @@ func (b *serviceContainerBuilder) startRealtimeServices() {
 func (b *serviceContainerBuilder) initProviderServices() {
 	b.c.FFprobe = NewFFprobeService(b.cfg, b.log)
 	b.c.Cache = NewRuntimeCacheService(b.cfg, b.log)
-	b.configureMediaSearchBackend()
 
 	b.c.Crypto = NewCryptoService(b.cfg.Secrets.JWTSecret, b.log)
 	b.c.APIConfig = NewAPIConfigService(b.log, b.repos, b.c.Crypto)
@@ -100,19 +99,6 @@ func (b *serviceContainerBuilder) initProviderServices() {
 	b.c.APIConfig.onChange = b.c.Scraper.lookupCache.clear
 }
 
-func (b *serviceContainerBuilder) configureMediaSearchBackend() {
-	searchBackend := repository.NewOpenSearchMediaBackend(b.cfg.Search)
-	if searchBackend == nil || b.repos == nil || b.repos.Media == nil {
-		return
-	}
-	b.repos.Media.SetSearchBackend(searchBackend)
-	if b.log != nil {
-		b.log.Info("opensearch media search enabled",
-			zap.String("index", b.cfg.Search.Index),
-			zap.String("url", redactSensitiveURL(b.cfg.Search.OpenSearchURL)))
-	}
-}
-
 func (b *serviceContainerBuilder) initContentServices() {
 	b.c.Organizer = NewOrganizerService(b.cfg, b.log, b.repos)
 	b.c.Organizer.SetProbe(b.c.FFprobe)
@@ -127,7 +113,7 @@ func (b *serviceContainerBuilder) initContentServices() {
 	b.c.FileManager = NewFileManagerService(b.cfg, b.log, b.repos)
 	b.c.DLNA = NewDLNAService(b.log)
 	b.c.Storage = NewStorageService(b.log, b.repos)
-	b.c.Emby = NewEmbyService(b.cfg, b.log, b.repos).SetTMDbProvider(b.c.TMDb).SetAdultProvider(b.c.Scraper.adult)
+	b.c.Emby = NewEmbyService(b.cfg, b.log, b.repos).SetTMDbProvider(b.c.TMDb)
 	b.c.Scraper.onSeriesMetadataChanged = b.c.Emby.invalidateSeriesMetadata
 	// 发现类查询（NextUp / Similar / Genres）：Emby 兼容层与媒体库筛选共用。
 	b.c.Discovery = NewMediaDiscoveryService(b.log, b.repos)

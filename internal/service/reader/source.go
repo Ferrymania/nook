@@ -11,39 +11,39 @@ import (
 
 // BookSource 书源 JSON 结构（字段与 legado 实体一致，未知字段忽略）。
 type BookSource struct {
-	RawJSON           string         `json:"-"`
-	BookSourceURL     string         `json:"bookSourceUrl"`
-	BookSourceName    string         `json:"bookSourceName"`
-	BookSourceGroup   *string        `json:"bookSourceGroup"`
-	BookSourceType    *int           `json:"bookSourceType"` // 0文本 1音频 2图片 3文件 4视频
-	BookURLPattern    *string        `json:"bookUrlPattern"`
-	CustomOrder       *int           `json:"customOrder"`
-	Enabled           *bool          `json:"enabled"`
-	EnabledExplore    *bool          `json:"enabledExplore"`
-	EnabledCookieJar  *bool          `json:"enabledCookieJar"`
-	ConcurrentRate    *string        `json:"concurrentRate"`
-	Header            *string        `json:"header"`
-	LoginURL          *string        `json:"loginUrl"`
-	LoginUI           *string        `json:"loginUi"`
-	LoginCheckJS      *string        `json:"loginCheckJs"`
-	JSLib             *string        `json:"jsLib"`
-	BookSourceComment *string        `json:"bookSourceComment"`
+	RawJSON           string  `json:"-"`
+	BookSourceURL     string  `json:"bookSourceUrl"`
+	BookSourceName    string  `json:"bookSourceName"`
+	BookSourceGroup   *string `json:"bookSourceGroup"`
+	BookSourceType    *int    `json:"bookSourceType"` // 0文本 1音频 2图片 3文件 4视频
+	BookURLPattern    *string `json:"bookUrlPattern"`
+	CustomOrder       *int    `json:"customOrder"`
+	Enabled           *bool   `json:"enabled"`
+	EnabledExplore    *bool   `json:"enabledExplore"`
+	EnabledCookieJar  *bool   `json:"enabledCookieJar"`
+	ConcurrentRate    *string `json:"concurrentRate"`
+	Header            *string `json:"header"`
+	LoginURL          *string `json:"loginUrl"`
+	LoginUI           *string `json:"loginUi"`
+	LoginCheckJS      *string `json:"loginCheckJs"`
+	JSLib             *string `json:"jsLib"`
+	BookSourceComment *string `json:"bookSourceComment"`
 	// CoverDecodeJs 封面 bytes 二次解密 JS（返回解密后的字节），
 	// 对应 legado BookSource.coverDecodeJs。规则为空时封面零开销直通。
-	CoverDecodeJs  *string        `json:"coverDecodeJs"`
-	LastUpdateTime *int64         `json:"lastUpdateTime"`
-	RespondTime       *int64         `json:"respondTime"`
-	Weight            *int           `json:"weight"`
-	ExploreURL        *string        `json:"exploreUrl"`
-	SearchURL         *string        `json:"searchUrl"`
-	RuleExplore       *ExploreRule   `json:"ruleExplore"`
-	RuleSearch        *SearchRule    `json:"ruleSearch"`
-	RuleBookInfo      *BookInfoRule  `json:"ruleBookInfo"`
-	RuleToc           *TocRule       `json:"ruleToc"`
-	RuleContent       *ContentRule   `json:"ruleContent"`
-	VariableComment   *string        `json:"variableComment"`
-	Variables         map[string]any `json:"-"`
-	RawVariables      *string        `json:"variables"`
+	CoverDecodeJs   *string        `json:"coverDecodeJs"`
+	LastUpdateTime  *int64         `json:"lastUpdateTime"`
+	RespondTime     *int64         `json:"respondTime"`
+	Weight          *int           `json:"weight"`
+	ExploreURL      *string        `json:"exploreUrl"`
+	SearchURL       *string        `json:"searchUrl"`
+	RuleExplore     *ExploreRule   `json:"ruleExplore"`
+	RuleSearch      *SearchRule    `json:"ruleSearch"`
+	RuleBookInfo    *BookInfoRule  `json:"ruleBookInfo"`
+	RuleToc         *TocRule       `json:"ruleToc"`
+	RuleContent     *ContentRule   `json:"ruleContent"`
+	VariableComment *string        `json:"variableComment"`
+	Variables       map[string]any `json:"-"`
+	RawVariables    *string        `json:"variables"`
 }
 
 // EnabledCookieJarOrDefault 是否启用 Cookie 自动携带（legado 默认 true）。

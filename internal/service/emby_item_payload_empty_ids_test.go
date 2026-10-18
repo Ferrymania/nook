@@ -71,9 +71,9 @@ func TestEmbyEpisodeItemKeepsSeasonAndSeriesFields(t *testing.T) {
 
 func TestDropEmptyStringFields(t *testing.T) {
 	item := map[string]any{
-		"SeasonId":  "",
-		"SeriesId":  "   ",
-		"SeriesName": "命运石之门",
+		"SeasonId":    "",
+		"SeriesId":    "   ",
+		"SeriesName":  "命运石之门",
 		"IndexNumber": 0,
 	}
 	dropEmptyStringFields(item, "SeasonId", "SeriesId", "SeriesName")

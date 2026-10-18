@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -16,6 +15,8 @@ import (
 	"github.com/Ferrymania/nook/internal/database"
 	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/repository"
+	"github.com/Ferrymania/nook/internal/testutil"
+	"gorm.io/gorm"
 )
 
 func newAuthTestServices(t *testing.T) (*repository.Container, *AuthService, *ProfileService, *PermissionService) {
@@ -173,18 +174,15 @@ func TestLoginKeepsOnlyConfiguredActiveRefreshTokens(t *testing.T) {
 	}
 }
 
-func TestLoginRetriesTransientSQLiteBusy(t *testing.T) {
+func TestLoginRetriesTransientRowLock(t *testing.T) {
 	ctx := context.Background()
 	cfg := &config.Config{}
 	cfg.App.DataDir = t.TempDir()
-	cfg.Database.DBPath = filepath.Join(cfg.App.DataDir, "busy-login.db")
-	cfg.Database.WALMode = true
-	cfg.Database.BusyTimeout = 20
 	cfg.Database.MaxOpenConns = 4
 	cfg.Database.MaxIdleConns = 2
 	cfg.Secrets.JWTSecret = "test-secret"
 	log := zap.NewNop()
-	db, err := database.Open(cfg, log)
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -230,22 +228,19 @@ func TestLoginRetriesTransientSQLiteBusy(t *testing.T) {
 	defer close(release)
 
 	if _, err := auth.Login(ctx, "viewer", "password"); err != nil {
-		t.Fatalf("login should survive a transient sqlite write lock: %v", err)
+		t.Fatalf("login should survive a transient row lock: %v", err)
 	}
 }
 
-func TestLoginSurvivesOneReservedSQLiteConnectionWithWALPool(t *testing.T) {
+func TestLoginSurvivesOneReservedPostgresConnection(t *testing.T) {
 	ctx := context.Background()
 	cfg := &config.Config{}
 	cfg.App.DataDir = t.TempDir()
-	cfg.Database.DBPath = filepath.Join(cfg.App.DataDir, "reserved-connection-login.db")
-	cfg.Database.WALMode = true
-	cfg.Database.BusyTimeout = 20
 	cfg.Database.MaxOpenConns = 4
 	cfg.Database.MaxIdleConns = 2
 	cfg.Secrets.JWTSecret = "test-secret"
 	log := zap.NewNop()
-	db, err := database.Open(cfg, log)
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,22 +278,19 @@ func TestLoginSurvivesOneReservedSQLiteConnectionWithWALPool(t *testing.T) {
 	loginCtx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 	if _, err := auth.Login(loginCtx, "viewer", "password"); err != nil {
-		t.Fatalf("login should not be blocked by one reserved sqlite connection: %v", err)
+		t.Fatalf("login should not be blocked by one reserved PostgreSQL connection: %v", err)
 	}
 }
 
-func TestLoginReturnsTokensWhenSQLiteWriteLockPersists(t *testing.T) {
+func TestLoginReturnsTokensWhenPostgresRowLockPersists(t *testing.T) {
 	ctx := context.Background()
 	cfg := &config.Config{}
 	cfg.App.DataDir = t.TempDir()
-	cfg.Database.DBPath = filepath.Join(cfg.App.DataDir, "busy-login-degraded.db")
-	cfg.Database.WALMode = true
-	cfg.Database.BusyTimeout = 20
 	cfg.Database.MaxOpenConns = 4
 	cfg.Database.MaxIdleConns = 2
 	cfg.Secrets.JWTSecret = "test-secret"
 	log := zap.NewNop()
-	db, err := database.Open(cfg, log)
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

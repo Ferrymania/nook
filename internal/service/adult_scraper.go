@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	"go.uber.org/zap"
@@ -54,7 +53,6 @@ type AdultProvider struct {
 	client    *http.Client
 	apiConfig *APIConfigService
 	repo      *repository.Container
-	metatube  *MetaTubeProvider
 }
 
 func NewAdultProvider(log *zap.Logger, apiConfig *APIConfigService, repos ...*repository.Container) *AdultProvider {
@@ -66,7 +64,6 @@ func NewAdultProvider(log *zap.Logger, apiConfig *APIConfigService, repos ...*re
 		log:       log,
 		apiConfig: apiConfig,
 		repo:      repo,
-		metatube:  NewMetaTubeProvider(log),
 		client:    NewExternalHTTPClient(12 * time.Second),
 	}
 }
@@ -75,193 +72,22 @@ func (p *AdultProvider) Enabled() bool {
 	return p != nil
 }
 
-// MetaTubeClient 返回 MetaTube 客户端实例。
-func (p *AdultProvider) MetaTubeClient() *MetaTubeProvider {
-	if p == nil {
-		return nil
-	}
-	return p.metatube
-}
-
-// ResolveMetaTubeConfig 解析当前生效的 MetaTube 配置。
-func (p *AdultProvider) ResolveMetaTubeConfig(ctx context.Context) MetaTubeConfig {
-	serverURL := p.getSetting(ctx, "adult.scraper.metatube_server", "")
-	token := p.getSetting(ctx, "adult.scraper.metatube_token", "")
-	provider := p.getSetting(ctx, "adult.scraper.metatube_provider", "")
-	enableActor := p.getSettingBool(ctx, "adult.scraper.enable_actor", true)
-	enableTrailer := p.getSettingBool(ctx, "adult.scraper.enable_trailer", false)
-	cropCover := p.getSettingBool(ctx, "adult.scraper.crop_cover", true)
-	badge := p.getSettingBool(ctx, "adult.scraper.badge", false)
-
-	if serverURL == "" && p.apiConfig != nil {
-		if resolved, err := p.apiConfig.Resolve(ctx, "metatube"); err == nil && resolved.BaseURL != "" {
-			serverURL = resolved.BaseURL
-			if token == "" {
-				token = resolved.APIKey
-			}
-		}
-	}
-
-	return MetaTubeConfig{
-		ServerURL:       serverURL,
-		Token:           token,
-		DefaultProvider: provider,
-		EnableActor:     enableActor,
-		EnableTrailer:   enableTrailer,
-		CropCover:       cropCover,
-		Badge:           badge,
-	}
-}
-
-// Search 执行单个番号刮削（根据配置自动在 MetaTube、内置源或智能混合之间路由）。
+// Search resolves a code using the built-in sources.
 func (p *AdultProvider) Search(ctx context.Context, code string) (*Match, error) {
 	code = normalizeAdultCode(code)
 	if code == "" {
 		return nil, errors.New("empty adult code")
 	}
-
-	engine := strings.ToLower(p.getSetting(ctx, "adult.scraper.engine", "builtin"))
-	switch engine {
-	case "metatube":
-		mtCfg := p.ResolveMetaTubeConfig(ctx)
-		if mtCfg.ServerURL != "" {
-			match, err := p.metatube.SearchAndGetBestMatch(ctx, mtCfg, code)
-			if err != nil {
-				if p.log != nil {
-					p.log.Warn("metatube scrape failed", zap.String("code", code), zap.Error(err))
-				}
-				return nil, err
-			}
-			if match != nil {
-				match.OriginalName = code
-				match.Title = FormatAdultTitle(code, match.Title)
-				match.NSFW = true
-				return match, nil
-			}
-		}
-		return nil, nil
-
-	case "auto":
-		mtCfg := p.ResolveMetaTubeConfig(ctx)
-		if mtCfg.ServerURL != "" {
-			match, err := p.metatube.SearchAndGetBestMatch(ctx, mtCfg, code)
-			if err == nil && match != nil {
-				match.OriginalName = code
-				match.Title = FormatAdultTitle(code, match.Title)
-				match.NSFW = true
-				return match, nil
-			}
-			if p.log != nil && err != nil {
-				p.log.Debug("metatube search in auto mode failed, falling back to builtin", zap.String("code", code), zap.Error(err))
-			}
-		}
-		return p.searchBuiltin(ctx, code)
-
-	default: // "builtin"
-		return p.searchBuiltin(ctx, code)
-	}
+	return p.searchBuiltin(ctx, code)
 }
 
-// SearchCandidates 执行搜索并返回所有候选 Match 列表（用于手动刮削弹窗）。
+// SearchCandidates returns built-in results for manual matching.
 func (p *AdultProvider) SearchCandidates(ctx context.Context, query string) ([]*Match, error) {
-	code := normalizeAdultCode(query)
-	if code == "" {
-		code = strings.TrimSpace(query)
+	match, err := p.Search(ctx, query)
+	if err != nil || match == nil {
+		return nil, err
 	}
-	if code == "" {
-		return nil, errors.New("empty adult query")
-	}
-
-	engine := strings.ToLower(p.getSetting(ctx, "adult.scraper.engine", "builtin"))
-	switch engine {
-	case "metatube":
-		mtCfg := p.ResolveMetaTubeConfig(ctx)
-		if mtCfg.ServerURL != "" {
-			matches, err := p.metatube.Search(ctx, mtCfg, code)
-			if err != nil {
-				return nil, err
-			}
-			matches = p.enrichMetaTubeCandidates(ctx, mtCfg, code, matches)
-			for _, m := range matches {
-				m.OriginalName = code
-				m.Title = FormatAdultTitle(code, m.Title)
-				m.NSFW = true
-			}
-			return matches, nil
-		}
-		return nil, nil
-
-	case "auto":
-		mtCfg := p.ResolveMetaTubeConfig(ctx)
-		if mtCfg.ServerURL != "" {
-			matches, err := p.metatube.Search(ctx, mtCfg, code)
-			if err == nil && len(matches) > 0 {
-				matches = p.enrichMetaTubeCandidates(ctx, mtCfg, code, matches)
-				for _, m := range matches {
-					m.OriginalName = code
-					m.Title = FormatAdultTitle(code, m.Title)
-					m.NSFW = true
-				}
-				return matches, nil
-			}
-		}
-		m, err := p.searchBuiltin(ctx, code)
-		if err != nil || m == nil {
-			return nil, err
-		}
-		return []*Match{m}, nil
-
-	default:
-		m, err := p.searchBuiltin(ctx, code)
-		if err != nil || m == nil {
-			return nil, err
-		}
-		return []*Match{m}, nil
-	}
-}
-
-// GetMetaTubeCandidate fetches the selected provider result instead of
-// re-running a search that may choose a different provider.
-func (p *AdultProvider) GetMetaTubeCandidate(ctx context.Context, provider, id string) (*Match, error) {
-	if p == nil || p.metatube == nil {
-		return nil, nil
-	}
-	provider = strings.TrimSpace(provider)
-	id = strings.TrimSpace(id)
-	if provider == "" || id == "" {
-		return nil, nil
-	}
-	engine := strings.ToLower(p.getSetting(ctx, "adult.scraper.engine", "builtin"))
-	if engine != "metatube" && engine != "auto" {
-		return nil, nil
-	}
-	cfg := p.ResolveMetaTubeConfig(ctx)
-	if cfg.ServerURL == "" {
-		return nil, nil
-	}
-	return p.metatube.GetMovie(ctx, cfg, provider, id)
-}
-
-func (p *AdultProvider) enrichMetaTubeCandidates(ctx context.Context, cfg MetaTubeConfig, code string, matches []*Match) []*Match {
-	var wg sync.WaitGroup
-	for i, candidate := range matches {
-		if candidate == nil ||
-			normalizeAdultCode(candidate.OriginalName) != code ||
-			strings.TrimSpace(candidate.DoubanID) == "" ||
-			strings.TrimSpace(candidate.TheTVDBID) == "" {
-			continue
-		}
-		wg.Add(1)
-		go func(index int, current *Match) {
-			defer wg.Done()
-			detailed, err := p.metatube.GetMovie(ctx, cfg, current.TheTVDBID, current.DoubanID)
-			if err == nil && detailed != nil {
-				matches[index] = detailed
-			}
-		}(i, candidate)
-	}
-	wg.Wait()
-	return matches
+	return []*Match{match}, nil
 }
 
 func (p *AdultProvider) searchBuiltin(ctx context.Context, code string) (*Match, error) {
@@ -290,44 +116,10 @@ func (p *AdultProvider) searchBuiltin(ctx context.Context, code string) (*Match,
 			match.OriginalName = code
 			match.Title = FormatAdultTitle(code, match.Title)
 			match.NSFW = true
-			p.applyMetaTubeFaceAwareArtwork(ctx, code, match)
 			return match, nil
 		}
 	}
 	return nil, lastErr
-}
-
-func (p *AdultProvider) applyMetaTubeFaceAwareArtwork(ctx context.Context, code string, match *Match) {
-	if p == nil || p.metatube == nil || match == nil || strings.TrimSpace(match.PosterURL) == "" {
-		return
-	}
-	// In explicit built-in mode MetaTube remains useful as an image processor:
-	// its primary endpoint performs the same automatic face-aware crop used by
-	// the official Jellyfin plugin. Auto mode already tried MetaTube metadata,
-	// so avoid repeating the same failed request during fallback.
-	if strings.ToLower(p.getSetting(ctx, "adult.scraper.engine", "builtin")) != "builtin" {
-		return
-	}
-	cfg := p.ResolveMetaTubeConfig(ctx)
-	if cfg.ServerURL == "" || !cfg.CropCover {
-		return
-	}
-	candidates, err := p.metatube.Search(ctx, cfg, code)
-	if err != nil {
-		return
-	}
-	for _, candidate := range candidates {
-		if candidate == nil || normalizeAdultCode(candidate.OriginalName) != code {
-			continue
-		}
-		if candidate.PosterURL != "" {
-			match.PosterURL = candidate.PosterURL
-		}
-		if candidate.BackdropURL != "" {
-			match.BackdropURL = candidate.BackdropURL
-		}
-		return
-	}
 }
 
 func (p *AdultProvider) resolveBases(ctx context.Context) []string {

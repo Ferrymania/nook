@@ -57,7 +57,7 @@ func (s *TokenService) finishBestEffortRefreshTokenStore(userID, tokenHash strin
 		s.untrackDelayedStore(userID, tokenHash)
 		return
 	}
-	if repository.IsSQLiteBusyError(err) || errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+	if repository.IsTransientDatabaseError(err) || errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
 		if s.log != nil {
 			s.log.Warn("refresh token store delayed; login will continue",
 				zap.String("user_id", userID),
@@ -93,7 +93,7 @@ func (s *TokenService) storeRefreshTokenEventually(userID, tokenHash string, exp
 		if err == nil {
 			return
 		}
-		if !repository.IsSQLiteBusyError(err) && !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, context.Canceled) {
+		if !repository.IsTransientDatabaseError(err) && !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, context.Canceled) {
 			if s.log != nil {
 				s.log.Warn("refresh token delayed store failed permanently", zap.String("user_id", userID), zap.Error(err))
 			}

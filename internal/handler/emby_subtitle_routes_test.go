@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Ferrymania/nook/internal/testutil"
 	"github.com/gin-gonic/gin"
-	"github.com/glebarez/sqlite"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -27,7 +27,7 @@ import (
 // advertised Codec — so a real Emby client can load the subtitle.
 func TestEmbySubtitleOfficialRouteServesRawASS(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
@@ -102,7 +102,7 @@ func TestEmbySubtitleOfficialRouteServesRawASS(t *testing.T) {
 // the auth token in PlaybackInfo (delivered via embyAttachTokenToMediaSources).
 func TestEmbySubtitleDeliveryUrlGetsToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}

@@ -45,7 +45,7 @@ func TestNormalizeLibraryTagsCapsCountAndNameLength(t *testing.T) {
 
 	many := make([]LibraryTagSet, 0, MaxLibraryTags+5)
 	for i := 0; i < MaxLibraryTags+5; i++ {
-		many = append(many, LibraryTagSet{Name: string(rune('a' + i%26)) + "-" + string(rune('a'+i/26))})
+		many = append(many, LibraryTagSet{Name: string(rune('a'+i%26)) + "-" + string(rune('a'+i/26))})
 	}
 	if capped := NormalizeLibraryTags(many); len(capped) > MaxLibraryTags {
 		t.Fatalf("capped len = %d, want <= %d", len(capped), MaxLibraryTags)

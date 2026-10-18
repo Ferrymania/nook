@@ -45,7 +45,6 @@ func TestCropAdultCoverPosterWideLandscape(t *testing.T) {
 	if croppedWidth <= 0 || croppedWidth >= 800 {
 		t.Fatalf("unexpected cropped width: %d", croppedWidth)
 	}
-	// MetaTube's default primary-image ratio is 2:3.
 	ratio := float64(croppedWidth) / float64(croppedHeight)
 	if ratio < 0.65 || ratio > 0.68 {
 		t.Fatalf("expected portrait ratio ~0.667, got %f (%dx%d)", ratio, croppedWidth, croppedHeight)

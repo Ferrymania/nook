@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Ferrymania/nook/internal/testutil"
 	"github.com/gin-gonic/gin"
-	"github.com/glebarez/sqlite"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -23,7 +23,7 @@ func newHistoryStatsEnv(t *testing.T) (*gin.Engine, *service.Container, string) 
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
@@ -51,12 +51,12 @@ func newHistoryStatsEnv(t *testing.T) (*gin.Engine, *service.Container, string) 
 }
 
 type historyStatsPayload struct {
-	Total         int64 `json:"total"`
-	Completed     int64 `json:"completed"`
-	InProgress    int64 `json:"in_progress"`
-	WatchedMs     int64 `json:"watched_ms"`
-	WatchedHours  float64 `json:"watched_hours"`
-	Daily         []struct {
+	Total        int64   `json:"total"`
+	Completed    int64   `json:"completed"`
+	InProgress   int64   `json:"in_progress"`
+	WatchedMs    int64   `json:"watched_ms"`
+	WatchedHours float64 `json:"watched_hours"`
+	Daily        []struct {
 		Day     string `json:"day"`
 		WatchMs int64  `json:"watch_ms"`
 		Plays   int64  `json:"plays"`
@@ -300,7 +300,7 @@ func TestHistoryStatsBreakdownsNilMediaCountsAsOther(t *testing.T) {
 func TestHistoryStatsPermissionDeny(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}

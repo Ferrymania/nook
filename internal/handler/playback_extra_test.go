@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Ferrymania/nook/internal/testutil"
 	"github.com/gin-gonic/gin"
-	"github.com/glebarez/sqlite"
 	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -334,7 +334,7 @@ func TestExternalPlaybackTokenDurationIsCapped(t *testing.T) {
 func newPlaybackScopeTestRouter(t *testing.T) (*gin.Engine, *service.Container, string) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

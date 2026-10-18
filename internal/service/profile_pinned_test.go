@@ -3,7 +3,7 @@ package service
 import (
 	"testing"
 
-	"github.com/glebarez/sqlite"
+	"github.com/Ferrymania/nook/internal/testutil"
 	"gorm.io/gorm"
 
 	"github.com/Ferrymania/nook/internal/model"
@@ -12,7 +12,7 @@ import (
 )
 
 func TestProfilePinnedLibrariesFiltersInaccessibleAndPreservesOrder(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +61,7 @@ func TestProfilePinnedLibrariesFiltersInaccessibleAndPreservesOrder(t *testing.T
 }
 
 func TestProfilePinnedLibrariesKeepsMountedEmbyAndLocalPins(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

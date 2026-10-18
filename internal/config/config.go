@@ -53,9 +53,7 @@ func Load() (*Config, error) {
 			s := viper.New()
 			s.SetConfigFile(filepath.Join("config", e.Name()))
 			if err := s.ReadInConfig(); err != nil {
-				// 分片解析失败不能静默吞掉：database.yaml 语法错误会让
-				// database.dsn 缺失 → type=auto 静默回退 SQLite，新数据
-				// 全部写进一个空库而用户无感知。
+				// Report invalid config fragments rather than silently ignoring connection settings.
 				fmt.Fprintf(os.Stderr, "warning: parse config/%s failed: %v\n", e.Name(), err)
 			} else {
 				v.MergeConfigMap(s.AllSettings())

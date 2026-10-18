@@ -3,7 +3,6 @@ export const PROVIDER_LABELS: Record<string, string> = {
   douban: '豆瓣 Douban',
   bangumi: 'Bangumi 番组计划',
   thetvdb: 'TheTVDB',
-  metatube: 'MetaTube',
 }
 
 export const TYPE_LABELS: Record<string, string> = {

@@ -18,18 +18,15 @@ var scrapeClaimMu sync.Mutex
 type ScrapeTaskRepository struct{ db *gorm.DB }
 
 func (r *ScrapeTaskRepository) Create(ctx context.Context, t *model.ScrapeTask) error {
-	return withSQLiteBusyRetry(ctx, func() error {
-		return r.db.WithContext(ctx).Create(t).Error
-	})
+	return r.db.WithContext(ctx).Create(t).Error
 }
 
 func (r *ScrapeTaskRepository) CreateBatch(ctx context.Context, tasks []model.ScrapeTask) error {
 	if len(tasks) == 0 {
 		return nil
 	}
-	return withSQLiteBusyRetry(ctx, func() error {
-		return r.db.WithContext(ctx).CreateInBatches(tasks, 100).Error
-	})
+
+	return r.db.WithContext(ctx).CreateInBatches(tasks, 100).Error
 }
 
 func (r *ScrapeTaskRepository) FindByID(ctx context.Context, id string) (*model.ScrapeTask, error) {
@@ -133,7 +130,7 @@ func (r *ScrapeTaskRepository) ClaimPending(ctx context.Context, limit int) ([]m
 	defer scrapeClaimMu.Unlock()
 
 	var rows []model.ScrapeTask
-	err := withSQLiteBusyRetry(ctx, func() error {
+	err := func() error {
 		return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 			if err := tx.Where("status = ?", model.ScrapeTaskPending).
 				Order("created_at asc").Limit(limit).Find(&rows).Error; err != nil {
@@ -152,7 +149,7 @@ func (r *ScrapeTaskRepository) ClaimPending(ctx context.Context, limit int) ([]m
 			return tx.Model(&model.ScrapeTask{}).Where("id IN ?", ids).
 				Updates(map[string]any{"status": model.ScrapeTaskRunning, "started_at": now}).Error
 		})
-	})
+	}()
 	if err != nil {
 		return nil, err
 	}
@@ -160,27 +157,23 @@ func (r *ScrapeTaskRepository) ClaimPending(ctx context.Context, limit int) ([]m
 }
 
 func (r *ScrapeTaskRepository) Update(ctx context.Context, t *model.ScrapeTask) error {
-	return withSQLiteBusyRetry(ctx, func() error {
-		return r.db.WithContext(ctx).Model(&model.ScrapeTask{}).Where("id = ?", t.ID).Updates(map[string]any{
-			"status":        t.Status,
-			"error":         t.Error,
-			"provider":      t.Provider,
-			"matched_title": t.MatchedTitle,
-			"matched_year":  t.MatchedYear,
-			"poster_url":    t.PosterURL,
-			"backdrop_url":  t.BackdropURL,
-			"retry_count":   t.RetryCount,
-			"started_at":    t.StartedAt,
-			"finished_at":   t.FinishedAt,
-			"updated_at":    time.Now(),
-		}).Error
-	})
+	return r.db.WithContext(ctx).Model(&model.ScrapeTask{}).Where("id = ?", t.ID).Updates(map[string]any{
+		"status":        t.Status,
+		"error":         t.Error,
+		"provider":      t.Provider,
+		"matched_title": t.MatchedTitle,
+		"matched_year":  t.MatchedYear,
+		"poster_url":    t.PosterURL,
+		"backdrop_url":  t.BackdropURL,
+		"retry_count":   t.RetryCount,
+		"started_at":    t.StartedAt,
+		"finished_at":   t.FinishedAt,
+		"updated_at":    time.Now(),
+	}).Error
 }
 
 func (r *ScrapeTaskRepository) Delete(ctx context.Context, id string) error {
-	return withSQLiteBusyRetry(ctx, func() error {
-		return r.db.WithContext(ctx).Unscoped().Where("id = ?", id).Delete(&model.ScrapeTask{}).Error
-	})
+	return r.db.WithContext(ctx).Unscoped().Where("id = ?", id).Delete(&model.ScrapeTask{}).Error
 }
 
 func (r *ScrapeTaskRepository) DeleteBatch(ctx context.Context, ids []string) (int64, error) {
@@ -188,11 +181,11 @@ func (r *ScrapeTaskRepository) DeleteBatch(ctx context.Context, ids []string) (i
 		return 0, nil
 	}
 	var count int64
-	err := withSQLiteBusyRetry(ctx, func() error {
+	err := func() error {
 		res := r.db.WithContext(ctx).Unscoped().Where("id IN ?", ids).Delete(&model.ScrapeTask{})
 		count = res.RowsAffected
 		return res.Error
-	})
+	}()
 	return count, err
 }
 
@@ -201,7 +194,7 @@ func (r *ScrapeTaskRepository) RetryBatch(ctx context.Context, ids []string) (in
 		return 0, nil
 	}
 	var count int64
-	err := withSQLiteBusyRetry(ctx, func() error {
+	err := func() error {
 		res := r.db.WithContext(ctx).Model(&model.ScrapeTask{}).
 			Where("id IN ? AND status IN ?", ids, []string{model.ScrapeTaskFailed, model.ScrapeTaskCanceled}).
 			Updates(map[string]any{
@@ -214,7 +207,7 @@ func (r *ScrapeTaskRepository) RetryBatch(ctx context.Context, ids []string) (in
 			})
 		count = res.RowsAffected
 		return res.Error
-	})
+	}()
 	return count, err
 }
 
@@ -224,7 +217,7 @@ func (r *ScrapeTaskRepository) CancelBatch(ctx context.Context, ids []string) (i
 	}
 	now := time.Now()
 	var count int64
-	err := withSQLiteBusyRetry(ctx, func() error {
+	err := func() error {
 		res := r.db.WithContext(ctx).Model(&model.ScrapeTask{}).
 			Where("id IN ? AND status IN ?", ids, []string{model.ScrapeTaskPending, model.ScrapeTaskRunning}).
 			Updates(map[string]any{
@@ -235,54 +228,54 @@ func (r *ScrapeTaskRepository) CancelBatch(ctx context.Context, ids []string) (i
 			})
 		count = res.RowsAffected
 		return res.Error
-	})
+	}()
 	return count, err
 }
 
 func (r *ScrapeTaskRepository) ClearDone(ctx context.Context) (int64, error) {
 	var count int64
-	err := withSQLiteBusyRetry(ctx, func() error {
+	err := func() error {
 		res := r.db.WithContext(ctx).Unscoped().Where("status = ?", model.ScrapeTaskDone).Delete(&model.ScrapeTask{})
 		count = res.RowsAffected
 		return res.Error
-	})
+	}()
 	return count, err
 }
 
 func (r *ScrapeTaskRepository) ClearFinished(ctx context.Context) (int64, error) {
 	var count int64
-	err := withSQLiteBusyRetry(ctx, func() error {
+	err := func() error {
 		res := r.db.WithContext(ctx).Unscoped().Where("status IN ?", []string{model.ScrapeTaskDone, model.ScrapeTaskFailed, model.ScrapeTaskCanceled}).
 			Delete(&model.ScrapeTask{})
 		count = res.RowsAffected
 		return res.Error
-	})
+	}()
 	return count, err
 }
 
 func (r *ScrapeTaskRepository) ClearCanceled(ctx context.Context) (int64, error) {
 	var count int64
-	err := withSQLiteBusyRetry(ctx, func() error {
+	err := func() error {
 		res := r.db.WithContext(ctx).Unscoped().Where("status = ?", model.ScrapeTaskCanceled).Delete(&model.ScrapeTask{})
 		count = res.RowsAffected
 		return res.Error
-	})
+	}()
 	return count, err
 }
 
 func (r *ScrapeTaskRepository) ClearFailed(ctx context.Context) (int64, error) {
 	var count int64
-	err := withSQLiteBusyRetry(ctx, func() error {
+	err := func() error {
 		res := r.db.WithContext(ctx).Unscoped().Where("status = ?", model.ScrapeTaskFailed).Delete(&model.ScrapeTask{})
 		count = res.RowsAffected
 		return res.Error
-	})
+	}()
 	return count, err
 }
 
 func (r *ScrapeTaskRepository) RetryAllFailed(ctx context.Context) (int64, error) {
 	var count int64
-	err := withSQLiteBusyRetry(ctx, func() error {
+	err := func() error {
 		res := r.db.WithContext(ctx).Model(&model.ScrapeTask{}).
 			Where("status = ?", model.ScrapeTaskFailed).
 			Updates(map[string]any{
@@ -295,14 +288,14 @@ func (r *ScrapeTaskRepository) RetryAllFailed(ctx context.Context) (int64, error
 			})
 		count = res.RowsAffected
 		return res.Error
-	})
+	}()
 	return count, err
 }
 
 func (r *ScrapeTaskRepository) CancelPending(ctx context.Context) (int64, error) {
 	now := time.Now()
 	var count int64
-	err := withSQLiteBusyRetry(ctx, func() error {
+	err := func() error {
 		res := r.db.WithContext(ctx).Model(&model.ScrapeTask{}).
 			Where("status IN ?", []string{model.ScrapeTaskPending, model.ScrapeTaskRunning}).
 			Updates(map[string]any{
@@ -313,6 +306,6 @@ func (r *ScrapeTaskRepository) CancelPending(ctx context.Context) (int64, error)
 			})
 		count = res.RowsAffected
 		return res.Error
-	})
+	}()
 	return count, err
 }

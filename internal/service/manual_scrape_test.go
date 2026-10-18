@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/glebarez/sqlite"
+	"github.com/Ferrymania/nook/internal/testutil"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -32,74 +32,6 @@ func TestManualRequestMatchFallsBackToCandidatePayload(t *testing.T) {
 	}
 	if match.Title != "手动选择的电影" || match.DoubanID != "1234567" || match.Year != 2026 {
 		t.Fatalf("fallback match = %#v", match)
-	}
-}
-
-func TestManualAdultMatchUsesSelectedMetaTubeDetailsAndRealBackdrop(t *testing.T) {
-	var detailCalls atomic.Int32
-	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v1/movies/AVE/94600" {
-			http.NotFound(w, r)
-			return
-		}
-		detailCalls.Add(1)
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(struct {
-			Data MetaTubeMovieInfo `json:"data"`
-		}{
-			Data: MetaTubeMovieInfo{
-				ID:            "94600",
-				Number:        "CWPBD-138",
-				Title:         "Selected title",
-				Provider:      "AVE",
-				CoverURL:      "https://example.com/poster.jpg",
-				PreviewImages: []string{"https://example.com/backdrop.jpg"},
-			},
-		})
-	}))
-	defer upstream.Close()
-
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := db.AutoMigrate(&model.Setting{}, &model.APIConfig{}); err != nil {
-		t.Fatal(err)
-	}
-	repos := repository.New(db)
-	if err := repos.Setting.Set(t.Context(), "adult.scraper.engine", "metatube"); err != nil {
-		t.Fatal(err)
-	}
-	if err := repos.Setting.Set(t.Context(), "adult.scraper.metatube_server", upstream.URL); err != nil {
-		t.Fatal(err)
-	}
-	adult := NewAdultProvider(zap.NewNop(), nil, repos)
-	scraper := &ScraperService{adult: adult}
-
-	match, err := scraper.manualRequestMatch(t.Context(), ManualScrapeRequest{
-		Source:       "adult",
-		MediaType:    "adult",
-		Title:        "CWPBD-138 Selected title",
-		OriginalName: "CWPBD-138",
-		PosterURL:    "https://example.com/search-cover.jpg",
-		BackdropURL:  "https://example.com/search-cover.jpg",
-		DoubanID:     "94600",
-		TheTVDBID:    "AVE",
-		NSFW:         true,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if detailCalls.Load() != 1 {
-		t.Fatalf("selected MetaTube detail calls = %d, want 1", detailCalls.Load())
-	}
-	wantPoster := upstream.URL + "/v1/images/primary/AVE/94600?auto=true&pos=1&quality=90&ratio=-1&url=https%3A%2F%2Fexample.com%2Fposter.jpg"
-	if match.PosterURL != wantPoster {
-		t.Fatalf("selected poster = %q, want %q", match.PosterURL, wantPoster)
-	}
-	wantBackdrop := upstream.URL + "/v1/images/backdrop/AVE/94600?quality=90"
-	if match.BackdropURL != wantBackdrop {
-		t.Fatalf("backdrop = %q, want %q", match.BackdropURL, wantBackdrop)
 	}
 }
 
@@ -158,7 +90,7 @@ func TestManualSearchReturnsTMDbCandidatePage(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -217,7 +149,7 @@ func TestManualSearchFallsBackToMovieFolderForGenericQuery(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -278,7 +210,7 @@ func TestManualSearchReturnsMovieFallbackForTVTypedTMDbSearch(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -343,7 +275,7 @@ func TestManualSearchAnimeTheatricalPrefersTMDbMovie(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -411,7 +343,7 @@ func TestManualSearchAllProvidersTMDbNumericIDTriesMovieAndTVNamespaces(t *testi
 	}))
 	defer upstream.Close()
 
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -468,7 +400,7 @@ func TestManualSearchTMDbProviderIDUsesIDLookupOnly(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -534,7 +466,7 @@ func TestManualSearchAllProvidersProviderIDSkipsAdultSource(t *testing.T) {
 	}))
 	defer adultUpstream.Close()
 
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -611,7 +543,7 @@ func TestManualSearchIncludesAdultProvider(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -667,7 +599,7 @@ func TestApplyManualMatchSavesSelectedCloudMatchWhenDetailsSlow(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -719,7 +651,7 @@ func TestApplyManualMatchSavesSelectedCloudMatchWhenDetailsSlow(t *testing.T) {
 }
 
 func TestApplyManualMovieMatchClearsEpisodeMarkers(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -803,7 +735,7 @@ func TestApplyManualTVMatchRebuildsEpisodeIdentityFromPath(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

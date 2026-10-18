@@ -4,6 +4,7 @@
 // 一样存 reader_chapters，用 ReaderChapter.Tag 记住定位信息：
 //   - TXT：UTF-8 规范化后文件内的字节区间 "start:end"（读章节只读这段，不载整本）
 //   - EPUB：zip 内的 XHTML 条目路径（每次按需解压该条）
+//
 // 网络书籍不受影响：ReaderBook.LocalPath 为空即走书源链路。
 package reader
 

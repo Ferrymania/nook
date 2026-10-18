@@ -18,7 +18,6 @@ func newTokenTestRepo(t *testing.T) *repository.Container {
 	return repository.New(db)
 }
 
-// TestRefreshAcceptsPendingDelayedToken 验证：登录时因 SQLite 写压力未及时
 // 落库的 refresh token（仍在后台补写队列中）在刷新时被接受，而不是把用户
 // 踢回登录页（历史上「经常登录报错」的来源之一）。
 func TestRefreshAcceptsPendingDelayedToken(t *testing.T) {

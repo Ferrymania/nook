@@ -3,13 +3,12 @@ package reader
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/glebarez/sqlite"
+	"github.com/Ferrymania/nook/internal/testutil"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -111,8 +110,7 @@ func newLoginTestService(t *testing.T) (*ReaderService, *repository.Container) {
 	// 唯一库名避免同包测试互相污染；cache=shared 让连接池共享同一份内存库
 	// （多源搜索会并发写会话状态，而 :memory: 下每个连接各自一个库，
 	// 并发写入对后续读取不可见，会造成测试假失败）。
-	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

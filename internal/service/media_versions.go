@@ -260,8 +260,7 @@ func mediaVersionGroupKey(m model.Media) string { // 远程 Emby 挂载条目保
 		return mediaVersionStemGroupKey(m, libKey)
 	}
 
-	// 成人条目按番号折叠。在线刮削（MetaTube）会把番号与 provider「借用」
-	// 存进 douban_id/thetvdb_id，本地 NFO 路径则拿不到这两个字段；一旦按
+	// 旧版在线刮削可能借用外部 ID 字段，本地 NFO 不一定包含这些字段；一旦按
 	// 外部 ID 分组，同一部片的各个分片就会因为元数据来源不同（在线刮削 vs
 	// 本地 NFO）裂成两张标题相同的卡。番号取自原文件名/路径/标题，与元数据
 	// 来源无关，因此这里统一用番号做版本身份。
@@ -349,8 +348,7 @@ func mediaVersionGroupKey(m model.Media) string { // 远程 Emby 挂载条目保
 // mediaAdultGroupCode 返回成人条目的番号，作为与元数据来源无关的版本身份。
 //
 // 只在已经确认是成人条目（NSFW）时才返回番号：番号本身来自原文件名/路径/
-// 标题，不会随「在线刮削（MetaTube 把番号与 provider 借用进 douban_id/
-// thetvdb_id）」还是「本地 NFO（不带外部 ID）」而改变，因此两条来源能算出
+// 标题，因此不受在线或本地 NFO 元数据来源影响，两条来源能算出
 // 同一个键。未标记 NSFW 的条目仍走标题分组，普通影视库里 "The Matrix 1999"
 // 这类文件名不会被当成番号。
 func mediaAdultGroupCode(m model.Media) string {

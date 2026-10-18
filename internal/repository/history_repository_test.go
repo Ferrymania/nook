@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/glebarez/sqlite"
+	"github.com/Ferrymania/nook/internal/testutil"
 	"gorm.io/gorm"
 
 	"github.com/Ferrymania/nook/internal/database"
@@ -12,7 +12,7 @@ import (
 )
 
 func TestHistoryUpsertSingleRowPerUserMedia(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +52,7 @@ func TestHistoryUpsertSingleRowPerUserMedia(t *testing.T) {
 }
 
 func TestHistoryUpsertKeepsDurationWhenUnknown(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func TestHistoryUpsertKeepsDurationWhenUnknown(t *testing.T) {
 }
 
 func TestHistoryUpsertProgressRejectsStaleReports(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

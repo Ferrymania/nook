@@ -75,12 +75,3 @@ func (p *AdultProvider) getSetting(ctx context.Context, key, fallback string) st
 	}
 	return fallback
 }
-
-func (p *AdultProvider) getSettingBool(ctx context.Context, key string, fallback bool) bool {
-	val := p.getSetting(ctx, key, "")
-	if val == "" {
-		return fallback
-	}
-	val = strings.ToLower(val)
-	return val == "true" || val == "1" || val == "yes" || val == "on"
-}

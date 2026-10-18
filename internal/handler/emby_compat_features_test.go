@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Ferrymania/nook/internal/testutil"
 	"github.com/gin-gonic/gin"
-	"github.com/glebarez/sqlite"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -72,7 +72,7 @@ func TestNormalizeEmbyPath(t *testing.T) {
 
 func TestEmbyDuplicatePrefixHandling(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
@@ -103,7 +103,7 @@ func TestEmbyDuplicatePrefixHandling(t *testing.T) {
 
 func TestEmbyMixedCaseHandling(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
@@ -197,7 +197,7 @@ func TestEmbyClientIdentification(t *testing.T) {
 
 func TestEmbyAdaptivePrefixPlaybackInfo(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
@@ -288,7 +288,7 @@ func TestEmbyAdaptivePrefixPlaybackInfo(t *testing.T) {
 
 func TestEmbyImageClearNoStore(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
@@ -322,7 +322,7 @@ func TestEmbyImageClearNoStore(t *testing.T) {
 
 func TestEmbyTemporaryPasswordLogin(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
@@ -398,7 +398,7 @@ func TestEmbyTemporaryPasswordLogin(t *testing.T) {
 
 func TestEmbySeriesArtworkInheritanceAndRunTimeTicksFallback(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
@@ -535,7 +535,7 @@ func TestEmbySeriesArtworkInheritanceAndRunTimeTicksFallback(t *testing.T) {
 
 func TestMeTemporaryPasswordEndpoint(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}

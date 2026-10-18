@@ -170,7 +170,7 @@ func applyPadding(data []byte, blockSize int, padding string) []byte {
 	case "NoPadding":
 		return data
 	case "ZeroPadding":
-		n := (len(data)+blockSize-1)/blockSize*blockSize
+		n := (len(data) + blockSize - 1) / blockSize * blockSize
 		if n == 0 {
 			n = blockSize
 		}

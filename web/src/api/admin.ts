@@ -1,10 +1,9 @@
-import { api, MIGRATION_REQUEST_TIMEOUT } from './client'
+import { api } from './client'
 import type { AccessLog, Setting, User } from '../types'
 
 export interface DatabaseStatus {
-  type: 'sqlite' | 'postgres'
+  type: 'postgres'
   dsn?: string
-  db_path?: string
   open_conns: number
   in_use: number
   idle: number
@@ -20,14 +19,6 @@ export interface PostgresTestResult {
   error?: string
 }
 
-export interface DatabaseMigrationResult {
-  success: boolean
-  total_rows: number
-  table_rows?: Record<string, number>
-  duration_ms: number
-  message?: string
-  error?: string
-}
 
 export interface DatabaseConnectionPayload {
   type?: string
@@ -139,12 +130,7 @@ export const adminAPI = {
 	  testDatabaseConnection: (payload: DatabaseConnectionPayload) =>
 	    api.post<PostgresTestResult>('/admin/database/test', payload).then((r) => r.data),
 
-  migrateDatabase: (payload: DatabaseConnectionPayload) =>
-    api
-      .post<DatabaseMigrationResult>('/admin/database/migrate', payload, {
-        timeout: MIGRATION_REQUEST_TIMEOUT,
-      })
-      .then((r) => r.data),
+
 
 	  saveDatabaseConfig: (payload: DatabaseConnectionPayload) =>
 	    api.post<{ message: string; type: string }>('/admin/database/save-config', payload).then((r) => r.data),

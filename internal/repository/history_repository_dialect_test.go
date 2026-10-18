@@ -15,9 +15,6 @@ import (
 // 同时出现在本次插入的行里而拒绝该语句：
 //
 //	column reference "session_started_at_ms" is ambiguous (SQLSTATE 42702)
-//
-// 后果是 POST /api/history 全部 500，观看进度与续播完全存不下来。SQLite 不做这项
-// 检查（旧写法在 SQLite 下一直正常），所以只能在 PostgreSQL 方言下断言。
 func TestHistoryProgressUpsertQualifiesConflictWhereColumns(t *testing.T) {
 	repos, rec := newPostgresDryRunRepos(t)
 	ctx := context.Background()

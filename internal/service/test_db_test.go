@@ -4,14 +4,14 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/glebarez/sqlite"
+	"github.com/Ferrymania/nook/internal/testutil"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
 	"github.com/Ferrymania/nook/internal/model"
 )
 
-// newServiceTestDB opens an in-memory DB for service tests.
+// newServiceTestDB opens an isolated PostgreSQL schema for service tests.
 //
 // The full model set is always migrated, on top of any explicitly requested
 // models. Service code probes tables that a given test may not care about
@@ -21,7 +21,7 @@ import (
 // everything keeps fixtures faithful to production and the output quiet.
 func newServiceTestDB(t *testing.T, models ...any) *gorm.DB {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	db, err := testutil.Open(t, &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
 		t.Fatal(err)
 	}

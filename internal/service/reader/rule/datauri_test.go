@@ -20,11 +20,11 @@ func TestDecodeDataURI(t *testing.T) {
 	enc := base64.StdEncoding.EncodeToString([]byte(payload))
 
 	cases := map[string]string{
-		"标准 base64":     "data:;base64," + enc,
-		"带 MIME":        "data:application/json;base64," + enc,
-		"无 padding":     "data:;base64," + base64.RawStdEncoding.EncodeToString([]byte(payload)),
-		"URL-safe":      "data:;base64," + base64.URLEncoding.EncodeToString([]byte(payload)),
-		"含空白/换行":       "data:;base64," + wrapBase64(enc),
+		"标准 base64": "data:;base64," + enc,
+		"带 MIME":    "data:application/json;base64," + enc,
+		"无 padding": "data:;base64," + base64.RawStdEncoding.EncodeToString([]byte(payload)),
+		"URL-safe":  "data:;base64," + base64.URLEncoding.EncodeToString([]byte(payload)),
+		"含空白/换行":    "data:;base64," + wrapBase64(enc),
 	}
 	for name, raw := range cases {
 		got, ok := DecodeDataURI(raw)

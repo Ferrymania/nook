@@ -58,7 +58,7 @@
 
 ### 技术栈
 
-- **后端**：Go · Gin · GORM · SQLite / PostgreSQL · 可选 Redis · 可选 OpenSearch
+- **后端**：Go · Gin · GORM · PostgreSQL · 可选 Redis
 - **前端**：React 18 · Vite · TypeScript · Tailwind CSS · Zustand
 - **部署**：Docker Compose 多档模板，支持 amd64 / arm64 镜像与单文件可执行发布
 
@@ -72,7 +72,6 @@
 | --- | --- | --- |
 | 没有 PostgreSQL | [docker-compose.yml](docker-compose.yml) | Nook + 新建 PostgreSQL |
 | 已有 PostgreSQL | [docker-compose.external-postgres.yml](docker-compose.external-postgres.yml) | 只启动 Nook，连接已有数据库 |
-| 想使用内置 SQLite | [docker-compose.simple.yml](docker-compose.simple.yml) | 只启动 Nook |
 
 ```bash
 mkdir -p Nook && cd Nook
@@ -84,8 +83,6 @@ curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose
 # 已有 PostgreSQL：改用下面的下载地址，并先修改 YAML 中的 NOOK_DATABASE_DSN
 # curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose.external-postgres.yml -o docker-compose.yml
 
-# 或单镜像 + 内置 SQLite
-# curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose.simple.yml -o docker-compose.yml
 
 docker compose up -d
 ```
@@ -116,34 +113,14 @@ ghcr.io/ferrymania/nook:latest
 
 | 档位 | 配置文件 | 组件 | 适合场景 |
 | --- | --- | --- | --- |
-| 单镜像档 | `docker-compose.simple.yml` | Nook + SQLite | 新手、单人、低配 NAS，只想一个容器跑起来 |
-| 第一档 | `docker-compose.yml` | Nook + 新建 PostgreSQL | 没有 PostgreSQL，大多数家庭 NAS |
+| 默认 | `docker-compose.yml` | Nook + 新建 PostgreSQL | 没有 PostgreSQL，大多数家庭 NAS |
 | 已有 PostgreSQL | `docker-compose.external-postgres.yml` | Nook + 外部 PostgreSQL | 复用已有数据库实例 |
-| 第二档 | `docker-compose.standard.yml` | + Redis | 多用户、Emby 客户端频繁刷新、首页/列表访问多 |
-| 第三档 | `docker-compose.search.yml` | + OpenSearch | 超大媒体库、复杂全文搜索（内存占用更高） |
-
-### 单镜像档要点
-
-- 只启动 **一个** Nook 容器，数据在 `./data/nook.db`
-- 通常只需改端口与媒体目录挂载
-- **不要**设置 `NOOK_DATABASE_DSN`，否则会切到 PostgreSQL
-
-```yaml
-ports:
-  - "18080:8080"
-volumes:
-  - ./data:/data          # 必须备份
-  - ./cache:/cache        # 可重建
-  - ./media:/media        # 改成你的媒体目录
-```
-
-网页添加媒体库时填写容器内路径，例如 `/media`、`/media/电影`。
+| Redis 可选 | `docker-compose.standard.yml` | + Redis | 多用户、Emby 客户端频繁刷新、首页/列表访问多 |
 
 ### 没有 PostgreSQL
 
 - 使用 `docker-compose.yml`，会启动 Nook 和 PostgreSQL 两个服务。
 - 主库在 `./postgres`，配置与密钥在 `./data`，两者都要备份。
-- 若存在旧 SQLite 数据库，首次启动会自动迁移到 PostgreSQL，成功后记录完成状态。
 
 ### 已有 PostgreSQL
 
@@ -168,11 +145,10 @@ NOOK_DATABASE_DSN: "postgres://数据库用户:数据库密码@数据库地址:5
 
 | 路径 | 说明 |
 | --- | --- |
-| `./data` | JWT 密钥、运行配置、SQLite 主库或迁移源 |
+| `./data` | JWT 密钥和运行配置 |
 | `./postgres` | 自带 PostgreSQL 的主库；外部 PostgreSQL 在原部署处备份 |
 | `./cache` | 海报/转码缓存，可重建 |
 | `./redis` | 热缓存，可重建 |
-| `./opensearch` | 搜索索引，可重建 |
 
 ### 更新镜像
 
@@ -181,7 +157,7 @@ docker compose pull nook
 docker compose up -d --no-deps nook
 ```
 
-日常更新只拉 `nook` 服务即可，不要随意 `docker compose pull` 升级 PostgreSQL/Redis/OpenSearch 基础镜像。
+日常更新只拉 `nook` 服务即可，不要随意 `docker compose pull` 升级 PostgreSQL/Redis 基础镜像。
 
 ---
 
@@ -223,7 +199,7 @@ environment:
 ## 常见问题
 
 **扫库或入库很慢？**  
-先确认路径映射与数据库档位。网盘扫描还受接口限速与目录规模影响；大库可考虑第二档 Redis 或第三档 OpenSearch。
+先确认路径映射与数据库档位。网盘扫描还受接口限速与目录规模影响；多用户高频访问可按需启用 Redis。
 
 **下载目录文件没有被自动整理？**  
 确认下载目录已通过 `volumes` 挂进容器，且 `NOOK_DOWNLOAD_*` 环境变量对应正确。Nook 负责目录整理入库，qBittorrent 等下载器按普通软件自行部署即可。

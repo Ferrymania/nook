@@ -12,12 +12,12 @@ import (
 
 func TestMediaSidecarBaseIgnoresKeepExt(t *testing.T) {
 	cases := map[string]string{
-		"/media/竞女01.mkv.strm":         "竞女01",
-		"/media/竞女01.mp4.strm":         "竞女01",
-		"/media/竞女01.strm":             "竞女01",
-		"/media/竞女01.mkv":              "竞女01",
-		"/lib/Show.S01E02.mkv.strm":    "Show.S01E02",
-		`C:/lib/Show.S01E02.mkv.strm`:  "Show.S01E02",
+		"/media/竞女01.mkv.strm":        "竞女01",
+		"/media/竞女01.mp4.strm":        "竞女01",
+		"/media/竞女01.strm":            "竞女01",
+		"/media/竞女01.mkv":             "竞女01",
+		"/lib/Show.S01E02.mkv.strm":   "Show.S01E02",
+		`C:/lib/Show.S01E02.mkv.strm`: "Show.S01E02",
 	}
 	for in, want := range cases {
 		if got := mediaSidecarBase(in); got != want {

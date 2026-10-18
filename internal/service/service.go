@@ -118,7 +118,6 @@ func (c *Container) Boot() {
 	if err := c.APIConfig.SeedDefaults(c.stopCtx); err != nil {
 		c.Log.Warn("api config seed failed", zap.Error(err))
 	}
-	helper.Go(c.Log, "service.warmMediaSearchIndex", func() { c.warmMediaSearchIndex(c.stopCtx) })
 
 	// 启动调度器定时任务
 	c.Scheduler.Start(c.stopCtx)

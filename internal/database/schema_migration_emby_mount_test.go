@@ -4,14 +4,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/glebarez/sqlite"
+	"github.com/Ferrymania/nook/internal/testutil"
 	"gorm.io/gorm"
 
 	"github.com/Ferrymania/nook/internal/model"
 )
 
 func TestEnsureEmbyMountsCompatibility(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -19,16 +19,16 @@ func TestEnsureEmbyMountsCompatibility(t *testing.T) {
 	// Create a table without sort_order simulating an older schema
 	if err := db.Exec(`CREATE TABLE emby_mounts (
 		id varchar(36) PRIMARY KEY,
-		created_at datetime,
-		updated_at datetime,
-		deleted_at datetime,
+		created_at timestamptz,
+		updated_at timestamptz,
+		deleted_at timestamptz,
 		account_id text,
 		remote_view_id text,
 		remote_view_name text,
 		collection_type text,
 		name text,
-		proxy_play numeric DEFAULT false,
-		enabled numeric DEFAULT true
+		proxy_play boolean DEFAULT false,
+		enabled boolean DEFAULT true
 	)`).Error; err != nil {
 		t.Fatal(err)
 	}

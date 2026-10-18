@@ -16,14 +16,14 @@ import (
 	"github.com/Ferrymania/nook/internal/config"
 	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/repository"
-	"github.com/glebarez/sqlite"
+	"github.com/Ferrymania/nook/internal/testutil"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
 func newLibraryScrapeEnv(t *testing.T) (*ScraperService, *APIConfigService) {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
