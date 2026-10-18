@@ -100,8 +100,9 @@ func TestHistoryStatsIncludesDailyAndTypes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	yesterday := time.Now().Add(-24 * time.Hour)
-	today := time.Now().Add(-time.Hour)
+	// Keep the fixtures on distinct local dates even when CI runs just after midnight.
+	today := time.Now()
+	yesterday := today.AddDate(0, 0, -1)
 
 	rows := []struct {
 		media     *model.Media
