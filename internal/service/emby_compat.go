@@ -73,7 +73,6 @@ type EmbyService struct {
 	latestRefresh sync.Map
 
 	tmdb          *TMDbProvider
-	adult         *AdultProvider
 	personImageMu sync.RWMutex
 	personImages  map[string]string
 
@@ -119,15 +118,6 @@ func (e *EmbyService) discoveryService() *MediaDiscoveryService {
 func (e *EmbyService) SetTMDbProvider(tmdb *TMDbProvider) *EmbyService {
 	if e != nil {
 		e.tmdb = tmdb
-	}
-	return e
-}
-
-// SetAdultProvider wires the on-demand adult-metadata provider used when a
-// detail request needs cast/crew not stored in the database.
-func (e *EmbyService) SetAdultProvider(adult *AdultProvider) *EmbyService {
-	if e != nil {
-		e.adult = adult
 	}
 	return e
 }
