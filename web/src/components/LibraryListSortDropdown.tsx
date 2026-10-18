@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowDown, ArrowUp, ArrowUpDown, Check } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronDown } from 'lucide-react'
 
 import {
   LIBRARY_LIST_SORT_OPTIONS,
@@ -12,6 +12,7 @@ type LibraryListSortDropdownProps = {
   value: LibraryListSortField
   order: LibraryListSortOrder
   onChange: (field: LibraryListSortField, order: LibraryListSortOrder) => void
+  buttonClassName?: string
   className?: string
 }
 
@@ -20,6 +21,7 @@ export function LibraryListSortDropdown({
   order,
   onChange,
   className = '',
+  buttonClassName,
 }: LibraryListSortDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -53,7 +55,9 @@ export function LibraryListSortDropdown({
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-sand-200 bg-white/90 px-3 py-1.5 text-xs font-semibold text-ink-600 shadow-sm transition-all hover:border-brand-300 hover:bg-brand-50/50 hover:text-brand-700 sm:h-10 sm:text-sm"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        className={buttonClassName ?? "inline-flex h-9 items-center gap-1.5 rounded-xl border border-sand-200 bg-white/90 px-3 py-1.5 text-xs font-semibold text-ink-600 shadow-sm transition-all hover:border-brand-300 hover:bg-brand-50/50 hover:text-brand-700 sm:h-10 sm:text-sm"}
         title="更改媒体库列表排序"
       >
         <ArrowUpDown size={14} className="text-sand-500" />
@@ -63,6 +67,7 @@ export function LibraryListSortDropdown({
         ) : (
           <ArrowDown size={13} className="font-bold text-brand-600" />
         )}
+        {buttonClassName && <ChevronDown size={14} className="text-[var(--app-muted)]" />}
       </button>
 
       {isOpen && (

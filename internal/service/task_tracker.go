@@ -28,6 +28,7 @@ const (
 type BackgroundTask struct {
 	ID         string           `json:"id"`
 	Kind       string           `json:"kind"`
+	LibraryID  string           `json:"library_id,omitempty"`
 	Name       string           `json:"name"`
 	Status     string           `json:"status"`
 	Stage      string           `json:"stage,omitempty"`
@@ -44,6 +45,7 @@ type BackgroundTask struct {
 }
 
 type TaskUpdate struct {
+	LibraryID  string
 	Stage      string
 	SourcePath string
 	DestPath   string
@@ -95,6 +97,7 @@ func (t *TaskTrackerService) Start(kind, name string, update TaskUpdate) *TaskHa
 	task := &BackgroundTask{
 		ID:         uuid.NewString(),
 		Kind:       kind,
+		LibraryID:  update.LibraryID,
 		Name:       name,
 		Status:     TaskStatusRunning,
 		Stage:      update.Stage,
@@ -118,6 +121,43 @@ func (h *TaskHandle) Update(update TaskUpdate) {
 		return
 	}
 	h.tracker.update(h.id, update)
+}
+
+func (h *TaskHandle) ID() string {
+	if h == nil {
+		return ""
+	}
+	return h.id
+}
+
+// LibraryScan returns an active scan before a recent result, including when
+// different roots of one library are scanned concurrently.
+func (t *TaskTrackerService) LibraryScan(libraryID string) *BackgroundTask {
+	if t == nil {
+		return nil
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	var latest *BackgroundTask
+	for _, task := range t.active {
+		if task.Kind == TaskKindScan && task.LibraryID == libraryID && (latest == nil || task.StartedAt.After(latest.StartedAt)) {
+			latest = task
+		}
+	}
+	if latest == nil {
+		for i := range t.recent {
+			task := &t.recent[i]
+			if task.Kind == TaskKindScan && task.LibraryID == libraryID {
+				latest = task
+				break
+			}
+		}
+	}
+	if latest == nil {
+		return nil
+	}
+	out := cloneBackgroundTask(*latest)
+	return &out
 }
 
 func (h *TaskHandle) Finish(err error, update TaskUpdate) {

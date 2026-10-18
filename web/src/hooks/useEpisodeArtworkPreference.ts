@@ -5,6 +5,11 @@ import { adminAPI } from '../api/admin'
 import { useAuthStore } from '../stores/auth'
 
 const SETTING_KEY = 'scrape.episode_images'
+const CHANGED_EVENT = 'nook:episode-artwork-changed'
+
+export function notifyEpisodeArtworkPreference(enabled: boolean) {
+  window.dispatchEvent(new CustomEvent(CHANGED_EVENT, { detail: enabled }))
+}
 
 // This is an instance-wide scraper preference. The existing admin settings
 // endpoint stores it in the Setting table, so it follows the server instead
@@ -20,6 +25,13 @@ export function useEpisodeArtworkPreference(): [boolean, Dispatch<SetStateAction
     if (!isAdmin) return
 
     let active = true
+    const onChanged = (event: Event) => {
+      const value = (event as CustomEvent<boolean>).detail
+      changedLocally.current = true
+      enabledRef.current = value
+      setEnabledState(value)
+    }
+    window.addEventListener(CHANGED_EVENT, onChanged)
     adminAPI.listSettings()
       .then((settings) => {
         if (!active || changedLocally.current) return
@@ -35,6 +47,7 @@ export function useEpisodeArtworkPreference(): [boolean, Dispatch<SetStateAction
       })
     return () => {
       active = false
+      window.removeEventListener(CHANGED_EVENT, onChanged)
     }
   }, [isAdmin])
 
@@ -46,6 +59,7 @@ export function useEpisodeArtworkPreference(): [boolean, Dispatch<SetStateAction
     changedLocally.current = true
     enabledRef.current = next
     setEnabledState(next)
+    notifyEpisodeArtworkPreference(next)
 
     saveQueue.current = saveQueue.current
       .catch(() => undefined)

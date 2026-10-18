@@ -20,14 +20,15 @@ func libraryScrapeSettingsHandler(svc *service.Container) gin.HandlerFunc {
 func saveLibraryScrapeSettingsHandler(svc *service.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req struct {
-			Settings  model.LibraryScrapeSettings `json:"settings"`
-			AutoProbe bool                        `json:"auto_probe"`
+			Settings      model.LibraryScrapeSettings `json:"settings"`
+			EpisodeImages *bool                       `json:"episode_images"`
+			AutoProbe     bool                        `json:"auto_probe"`
 		}
 		if err := c.ShouldBindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		view, err := svc.Scraper.SaveLibraryScrapeSettings(c.Request.Context(), c.Param("id"), req.Settings, req.AutoProbe)
+		view, err := svc.Scraper.SaveLibraryScrapeSettings(c.Request.Context(), c.Param("id"), req.Settings, req.AutoProbe, req.EpisodeImages)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return

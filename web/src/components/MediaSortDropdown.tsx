@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowDown, ArrowUp, ArrowUpDown, Check, Shuffle } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronDown, Shuffle } from 'lucide-react'
 
 import {
   SORT_OPTIONS,
@@ -13,6 +13,7 @@ type MediaSortDropdownProps = {
   order: SortOrder
   onChange: (field: SortField, order: SortOrder) => void
   onReshuffle?: () => void
+  buttonClassName?: string
   className?: string
 }
 
@@ -22,6 +23,7 @@ export function MediaSortDropdown({
   onChange,
   onReshuffle,
   className = '',
+  buttonClassName,
 }: MediaSortDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -69,7 +71,9 @@ export function MediaSortDropdown({
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-sand-200 bg-white/90 px-3 py-1.5 text-xs font-semibold text-ink-600 shadow-sm transition-all hover:border-brand-300 hover:bg-brand-50/50 hover:text-brand-700"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        className={buttonClassName ?? "inline-flex h-9 items-center gap-1.5 rounded-xl border border-sand-200 bg-white/90 px-3 py-1.5 text-xs font-semibold text-ink-600 shadow-sm transition-all hover:border-brand-300 hover:bg-brand-50/50 hover:text-brand-700"}
         title="更改排序方式"
       >
         <ArrowUpDown size={14} className="text-sand-500" />
@@ -81,6 +85,7 @@ export function MediaSortDropdown({
         ) : (
           <ArrowDown size={13} className="text-brand-600 font-bold" />
         )}
+        {buttonClassName && <ChevronDown size={14} className="text-[var(--app-muted)]" />}
       </button>
 
       {isOpen && (

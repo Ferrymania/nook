@@ -344,6 +344,28 @@ body {
       hover:border-gray-300 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98];
   }
 
+  .library-toolbar-button {
+    @apply inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-xl border px-3 text-xs font-medium shadow-sm transition-colors sm:text-sm;
+    color: var(--app-text);
+    background: var(--app-panel);
+    border-color: var(--app-border);
+  }
+  .library-toolbar-button svg { color: inherit; }
+  .library-toolbar-button:hover:not(:disabled), .library-toolbar-menu-item:hover:not(:disabled) { background: var(--app-panel-soft); }
+  .library-toolbar-button:active:not(:disabled) { background: var(--app-border); }
+  .library-toolbar-button:disabled { @apply cursor-not-allowed opacity-60; }
+  .library-toolbar-menu {
+    @apply fixed z-[90] w-[260px] max-w-[calc(100vw-24px)] rounded-xl border p-1.5 shadow-xl;
+    background: var(--app-panel);
+    border-color: var(--app-border);
+  }
+  .library-toolbar-menu-item {
+    @apply flex w-full items-start gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .library-toolbar-menu-item svg { @apply mt-0.5 shrink-0; }
+  .library-toolbar-menu-item small { @apply mt-1 block text-xs; color: var(--app-muted); }
+  @media (pointer: coarse) { .library-toolbar-button, .library-toolbar-menu-item { min-height: 44px; } }
+
   /* ── Badges Redesign ── */
   .badge {
     @apply inline-flex items-center rounded-full px-3 py-1 text-2xs font-bold uppercase tracking-wider;

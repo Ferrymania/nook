@@ -261,6 +261,7 @@ func (s *ScannerService) writeLocalScanMedia(in localScanWriteInput) {
 }
 
 func (s *ScannerService) publishLocalScanProgress(path string, res *ScanResult) {
+	res.updateTaskProgress()
 	s.hub.Publish("scan", map[string]any{
 		"library_id": res.LibraryID,
 		"path":       path,

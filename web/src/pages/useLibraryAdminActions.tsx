@@ -52,6 +52,7 @@ export function useLibraryAdminActions({
 
   const handleRepairRescrape = async () => {
     if (repairing) return
+    if (!await confirmAction({ title: '修复并重新刮削', message: `将重新识别并刮削「${library?.name || '当前媒体库'}」中的媒体，可能产生较多请求。`, confirmText: '确认修复' })) return
     setRepairing(true)
     try {
       await toolsAPI.repairAndRescrapeLibrary(libraryID, { episode_images: scrapeEpisodeArtwork, refresh_matched: true })

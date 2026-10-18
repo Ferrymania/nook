@@ -73,7 +73,7 @@ func (s *ScannerService) scanLibrary(ctx context.Context, libraryID string, auto
 	if lib == nil {
 		return nil, errors.New("library not found")
 	}
-	res := &ScanResult{LibraryID: lib.ID}
+	res := newScanResult(ctx, lib.ID)
 	writeBatch := newLocalMediaWriteBatch(s, ctx, res, 100)
 
 	roots, err := s.localLibraryScanRoots(ctx, lib)
@@ -145,7 +145,7 @@ func (s *ScannerService) scanLibrary(ctx context.Context, libraryID string, auto
 }
 
 func (s *ScannerService) scanLocalLibraryRoot(ctx context.Context, lib *model.Library, root *model.LibraryRoot, autoScrape bool) (*ScanResult, error) {
-	res := &ScanResult{LibraryID: lib.ID}
+	res := newScanResult(ctx, lib.ID)
 	if root == nil || !root.Enabled {
 		return res, errors.New("library root disabled or not found")
 	}

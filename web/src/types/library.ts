@@ -49,6 +49,8 @@ export interface ScanResult {
   removed?: number
   skipped?: number
   discovered?: number
+  task_id?: string
+  already_running?: boolean
   queued?: boolean
   cloud?: boolean
   message?: string

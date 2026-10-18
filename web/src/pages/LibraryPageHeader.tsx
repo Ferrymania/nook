@@ -1,8 +1,8 @@
 import type { Library } from '../types'
-import { EpisodeArtworkToggle } from '../components/EpisodeArtworkToggle'
+import { LibraryScrapeMenu } from '../components/LibraryScrapeMenu'
 import { MediaSortDropdown } from '../components/MediaSortDropdown'
 import { useState } from 'react'
-import { Settings2 } from 'lucide-react'
+import { Loader2, ScanLine, Settings2 } from 'lucide-react'
 import { LibraryScrapeSettingsDialog } from './LibraryScrapeSettingsDialog'
 import type { SortField, SortOrder } from '../utils/mediaSort'
 import { libraryDisplayPath } from './libraryDisplayModel'
@@ -13,8 +13,8 @@ type LibraryPageHeaderProps = {
   loadingAllText: string
   scanProgress: string
   isAdmin: boolean
-  scrapeEpisodeArtwork: boolean
   onLibraryUpdated: (library: Library) => void
+  scanLabel: string
   scanning: boolean
   scraping: boolean
   repairing: boolean
@@ -22,7 +22,6 @@ type LibraryPageHeaderProps = {
   sortOrder: SortOrder
   onSortChange: (field: SortField, order: SortOrder) => void
   onReshuffle: () => void
-  onScrapeEpisodeArtworkChange: (checked: boolean) => void
   onScan: () => void
   onScrape: () => void
   onRepairRescrape: () => void
@@ -34,8 +33,8 @@ export function LibraryPageHeader({
   loadingAllText,
   scanProgress,
   isAdmin,
-  scrapeEpisodeArtwork,
   onLibraryUpdated,
+  scanLabel,
   scanning,
   scraping,
   repairing,
@@ -43,7 +42,6 @@ export function LibraryPageHeader({
   sortOrder,
   onSortChange,
   onReshuffle,
-  onScrapeEpisodeArtworkChange,
   onScan,
   onScrape,
   onRepairRescrape,
@@ -60,7 +58,7 @@ export function LibraryPageHeader({
         </h1>
         {library && <p className="text-xs text-ink-50 sm:text-sm" title={library.path}>{library.type} · {displayPath}</p>}
         {loadingAllText && <p className="mt-1 text-xs text-sand-500">{loadingAllText}</p>}
-        {scanProgress && <p className="mt-1 text-xs text-brand-500">{scanProgress}</p>}
+        {scanProgress && <p role="status" className="mt-1 text-xs text-[var(--app-muted)]">{scanProgress}</p>}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <MediaSortDropdown
@@ -68,39 +66,16 @@ export function LibraryPageHeader({
           order={sortOrder}
           onChange={onSortChange}
           onReshuffle={onReshuffle}
+          buttonClassName="library-toolbar-button"
         />
         {isAdmin && !library?.is_remote_emby && (
           <>
-            <EpisodeArtworkToggle
-              checked={scrapeEpisodeArtwork}
-              onChange={onScrapeEpisodeArtworkChange}
-              title="关闭后仍会获取主海报和每集文字元数据，只跳过每集图片"
-              className="h-9 text-xs sm:text-sm"
-            />
-            <button type="button" onClick={() => setSettingsOpen(true)} disabled={!library} style={{ backgroundColor: 'var(--app-brand-soft)', borderColor: 'var(--app-brand-border)', color: 'var(--app-brand-text)' }} className="btn-outline !px-3 !py-1.5 text-xs sm:text-sm"><Settings2 size={16} />刮削设置</button>
-            <button
-              onClick={onScan}
-              disabled={scanning}
-              className="btn-outline !px-3 !py-1.5 text-xs sm:!px-4 sm:!py-2.5 sm:text-sm"
-            >
-              {scanning ? '扫描中…' : '扫描媒体库'}
+            <button type="button" onClick={onScan} disabled={scanning} aria-busy={scanning} className="library-toolbar-button" title="立即扫描当前媒体库">
+              {scanning ? <Loader2 size={16} className="animate-spin" /> : <ScanLine size={16} />}
+              {scanLabel}
             </button>
-            <button
-              onClick={onScrape}
-              disabled={scraping}
-              className="btn-outline !px-3 !py-1.5 text-xs sm:!px-4 sm:!py-2.5 sm:text-sm"
-              title="对整个媒体库执行刮削元数据"
-            >
-              {scraping ? '刮削中…' : '整库刮削元数据'}
-            </button>
-            <button
-              onClick={onRepairRescrape}
-              disabled={repairing}
-              className="btn-outline !px-3 !py-1.5 text-xs sm:!px-4 sm:!py-2.5 sm:text-sm"
-              title="回填本库占位符外部 ID 并重刮，修正空 ID / 拆集问题"
-            >
-              {repairing ? '修复中…' : '修复+重刮整库'}
-            </button>
+            <LibraryScrapeMenu scraping={scraping} repairing={repairing} onScrape={onScrape} onRepair={onRepairRescrape} />
+            <button type="button" onClick={() => setSettingsOpen(true)} disabled={!library} aria-haspopup="dialog" className="library-toolbar-button" title="打开刮削设置"><Settings2 size={16} />刮削设置…</button>
           </>
         )}
       </div>

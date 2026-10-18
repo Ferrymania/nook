@@ -34,28 +34,17 @@ func scanLibraryHandler(svc *service.Container) gin.HandlerFunc {
 				"library_id":       id,
 				"queued":           true,
 				"already_running":  true,
+				"task_id":          currentScanTaskID(svc, id),
 				"message":          "该媒体库正在后台扫描，请在任务面板查看进度",
 				"estimate_message": "页面关闭不会中断扫描",
 			})
 			return
 		}
-		task := startScanHTTPTask(svc, "手动扫描入库", lib.Name, lib.Path)
-		go func(libraryID string, task *service.TaskHandle, finish func()) {
-			defer finish()
-			var res *service.ScanResult
-			var err error
-			helper.Run(svc.Log, "scan.library", func() {
-				res, err = svc.Scan.ScanLibrary(context.Background(), libraryID)
-			})
-			if err != nil {
-				finishHTTPTask(task, err, "scan", "手动扫描入库失败", scanTaskMetrics(res), scanTaskDetails(res, 20))
-				return
-			}
-			finishHTTPTask(task, nil, "completed", "手动扫描入库结束", scanTaskMetrics(res), scanTaskDetails(res, 20))
-		}(id, task, finishScan)
+		task := launchLibraryScan(svc, id, "", lib.Name, lib.Path, finishScan)
 		c.JSON(http.StatusAccepted, gin.H{
 			"library_id":       id,
 			"queued":           true,
+			"task_id":          task.ID(),
 			"message":          "本地媒体库扫描已在后台运行，页面关闭不会中断",
 			"estimate_message": "可在右上角任务面板查看扫描进度",
 		})
@@ -72,28 +61,17 @@ func scanLibraryRootHandler(svc *service.Container) gin.HandlerFunc {
 				"library_id":       id,
 				"queued":           true,
 				"already_running":  true,
+				"task_id":          currentScanTaskID(svc, id),
 				"message":          "该路径正在后台扫描，请在任务面板查看进度",
 				"estimate_message": "页面关闭不会中断扫描",
 			})
 			return
 		}
-		task := startScanHTTPTask(svc, "手动扫描媒体库路径", id, rootID)
-		go func(libraryID, libraryRootID string, task *service.TaskHandle, finish func()) {
-			defer finish()
-			var res *service.ScanResult
-			var err error
-			helper.Run(svc.Log, "scan.libraryRoot", func() {
-				res, err = svc.Scan.ScanLibraryRoot(context.Background(), libraryID, libraryRootID)
-			})
-			if err != nil {
-				finishHTTPTask(task, err, "scan", "手动扫描路径失败", scanTaskMetrics(res), scanTaskDetails(res, 20))
-				return
-			}
-			finishHTTPTask(task, nil, "completed", "手动扫描路径结束", scanTaskMetrics(res), scanTaskDetails(res, 20))
-		}(id, rootID, task, finishScan)
+		task := launchLibraryScan(svc, id, rootID, id, rootID, finishScan)
 		c.JSON(http.StatusAccepted, gin.H{
 			"library_id":       id,
 			"queued":           true,
+			"task_id":          task.ID(),
 			"message":          "媒体库路径扫描已在后台运行，页面关闭不会中断",
 			"estimate_message": "可在右上角任务面板查看扫描进度",
 		})
@@ -117,45 +95,58 @@ func queueLibraryRootScan(svc *service.Container, libraryID, rootID string) {
 	if !ok {
 		return
 	}
+	launchLibraryScan(svc, libraryID, rootID, libraryID, rootID, finish)
+}
+
+func currentScanTaskID(svc *service.Container, libraryID string) string {
+	if task := svc.Tasks.LibraryScan(libraryID); task != nil {
+		return task.ID
+	}
+	return ""
+}
+
+func launchLibraryScan(svc *service.Container, libraryID, rootID, name, path string, finish func()) *service.TaskHandle {
+	var task *service.TaskHandle
+	if svc.Tasks != nil {
+		task = svc.Tasks.Start(service.TaskKindScan, "扫描媒体库："+name, service.TaskUpdate{
+			LibraryID: libraryID, Stage: "scan", SourcePath: path, Message: "正在扫描并入库",
+		})
+	}
 	go func() {
 		defer finish()
-		helper.Run(svc.Log, "scan.queuedRoot", func() {
-			if strings.TrimSpace(rootID) == "" {
-				_, _ = svc.Scan.ScanLibrary(context.Background(), libraryID)
-				return
+		var result *service.ScanResult
+		err := helper.Recover(svc.Log, "scan.library", func() error {
+			var err error
+			ctx := service.WithScanTask(context.Background(), task)
+			if rootID == "" {
+				result, err = svc.Scan.ScanLibrary(ctx, libraryID)
+			} else {
+				result, err = svc.Scan.ScanLibraryRoot(ctx, libraryID, rootID)
 			}
-			_, _ = svc.Scan.ScanLibraryRoot(context.Background(), libraryID, rootID)
+			return err
 		})
+		if err != nil {
+			finishHTTPTask(task, err, "scan", "媒体库扫描失败", result.TaskMetrics(), scanTaskDetails(result, 20))
+		} else {
+			finishHTTPTask(task, nil, "completed", "媒体库扫描完成", result.TaskMetrics(), scanTaskDetails(result, 20))
+		}
 	}()
+	return task
 }
 
-func startScanHTTPTask(svc *service.Container, name, libraryName, path string) *service.TaskHandle {
-	if svc == nil || svc.Tasks == nil {
-		return nil
-	}
-	if libraryName != "" {
-		name += "：" + libraryName
-	}
-	return svc.Tasks.Start(service.TaskKindScan, name, service.TaskUpdate{
-		Stage:      "scan",
-		SourcePath: path,
-		Message:    "正在扫描并入库",
-	})
-}
-
-func scanTaskMetrics(res *service.ScanResult) map[string]int64 {
-	if res == nil {
-		return nil
-	}
-	return map[string]int64{
-		"visited":        int64(res.Visited),
-		"added":          int64(res.Added),
-		"updated":        int64(res.Updated),
-		"skipped":        int64(res.Skipped),
-		"probed":         int64(res.Probed),
-		"local_metadata": int64(res.LocalMetadata),
-		"removed":        res.Removed,
-		"errors":         int64(res.ErrorCount),
+func libraryScanStatusHandler(svc *service.Container) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		lib, err := svc.Repo.Library.FindByID(c.Request.Context(), c.Param("id"))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		if lib == nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "library not found"})
+			return
+		}
+		task := svc.Tasks.LibraryScan(lib.ID)
+		c.JSON(http.StatusOK, gin.H{"task": task})
 	}
 }
 

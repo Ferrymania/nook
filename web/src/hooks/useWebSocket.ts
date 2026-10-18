@@ -37,10 +37,13 @@ function isTokenExpired(token: string): boolean {
 // message to the supplied handler. Auto-reconnects with back-off while the
 // auth token is present; after the fast retries are exhausted it keeps a
 // slow 60s retry loop instead of giving up permanently.
-export function useWebSocket(onEvent: (topic: string, payload: unknown) => void) {
+export function useWebSocket(onEvent: (topic: string, payload: unknown) => void, onConnected?: () => void) {
   const ref = useRef<WebSocket | null>(null)
   const token = useAuthStore((s) => s.token)
   const onEventRef = useRef(onEvent)
+  const onConnectedRef = useRef(onConnected)
+
+  useEffect(() => { onConnectedRef.current = onConnected }, [onConnected])
 
   useEffect(() => {
     onEventRef.current = onEvent
@@ -78,6 +81,7 @@ export function useWebSocket(onEvent: (topic: string, payload: unknown) => void)
       ref.current = ws
       ws.onopen = () => {
         reconnectAttempts = 0
+        onConnectedRef.current?.()
       }
       ws.onmessage = (ev) => {
         try {
