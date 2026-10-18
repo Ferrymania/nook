@@ -92,10 +92,6 @@ func (a *application) start() error {
 		a.logger.Error("auto-migrate failed", zap.Error(err))
 		return fmt.Errorf("auto-migrate failed: %w", err)
 	}
-	if err := database.MigrateSQLiteToCurrentIfNeeded(a.cfg, db, a.logger); err != nil {
-		a.logger.Error("sqlite to postgres migration failed", zap.Error(err))
-		return fmt.Errorf("sqlite to postgres migration failed: %w", err)
-	}
 
 	repos := repository.New(db)
 	service.ApplyRuntimeSettings(context.Background(), a.cfg, repos, a.logger)

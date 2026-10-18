@@ -676,9 +676,7 @@ func cleanDirRel(rel string) string {
 	return strings.Join(out, "/")
 }
 
-// deferDirCacheSave 暂存一条目录缓存写入，由 flushDirCacheSave 统一批量落库。
-// 首次全量同步可能有上万个目录，逐目录单条 upsert 会造成明显的 SQLite 写锁
-// 竞争；内存 dirCache（sync.Map）始终即时可用，落库仅服务于下次增量预加载。
+// deferDirCacheSave batches directory-cache persistence while keeping the in-memory cache immediately available.
 func (st *strmSyncState) deferDirCacheSave(dirID, relPath string) {
 	st.mu.Lock()
 	if st.dirCacheDirty == nil {
@@ -2160,7 +2158,6 @@ func (st *strmSyncState) pruneLocal() error {
 	return nil
 }
 
-// touchProgress 进度计数并限流防抖落库（避免高频写 SQLite 导致锁竞争）。
 func (st *strmSyncState) touchProgress() {
 	st.mu.Lock()
 	st.rec.Total++

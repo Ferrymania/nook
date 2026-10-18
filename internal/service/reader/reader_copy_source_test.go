@@ -66,9 +66,9 @@ func TestCopyLightNovelSourceEndToEnd(t *testing.T) {
 			"bookUrl":  srv.URL + "/api/book/{{$.path_word}}?_update=true",
 		},
 		"ruleBookInfo": map[string]any{
-			"init":  "$.results.book",
-			"name":  "$.name",
-			"intro": "$.brief",
+			"init":   "$.results.book",
+			"name":   "$.name",
+			"intro":  "$.brief",
 			"tocUrl": srv.URL + "/api/volumes?book={{$.path_word}}&_update=true",
 		},
 		"ruleToc": map[string]any{

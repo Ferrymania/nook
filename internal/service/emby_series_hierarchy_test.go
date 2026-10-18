@@ -723,7 +723,7 @@ func TestEmbySeriesSortByDateLastMediaAdded(t *testing.T) {
 	if items[1]["Name"] != "剧集B" {
 		t.Fatalf("second item = %v, want 剧集B", items[1]["Name"])
 	}
-	if items[0]["DateLastMediaAdded"] != tNew {
+	if !items[0]["DateLastMediaAdded"].(time.Time).Equal(tNew) {
 		t.Fatalf("DateLastMediaAdded = %v, want %v", items[0]["DateLastMediaAdded"], tNew)
 	}
 }

@@ -162,10 +162,7 @@ func (s *StrmService) batchResolve115Links(ctx context.Context, tasks []*model.S
 	return resolved
 }
 
-// requeueDownloadTask 把已认领但未实际执行的任务退回 pending，避免长期停留在 running。
-// 退回时必须设置 NextTryAt（WAF 冷却剩余时间）：claim 只过滤 next_try_at
-// 已过期的任务，不设会让同一批任务被立刻再认领，形成 claim/requeue
-// 热循环（占用 SQLite 写锁并饿死上传队列）。
+// requeueDownloadTask returns claimed work to pending with a cooldown to avoid a claim/requeue loop.
 func (s *StrmService) requeueDownloadTask(task *model.StrmDownloadTask) {
 	task.Status = model.StrmTaskPending
 	task.StartedAt = nil

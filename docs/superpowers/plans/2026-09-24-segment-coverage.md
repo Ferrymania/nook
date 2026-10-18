@@ -6,7 +6,7 @@
 
 **Architecture:** Extend `MediaSegmentService` for merge/propagate/prewarm; add scheduler job `segment_prewarm`; repository queries for candidates and season siblings.
 
-**Tech Stack:** Go, GORM/SQLite, existing SchedulerService + IntroDB client.
+**Tech Stack:** Go, GORM/PostgreSQL, existing SchedulerService + IntroDB client.
 
 ---
 

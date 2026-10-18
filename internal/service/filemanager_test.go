@@ -227,8 +227,8 @@ func TestFileManagerIncludesConfiguredOrganizeRoots(t *testing.T) {
 		got[root.Label] = root.Path
 	}
 	for label, want := range map[string]string{
-		"organize-source":     filepath.Clean(sourceDir),
-		"organize-target":     filepath.Clean(targetDir),
+		"organize-source": filepath.Clean(sourceDir),
+		"organize-target": filepath.Clean(targetDir),
 		// 旧键 qbittorrent.savepath 写入应经兼容回退落在 downloader-savepath 下
 		"downloader-savepath": filepath.Clean(qbDir),
 	} {

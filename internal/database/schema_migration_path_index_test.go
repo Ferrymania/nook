@@ -1,11 +1,10 @@
 package database
 
 import (
-	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/glebarez/sqlite"
+	"github.com/Ferrymania/nook/internal/testutil"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
@@ -19,7 +18,7 @@ import (
 // 这类行插入直接失败），改由 AutoMigrate 里的 ensureMediaPathIndex 按方言显式
 // 建立。一旦这个调用被漏掉，扫描会静默产生重复的媒体行（同一文件被入库多次）。
 func TestAutoMigrateCreatesMediaPathUniqueIndex(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(filepath.Join(t.TempDir(), "nook.db")), &gorm.Config{
+	db, err := testutil.Open(t, &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	if err != nil {
@@ -35,7 +34,7 @@ func TestAutoMigrateCreatesMediaPathUniqueIndex(t *testing.T) {
 	}
 
 	var definition string
-	if err := db.Raw(`SELECT COALESCE(sql, '') FROM sqlite_master WHERE type = 'index' AND name = 'idx_media_path'`).Scan(&definition).Error; err != nil {
+	if err := db.Raw(`SELECT indexdef FROM pg_indexes WHERE schemaname = current_schema() AND indexname = 'idx_media_path_hash'`).Scan(&definition).Error; err != nil {
 		t.Fatal(err)
 	}
 	if definition == "" {

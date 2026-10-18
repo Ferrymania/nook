@@ -44,14 +44,14 @@ func (r *UserRepository) ReleaseDeletedUsername(ctx context.Context, username st
 // FindByUsername returns the user matching username, or (nil, nil) when absent.
 func (r *UserRepository) FindByUsername(ctx context.Context, username string) (*model.User, error) {
 	var u model.User
-	err := withSQLiteBusyRetry(ctx, func() error {
+	err := func() error {
 		u = model.User{}
 		err := r.db.WithContext(ctx).Where("username = ?", username).First(&u).Error
 		if errors.Is(err, gorm.ErrRecordNotFound) && username != "" {
 			err = r.db.WithContext(ctx).Where("LOWER(username) = LOWER(?)", username).First(&u).Error
 		}
 		return err
-	})
+	}()
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
@@ -64,10 +64,10 @@ func (r *UserRepository) FindByUsername(ctx context.Context, username string) (*
 // FindByID returns the user with the matching primary key, or (nil, nil).
 func (r *UserRepository) FindByID(ctx context.Context, id string) (*model.User, error) {
 	var u model.User
-	err := withSQLiteBusyRetry(ctx, func() error {
+	err := func() error {
 		u = model.User{}
 		return r.db.WithContext(ctx).Where("id = ?", id).First(&u).Error
-	})
+	}()
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
@@ -127,23 +127,20 @@ func (r *UserRepository) UpdatePassword(ctx context.Context, id, hash string) er
 // TouchLogin updates the last login timestamp.
 func (r *UserRepository) TouchLogin(ctx context.Context, id string) error {
 	now := time.Now()
-	return withSQLiteBusyRetry(ctx, func() error {
-		return r.db.WithContext(ctx).Model(&model.User{}).Where("id = ?", id).
-			Update("last_login_at", &now).Error
-	})
+
+	return r.db.WithContext(ctx).Model(&model.User{}).Where("id = ?", id).
+		Update("last_login_at", &now).Error
 }
 
 // Delete 物理删除用户并级联清理其关联记录。
 func (r *UserRepository) Delete(ctx context.Context, id string) error {
-	return withSQLiteBusyRetry(ctx, func() error {
-		return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-			_ = tx.Unscoped().Where("user_id = ?", id).Delete(&model.RefreshToken{})
-			_ = tx.Unscoped().Where("user_id = ?", id).Delete(&model.UserPermission{})
-			_ = tx.Unscoped().Where("user_id = ?", id).Delete(&model.PlayProfile{})
-			_ = tx.Unscoped().Where("user_id = ?", id).Delete(&model.PlaybackHistory{})
-			_ = tx.Unscoped().Where("user_id = ?", id).Delete(&model.Favorite{})
-			_ = tx.Unscoped().Where("user_id = ?", id).Delete(&model.UserDevice{})
-			return tx.Unscoped().Delete(&model.User{}, "id = ?", id).Error
-		})
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		_ = tx.Unscoped().Where("user_id = ?", id).Delete(&model.RefreshToken{})
+		_ = tx.Unscoped().Where("user_id = ?", id).Delete(&model.UserPermission{})
+		_ = tx.Unscoped().Where("user_id = ?", id).Delete(&model.PlayProfile{})
+		_ = tx.Unscoped().Where("user_id = ?", id).Delete(&model.PlaybackHistory{})
+		_ = tx.Unscoped().Where("user_id = ?", id).Delete(&model.Favorite{})
+		_ = tx.Unscoped().Where("user_id = ?", id).Delete(&model.UserDevice{})
+		return tx.Unscoped().Delete(&model.User{}, "id = ?", id).Error
 	})
 }

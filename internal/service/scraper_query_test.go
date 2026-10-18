@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/glebarez/sqlite"
+	"github.com/Ferrymania/nook/internal/testutil"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -140,7 +140,7 @@ func TestEnrichOneCloudPathHintOverridesStaleTMDbID(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -232,7 +232,7 @@ func TestEnrichOneRejectsStaleEpisodeTMDbIDBySeriesTitle(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -329,7 +329,7 @@ func TestEnrichOneUsesLocalPathExternalIDHints(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

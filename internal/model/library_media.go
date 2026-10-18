@@ -42,10 +42,9 @@ type Media struct {
 	Title         string `gorm:"size:255;not null" json:"title"`
 	OriginalName  string `gorm:"size:255" json:"original_name,omitempty"`
 	EpisodeTitle  string `gorm:"size:255" json:"episode_title,omitempty"`
-	// Path 的唯一性由 database 包按方言显式建索引，这里刻意不用 uniqueIndex：
+	// Path 的唯一性由 database 包显式建索引，这里刻意不用 uniqueIndex：
 	// PostgreSQL 的 btree 单条索引项上限 2704 字节，而 varchar(1024) 在中文路径
 	// 下可达 3072 字节，直接对整列建唯一索引会让长路径的扫描插入直接失败
-	// （SQLite 没有这个限制）。见 database.ensureMediaPathIndex。
 	Path            string  `gorm:"size:1024;not null" json:"path"`
 	RelativePath    string  `gorm:"size:1024" json:"relative_path,omitempty"`
 	SizeBytes       int64   `json:"size_bytes"`

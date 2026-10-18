@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/glebarez/sqlite"
+	"github.com/Ferrymania/nook/internal/testutil"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -225,7 +225,7 @@ func TestLocalAdultArtworkStoresFaceAwarePosterPath(t *testing.T) {
 	images := NewImageProxy(cfg, zap.NewNop())
 	images.allowedRemoteHostsFn = func() []string { return []string{"127.0.0.1"} }
 
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -265,6 +265,6 @@ func TestLocalAdultArtworkStoresFaceAwarePosterPath(t *testing.T) {
 	}
 	ratio := float64(cropped.Bounds().Dx()) / float64(cropped.Bounds().Dy())
 	if ratio < 0.65 || ratio > 0.68 {
-		t.Fatalf("local poster ratio = %.3f, want MetaTube primary ratio", ratio)
+		t.Fatalf("local poster ratio = %.3f, want 2:3 poster ratio", ratio)
 	}
 }

@@ -63,9 +63,7 @@ func newPostgresDryRunRepos(t *testing.T) (*Container, *sqlCaptureLogger) {
 // reader_replace_rules.order 都是关键字级列名（order 在 PostgreSQL 里是保留字）。
 //
 // 排序条件曾经写成硬编码反引号的原始字符串，例如 .Order("`order` ASC")：
-// SQLite 正常，PostgreSQL 会把反引号词法分析成运算符，直接报
 // `syntax error at or near "order"` (SQLSTATE 42601)，书架 / 目录 / 替换规则整页 500。
-// 现在改用 clause.Column，由 GORM 按方言加引号（SQLite 反引号 / PostgreSQL 双引号）。
 func TestReaderListsUseDialectQuotedReservedColumns(t *testing.T) {
 	ctx := context.Background()
 	cases := []struct {

@@ -20,7 +20,6 @@ import (
 
 // PostgreSQL 逻辑备份 / 恢复。
 //
-// SQLite 的备份是「VACUUM INTO 出一个一致的库文件，恢复时替换文件」，而
 // PostgreSQL 既没有 VACUUM INTO，数据也由服务端进程管理，没有可替换的单文件，
 // 所以这里实现逻辑备份：把每张表按主键顺序分块序列化成 JSON Lines（gzip 压缩）
 // 写入 {data_dir}/backups/。

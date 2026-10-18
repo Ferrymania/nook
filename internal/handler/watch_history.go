@@ -125,13 +125,7 @@ type historyTypeStat struct {
 	Count   int64  `json:"count"`
 }
 
-// historyStatsBreakdowns 产出每日趋势、按媒体库类型分布与最近记录。
-//
-// 分桶在 Go 里做而不是用 SQL 的日期函数：SQLite 的 strftime 与 PostgreSQL 的
-// to_char 语法不同，写两份 SQL 会在方言差异上长期出错，而历史行数受用户规模
-// 约束（每人一行一部媒体），一次全量读取是可以接受的。
-//
-// visibility 控制哪些媒体对调用者可见（播放档案、成人锁等）。
+// historyStatsBreakdowns groups bounded playback history in Go for daily trends, library types and recent records.
 func historyStatsBreakdowns(ctx context.Context, svc *service.Container, userID string, visibility service.MediaVisibility) ([]historyDailyStat, []historyTypeStat, []map[string]any) {
 	daily := make([]historyDailyStat, 0, historyStatsDailyDays)
 	byType := make([]historyTypeStat, 0)

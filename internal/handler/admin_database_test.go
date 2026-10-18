@@ -48,8 +48,7 @@ func TestBuildDSN(t *testing.T) {
 func TestGetDatabaseStatusHandler(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	cfg := &config.Config{}
-	cfg.Database.Type = "sqlite"
-	cfg.Database.DBPath = "./data/nook.db"
+	cfg.Database.Type = "postgres"
 
 	svc := &service.Container{
 		Database: service.NewDatabaseAdminService(cfg, nil, nil, nil),
@@ -70,8 +69,8 @@ func TestGetDatabaseStatusHandler(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("unmarshal response: %v", err)
 	}
-	if resp["type"] != "sqlite" {
-		t.Fatalf("expected type=sqlite, got %v", resp["type"])
+	if resp["type"] != "postgres" {
+		t.Fatalf("expected type=postgres, got %v", resp["type"])
 	}
 }
 
@@ -80,7 +79,7 @@ func TestSaveDatabaseConfigHandler(t *testing.T) {
 	dir := t.TempDir()
 	cfg := &config.Config{}
 	cfg.App.DataDir = dir
-	cfg.Database.Type = "sqlite"
+	cfg.Database.Type = "postgres"
 
 	svc := &service.Container{
 		Database: service.NewDatabaseAdminService(cfg, nil, nil, nil),

@@ -23,13 +23,13 @@ type MediaMetadataUpdate struct {
 	// 「集」时不会把半集写成整数集号，也不会把整集写成小数。
 	EpisodeFraction *float64 `json:"episode_fraction"`
 	TMDbID          *int     `json:"tmdb_id"`
-	BangumiID    *int     `json:"bangumi_id"`
-	DoubanID     *string  `json:"douban_id"`
-	TheTVDBID    *string  `json:"thetvdb_id"`
-	Languages    *string  `json:"languages"`
-	Countries    *string  `json:"countries"`
-	Genres       *string  `json:"genres"`
-	NSFW         *bool    `json:"nsfw"`
+	BangumiID       *int     `json:"bangumi_id"`
+	DoubanID        *string  `json:"douban_id"`
+	TheTVDBID       *string  `json:"thetvdb_id"`
+	Languages       *string  `json:"languages"`
+	Countries       *string  `json:"countries"`
+	Genres          *string  `json:"genres"`
+	NSFW            *bool    `json:"nsfw"`
 }
 
 func (s *MediaService) UpdateMetadata(ctx context.Context, id string, req MediaMetadataUpdate) (*model.Media, error) {

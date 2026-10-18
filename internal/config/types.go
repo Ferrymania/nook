@@ -7,7 +7,6 @@ type Config struct {
 	Secrets      SecretsConfig      `mapstructure:"secrets"`
 	Logging      LoggingConfig      `mapstructure:"logging"`
 	Cache        CacheConfig        `mapstructure:"cache"`
-	Search       SearchConfig       `mapstructure:"search"`
 	Media        MediaConfig        `mapstructure:"media"`
 	Transcoder   TranscoderConfig   `mapstructure:"transcoder"`
 	AI           AIConfig           `mapstructure:"ai"`
@@ -76,19 +75,13 @@ type AppConfig struct {
 	ServerURL              string   `mapstructure:"server_url"`
 }
 
-// DatabaseConfig 配置 GORM 数据库。默认 auto：
-// Docker Compose 主线会注入 PostgreSQL DSN；裸机/旧部署没有 DSN 时回退 SQLite。
+// DatabaseConfig configures the required PostgreSQL database.
 type DatabaseConfig struct {
 	Type         string `mapstructure:"type"`
-	DBPath       string `mapstructure:"db_path"`
 	DSN          string `mapstructure:"dsn"`
-	WALMode      bool   `mapstructure:"wal_mode"`
-	BusyTimeout  int    `mapstructure:"busy_timeout"`
-	CacheSize    int    `mapstructure:"cache_size"`
 	MaxOpenConns int    `mapstructure:"max_open_conns"`
 	MaxIdleConns int    `mapstructure:"max_idle_conns"`
-	// PostgresTrgmIndex 决定是否用 pg_trgm 的 GIN 三元组索引替代 SQLite 的
-	// FTS5 全文索引。开启后 ILIKE '%term%' 搜索能走索引而不是整表扫描，代价是
+	// PostgresTrgmIndex 控制 pg_trgm 的 GIN 三元组索引。开启后 ILIKE '%term%' 搜索能走索引而不是整表扫描，代价是
 	// media 表写入时要多维护 4 个 GIN 索引。仅对 PostgreSQL 生效。
 	PostgresTrgmIndex bool `mapstructure:"postgres_trgm_index"`
 }
@@ -145,14 +138,6 @@ type CacheConfig struct {
 	// ReaderFilesTTLHours 书源文件缓存（java.cacheFile / downloadFile）的保留时长（小时）。
 	// 0 表示使用内置兜底值（30 天）。
 	ReaderFilesTTLHours int `mapstructure:"reader_files_ttl_hours"`
-}
-
-type SearchConfig struct {
-	Backend       string `mapstructure:"backend"`
-	OpenSearchURL string `mapstructure:"opensearch_url"`
-	Index         string `mapstructure:"index"`
-	Username      string `mapstructure:"username"`
-	Password      string `mapstructure:"password"`
 }
 
 // MediaConfig 保存默认库位置（用于引导库）。

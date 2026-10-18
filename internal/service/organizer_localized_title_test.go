@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/glebarez/sqlite"
+	"github.com/Ferrymania/nook/internal/testutil"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -55,7 +55,7 @@ func TestOrganizeDirectoryUsesTMDbChineseAlternativeTitle(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

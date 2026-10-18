@@ -42,18 +42,18 @@ type StrmSyncPath struct {
 	RemoteDisplayPath string `gorm:"size:1024" json:"remote_display_path"`
 	LocalPath         string `gorm:"size:1024" json:"local_path"` // STRM/元数据本地输出目录
 	// STRM 链接配置（空值继承全局 strm.* 设置）
-	StrmBaseURL     string     `gorm:"size:512" json:"strm_base_url"`                  // 覆盖 strm.base_url
-	VideoExt        string     `gorm:"size:512" json:"video_ext"`                      // 逗号分隔，覆盖 strm.video_ext
-	MetaExt         string     `gorm:"size:512" json:"meta_ext"`                       // 逗号分隔，覆盖 strm.meta_ext
-	ExcludeName     string     `gorm:"size:512" json:"exclude_name"`                   // 逗号分隔，文件名包含即跳过
-	MinVideoSizeMB  int64      `json:"min_video_size_mb"`                              // 小于该大小（MB）的视频不生成 STRM
-	AddPath         int        `json:"add_path"`                                       // STRM 链接 path 参数：1=完整远端路径 2=仅文件名 3=不带
-	DownloadMeta    bool       `gorm:"default:true" json:"download_meta"`              // 同步时下载元数据文件（nfo/图片/字幕）
-	UploadMeta      bool       `json:"upload_meta"`                                    // 同步时把本地元数据上传到远端
-	DeleteDir       bool       `json:"delete_dir"`                                     // 清理多余文件时删除空目录
+	StrmBaseURL    string `gorm:"size:512" json:"strm_base_url"`     // 覆盖 strm.base_url
+	VideoExt       string `gorm:"size:512" json:"video_ext"`         // 逗号分隔，覆盖 strm.video_ext
+	MetaExt        string `gorm:"size:512" json:"meta_ext"`          // 逗号分隔，覆盖 strm.meta_ext
+	ExcludeName    string `gorm:"size:512" json:"exclude_name"`      // 逗号分隔，文件名包含即跳过
+	MinVideoSizeMB int64  `json:"min_video_size_mb"`                 // 小于该大小（MB）的视频不生成 STRM
+	AddPath        int    `json:"add_path"`                          // STRM 链接 path 参数：1=完整远端路径 2=仅文件名 3=不带
+	DownloadMeta   bool   `gorm:"default:true" json:"download_meta"` // 同步时下载元数据文件（nfo/图片/字幕）
+	UploadMeta     bool   `json:"upload_meta"`                       // 同步时把本地元数据上传到远端
+	DeleteDir      bool   `json:"delete_dir"`                        // 清理多余文件时删除空目录
 	// KeepExt=true 时为每个视频生成 name.mkv.strm / name.mp4.strm（保留全部版本）；
 	// false（默认）时同名不同扩展只择优生成一条 name.strm，避免互相覆盖与来回抖动。
-	KeepExt bool `json:"keep_ext"`
+	KeepExt         bool       `json:"keep_ext"`
 	Cron            string     `gorm:"size:128" json:"cron"`                           // 5 段 cron 表达式（可选）
 	EnableCron      bool       `json:"enable_cron"`                                    // 是否按 Cron 定时同步
 	SyncMode        string     `gorm:"size:32;default:'incremental'" json:"sync_mode"` // 默认同步模式：incremental / full

@@ -246,8 +246,7 @@ func (s *MediaService) listVersionSiblings(ctx context.Context, media *model.Med
 		libraryIDs = []string{media.LibraryID}
 	}
 	filter := repository.MediaQueryFilter{IncludeNSFW: true}
-	// 成人条目按番号分组，而番号常常只存在于路径/标题里：本地 NFO 来源的分片
-	// 没有 douban_id/thetvdb_id（MetaTube 刮削出来的那几个才有）。若仍按外部
+	// 成人条目按路径或标题中的番号分组。本地 NFO 不一定包含外部 ID，若按外部
 	// ID 预先收窄候选集，同番号的其它分片会被 SQL 直接排除，表现就是库里折叠
 	// 出了 N 个版本、详情页却只列出带 ID 的那几个。因此成人条目不预先收窄，
 	// 直接在该库范围内比对版本键。未刮削但文件名带番号的分片同理：同一部片的

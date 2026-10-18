@@ -72,7 +72,6 @@ func (b *serviceContainerBuilder) startRealtimeServices() {
 func (b *serviceContainerBuilder) initProviderServices() {
 	b.c.FFprobe = NewFFprobeService(b.cfg, b.log)
 	b.c.Cache = NewRuntimeCacheService(b.cfg, b.log)
-	b.configureMediaSearchBackend()
 
 	b.c.Crypto = NewCryptoService(b.cfg.Secrets.JWTSecret, b.log)
 	b.c.APIConfig = NewAPIConfigService(b.log, b.repos, b.c.Crypto)
@@ -98,19 +97,6 @@ func (b *serviceContainerBuilder) initProviderServices() {
 	b.c.Scraper.SetRuntimeCache(b.c.Cache)
 	b.c.Scraper.SetDouban(b.c.Douban)
 	b.c.APIConfig.onChange = b.c.Scraper.lookupCache.clear
-}
-
-func (b *serviceContainerBuilder) configureMediaSearchBackend() {
-	searchBackend := repository.NewOpenSearchMediaBackend(b.cfg.Search)
-	if searchBackend == nil || b.repos == nil || b.repos.Media == nil {
-		return
-	}
-	b.repos.Media.SetSearchBackend(searchBackend)
-	if b.log != nil {
-		b.log.Info("opensearch media search enabled",
-			zap.String("index", b.cfg.Search.Index),
-			zap.String("url", redactSensitiveURL(b.cfg.Search.OpenSearchURL)))
-	}
 }
 
 func (b *serviceContainerBuilder) initContentServices() {

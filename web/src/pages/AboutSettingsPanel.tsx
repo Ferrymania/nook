@@ -106,7 +106,7 @@ const MODULE_GUIDES = [
     title: '数据库与系统设置',
     badge: '底层基建',
     description:
-      '支持轻量级单文件 SQLite 与高并发 PostgreSQL 数据库，并提供一键平滑数据热迁移工具；支持自定义 HTTPS 证书绑定、转码缓存自动清理及实时系统资源监控。',
+      '使用 PostgreSQL 数据库保存媒体与播放记录；支持自定义 HTTPS 证书绑定、转码缓存自动清理及实时系统资源监控。',
   },
 ]
 

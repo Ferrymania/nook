@@ -58,7 +58,6 @@ services:
       # 用户名/密码中的 @、:、/、#、?、%、$ 等特殊字符需进行 URL 编码。
       # sslmode 按已有数据库要求设置；以下为同机/内网的连接示例。
       NOOK_DATABASE_DSN: "postgres://DB_USER:DB_PASSWORD@host.docker.internal:5432/DB_NAME?sslmode=disable"
-      NOOK_DATABASE_DB_PATH: /data/nook.db
       NOOK_CACHE_CACHE_DIR: /cache
       NOOK_UPDATE_IMAGE: ${NOOK_IMAGE:-ghcr.io/ferrymania/nook:latest}
 

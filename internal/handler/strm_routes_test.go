@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/Ferrymania/nook/internal/testutil"
 	"github.com/gin-gonic/gin"
-	"github.com/glebarez/sqlite"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -77,7 +77,7 @@ func TestStrmAdminRoutesAreRegistered(t *testing.T) {
 // TestStrmAccountsCRUD 用内存库走一遍账号/设置/同步目录接口。
 func TestStrmAccountsCRUD(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open("file:strm_handler?mode=memory&cache=shared"),
+	db, err := testutil.Open(t,
 		&gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
 		t.Fatal(err)

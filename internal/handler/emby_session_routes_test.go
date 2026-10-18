@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Ferrymania/nook/internal/testutil"
 	"github.com/gin-gonic/gin"
-	"github.com/glebarez/sqlite"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -22,7 +22,7 @@ import (
 
 func TestEmbyMarkPlayedRefreshesPlaybackDevice(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
@@ -87,7 +87,7 @@ func TestEmbyMarkPlayedRefreshesPlaybackDevice(t *testing.T) {
 
 func TestEmbyCompatSessionAllowsSameClientRequestsWithoutToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
@@ -156,7 +156,7 @@ func TestEmbyCompatSessionAllowsSameClientRequestsWithoutToken(t *testing.T) {
 
 func TestEmbyAuthenticatedRequestRefreshesRealtimeUserActivity(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
@@ -233,7 +233,7 @@ func TestEmbyAuthenticatedRequestRefreshesRealtimeUserActivity(t *testing.T) {
 
 func TestEmbySessionCapabilitiesRefreshesRealtimeActivity(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
@@ -280,7 +280,7 @@ func TestEmbySessionCapabilitiesRefreshesRealtimeActivity(t *testing.T) {
 
 func TestEmbySessionCapabilitiesIgnoresScopedPlaybackToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
@@ -323,7 +323,7 @@ func TestEmbySessionCapabilitiesIgnoresScopedPlaybackToken(t *testing.T) {
 
 func TestEmbyLogoutRemovesRealtimeSessionFromPublicRoute(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
@@ -371,7 +371,7 @@ func TestEmbyLogoutRemovesRealtimeSessionFromPublicRoute(t *testing.T) {
 
 func TestEmbyLogoutIgnoresScopedPlaybackToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
@@ -415,7 +415,7 @@ func TestEmbyLogoutIgnoresScopedPlaybackToken(t *testing.T) {
 
 func TestEmbyUppercaseSessionCapabilitiesRouteNoContent(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}

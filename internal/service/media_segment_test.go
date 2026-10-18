@@ -516,4 +516,3 @@ func TestLedgerFreshUsesLongerTTLWhenDataWasFound(t *testing.T) {
 		t.Fatal("a missing ledger must not be considered fresh")
 	}
 }
-

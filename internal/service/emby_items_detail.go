@@ -897,9 +897,7 @@ func (e *EmbyService) fetchTMDbPeople(ctx context.Context, m *model.Media) []map
 			return people
 		}
 	}
-	if m.NSFW && e.adult != nil {
-		people = e.adult.GetPeople(ctx, m)
-	}
+
 	return people
 }
 

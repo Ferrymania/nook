@@ -29,9 +29,6 @@ func newBackupTestService(t *testing.T) (*BackupService, *config.Config) {
 
 // TestPostgresLogicalBackupRoundTrip 验证「备份 → 改库 → 恢复」后整库回到备份时的
 // 样子，包括软删除行与 json:"-" 的列。
-//
-// 逻辑备份/恢复本身是方言无关的 GORM 代码（PostgreSQL 专有的只有文件后缀与
-// isPostgres() 分派），所以可以直接在 SQLite 上跑。
 func TestPostgresLogicalBackupRoundTrip(t *testing.T) {
 	svc, _ := newBackupTestService(t)
 	ctx := context.Background()
@@ -208,19 +205,5 @@ func TestRestorePostgresBackupKeepsDataOnCorruptFile(t *testing.T) {
 	}
 	if value != "me" {
 		t.Fatalf("a failed restore wiped the database: settings keep = %q", value)
-	}
-}
-
-// TestRestoreRejectsBackupFromOtherDialect 验证备份文件与当前方言不匹配时给出明确
-// 错误，而不是把 SQLite 文件写到 PostgreSQL 部署的库路径上（那是原实现的隐患）。
-func TestRestoreRejectsBackupFromOtherDialect(t *testing.T) {
-	svc, _ := newBackupTestService(t)
-	pgStyle := filepath.Join(svc.backupDir(), "nook_20260101_000000.json.gz")
-	if err := os.WriteFile(pgStyle, []byte("not-gzip"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	// SQLite 路径下不允许恢复 PostgreSQL 逻辑备份。
-	if err := svc.Restore(context.Background(), filepath.Base(pgStyle)); err == nil {
-		t.Fatal("SQLite restore accepted a PostgreSQL logical backup")
 	}
 }

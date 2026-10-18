@@ -55,7 +55,7 @@ In practice, Nook gives you:
 
 ### Tech stack
 
-- **Backend**: Go, Gin, GORM, SQLite or PostgreSQL, optional Redis and OpenSearch
+- **Backend**: Go, Gin, GORM, PostgreSQL, optional Redis
 - **Frontend**: React 18, Vite, TypeScript, Tailwind CSS, Zustand
 - **Deployment**: Standalone Docker Compose templates, amd64/arm64 images, single-binary releases
 
@@ -69,7 +69,6 @@ Docker Compose is the recommended path. Choose a standalone template based on wh
 | --- | --- | --- |
 | No PostgreSQL yet | [docker-compose.yml](docker-compose.yml) | Nook + a new PostgreSQL instance |
 | Existing PostgreSQL | [docker-compose.external-postgres.yml](docker-compose.external-postgres.yml) | Nook only, connected to your existing database |
-| Built-in SQLite | [docker-compose.simple.yml](docker-compose.simple.yml) | Nook only |
 
 ```bash
 mkdir -p Nook && cd Nook
@@ -81,8 +80,6 @@ curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose
 # Existing PostgreSQL: use this URL and edit NOOK_DATABASE_DSN before starting
 # curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose.external-postgres.yml -o docker-compose.yml
 
-# Or one container with built-in SQLite
-# curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose.simple.yml -o docker-compose.yml
 
 docker compose up -d
 ```
@@ -113,23 +110,14 @@ Pick one compose file. Do **not** stack multiple `-f` files.
 
 | Tier | File | Stack | Best for |
 | --- | --- | --- | --- |
-| Single image | `docker-compose.simple.yml` | Nook + SQLite | Beginners, single-user, low-resource NAS |
-| Tier 1 | `docker-compose.yml` | Nook + a new PostgreSQL instance | Most home NAS deployments without PostgreSQL |
+| Default | `docker-compose.yml` | Nook + a new PostgreSQL instance | Most home NAS deployments without PostgreSQL |
 | Existing PostgreSQL | `docker-compose.external-postgres.yml` | Nook + external PostgreSQL | Reuse an existing database instance |
-| Tier 2 | `docker-compose.standard.yml` | + Redis | Multi-user, frequent Emby client refreshes |
-| Tier 3 | `docker-compose.search.yml` | + OpenSearch | Very large libraries, advanced full-text search |
-
-### Single-image notes
-
-- Only one Nook container; database lives in `./data/nook.db`
-- Do **not** set `NOOK_DATABASE_DSN` or it switches to PostgreSQL
-- Back up `./data`; `./cache` can be rebuilt
+| Optional Redis | `docker-compose.standard.yml` | + Redis | Multi-user, frequent Emby client refreshes |
 
 ### No PostgreSQL yet
 
 - `docker-compose.yml` starts both Nook and PostgreSQL.
 - Back up both `./postgres` (primary DB) and `./data` (secrets and runtime files).
-- Existing SQLite data migrates automatically on first start; successful migration is recorded.
 
 ### Existing PostgreSQL
 
@@ -154,9 +142,9 @@ If PostgreSQL is already part of an older Nook / MeBox Compose deployment, keep 
 
 | Path | Notes |
 | --- | --- |
-| `./data` | JWT secret, config, SQLite DB or migration source |
+| `./data` | JWT secret and runtime config |
 | `./postgres` | Bundled PostgreSQL primary DB; back up external PostgreSQL at its original deployment |
-| `./cache`, `./redis`, `./opensearch` | Rebuildable |
+| `./cache`, `./redis` | Rebuildable |
 
 ### Update
 

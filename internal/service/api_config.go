@@ -82,7 +82,7 @@ type PublicView struct {
 func (s *APIConfigService) List(ctx context.Context) ([]PublicView, error) {
 	var rows []model.APIConfig
 	if err := s.repo.DB.WithContext(ctx).
-		Where("provider NOT IN ?", []string{"adult", "metatube"}).
+		Where("provider IN ?", []string{"tmdb", "bangumi", "thetvdb", "fanart", "douban", "openai"}).
 		Order("provider asc").Find(&rows).Error; err != nil {
 		return nil, err
 	}

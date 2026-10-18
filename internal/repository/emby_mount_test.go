@@ -3,7 +3,7 @@ package repository
 import (
 	"testing"
 
-	"github.com/glebarez/sqlite"
+	"github.com/Ferrymania/nook/internal/testutil"
 	"gorm.io/gorm"
 
 	"github.com/Ferrymania/nook/internal/database"
@@ -11,7 +11,7 @@ import (
 )
 
 func TestEmbyMountSortOrderAndReorder(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

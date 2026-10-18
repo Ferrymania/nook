@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/glebarez/sqlite"
+	"github.com/Ferrymania/nook/internal/testutil"
 	"gorm.io/gorm"
 )
 
@@ -13,22 +13,22 @@ import (
 // old read-then-write upsert. AutoMigrate must merge them before creating the
 // uniq_user_history composite unique index, otherwise the upgrade fails.
 func TestAutoMigrateDedupesPlaybackHistories(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	// 旧 schema：无 uniq_user_history 唯一索引。
 	if err := db.Exec(`CREATE TABLE playback_histories (
 		id varchar(36) PRIMARY KEY,
-		created_at datetime,
-		updated_at datetime,
-		deleted_at datetime,
+		created_at timestamptz,
+		updated_at timestamptz,
+		deleted_at timestamptz,
 		user_id varchar(36) NOT NULL,
 		media_id varchar(128) NOT NULL,
 		position_ms integer,
 		duration_ms integer,
-		watched_at datetime,
-		completed numeric
+		watched_at timestamptz,
+		completed boolean
 	)`).Error; err != nil {
 		t.Fatal(err)
 	}

@@ -93,7 +93,6 @@ func (r *MediaSegmentRepository) UpsertFetch(ctx context.Context, row *model.Med
 //
 // 注意 found 必须用占位符绑定布尔值，不能写 f.found = 0 / = 1：
 // PostgreSQL 没有 boolean = integer 运算符，那样写会固定报 SQLSTATE 42883
-// （SQLite 宽容，所以只在 PostgreSQL 上暴露）。
 const segmentPrewarmCandidatesQuery = `
 SELECT m.*
 FROM media m
@@ -116,7 +115,7 @@ WHERE m.deleted_at IS NULL
     OR (f.found = ? AND f.fetched_at < ?)
     OR (f.found = ? AND f.fetched_at < ?)
   )
-ORDER BY ph.last_played DESC
+ORDER BY ph.last_played DESC NULLS LAST
 LIMIT ?
 `
 

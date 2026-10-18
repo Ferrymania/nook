@@ -244,7 +244,9 @@ func TestShowBrowserOpensDialog(t *testing.T) {
 // TestEnvProbeAPIsThrow 服务端不具备的 UI 函数必须抛异常，而不是静默成功。
 //
 // 这条对真实书源很关键：聚合源用 checkEnv() 探测运行环境，其中
-//   try { java.qread(); return "轻阅"; } catch (e) {}
+//
+//	try { java.qread(); return "轻阅"; } catch (e) {}
+//
 // 旧实现把 qread 做成「返回 null 的空操作」，于是探测结果变成「轻阅」，
 // 书源据此跳过自己的降级分支，表现为「按钮点了没反应」。
 func TestEnvProbeAPIsThrow(t *testing.T) {

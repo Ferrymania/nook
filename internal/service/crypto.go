@@ -1,14 +1,7 @@
 // Package service — AES-GCM crypto helper for at-rest secrets.
 //
-// Sensitive fields (third-party API keys, service passwords, …) are
-// stored in SQLite. We encrypt them with AES-256-GCM keyed off the JWT
-// secret so a stolen DB file alone is not enough to recover the
-// plaintext credentials.
-//
-// Format on disk:  "enc:v1:" + base64(nonce || ciphertext || tag)
-//
-// Legacy plaintext rows (no prefix) round-trip unchanged so an upgraded
-// install does not need a migration step.
+// Sensitive API keys and passwords are encrypted with AES-256-GCM using the JWT secret.
+// A database backup alone cannot decrypt them.
 package service
 
 import (

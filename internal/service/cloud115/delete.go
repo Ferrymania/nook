@@ -8,7 +8,7 @@ import (
 
 // DeleteFiles 批量删除 115 文件（官方接口 POST /open/ufile/delete）。
 // 删除为异步执行，文件移入回收站。parentID 为待删除文件所在父目录 ID
-//（可选提示，空串省略）。fileIDs 中的空项自动忽略，全为空时直接返回成功。
+// （可选提示，空串省略）。fileIDs 中的空项自动忽略，全为空时直接返回成功。
 func (c *OpenClient) DeleteFiles(ctx context.Context, parentID string, fileIDs ...string) error {
 	ids := make([]string, 0, len(fileIDs))
 	for _, id := range fileIDs {

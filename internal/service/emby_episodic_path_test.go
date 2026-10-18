@@ -12,7 +12,6 @@ import (
 // 此前 embyLikelyEpisodicPathSQL 会额外生成一份反斜杠模式
 // （strings.ReplaceAll(pattern, "/", `\`)）。PostgreSQL 的 LIKE 默认就把反斜杠
 // 当转义符，模式结尾的 `\%` 被解析成「字面百分号」而不是「反斜杠 + 通配符」，
-// 那些模式在 PostgreSQL 下永不命中；SQLite 没有默认转义符所以一直正常。
 // 现在统一在 SQL 里把分隔符归一化成 '/'，模式本身不再含反斜杠。
 func TestLikelyEpisodicPathSQLNormalisesSeparator(t *testing.T) {
 	clause, args := embyLikelyEpisodicPathSQL()
@@ -71,7 +70,7 @@ func TestFilterLikelyEpisodicPathsHandlesWindowsStylePaths(t *testing.T) {
 	// 反证：电影类型的行必须保留。
 	var kept []model.Media
 	keepQ := filterLikelyEpisodicPathsFromMovieQuery(
-		db.Model(&model.Media{}).Where("path LIKE ?", `D:\Media\电影\%`),
+		db.Model(&model.Media{}).Where("path = ?", movie.Path),
 	)
 	if err := keepQ.Find(&kept).Error; err != nil {
 		t.Fatal(err)

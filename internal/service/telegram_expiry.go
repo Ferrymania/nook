@@ -68,7 +68,7 @@ func (w *TelegramExpiryWatcher) RunOnce(ctx context.Context) error {
 
 	for _, bucket := range expiryBuckets {
 		from := now.Add(bucket.from) // expired_at > from
-		to := now.Add(bucket.to)    // expired_at <= to
+		to := now.Add(bucket.to)     // expired_at <= to
 
 		users, err := w.dueUsers(ctx, from, to)
 		if err != nil {

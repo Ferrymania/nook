@@ -14,12 +14,8 @@ func (c *Config) normalize() error {
 	if c.App.DataDir == "" {
 		c.App.DataDir = "./data"
 	}
-	if c.Database.DBPath == "" {
-		c.Database.DBPath = filepath.Join(c.App.DataDir, "nook.db")
-	}
-	c.Database.DBPath = existingSQLitePath(c.Database.DBPath)
 	if c.Database.Type == "" {
-		c.Database.Type = "auto"
+		c.Database.Type = "postgres"
 	}
 	if c.App.MaxCPUThreads < 1 {
 		c.App.MaxCPUThreads = 1
@@ -71,10 +67,6 @@ func (c *Config) normalize() error {
 	}
 	if c.Cache.ReaderFilesTTLHours < 0 {
 		c.Cache.ReaderFilesTTLHours = 0
-	}
-	c.Search.Backend = strings.ToLower(strings.TrimSpace(c.Search.Backend))
-	if c.Search.Index == "" {
-		c.Search.Index = "nook_media"
 	}
 	if c.Secrets.JWTSecret == "" {
 		// 持久化自动生成的密钥以在操作员忘记配置时保持会话稳定。

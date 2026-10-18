@@ -15,7 +15,6 @@ import (
 //
 //	operator does not exist: boolean = integer (SQLSTATE 42883)
 //
-// SQLite 一直能跑，所以这个错只在 PostgreSQL 上暴露（表现为日志里周期性出现
 // 该错误、片头片尾数据永远补不上）。这里断言语句里只能出现占位符绑定。
 func TestSegmentPrewarmQueryBindsBooleanFound(t *testing.T) {
 	query := segmentPrewarmCandidatesQuery
@@ -30,11 +29,8 @@ func TestSegmentPrewarmQueryBindsBooleanFound(t *testing.T) {
 	}
 }
 
-// TestLikeOperatorMatchesSQLiteCaseInsensitivity 守住搜索大小写行为的方言差异。
-//
-// SQLite 的 LIKE 对 ASCII 不区分大小写，PostgreSQL 的 LIKE 区分大小写：同一个
-// 搜索词在两种方言下必须给出同样的结果集，PostgreSQL 必须走 ILIKE。
-func TestLikeOperatorMatchesSQLiteCaseInsensitivity(t *testing.T) {
+// PostgreSQL searches must be case insensitive.
+func TestLikeOperatorIsCaseInsensitive(t *testing.T) {
 	pg, err := gorm.Open(postgres.New(postgres.Config{
 		DSN: "postgres://nook:nook@127.0.0.1:5432/nook?sslmode=disable",
 	}), &gorm.Config{
@@ -48,7 +44,7 @@ func TestLikeOperatorMatchesSQLiteCaseInsensitivity(t *testing.T) {
 	if got := LikeOperator(pg); got != "ILIKE" {
 		t.Fatalf("postgres LikeOperator = %q, want ILIKE", got)
 	}
-	if got := LikeOperator(nil); got != "LIKE" {
-		t.Fatalf("nil LikeOperator = %q, want LIKE", got)
+	if got := LikeOperator(nil); got != "ILIKE" {
+		t.Fatalf("nil LikeOperator = %q, want ILIKE", got)
 	}
 }

@@ -42,8 +42,7 @@ func (a *AuditService) Record(ctx context.Context, userID, action, target, ip, d
 	}
 }
 
-// RecordBestEffort writes an audit row off the request path. Login must not be
-// held open by SQLite write pressure from scans or background maintenance.
+// RecordBestEffort writes audit rows off the request path so database latency cannot block login.
 func (a *AuditService) RecordBestEffort(userID, action, target, ip, detail string) {
 	if a == nil || a.repo == nil || a.repo.Log == nil {
 		return

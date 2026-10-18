@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/glebarez/sqlite"
+	"github.com/Ferrymania/nook/internal/testutil"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -35,7 +35,7 @@ func TestEnrichOneRejectsWrongYearMatchFromSeriesFolder(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func TestEnrichOneRejectsWrongYearMatchFromSeriesFolder(t *testing.T) {
 }
 
 func TestEnrichOnePrefersLocalMetadataWithoutProvider(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

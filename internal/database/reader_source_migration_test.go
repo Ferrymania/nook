@@ -1,11 +1,10 @@
 package database
 
 import (
-	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/glebarez/sqlite"
+	"github.com/Ferrymania/nook/internal/testutil"
 	"gorm.io/gorm"
 
 	"github.com/Ferrymania/nook/internal/model"
@@ -33,11 +32,10 @@ func (legacyReaderSource) TableName() string { return "reader_book_sources" }
 //  2. 书源按「谁书架上有这本书」回填归属，多个引用者各得一份副本；
 //  3. 软删的历史书源行被清理，删除后重新导入不再撞唯一键。
 func TestReaderSourceMigrationBackfill(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(filepath.Join(t.TempDir(), "legacy.db")), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Windows 上 sqlite 文件句柄会阻塞 TempDir 清理，测试结束前先关连接。
 	t.Cleanup(func() {
 		if sqlDB, err := db.DB(); err == nil {
 			_ = sqlDB.Close()

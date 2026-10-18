@@ -3,7 +3,7 @@ package service
 import (
 	"testing"
 
-	"github.com/glebarez/sqlite"
+	"github.com/Ferrymania/nook/internal/testutil"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -12,7 +12,7 @@ import (
 )
 
 func TestProfileSubtitleChineseModePersistsAndValidates(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

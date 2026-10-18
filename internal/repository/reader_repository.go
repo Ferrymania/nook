@@ -16,13 +16,7 @@ type ReaderRepository struct {
 	db *gorm.DB
 }
 
-// readerOrderBy 组装方言安全的 ORDER BY。
-//
-// 用 clause.Column 让 GORM 按当前方言给列名加引号（SQLite 反引号 / PostgreSQL 双引号），
-// 而不是把引号硬编码进排序字符串。reader_books.order、reader_chapters.index、
-// reader_replace_rules.order 都撞上了 SQL 关键字（order 在 PostgreSQL 里是保留字）：
-// 之前写成 .Order("`order` ASC")，SQLite 下正常，PostgreSQL 下反引号被词法分析成
-// 运算符，直接报 `syntax error at or near "order"`，书架 / 目录 / 替换规则整页 500。
+// readerOrderBy quotes PostgreSQL reserved column names such as order and index through GORM.
 func readerOrderBy(columns ...clause.OrderByColumn) clause.OrderBy {
 	return clause.OrderBy{Columns: columns}
 }
@@ -383,11 +377,7 @@ func (r *ReaderRepository) CountChaptersByBook(ctx context.Context, bookIDs []st
 	return out, nil
 }
 
-// GetChapter 取指定章节。
-//
-// index 在 PostgreSQL 里是保留字，必须让 GORM 按方言加引号（SQLite 反引号 /
-// PostgreSQL 双引号）。此前写成硬编码的 "book_id = ? AND `index` = ?"，
-// PostgreSQL 会把反引号词法分析成运算符并报 syntax error at or near "`"。
+// GetChapter fetches a chapter using a quoted index column.
 func (r *ReaderRepository) GetChapter(ctx context.Context, bookID string, index int) (*model.ReaderChapter, error) {
 	var out model.ReaderChapter
 	err := r.db.WithContext(ctx).

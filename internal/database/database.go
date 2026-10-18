@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/glebarez/sqlite"
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -17,16 +16,12 @@ import (
 	"github.com/Ferrymania/nook/internal/config"
 )
 
-// Open initialises the configured GORM database. database.type=auto chooses
-// PostgreSQL when database.dsn is present and otherwise falls back to SQLite.
+// Open initialises the PostgreSQL database. A connection DSN is required.
 func Open(cfg *config.Config, log *zap.Logger) (*gorm.DB, error) {
 	if cfg == nil {
 		return nil, errors.New("database config is required")
 	}
 	dialect := normalizeDatabaseType(cfg.Database.Type)
-	if dialect == "auto" {
-		dialect = effectiveAutoDatabaseType(cfg)
-	}
 	dialector, err := databaseDialector(cfg, dialect)
 	if err != nil {
 		return nil, err
@@ -38,9 +33,6 @@ func Open(cfg *config.Config, log *zap.Logger) (*gorm.DB, error) {
 	})
 	if err != nil {
 		return nil, fmt.Errorf("gorm open: %w", err)
-	}
-	if dialect == "sqlite" {
-		installSQLiteWriteGate(db)
 	}
 	if err := configureConnectionPool(db, cfg); err != nil {
 		return nil, err
@@ -79,8 +71,6 @@ func configureConnectionPool(db *gorm.DB, cfg *config.Config) error {
 	if isPostgres(db) {
 		sqlDB.SetConnMaxLifetime(time.Hour)
 		sqlDB.SetConnMaxIdleTime(10 * time.Minute)
-	} else if isSQLite(db) {
-		sqlDB.SetConnMaxLifetime(24 * time.Hour)
 	}
 	return nil
 }
@@ -88,9 +78,7 @@ func configureConnectionPool(db *gorm.DB, cfg *config.Config) error {
 func normalizeDatabaseType(value string) string {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "", "auto":
-		return "auto"
-	case "sqlite", "sqlite3":
-		return "sqlite"
+		return "postgres"
 	case "postgres", "postgresql", "pg":
 		return "postgres"
 	default:
@@ -98,17 +86,8 @@ func normalizeDatabaseType(value string) string {
 	}
 }
 
-func effectiveAutoDatabaseType(cfg *config.Config) string {
-	if cfg != nil && strings.TrimSpace(cfg.Database.DSN) != "" {
-		return "postgres"
-	}
-	return "sqlite"
-}
-
 func databaseDialector(cfg *config.Config, dialect string) (gorm.Dialector, error) {
 	switch dialect {
-	case "sqlite":
-		return sqlite.Open(buildSQLiteDSN(cfg)), nil
 	case "postgres":
 		dsn := strings.TrimSpace(cfg.Database.DSN)
 		if dsn == "" {
@@ -116,7 +95,7 @@ func databaseDialector(cfg *config.Config, dialect string) (gorm.Dialector, erro
 		}
 		return postgres.Open(dsn), nil
 	default:
-		return nil, fmt.Errorf("unsupported database.type %q (supported: sqlite, postgres)", cfg.Database.Type)
+		return nil, fmt.Errorf("unsupported database.type %q (supported: postgres)", cfg.Database.Type)
 	}
 }
 

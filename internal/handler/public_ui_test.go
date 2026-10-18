@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Ferrymania/nook/internal/testutil"
 	"github.com/gin-gonic/gin"
-	"github.com/glebarez/sqlite"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -17,7 +17,7 @@ import (
 )
 
 func TestPublicUIConfigExposesCommunityLinkVisibility(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -442,7 +442,6 @@ func (r *JSRunner) EvalLoginCheck(js, body string, code int, finalURL string) (s
 	return v.String(), true, nil
 }
 
-
 // ForAnalyzer 返回绑定到指定解析器的执行函数（java.getString 等规则回调
 // 会桥回该解析器，对应 legado 中 AnalyzeRule 自身实现 JsExtensions）。
 func (r *JSRunner) ForAnalyzer(a *AnalyzeRule) func(js string, result any) (any, error) {

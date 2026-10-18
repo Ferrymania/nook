@@ -57,12 +57,7 @@ func AutoMigrateWithConfig(db *gorm.DB, cfg *config.Config, log *zap.Logger) err
 	if err := ensureEmbyMountsCompatibility(db); err != nil {
 		return err
 	}
-	if isSQLite(db) {
-		if err := ensureMediaSearchIndex(db); err != nil {
-			return err
-		}
-		return ensureSQLiteQueryOptimizer(db)
-	}
+
 	return ensurePostgresSearchIndexes(db, cfg, log)
 }
 
@@ -89,13 +84,10 @@ func backfillLegacyEpisodeStills(db *gorm.DB, legacy bool) error {
 //
 // 所以 PostgreSQL 改用 md5(path) 的表达式唯一索引（定长 32 字节，永远塞得下），
 // 同时保留一条普通索引 idx_media_path 供 path = ? 等值查找（扫描与 upsert 的
-// 热路径）使用。SQLite 没有这个长度限制，沿用整列唯一索引。
+// 热路径）使用。
 func ensureMediaPathIndex(db *gorm.DB) error {
 	if db == nil || !db.Migrator().HasTable("media") {
 		return nil
-	}
-	if !isPostgres(db) {
-		return db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_media_path ON media(path)`).Error
 	}
 	// 先建哈希唯一索引：此时旧索引还在，唯一性不会出现空窗。
 	if err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_media_path_hash ON media(md5(path))`).Error; err != nil {
@@ -134,18 +126,8 @@ WHERE n.nspname = current_schema() AND c.relname = ?
 	return *row.IsUnique, true, nil
 }
 
-// ensurePostgresSearchIndexes 给 PostgreSQL 补上 SQLite FTS5 的替代品。
-//
-// 全文检索只在 SQLite 下存在（FTS5 虚表 + 触发器），PostgreSQL 下
-// media_search_repository 会退回 title/original_name/path/genres 的 ILIKE
-// 全表扫描。pg_trgm 的 GIN 三元组索引能让这类 '%term%' 模式（≥3 字符）走索引，
-// 把搜索从整表扫描降到索引扫描。
-//
-// 之所以可关闭：media 表写入非常频繁（每次扫描批量入库），多 4 个 GIN 索引会
-// 明显放大写入成本。默认开启以对齐 SQLite 的搜索能力，写入压力大的部署可以关掉。
-//
-// 整个过程是尽力而为：没有建扩展的权限、Postgres 版本不支持等情况下只记一条
-// 警告并继续启动，绝不让一个搜索加速项把服务挡在门外。
+// ensurePostgresSearchIndexes adds optional pg_trgm indexes for case-insensitive media search.
+// Missing extension privileges only disable acceleration, not startup or search.
 func ensurePostgresSearchIndexes(db *gorm.DB, cfg *config.Config, log *zap.Logger) error {
 	if !isPostgres(db) {
 		return nil
@@ -184,15 +166,9 @@ func ensurePostgresSearchIndexes(db *gorm.DB, cfg *config.Config, log *zap.Logge
 	return nil
 }
 
-func ensureSQLiteQueryOptimizer(db *gorm.DB) error {
-	// Refresh planner statistics so indexes on large media tables are used.
-	return db.Exec("ANALYZE").Error
-}
-
 // dropLegacyReaderSourceUniqueIndex 删除书源表上旧版 source_url 唯一索引。
 //
-// 书源改为按用户独立后唯一键是 (user_id, source_url)；SQLite 的 RenameTable 与
-// AutoMigrate 都不会删除按旧名创建的索引（实测旧唯一索引在改名后依然生效），
+// 书源改为按用户独立后唯一键是 (user_id, source_url)；AutoMigrate 不会删除按旧名创建的索引，
 // 必须显式删除，否则第二个用户导入同一书源会撞唯一约束。
 func dropLegacyReaderSourceUniqueIndex(db *gorm.DB) error {
 	if !db.Migrator().HasTable(&model.ReaderBookSource{}) {
@@ -403,17 +379,12 @@ func ensurePerformanceIndexes(db *gorm.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_playback_histories_resume_active ON playback_histories(user_id, completed, watched_at DESC) WHERE deleted_at IS NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_play_profiles_user_created_active ON play_profiles(user_id, created_at DESC) WHERE deleted_at IS NULL`,
 	}
-	if isSQLite(db) {
-		statements = append(statements,
-			`CREATE INDEX IF NOT EXISTS idx_media_title_active ON media(title COLLATE NOCASE) WHERE deleted_at IS NULL`,
-			`CREATE INDEX IF NOT EXISTS idx_media_original_name_active ON media(original_name COLLATE NOCASE) WHERE deleted_at IS NULL`,
-		)
-	} else {
-		statements = append(statements,
-			`CREATE INDEX IF NOT EXISTS idx_media_title_active ON media(title) WHERE deleted_at IS NULL`,
-			`CREATE INDEX IF NOT EXISTS idx_media_original_name_active ON media(original_name) WHERE deleted_at IS NULL`,
-		)
-	}
+
+	statements = append(statements,
+		`CREATE INDEX IF NOT EXISTS idx_media_title_active ON media(title) WHERE deleted_at IS NULL`,
+		`CREATE INDEX IF NOT EXISTS idx_media_original_name_active ON media(original_name) WHERE deleted_at IS NULL`,
+	)
+
 	for _, stmt := range statements {
 		if err := db.Exec(stmt).Error; err != nil {
 			return err

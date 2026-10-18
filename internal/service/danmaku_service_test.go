@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"testing"
 
-	"github.com/glebarez/sqlite"
+	"github.com/Ferrymania/nook/internal/testutil"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -22,7 +21,7 @@ import (
 func newDanmakuTestService(t *testing.T) *DanmakuService {
 	t.Helper()
 	// 独立临时文件库，避免测试间通过共享内存库串数据。
-	db, err := gorm.Open(sqlite.Open(filepath.Join(t.TempDir(), "danmaku-test.db")), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	require.NoError(t, err)
 	// 需要 users 表：弹幕合并偏好按用户存储在 user 行上。
 	require.NoError(t, db.AutoMigrate(&model.Setting{}, &model.Media{}, &model.User{}))

@@ -40,9 +40,7 @@ func (r *HistoryRepository) UpsertProgress(ctx context.Context, h *model.Playbac
 //
 //	column reference "session_started_at_ms" is ambiguous (SQLSTATE 42702)
 //
-// 结果是 POST /api/history 一律 500，观看进度与续播完全存不下来。SQLite 不做这项
-// 检查，所以这个错只在 PostgreSQL 上暴露。clause.CurrentTable 由 GORM 在构建语句
-// 时替换成真实表名，两种方言都能正确渲染。
+// clause.CurrentTable qualifies columns with the current table to avoid ambiguity.
 func historyColumn(name string) clause.Column {
 	return clause.Column{Table: clause.CurrentTable, Name: name}
 }

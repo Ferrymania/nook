@@ -525,7 +525,6 @@ func TestMediaVersionLabelFallsBackToFilenameWhenIndistinct(t *testing.T) {
 	}
 }
 
-// SIVR-270 现场：一部分分片走在线刮削（MetaTube 把番号/provider 借用进
 // douban_id/thetvdb_id），另一部分只从本地 NFO 拿到标题（没有外部 ID）。
 // 按外部 ID 分组会把它们裂成两张标题完全相同的卡，必须按番号折成一张。
 func TestGroupMediaVersionsMergesAdultPartsAcrossMetadataSources(t *testing.T) {
@@ -619,8 +618,7 @@ func TestGroupMediaVersionsMergesAdultCodesIgnoringZeroPadding(t *testing.T) {
 	}
 }
 
-func TestGroupMediaVersionsMergesAdultPartsWithBorrowedMetaTubeIDs(t *testing.T) {
-	// IPVR-00192 现场：两个 part 标题、年份完全一样，但 part2 是走 MetaTube
+func TestGroupMediaVersionsMergesAdultPartsWithBorrowedLegacyIDs(t *testing.T) {
 	// 刮削的（番号/provider 被借用进 douban_id/thetvdb_id），part1 只有本地
 	// NFO 身份、两个字段为空。旧逻辑按外部 ID 分组会裂成两张卡。
 	part1 := model.Media{
@@ -662,7 +660,6 @@ func TestGetMediaItemListsAdultVersionsAcrossMetadataSources(t *testing.T) {
 	}
 	rows := []model.Media{
 		{
-			// 走 MetaTube 刮削的分片：番号/provider 被借用进 douban/thetvdb。
 			LibraryID:    lib.ID,
 			Title:        "SIVR-270-【VR】河北彩花",
 			OriginalName: "SIVR-270",

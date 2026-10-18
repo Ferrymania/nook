@@ -37,8 +37,8 @@ func listUsersHandler(svc *service.Container) gin.HandlerFunc {
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{
-			"users":        users,
-			"max_users":    maxUsers,
+			"users":         users,
+			"max_users":     maxUsers,
 			"current_users": len(users),
 		})
 	}

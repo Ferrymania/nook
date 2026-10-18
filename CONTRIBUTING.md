@@ -71,6 +71,18 @@ PR 应该尽量小而清晰。一次 PR 聚焦一个问题或一组强相关改�
 
 根据改动范围选择运行：
 
+数据库测试需要独立的 PostgreSQL 测试库，通过 `NOOK_TEST_POSTGRES_DSN` 指定。每个测试使用独立 schema，结束后自动清理；未设置时跳过数据库集成测试。不要填写生产数据库地址。CI 会自动提供测试实例。
+
+本地可先启动临时实例：
+
+```bash
+docker run -d --rm --name nook-test-postgres -p 127.0.0.1:15433:5432 --tmpfs /var/lib/postgresql/data -e POSTGRES_PASSWORD=nook-test -e POSTGRES_DB=nook_test postgres:16-alpine
+# 等待 pg_isready 成功后再初始化扩展并运行测试。
+docker exec nook-test-postgres pg_isready -U postgres -d nook_test
+docker exec nook-test-postgres psql -U postgres -d nook_test -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public'
+export NOOK_TEST_POSTGRES_DSN='postgres://postgres:nook-test@127.0.0.1:15433/nook_test?sslmode=disable'
+```
+
 ```bash
 go test ./...
 npm --prefix web run build

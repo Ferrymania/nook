@@ -120,9 +120,9 @@ func changePasswordHandler(svc *service.Container) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-			c.Status(http.StatusNoContent)
-		}
+		c.Status(http.StatusNoContent)
 	}
+}
 
 func temporaryPasswordHandler(svc *service.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {

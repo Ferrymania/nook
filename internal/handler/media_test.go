@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Ferrymania/nook/internal/testutil"
 	"github.com/gin-gonic/gin"
-	"github.com/glebarez/sqlite"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -26,7 +26,7 @@ import (
 )
 
 func TestQueueLibraryRootScanImportsNewLibraryMedia(t *testing.T) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +68,7 @@ func TestQueueLibraryRootScanImportsNewLibraryMedia(t *testing.T) {
 
 func TestListLibrariesHidesAdultDirectoriesUnlessAdminRequestsAll(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,20 +104,20 @@ func TestListLibrariesHidesAdultDirectoriesUnlessAdminRequestsAll(t *testing.T) 
 		t.Fatalf("watching library list should hide adult directories, got %#v", visible)
 	}
 
-		all := requestLibraries(t, svc, viewer.ID, "admin", "/api/libraries?include_hidden=1")
-		if len(all) != 2 {
-			t.Fatalf("admin include_hidden list should keep management access, got %#v", all)
-		}
-
-		filtered := requestLibraries(t, svc, viewer.ID, "admin", "/api/libraries?include_hidden=1&ids="+safe.ID)
-		if len(filtered) != 1 || filtered[0].ID != safe.ID {
-			t.Fatalf("ids filter should return only requested library, got %#v", filtered)
-		}
+	all := requestLibraries(t, svc, viewer.ID, "admin", "/api/libraries?include_hidden=1")
+	if len(all) != 2 {
+		t.Fatalf("admin include_hidden list should keep management access, got %#v", all)
 	}
+
+	filtered := requestLibraries(t, svc, viewer.ID, "admin", "/api/libraries?include_hidden=1&ids="+safe.ID)
+	if len(filtered) != 1 || filtered[0].ID != safe.ID {
+		t.Fatalf("ids filter should return only requested library, got %#v", filtered)
+	}
+}
 
 func TestGetLibraryAllowsEmptyLibrary(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +146,7 @@ func TestGetLibraryAllowsEmptyLibrary(t *testing.T) {
 
 func TestListMediaGroupsMultipleVersionsByDefault(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -209,7 +209,7 @@ func TestListMediaGroupsMultipleVersionsByDefault(t *testing.T) {
 
 func TestListLibrarySeriesDoesNotTruncateLargeEpisodeLibraries(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -397,7 +397,7 @@ func requestLibrarySeriesEpisodes(t *testing.T, svc *service.Container, path, li
 // 报错且无法返回」。这条测试钉死该 JSON 契约，防止再退化。
 func TestEmptyLibraryListsReturnEmptyArraysNotNull(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -441,15 +441,15 @@ func TestEmptyLibraryListsReturnEmptyArraysNotNull(t *testing.T) {
 		if strings.Contains(body, `"items":null`) {
 			t.Fatalf("%s: empty library returned items:null (crashes frontend): %s", tc.name, body)
 		}
-			if !strings.Contains(body, `"items":[]`) {
-				t.Fatalf("%s: expected items:[] for empty library, got %s", tc.name, body)
-			}
+		if !strings.Contains(body, `"items":[]`) {
+			t.Fatalf("%s: expected items:[] for empty library, got %s", tc.name, body)
 		}
 	}
+}
 
 func TestSearchMediaGroupsSeriesBeforeLimit(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -465,22 +465,22 @@ func TestSearchMediaGroupsSeriesBeforeLimit(t *testing.T) {
 	now := time.Now()
 	rows := []model.Media{
 		{
-			Base:       model.Base{ID: "dbkai-ep-1", CreatedAt: now.Add(-2 * time.Minute), UpdatedAt: now.Add(-2 * time.Minute)},
+			Base:      model.Base{ID: "dbkai-ep-1", CreatedAt: now.Add(-2 * time.Minute), UpdatedAt: now.Add(-2 * time.Minute)},
 			LibraryID: lib.ID, Title: "龙珠改", Path: "/media/anime/龙珠改 (2009)/Season 1/龙珠改.S01E01.mkv",
 			SeasonNum: 1, EpisodeNum: 1, TMDbID: 61709,
 		},
 		{
-			Base:       model.Base{ID: "dbkai-ep-2", CreatedAt: now.Add(-time.Minute), UpdatedAt: now.Add(-time.Minute)},
+			Base:      model.Base{ID: "dbkai-ep-2", CreatedAt: now.Add(-time.Minute), UpdatedAt: now.Add(-time.Minute)},
 			LibraryID: lib.ID, Title: "龙珠改", Path: "/media/anime/龙珠改 (2009)/Season 1/龙珠改.S01E02.mkv",
 			SeasonNum: 1, EpisodeNum: 2, TMDbID: 61709,
 		},
 		{
-			Base:       model.Base{ID: "dbkai-ep-3", CreatedAt: now, UpdatedAt: now},
+			Base:      model.Base{ID: "dbkai-ep-3", CreatedAt: now, UpdatedAt: now},
 			LibraryID: lib.ID, Title: "龙珠改", Path: "/media/anime/龙珠改 (2009)/Season 1/龙珠改.S01E03.mkv",
 			SeasonNum: 1, EpisodeNum: 3, TMDbID: 61709,
 		},
 		{
-			Base:       model.Base{ID: "db-movie", CreatedAt: now.Add(-3 * time.Minute), UpdatedAt: now.Add(-3 * time.Minute)},
+			Base:      model.Base{ID: "db-movie", CreatedAt: now.Add(-3 * time.Minute), UpdatedAt: now.Add(-3 * time.Minute)},
 			LibraryID: lib.ID, Title: "龙珠超：布罗利", Path: "/media/anime/龙珠超：布罗利 (2018)/龙珠超：布罗利.mkv",
 			TMDbID: 503314,
 		},
@@ -557,7 +557,7 @@ func TestSearchMediaHandlerIncludesEmbyRemote(t *testing.T) {
 	}))
 	defer server.Close()
 
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
