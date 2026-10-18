@@ -21,7 +21,7 @@ import {
 
 import { ARTWORK, imageURL } from '../api/client'
 import { scraperAPI } from '../api/scraper'
-import type { ScrapeQueueSnapshot, ScrapeTask, ScrapeTaskStatus } from '../types/scraper'
+import type { ScrapeQueueCounts, ScrapeQueueSnapshot, ScrapeTask, ScrapeTaskStatus } from '../types/scraper'
 import { apiErrorMessage, formatTime, taskStatusMeta } from './StrmManagePage'
 import { ScrapeDetailModal } from './scraper-queue/ScrapeDetailModal'
 import { PROVIDER_LABELS } from './scraper-queue/scrapeLabels'
@@ -45,7 +45,13 @@ const TYPE_ICONS: Record<string, ReactNode> = {
 
 const PAGE_SIZE = 50
 
-export function ScraperQueuePage({ embedded = false }: { embedded?: boolean }) {
+export function ScraperQueuePage({
+  embedded = false,
+  onCountsChange,
+}: {
+  embedded?: boolean
+  onCountsChange?: (counts: ScrapeQueueCounts) => void
+}) {
   const [snapshot, setSnapshot] = useState<ScrapeQueueSnapshot | null>(null)
   const [filter, setFilter] = useState<'all' | ScrapeTaskStatus>('all')
   const [search, setSearch] = useState('')
@@ -60,6 +66,10 @@ export function ScraperQueuePage({ embedded = false }: { embedded?: boolean }) {
   // 轮询/翻页/切筛选并发时用递增序号丢弃过期响应
   const refreshSeqRef = useRef(0)
   const [pollFailures, setPollFailures] = useState(0)
+
+  useEffect(() => {
+    if (snapshot) onCountsChange?.(snapshot.counts)
+  }, [snapshot, onCountsChange])
 
   const refresh = useCallback(
     async (showLoading = false) => {
