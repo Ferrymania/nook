@@ -17,12 +17,24 @@ func ffToolsStatusHandler(svc *service.Container) gin.HandlerFunc {
 			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "FFmpeg 工具服务不可用"})
 			return
 		}
+		c.Header("Cache-Control", "no-store")
 		c.JSON(http.StatusOK, svc.FFTools.Status(c.Request.Context()))
 	}
 }
 
-// ffToolsInstallHandler 触发后台下载安装（POST /api/admin/tools/ffmpeg/install）。
-// 自动匹配当前运行环境（OS+架构），安装到 data/tools/ffmpeg/ 并把路径写入设置。
+// ffToolsDetectHandler 只返回候选路径，不改变当前配置。
+func ffToolsDetectHandler(svc *service.Container) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if svc == nil || svc.FFTools == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "FFmpeg 工具服务不可用"})
+			return
+		}
+		c.Header("Cache-Control", "no-store")
+		c.JSON(http.StatusOK, svc.FFTools.Detect(c.Request.Context()))
+	}
+}
+
+// ffToolsInstallHandler 只准备工具，保存设置后才切换使用。
 func ffToolsInstallHandler(svc *service.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if svc == nil || svc.FFTools == nil {
@@ -33,6 +45,7 @@ func ffToolsInstallHandler(svc *service.Container) gin.HandlerFunc {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
 		}
+		c.Header("Cache-Control", "no-store")
 		c.JSON(http.StatusOK, svc.FFTools.Status(c.Request.Context()))
 	}
 }

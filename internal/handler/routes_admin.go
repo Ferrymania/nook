@@ -26,6 +26,7 @@ func registerAdminRoutes(api *gin.RouterGroup, cfg *config.Config, svc *service.
 
 	// FFmpeg/FFprobe 工具：状态查询 + 一键下载安装（自动匹配当前平台）。
 	admin.GET("/tools/ffmpeg/status", ffToolsStatusHandler(svc))
+	admin.GET("/tools/ffmpeg/detect", ffToolsDetectHandler(svc))
 	admin.POST("/tools/ffmpeg/install", ffToolsInstallHandler(svc))
 }
 

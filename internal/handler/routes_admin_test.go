@@ -29,6 +29,9 @@ func TestAdminRouteSurfacesAreRegistered(t *testing.T) {
 		"POST /api/admin/backups",
 		"GET /api/admin/organize/sources",
 		"GET /api/admin/api-configs",
+		"GET /api/admin/tools/ffmpeg/detect",
+		"GET /api/admin/tools/ffmpeg/status",
+		"POST /api/admin/tools/ffmpeg/install",
 		"POST /api/media/:id/segments/query",
 	} {
 		if !routes[want] {

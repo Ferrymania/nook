@@ -1,154 +1,212 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { Download, Loader2, ScanSearch } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { CheckCircle2, Download, Loader2, XCircle } from 'lucide-react'
 
-import { toolsAPI, type FFmpegToolInfo, type FFmpegToolsStatus } from '../api/tools'
+import { toolsAPI, type FFmpegToolInfo, type FFmpegToolPair, type FFmpegToolsStatus } from '../api/tools'
 
-// FFToolsPanel 展示 ffmpeg/ffprobe 的安装状态，并提供「一键下载安装」：
-// 后端自动匹配当前运行环境（OS + 架构），下载到 data 目录并写入设置，
-// 无需手动填写路径。
-export function FFToolsPanel({ onInstalled }: { onInstalled?: () => void }) {
+const TOOLS = ['ffmpeg', 'ffprobe'] as const
+
+type Tool = typeof TOOLS[number]
+interface FFToolsPanelProps {
+  values: Record<string, string>
+  savedValues: Record<string, string>
+  dirty: Set<string>
+  saving: boolean
+  statusRevision: number
+  onChange: (key: string, value: string) => void
+  onBusyChange: (busy: boolean) => void
+}
+
+function errorMessage(err: unknown, fallback: string) {
+  return (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
+    (err as { message?: string })?.message ?? fallback
+}
+
+export function FFToolsPanel({ values, savedValues, dirty, saving, statusRevision, onChange, onBusyChange }: FFToolsPanelProps) {
   const [status, setStatus] = useState<FFmpegToolsStatus | null>(null)
-  const [working, setWorking] = useState(false)
-  const pollingRef = useRef(false)
-
-  const load = useCallback(async () => {
-    try {
-      setStatus(await toolsAPI.ffToolsStatus())
-    } catch {
-      // 网络波动时保持旧状态，不打断页面
-    }
-  }, [])
-
-  useEffect(() => {
-    load().catch(() => undefined)
-  }, [load])
-
+  const [checking, setChecking] = useState(true)
+  const [statusError, setStatusError] = useState(false)
+  const [reload, setReload] = useState(0)
+  const [operation, setOperation] = useState<'detect' | 'install' | null>(null)
+  const [candidates, setCandidates] = useState<FFmpegToolPair>({})
+  const [feedback, setFeedback] = useState<{ text: string; error?: boolean } | null>(null)
+  const action = useRef<AbortController | null>(null)
+  const handledInstall = useRef('')
   const installing = Boolean(status?.installing)
+  const busy = checking || installing || operation !== null
 
-  // 安装进行中：轮询状态直到结束，完成后刷新设置页（路径字段自动填入）。
+  useEffect(() => { onBusyChange(busy) }, [busy, onBusyChange])
+  useEffect(() => () => { action.current?.abort(); onBusyChange(false) }, [onBusyChange])
+  useEffect(() => { setFeedback(null); setCandidates({}) }, [statusRevision])
+
   useEffect(() => {
-    if (!installing || pollingRef.current) return
-    pollingRef.current = true
-    const timer = window.setInterval(async () => {
+    const controller = new AbortController()
+    setChecking(true)
+    toolsAPI.ffToolsStatus(controller.signal).then((next) => {
+      if (controller.signal.aborted) return
+      setStatus(next)
+      setStatusError(false)
+    }).catch(() => {
+      if (!controller.signal.aborted) setStatusError(true)
+    }).finally(() => {
+      if (!controller.signal.aborted) setChecking(false)
+    })
+    return () => controller.abort()
+  }, [statusRevision, reload])
+
+  const fillPaths = useCallback((pair: FFmpegToolPair, source: 'detect' | 'install') => {
+    const found = TOOLS.filter((tool) => pair[tool]?.installed && pair[tool]?.path)
+    const changed = found.some((tool) => pair[tool]?.path !== (savedValues[`${tool}.path`] ?? ''))
+    for (const tool of found) onChange(`${tool}.path`, pair[tool]!.path!)
+    setCandidates(pair)
+    setFeedback({
+      error: found.length !== 2,
+      text: found.length === 0
+        ? '未找到可用工具，原有路径已保留。可手动填写或尝试下载安装。'
+        : found.length !== 2
+          ? '只找到一个工具，已填入可用路径，其他路径保持不变。'
+          : !changed
+            ? '路径与当前配置一致，无需重复保存。'
+            : source === 'install'
+            ? '安装完成，路径已填入。点击页面底部「保存」后生效。'
+            : '检测完成，路径已填入；如有更改，点击页面底部「保存」后生效。',
+    })
+  }, [onChange, savedValues])
+
+  const completeInstall = useCallback((next: FFmpegToolsStatus) => {
+    const id = `${next.started_at ?? ''}/${next.finished_at ?? ''}`
+    if (handledInstall.current === id) return
+    handledInstall.current = id
+    if (next.error) {
+      setFeedback({ error: true, text: `下载安装失败：${next.error}。原有路径未更改。` })
+    } else if (next.downloaded?.ffmpeg?.installed && next.downloaded?.ffprobe?.installed) {
+      fillPaths(next.downloaded, 'install')
+    } else {
+      setFeedback({ error: true, text: '未检测到完整的下载工具，原有路径已保留。请重试下载安装。' })
+    }
+  }, [fillPaths])
+
+  useEffect(() => {
+    if (!installing) return
+    const controller = new AbortController()
+    let timer: number
+    const poll = async () => {
       try {
-        const next = await toolsAPI.ffToolsStatus()
+        const next = await toolsAPI.ffToolsStatus(controller.signal)
+        if (controller.signal.aborted) return
         setStatus(next)
         if (!next.installing) {
-          window.clearInterval(timer)
-          pollingRef.current = false
-          if (next.error) {
-            toast.error(`FFmpeg 下载安装失败：${next.error}`)
-          } else {
-            toast.success('FFmpeg / FFprobe 下载安装完成，系统已自动使用')
-            onInstalled?.()
-          }
+          completeInstall(next)
+          return
         }
+        setFeedback(null)
       } catch {
-        // 轮询失败继续等下一轮
+        if (controller.signal.aborted) return
+        setFeedback({ text: '暂时无法获取安装进度，正在重试；当前配置继续使用。' })
       }
-    }, 1500)
-    return () => {
-      window.clearInterval(timer)
-      pollingRef.current = false
+      timer = window.setTimeout(poll, 1500)
     }
-  }, [installing, onInstalled])
+    timer = window.setTimeout(poll, 1500)
+    return () => { controller.abort(); window.clearTimeout(timer) }
+  }, [installing, completeInstall])
 
-  const install = async () => {
-    setWorking(true)
+  const start = async (kind: 'detect' | 'install') => {
+    const controller = new AbortController()
+    action.current = controller
+    setOperation(kind)
+    setFeedback(null)
     try {
-      const next = await toolsAPI.installFFTools()
-      setStatus(next)
-      if (next.error && !next.installing) {
-        toast.error(next.error)
-      } else if (next.installing) {
-        toast('开始下载，完成后自动生效')
+      if (kind === 'detect') {
+        const pair = await toolsAPI.detectFFTools(controller.signal)
+        if (!controller.signal.aborted) fillPaths(pair, 'detect')
       } else {
-        toast.success('已检测到可用工具')
-        onInstalled?.()
+        const next = await toolsAPI.installFFTools(controller.signal)
+        if (controller.signal.aborted) return
+        setStatus(next)
+        if (!next.installing) completeInstall(next)
       }
     } catch (err) {
-      toast.error(
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-          (err as { message?: string })?.message ??
-          '启动下载失败',
-      )
+      if (!controller.signal.aborted) {
+        const message = errorMessage(err, kind === 'detect' ? '自动检测失败' : '启动下载失败')
+        setFeedback({ error: true, text: `${message}。原有路径未更改。` })
+        toast.error(message)
+      }
     } finally {
-      setWorking(false)
+      if (!controller.signal.aborted) setOperation(null)
     }
   }
 
-  const busy = working || installing
-  const targetLabel = status?.target?.label ?? '当前平台'
-  const ffmpegInstalled = Boolean(status?.ffmpeg?.installed)
-  const ffprobeInstalled = Boolean(status?.ffprobe?.installed)
+  const downloadedUnused = status?.downloaded?.ffmpeg?.installed && status?.downloaded?.ffprobe?.installed &&
+    (status.downloaded.ffmpeg.path !== status.ffmpeg?.path || status.downloaded.ffprobe.path !== status.ffprobe?.path)
 
   return (
-    <div className="glass-panel space-y-3">
-      <div className="flex items-center justify-between gap-3">
+    <section className="glass-panel space-y-5" aria-label="FFmpeg / FFprobe 工具设置">
+      <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <div className="font-display text-lg font-bold text-ink-600">FFmpeg / FFprobe 工具</div>
-          <div className="text-xs text-sand-500">
-            当前平台：{targetLabel} · 安装目录：
-            <span className="font-mono">{status?.install_dir ?? '…'}</span>
-          </div>
+          <h2 className="font-display text-lg font-bold text-ink-600">FFmpeg / FFprobe 工具</h2>
+          <p className="text-xs text-sand-500">用于视频转码与媒体信息探测</p>
         </div>
-        <button
-          type="button"
-          onClick={install}
-          disabled={busy}
-          className="neon-button shrink-0 disabled:opacity-50"
-        >
-          {busy ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-          {busy ? '下载安装中…' : '下载并安装'}
-        </button>
-      </div>
-
-      <div className="grid gap-2 md:grid-cols-2">
-        <ToolRow name="FFmpeg" info={status?.ffmpeg} />
-        <ToolRow name="FFprobe" info={status?.ffprobe} />
-      </div>
-
-      {(status?.message || status?.error) && (
-        <div
-          className={
-            status?.error
-              ? 'rounded-xl bg-red-50 px-3 py-2 text-xs text-red-600'
-              : 'rounded-xl bg-sand-100/70 px-3 py-2 text-xs text-sand-500'
-          }
-        >
-          {status?.error || status?.message}
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => start('detect')} disabled={busy || saving} className="btn-outline disabled:opacity-50">
+            {operation === 'detect' ? <Loader2 size={16} className="animate-spin" /> : <ScanSearch size={16} />}
+            {operation === 'detect' ? '检测中…' : '自动检测'}
+          </button>
+          <button type="button" onClick={() => start('install')} disabled={busy || saving} className="btn-outline disabled:opacity-50">
+            {installing || operation === 'install' ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            {installing || operation === 'install' ? '下载安装中…' : '下载安装'}
+          </button>
         </div>
-      )}
-
-      {!ffmpegInstalled || !ffprobeInstalled ? (
-        <div className="text-xs text-sand-500">
-          未检测到可用工具。点击「下载并安装」后，服务端会自动匹配当前系统下载对应版本，安装完成后无需手动填写路径。
-        </div>
-      ) : null}
-    </div>
+      </header>
+      {TOOLS.map((tool) => (
+        <ToolPath
+          key={tool} tool={tool} value={values[`${tool}.path`] ?? ''} active={status?.[tool]}
+          candidate={candidates[tool]} pending={dirty.has(`${tool}.path`)}
+          checking={checking} statusError={statusError} disabled={busy || saving}
+          onChange={(value) => { onChange(`${tool}.path`, value); setFeedback(null) }}
+        />
+      ))}
+      <p className="border-t border-gray-200 pt-4 text-xs text-sand-500">
+        可手动填写，也可自动检测或下载安装后填入。路径更改后，点击页面底部「保存」生效；留空时自动查找系统工具。
+      </p>
+      {statusError && <div role="alert" className="flex flex-wrap items-center gap-2 text-xs text-red-600">
+        当前工具状态获取失败，路径修改已保留。
+        <button type="button" className="underline" disabled={checking} onClick={() => setReload((v) => v + 1)}>重新检测状态</button>
+      </div>}
+      {(installing || feedback || downloadedUnused) && <div
+        role={feedback?.error ? 'alert' : 'status'}
+        className={`rounded-xl px-3 py-2 text-xs ${feedback?.error ? 'bg-red-50 text-red-600' : 'bg-sand-100/70 text-ink-50'}`}
+      >
+        {feedback?.text ?? (installing
+          ? `${status?.message || '正在下载安装…'} 当前配置继续使用；安装完成只填入路径，保存后才生效。`
+          : '已下载的工具可复用。点击「下载安装」填入路径，再保存即可使用。')}
+      </div>}
+    </section>
   )
 }
 
-function ToolRow({ name, info }: { name: string; info?: FFmpegToolInfo }) {
-  return (
-    <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white/70 px-3 py-2">
-      {info?.installed ? (
-        <CheckCircle2 size={16} className="shrink-0 text-green-500" />
-      ) : (
-        <XCircle size={16} className="shrink-0 text-red-400" />
-      )}
-      <div className="min-w-0">
-        <div className="text-sm font-medium text-ink-600">
-          {name} {info?.installed ? '' : '（未安装）'}
-        </div>
-        {info?.installed && (
-          <div className="truncate font-mono text-[11px] text-ink-50" title={info.path}>
-            {info.path}
-          </div>
-        )}
-        {info?.version && <div className="truncate text-[11px] text-sand-500">{info.version}</div>}
-      </div>
+function ToolPath({ tool, value, active, candidate, pending, checking, statusError, disabled, onChange }: {
+  tool: Tool; value: string; active?: FFmpegToolInfo; candidate?: FFmpegToolInfo
+  pending: boolean; checking: boolean; statusError: boolean; disabled: boolean; onChange: (value: string) => void
+}) {
+  const id = useId()
+  const name = tool === 'ffmpeg' ? 'FFmpeg' : 'FFprobe'
+  const info = candidate?.path === value ? candidate : pending ? undefined : active
+  const confirmed = !checking && !statusError
+  return <div className="min-w-0 space-y-2">
+    <div className="flex items-center justify-between gap-3">
+      <label htmlFor={id} className="text-sm font-medium text-ink-600">{name} 程序路径</label>
+      <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${pending ? 'bg-brand-50 text-brand-500' : 'bg-sand-100/70 text-ink-50'}`}>
+        {pending ? '待保存' : checking ? '检测中' : statusError ? '状态未知' : active?.installed ? '可用' : '未检测到'}
+      </span>
     </div>
-  )
+    <input id={id} className="input-base font-mono text-sm" value={value}
+      placeholder={confirmed && active?.path ? active.path : `输入 ${name} 程序路径，或点击自动检测`}
+      onChange={(event) => onChange(event.target.value)} disabled={disabled} spellCheck={false}
+      aria-describedby={`${id}-detail`} />
+    <p id={`${id}-detail`} className="break-all text-xs text-sand-500">
+      {info?.version && (pending || confirmed) ? `${info.version.split(' Copyright')[0]}${pending ? ' · 保存后使用' : ''}`
+        : pending ? '路径尚未保存，当前配置继续使用。'
+          : confirmed && active?.installed ? '当前工具可用。' : '填写完整程序路径；Docker 部署请使用容器内可见的路径。'}
+    </p>
+  </div>
 }

@@ -49,7 +49,8 @@ func TestSafeZipTargetRejectsTraversal(t *testing.T) {
 }
 
 func TestFFmpegToolsStatusNoPanic(t *testing.T) {
-	svc := NewFFmpegToolsService(&config.Config{}, zap.NewNop(), nil)
+	t.Setenv("PATH", t.TempDir())
+	svc := NewFFmpegToolsService(&config.Config{}, zap.NewNop())
 	st := svc.Status(context.Background())
 	for _, key := range []string{"installing", "message", "error", "install_dir", "target", "ffmpeg", "ffprobe"} {
 		if _, ok := st[key]; !ok {
@@ -66,7 +67,7 @@ func TestFFmpegToolsStatusNoPanic(t *testing.T) {
 }
 
 func TestStartInstallRejectsConcurrent(t *testing.T) {
-	svc := NewFFmpegToolsService(&config.Config{App: config.AppConfig{DataDir: t.TempDir()}}, zap.NewNop(), nil)
+	svc := NewFFmpegToolsService(&config.Config{App: config.AppConfig{DataDir: t.TempDir()}}, zap.NewNop())
 	// 不真实运行：直接占用 running 标记模拟进行中的安装。
 	svc.mu.Lock()
 	svc.running = true

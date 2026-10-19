@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Loader2, Save, SettingsIcon } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -24,11 +24,16 @@ export function SettingsPage() {
     return GROUPS.some((g) => g.key === fromQuery) ? (fromQuery as string) : GROUPS[0].key
   })
   const [values, setValues] = useState<Record<string, string>>({})
+  const [savedValues, setSavedValues] = useState<Record<string, string>>({})
+  const latestValues = useRef<Record<string, string>>({})
   const [dirty, setDirty] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [toolsStatusRevision, setToolsStatusRevision] = useState(0)
+  const [toolsBusy, setToolsBusy] = useState(false)
   const [libraries, setLibraries] = useState<Library[]>([])
   const visibleDirtyCount = dirty.size - (dirty.has('playback.direct_only') && dirty.has('transcode.enabled') ? 1 : 0)
+  const httpsEnabled = ['true', '1', 'on'].includes(values['https.enabled'] ?? '')
 
   useEffect(() => {
     const fromQuery = searchParams.get('group')
@@ -49,6 +54,8 @@ export function SettingsPage() {
         if (ALL_KEYS.has(s.key)) idx[s.key] = s.value
       }
       setValues(idx)
+      latestValues.current = idx
+      setSavedValues(idx)
       setLibraries(libs as Library[])
       setDirty(new Set())
     } finally {
@@ -60,16 +67,22 @@ export function SettingsPage() {
     refresh().catch(() => undefined)
   }, [])
 
-  const onChange = (key: string, value: string) => {
+  const onChange = useCallback((key: string, value: string) => {
+    latestValues.current = { ...latestValues.current, [key]: value }
     setValues((v) => ({ ...v, [key]: value }))
-    setDirty((d) => new Set(d).add(key))
-  }
+    setDirty((d) => {
+      const next = new Set(d)
+      if ((key === 'ffmpeg.path' || key === 'ffprobe.path') && value === (savedValues[key] ?? '')) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }, [savedValues])
 
   const onSave = async (e: FormEvent) => {
     e.preventDefault()
-    if (dirty.size === 0) return
+    if (dirty.size === 0 || toolsBusy || saving) return
 
-    const wantHTTPS = values['https.enabled'] === 'true' || values['https.enabled'] === '1'
+    const wantHTTPS = httpsEnabled
     // 证书/私钥任一来源可用即可：路径优先，其次粘贴的内容。
     const materialOK = (content?: string, path?: string) =>
       Boolean((path ?? '').trim() || (content ?? '').trim())
@@ -94,9 +107,18 @@ export function SettingsPage() {
       const orderedKeys = [...dirty].sort((a, b) => rank(a) - rank(b))
 
       const failures: string[] = []
+      let toolPathSaved = false
       for (const key of orderedKeys) {
         try {
           await adminAPI.updateSetting(key, values[key] ?? '')
+          setSavedValues((saved) => ({ ...saved, [key]: values[key] ?? '' }))
+          setDirty((current) => {
+            if ((latestValues.current[key] ?? '') !== (values[key] ?? '')) return current
+            const next = new Set(current)
+            next.delete(key)
+            return next
+          })
+          if (key === 'ffmpeg.path' || key === 'ffprobe.path') toolPathSaved = true
         } catch (err) {
           failures.push(
             (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
@@ -104,13 +126,13 @@ export function SettingsPage() {
           )
         }
       }
+      if (toolPathSaved) setToolsStatusRevision((revision) => revision + 1)
       if (failures.length > 0) {
         toast.error(failures[0])
         return
       }
 
       toast.success(`已保存 ${visibleDirtyCount} 项配置`)
-      setDirty(new Set())
 
       // 切换 HTTPS 后（或关闭 HTTPS 后）连接会短暂中断，自动跳转到对应协议地址。
       const currentIsHTTPS = window.location.protocol === 'https:'
@@ -177,34 +199,51 @@ export function SettingsPage() {
           {group.key === 'api-configs' && <APIConfigsPanel />}
           {group.key === 'recognition-words' && <RecognitionWordsPanel />}
           {group.key === 'adult' && <AdultSettingsPanel />}
-          {group.key === 'general' && <FFToolsPanel onInstalled={() => refresh().catch(() => undefined)} />}
           {group.key === 'about' && <AboutSettingsPanel />}
           {group.key === 'device-notify' && <TelegramNotifyPanel />}
           {group.key !== 'adult' && group.key !== 'library' && group.items.length > 0 && (
-            <form onSubmit={onSave} className="glass-panel space-y-4">
-              {group.description && <p className="text-xs text-sand-500">{group.description}</p>}
-              {group.key === 'general' && <PlaybackSettingsPanel values={values} onChange={onChange} />}
-              {group.items.filter((it) => group.key !== 'general' || (it.key !== 'playback.direct_only' && !it.key.startsWith('transcode.'))).map((it) => (
-                <SettingRow
-                  key={it.key}
-                  def={it}
-                  value={values[it.key] ?? it.defaultValue ?? ''}
-                  onChange={(v) => onChange(it.key, v)}
-                  libraries={libraries}
+            <form onSubmit={onSave} className="space-y-4">
+              {group.key === 'general' && (
+                <FFToolsPanel
+                  values={values}
+                  savedValues={savedValues}
+                  dirty={dirty}
+                  saving={saving}
+                  statusRevision={toolsStatusRevision}
+                  onChange={onChange}
+                  onBusyChange={setToolsBusy}
                 />
-              ))}
-              <div className="flex items-center justify-between pt-2">
-                <span className="text-xs text-sand-500">
-                  {dirty.size > 0 ? `有 ${visibleDirtyCount} 项未保存` : '所有更改已保存'}
-                </span>
-                <button
-                  type="submit"
-                  disabled={saving || dirty.size === 0}
-                  className="neon-button disabled:opacity-50"
-                >
-                  {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                  保存
-                </button>
+              )}
+              <div className="glass-panel space-y-4">
+                {group.description && <p className="text-xs text-sand-500">{group.description}</p>}
+                {group.key === 'general' && <PlaybackSettingsPanel values={values} onChange={onChange} />}
+                {group.items.filter((it) => group.key !== 'general' || (
+                  it.key !== 'playback.direct_only' && !it.key.startsWith('transcode.') &&
+                  it.key !== 'ffmpeg.path' && it.key !== 'ffprobe.path'
+                )).map((it) => (
+                  (!it.key.startsWith('https.') || it.key === 'https.enabled' || httpsEnabled) && (
+                    <SettingRow
+                      key={it.key}
+                      def={it}
+                      value={values[it.key] ?? it.defaultValue ?? ''}
+                      onChange={(v) => onChange(it.key, v)}
+                      libraries={libraries}
+                    />
+                  )
+                ))}
+                <div className="flex items-center justify-between pt-2">
+                  <span className="text-xs text-sand-500">
+                    {dirty.size > 0 ? `有 ${visibleDirtyCount} 项未保存` : '所有更改已保存'}
+                  </span>
+                  <button
+                    type="submit"
+                    disabled={saving || toolsBusy || dirty.size === 0}
+                    className="neon-button disabled:opacity-50"
+                  >
+                    {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                    保存
+                  </button>
+                </div>
               </div>
             </form>
           )}

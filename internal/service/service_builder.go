@@ -135,7 +135,7 @@ func (b *serviceContainerBuilder) initContentServices() {
 	// 本地 HLS 档位的可用性取决于 ffmpeg 是否可用；未注入时按不可用处理。
 	b.c.Cloud115.SetTranscoder(b.c.Transcoder)
 	// ffmpeg/ffprobe 一键下载安装（data/tools/ffmpeg/）。
-	b.c.FFTools = NewFFmpegToolsService(b.cfg, b.log, b.repos)
+	b.c.FFTools = NewFFmpegToolsService(b.cfg, b.log)
 	// 弹幕 hash 识别需要把 strm 指向解析成可拉取的直链/本地路径。
 	b.c.Danmaku.SetStrmResolver(b.c.Strm.ResolvePlay)
 	// STRM 直连失败后的 HLS 转码：把 .strm 解析成 ffmpeg 可读取的本地路径或 HTTP 直链。
