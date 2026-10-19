@@ -19,7 +19,7 @@ import (
 	"github.com/Ferrymania/nook/internal/config"
 )
 
-// ffmpegDownloadTarget 描述某个平台对应的官方构建下载源。
+// ffmpegDownloadTarget 描述某个平台对应的预编译工具下载源。
 type ffmpegDownloadTarget struct {
 	Label    string   // 展示名，如 "Windows x86_64"
 	Kind     string   // 压缩包类型：zip / tar.xz
@@ -116,10 +116,28 @@ func installFFmpegTools(ctx context.Context, log *zap.Logger, cfg *config.Config
 	if err != nil {
 		return "", "", err
 	}
-	installDir := filepath.Join(cfg.App.DataDir, "tools", "ffmpeg")
+	return installFFmpegTarget(ctx, log, cfg, target, progress)
+}
+
+func installFFmpegTarget(ctx context.Context, log *zap.Logger, cfg *config.Config, target *ffmpegDownloadTarget, progress func(string)) (ffmpegPath, ffprobePath string, err error) {
+	installDir, err := filepath.Abs(filepath.Join(cfg.App.DataDir, "tools", "ffmpeg"))
+	if err != nil {
+		return "", "", err
+	}
 	if err := os.MkdirAll(installDir, 0o750); err != nil {
 		return "", "", fmt.Errorf("创建安装目录失败: %w", err)
 	}
+	// Keep the active binaries untouched until the user saves the new paths.
+	installDir, err = os.MkdirTemp(installDir, "download-")
+	if err != nil {
+		return "", "", fmt.Errorf("创建工具下载目录失败: %w", err)
+	}
+	complete := false
+	defer func() {
+		if !complete {
+			_ = os.RemoveAll(installDir)
+		}
+	}()
 
 	tempDir, err := os.MkdirTemp("", "nook-ffmpeg-*")
 	if err != nil {
@@ -172,6 +190,7 @@ func installFFmpegTools(ctx context.Context, log *zap.Logger, cfg *config.Config
 		}
 	}
 	progress("安装完成")
+	complete = true
 	return ffmpegPath, ffprobePath, nil
 }
 

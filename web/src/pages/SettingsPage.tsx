@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Loader2, Save, SettingsIcon } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -24,10 +24,13 @@ export function SettingsPage() {
     return GROUPS.some((g) => g.key === fromQuery) ? (fromQuery as string) : GROUPS[0].key
   })
   const [values, setValues] = useState<Record<string, string>>({})
+  const [savedValues, setSavedValues] = useState<Record<string, string>>({})
+  const latestValues = useRef<Record<string, string>>({})
   const [dirty, setDirty] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [toolsStatusRevision, setToolsStatusRevision] = useState(0)
+  const [toolsBusy, setToolsBusy] = useState(false)
   const [libraries, setLibraries] = useState<Library[]>([])
   const visibleDirtyCount = dirty.size - (dirty.has('playback.direct_only') && dirty.has('transcode.enabled') ? 1 : 0)
 
@@ -50,6 +53,8 @@ export function SettingsPage() {
         if (ALL_KEYS.has(s.key)) idx[s.key] = s.value
       }
       setValues(idx)
+      latestValues.current = idx
+      setSavedValues(idx)
       setLibraries(libs as Library[])
       setDirty(new Set())
     } finally {
@@ -61,23 +66,20 @@ export function SettingsPage() {
     refresh().catch(() => undefined)
   }, [])
 
-  const onChange = (key: string, value: string) => {
+  const onChange = useCallback((key: string, value: string) => {
+    latestValues.current = { ...latestValues.current, [key]: value }
     setValues((v) => ({ ...v, [key]: value }))
-    setDirty((d) => new Set(d).add(key))
-  }
-
-  const onToolsInstalled = useCallback(async () => {
-    const all = await adminAPI.listSettings()
-    const paths: Record<string, string> = { 'ffmpeg.path': '', 'ffprobe.path': '' }
-    for (const setting of all) {
-      if (setting.key in paths) paths[setting.key] = setting.value
-    }
-    setValues((current) => ({ ...current, ...paths }))
-  }, [])
+    setDirty((d) => {
+      const next = new Set(d)
+      if ((key === 'ffmpeg.path' || key === 'ffprobe.path') && value === (savedValues[key] ?? '')) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }, [savedValues])
 
   const onSave = async (e: FormEvent) => {
     e.preventDefault()
-    if (dirty.size === 0) return
+    if (dirty.size === 0 || toolsBusy || saving) return
 
     const wantHTTPS = values['https.enabled'] === 'true' || values['https.enabled'] === '1'
     // 证书/私钥任一来源可用即可：路径优先，其次粘贴的内容。
@@ -108,6 +110,13 @@ export function SettingsPage() {
       for (const key of orderedKeys) {
         try {
           await adminAPI.updateSetting(key, values[key] ?? '')
+          setSavedValues((saved) => ({ ...saved, [key]: values[key] ?? '' }))
+          setDirty((current) => {
+            if ((latestValues.current[key] ?? '') !== (values[key] ?? '')) return current
+            const next = new Set(current)
+            next.delete(key)
+            return next
+          })
           if (key === 'ffmpeg.path' || key === 'ffprobe.path') toolPathSaved = true
         } catch (err) {
           failures.push(
@@ -123,7 +132,6 @@ export function SettingsPage() {
       }
 
       toast.success(`已保存 ${visibleDirtyCount} 项配置`)
-      setDirty(new Set())
 
       // 切换 HTTPS 后（或关闭 HTTPS 后）连接会短暂中断，自动跳转到对应协议地址。
       const currentIsHTTPS = window.location.protocol === 'https:'
@@ -197,11 +205,12 @@ export function SettingsPage() {
               {group.key === 'general' && (
                 <FFToolsPanel
                   values={values}
+                  savedValues={savedValues}
                   dirty={dirty}
                   saving={saving}
                   statusRevision={toolsStatusRevision}
                   onChange={onChange}
-                  onInstalled={onToolsInstalled}
+                  onBusyChange={setToolsBusy}
                 />
               )}
               <div className="glass-panel space-y-4">
@@ -225,7 +234,7 @@ export function SettingsPage() {
                   </span>
                   <button
                     type="submit"
-                    disabled={saving || dirty.size === 0}
+                    disabled={saving || toolsBusy || dirty.size === 0}
                     className="neon-button disabled:opacity-50"
                   >
                     {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
