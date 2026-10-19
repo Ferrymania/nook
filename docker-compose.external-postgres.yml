@@ -73,12 +73,7 @@ services:
       NOOK_LOGGING_MAX_BACKUPS: "5"
       NOOK_LOGGING_MAX_AGE_DAYS: "30"
 
-      NOOK_TRANSCODER_ENABLED: "true"
-      NOOK_TRANSCODER_HARDWARE_ACCEL: "false"
-      NOOK_TRANSCODER_REALTIME: "true"
-      NOOK_TRANSCODER_THREADS: "2"
-      NOOK_TRANSCODER_MAX_CONCURRENT: "1"
-      NOOK_TRANSCODER_IDLE_TIMEOUT_SECONDS: "120"
+      # 播放模式、转码与硬件加速统一在网页「系统设置 → 常规」中管理。
 
     healthcheck:
       test: ["CMD", "/usr/local/bin/nook-healthcheck"]

@@ -78,12 +78,7 @@ services:
       NOOK_DOWNLOAD_DIR: /downloads
       NOOK_DOWNLOAD_CONTAINER_DIR: /downloads
 
-      NOOK_TRANSCODER_ENABLED: "true"
-      NOOK_TRANSCODER_HARDWARE_ACCEL: "false"
-      NOOK_TRANSCODER_REALTIME: "true"
-      NOOK_TRANSCODER_THREADS: "2"
-      NOOK_TRANSCODER_MAX_CONCURRENT: "1"
-      NOOK_TRANSCODER_IDLE_TIMEOUT_SECONDS: "120"
+      # 播放模式、转码与硬件加速统一在网页「系统设置 → 常规」中管理。
 
     healthcheck:
       # 不能写死 http://：开启 HTTPS 后 8080 只接受 TLS，固定明文探测会

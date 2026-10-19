@@ -12,6 +12,7 @@ import { AboutSettingsPanel } from './AboutSettingsPanel'
 import { AdultSettingsPanel } from './AdultSettingsPanel'
 import { DatabaseSettingsPanel } from './DatabaseSettingsPanel'
 import { RecognitionWordsPanel } from './RecognitionWordsPanel'
+import { PlaybackSettingsPanel } from './PlaybackSettingsPanel'
 import { SettingRow } from './SettingsRow'
 import { TelegramNotifyPanel } from './TelegramNotifyPanel'
 import { ALL_KEYS, GROUPS } from './settingsGroups'
@@ -181,7 +182,8 @@ export function SettingsPage() {
           {group.key !== 'adult' && group.key !== 'library' && group.items.length > 0 && (
             <form onSubmit={onSave} className="glass-panel space-y-4">
               {group.description && <p className="text-xs text-sand-500">{group.description}</p>}
-              {group.items.map((it) => (
+              {group.key === 'general' && <PlaybackSettingsPanel values={values} onChange={onChange} />}
+              {group.items.filter((it) => group.key !== 'general' || (it.key !== 'playback.direct_only' && !it.key.startsWith('transcode.'))).map((it) => (
                 <SettingRow
                   key={it.key}
                   def={it}
