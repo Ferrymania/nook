@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import type { Library } from '../types'
 
 export interface SettingDef {
@@ -15,9 +16,12 @@ type SettingsRowProps = {
   value: string
   onChange: (value: string) => void
   libraries?: Library[]
+  disabled?: boolean
+  showKey?: boolean
 }
 
-export function SettingRow({ def, value, onChange, libraries = [] }: SettingsRowProps) {
+export function SettingRow({ def, value, onChange, libraries = [], disabled = false, showKey = true }: SettingsRowProps) {
+  const controlID = useId()
   const toggleOn = value === 'true' || value === '1' || value === 'on'
   const selectedLibraryIDs = parseLibraryIDs(value)
   const toggleLibrary = (id: string, checked: boolean) => {
@@ -27,15 +31,16 @@ export function SettingRow({ def, value, onChange, libraries = [] }: SettingsRow
     onChange(JSON.stringify(next))
   }
   return (
-    <div className="grid items-start gap-2 md:grid-cols-[280px_1fr]">
-      <label className="text-sm text-ink-100">
+    <fieldset disabled={disabled} className={`grid min-w-0 items-start gap-2 md:grid-cols-[280px_1fr] ${disabled ? 'opacity-60' : ''}`}>
+      <label htmlFor={controlID} className="text-sm text-ink-100">
         <div className="font-medium">{def.label}</div>
         {def.hint && <div className="mt-0.5 text-xs text-sand-500">{def.hint}</div>}
-        <div className="mt-0.5 font-mono text-[10px] text-gray-500">{def.key}</div>
+        {showKey && <div className="mt-0.5 font-mono text-[10px] text-gray-500">{def.key}</div>}
       </label>
       <div>
         {def.type === 'text' && (
           <input
+            id={controlID}
             className="input-base"
             value={value}
             placeholder={def.placeholder}
@@ -44,6 +49,7 @@ export function SettingRow({ def, value, onChange, libraries = [] }: SettingsRow
         )}
         {def.type === 'number' && (
           <input
+            id={controlID}
             type="number"
             className="input-base"
             value={value}
@@ -53,6 +59,7 @@ export function SettingRow({ def, value, onChange, libraries = [] }: SettingsRow
         )}
         {def.type === 'textarea' && (
           <textarea
+            id={controlID}
             rows={3}
             className="input-base font-mono text-xs"
             value={value}
@@ -61,7 +68,7 @@ export function SettingRow({ def, value, onChange, libraries = [] }: SettingsRow
           />
         )}
         {def.type === 'select' && (
-          <select className="input-base" value={value} onChange={(event) => onChange(event.target.value)}>
+          <select id={controlID} className="input-base" value={value} onChange={(event) => onChange(event.target.value)}>
             <option value="">(未设置)</option>
             {def.options?.map((option) => (
               <option key={option.value} value={option.value}>
@@ -71,14 +78,15 @@ export function SettingRow({ def, value, onChange, libraries = [] }: SettingsRow
           </select>
         )}
         {def.type === 'toggle' && (
-          <label className="flex cursor-pointer items-center gap-2">
+          <label className={`flex items-center gap-2 ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
             <input
+              id={controlID}
               type="checkbox"
               className="h-4 w-4 accent-primary-400"
               checked={toggleOn}
               onChange={(event) => onChange(event.target.checked ? 'true' : 'false')}
             />
-            <span className="text-sm text-ink-100">{toggleOn ? '已启用' : '已关闭'}</span>
+            <span className="text-sm text-ink-100">{disabled ? `${toggleOn ? '已开启' : '已关闭'} · 暂不生效` : toggleOn ? '已启用' : '已关闭'}</span>
           </label>
         )}
         {def.type === 'library-multiselect' && (
@@ -89,7 +97,7 @@ export function SettingRow({ def, value, onChange, libraries = [] }: SettingsRow
           />
         )}
       </div>
-    </div>
+    </fieldset>
   )
 }
 

@@ -7,9 +7,9 @@ export const generalSettingsGroup: SettingGroup = {
   items: [
     {
       key: 'playback.direct_only',
-      label: '客户端直连解码（释放宿主机资源）',
+      label: '客户端直连解码',
       type: 'toggle',
-      hint: '默认关闭。开启后宿主机不再进行任何 FFmpeg 转码，所有播放交给第三方客户端（Infuse / VLC / Emby 客户端等）或浏览器本地解码直连（direct play / 302 直链），大幅降低宿主机 CPU 占用。若客户端不支持源编码可能无法播放。',
+      hint: '开启：由客户端解码，服务器不转码。关闭：允许服务器按需转码。客户端不支持源格式时，开启此项可能无法播放。',
       defaultValue: 'false',
     },
     {
@@ -20,17 +20,10 @@ export const generalSettingsGroup: SettingGroup = {
       defaultValue: 'false',
     },
     {
-      key: 'transcode.enabled',
-      label: '启用转码',
-      type: 'toggle',
-      hint: '关闭后所有视频直连播放（「客户端直连解码」开启时本项自动失效）',
-      defaultValue: 'true',
-    },
-    {
       key: 'transcode.hw_accel',
       label: '硬件编码器',
       type: 'select',
-      hint: '只有开启下方「启用硬件加速」后才会使用；未开启时强制软件转码',
+      hint: '开启「启用硬件加速」后才能选择；未开启时使用软件转码',
       defaultValue: 'none',
       options: [
         { value: 'none', label: '软件转码' },

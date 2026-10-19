@@ -12,6 +12,7 @@ import { AboutSettingsPanel } from './AboutSettingsPanel'
 import { AdultSettingsPanel } from './AdultSettingsPanel'
 import { DatabaseSettingsPanel } from './DatabaseSettingsPanel'
 import { RecognitionWordsPanel } from './RecognitionWordsPanel'
+import { PlaybackSettingsPanel } from './PlaybackSettingsPanel'
 import { SettingRow } from './SettingsRow'
 import { TelegramNotifyPanel } from './TelegramNotifyPanel'
 import { ALL_KEYS, GROUPS } from './settingsGroups'
@@ -27,6 +28,7 @@ export function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [libraries, setLibraries] = useState<Library[]>([])
+  const visibleDirtyCount = dirty.size - (dirty.has('playback.direct_only') && dirty.has('transcode.enabled') ? 1 : 0)
 
   useEffect(() => {
     const fromQuery = searchParams.get('group')
@@ -107,7 +109,7 @@ export function SettingsPage() {
         return
       }
 
-      toast.success(`已保存 ${dirty.size} 项配置`)
+      toast.success(`已保存 ${visibleDirtyCount} 项配置`)
       setDirty(new Set())
 
       // 切换 HTTPS 后（或关闭 HTTPS 后）连接会短暂中断，自动跳转到对应协议地址。
@@ -181,7 +183,8 @@ export function SettingsPage() {
           {group.key !== 'adult' && group.key !== 'library' && group.items.length > 0 && (
             <form onSubmit={onSave} className="glass-panel space-y-4">
               {group.description && <p className="text-xs text-sand-500">{group.description}</p>}
-              {group.items.map((it) => (
+              {group.key === 'general' && <PlaybackSettingsPanel values={values} onChange={onChange} />}
+              {group.items.filter((it) => group.key !== 'general' || (it.key !== 'playback.direct_only' && !it.key.startsWith('transcode.'))).map((it) => (
                 <SettingRow
                   key={it.key}
                   def={it}
@@ -192,7 +195,7 @@ export function SettingsPage() {
               ))}
               <div className="flex items-center justify-between pt-2">
                 <span className="text-xs text-sand-500">
-                  {dirty.size > 0 ? `有 ${dirty.size} 项未保存` : '所有更改已保存'}
+                  {dirty.size > 0 ? `有 ${visibleDirtyCount} 项未保存` : '所有更改已保存'}
                 </span>
                 <button
                   type="submit"
