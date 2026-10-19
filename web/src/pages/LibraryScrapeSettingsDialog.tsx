@@ -108,6 +108,13 @@ export function LibraryScrapeSettingsDialog({ library, onClose, onSaved }: {
               <ScrapeSwitch label="刮削时自动探测媒体信息" description="连续探测大量网盘媒体可能触发风控，建议按需开启。" title={PROBE_WARNING} warning checked={data.auto_probe} onChange={value => setData({ ...data, auto_probe: value })} />
             </div>
             <section>
+              <h3 className="mb-2 text-sm font-semibold">片头／片尾时间点</h3>
+              <div className="overflow-hidden rounded-2xl border border-[var(--app-border)]">
+                <ScrapeSwitch label="后台预取时间点" description="仅对当前媒体库生效。每 6 小时向 TheIntroDB 查询片头、片尾起止时间并保存到本地。" checked={data.settings.segment_prewarm_enabled} onChange={value => updateSettings({ segment_prewarm_enabled: value })} />
+              </div>
+              <p className="mt-2 text-[11px] leading-relaxed text-[var(--app-muted)]">默认关闭。关闭后，播放器仍可在播放时按需获取时间点。查询不读取视频文件，无需 API Key。</p>
+            </section>
+            <section>
               <h3 className="mb-2 text-sm font-semibold">全局图片偏好</h3>
               <div className="overflow-hidden rounded-2xl border border-[var(--app-border)]">
                 <ScrapeSwitch label="刮削时获取每集图片" description="对所有媒体库生效。关闭后仍获取每集简介、评分和时长，仅跳过单集剧照；已有图片不受影响。" checked={data.episode_images} onChange={value => setData({ ...data, episode_images: value })} />
@@ -150,7 +157,7 @@ export function LibraryScrapeSettingsDialog({ library, onClose, onSaved }: {
           </>}
         </div>
         <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-[var(--app-border)] bg-[var(--app-panel-soft)] px-5 py-4 sm:px-7">
-          <span className="text-[10px] text-[var(--app-muted)]">保存后用于后续刮削任务</span><div className="flex gap-2"><button type="button" className="btn-outline !px-4 !py-2 text-xs" onClick={onClose} disabled={saving}>取消</button><button type="submit" className="btn-primary !px-4 !py-2 text-xs" disabled={!data || saving}>{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}保存设置</button></div>
+          <span className="text-[10px] text-[var(--app-muted)]">保存后用于后续任务</span><div className="flex gap-2"><button type="button" className="btn-outline !px-4 !py-2 text-xs" onClick={onClose} disabled={saving}>取消</button><button type="submit" className="btn-primary !px-4 !py-2 text-xs" disabled={!data || saving}>{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}保存设置</button></div>
         </footer>
       </form>
     </div>, document.body,

@@ -460,8 +460,8 @@ func TestPrewarmFetchesStaleMissesPreferringRecentPlays(t *testing.T) {
 	svc.SetPrewarmGap(0)
 	ctx := t.Context()
 
-	old := &model.Media{Base: model.Base{ID: "mv-old"}, Path: "/a.mkv", TMDbID: 111}
-	hot := &model.Media{Base: model.Base{ID: "mv-hot"}, Path: "/b.mkv", TMDbID: 27205}
+	old := &model.Media{Base: model.Base{ID: "mv-old"}, LibraryID: "lib", Path: "/a.mkv", TMDbID: 111}
+	hot := &model.Media{Base: model.Base{ID: "mv-hot"}, LibraryID: "lib", Path: "/b.mkv", TMDbID: 27205}
 	for _, m := range []*model.Media{old, hot} {
 		if err := repos.DB.Create(m).Error; err != nil {
 			t.Fatal(err)
@@ -482,7 +482,7 @@ func TestPrewarmFetchesStaleMissesPreferringRecentPlays(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	n, err := svc.Prewarm(ctx, 1)
+	n, err := svc.Prewarm(ctx, []string{"lib"}, 1)
 	if err != nil {
 		t.Fatal(err)
 	}

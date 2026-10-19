@@ -109,6 +109,60 @@ func TestLibraryScrapeSettingsPreserveLegacyAndIsolateLibraries(t *testing.T) {
 	}
 }
 
+func TestLibrarySegmentPrewarmPreferencePreservesLegacyAndIsolatesLibraries(t *testing.T) {
+	s, _ := newLibraryScrapeEnv(t)
+	ctx := t.Context()
+	prefs := model.LibraryScrapeSettings{Providers: []string{"tmdb"}, Language: "zh-CN"}
+	a := model.Library{Name: "Existing preferences", Path: t.TempDir(), ScrapeSettings: &prefs}
+	b := model.Library{Name: "Legacy preferences", Path: t.TempDir()}
+	for _, lib := range []*model.Library{&a, &b} {
+		if err := s.repo.Library.Create(ctx, lib); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := s.repo.Setting.Set(ctx, legacySegmentPrewarmEnabledKey, "true"); err != nil {
+		t.Fatal(err)
+	}
+	check := func(id string, want bool) *LibraryScrapeSettingsView {
+		t.Helper()
+		view, err := s.GetLibraryScrapeSettings(ctx, id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if view.Settings.SegmentPrewarmEnabled == nil || *view.Settings.SegmentPrewarmEnabled != want {
+			t.Fatalf("library %s prewarm=%v, want %v", id, view.Settings.SegmentPrewarmEnabled, want)
+		}
+		return view
+	}
+	view := check(a.ID, true)
+	check(b.ID, true)
+	off := false
+	view.Settings.SegmentPrewarmEnabled = &off
+	if _, err := s.SaveLibraryScrapeSettings(ctx, a.ID, view.Settings, false, nil); err != nil {
+		t.Fatal(err)
+	}
+	check(a.ID, false)
+	check(b.ID, true)
+	if value, err := s.repo.Setting.Get(ctx, legacySegmentPrewarmEnabledKey); err != nil || value != "true" {
+		t.Fatalf("library save rewrote global preference: %q err=%v", value, err)
+	}
+	on := true
+	view.Settings.SegmentPrewarmEnabled = &on
+	if _, err := s.SaveLibraryScrapeSettings(ctx, a.ID, view.Settings, false, nil); err != nil {
+		t.Fatal(err)
+	}
+	// Old clients can save other fields without resetting this library's choice.
+	view.Settings.SegmentPrewarmEnabled = nil
+	if _, err := s.SaveLibraryScrapeSettings(ctx, a.ID, view.Settings, false, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.repo.Setting.Set(ctx, legacySegmentPrewarmEnabledKey, "false"); err != nil {
+		t.Fatal(err)
+	}
+	check(a.ID, true)
+	check(b.ID, false)
+}
+
 func TestMetadataProvidersUseSavedCredentialsAndGlobalSwitch(t *testing.T) {
 	s, api := newLibraryScrapeEnv(t)
 	var calls atomic.Int32

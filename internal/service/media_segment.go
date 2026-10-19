@@ -301,9 +301,10 @@ func hasSegmentKind(rows []model.MediaSegment, kind string) bool {
 	return false
 }
 
-// Prewarm 批量向 TheIntroDB 补齐过期/缺失账本的可查询媒体。返回实际发起过查询的数量。
-func (s *MediaSegmentService) Prewarm(ctx context.Context, limit int) (int, error) {
-	if s == nil || s.repo == nil || s.introdb == nil {
+// Prewarm only queries the selected libraries. Empty scope never queries any media.
+// Returns the number of media for which a lookup was attempted.
+func (s *MediaSegmentService) Prewarm(ctx context.Context, libraryIDs []string, limit int) (int, error) {
+	if s == nil || s.repo == nil || s.introdb == nil || len(libraryIDs) == 0 {
 		return 0, nil
 	}
 	if limit <= 0 {
@@ -314,7 +315,7 @@ func (s *MediaSegmentService) Prewarm(ctx context.Context, limit int) (int, erro
 		now = s.now()
 	}
 	candidates, err := s.repo.MediaSegment.ListPrewarmCandidates(
-		ctx, IntroDBSource, now.Add(-segmentMissingTTL), now.Add(-segmentFoundTTL), limit,
+		ctx, IntroDBSource, now.Add(-segmentMissingTTL), now.Add(-segmentFoundTTL), limit, libraryIDs,
 	)
 	if err != nil {
 		return 0, err
