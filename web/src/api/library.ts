@@ -20,6 +20,7 @@ export interface LibraryScrapeSettings {
   language: string
   delay_min_ms: number
   delay_max_ms: number
+  segment_prewarm_enabled: boolean
 }
 export interface LibraryScrapeSettingsView {
   episode_images: boolean

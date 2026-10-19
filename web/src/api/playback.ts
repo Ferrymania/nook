@@ -1,5 +1,12 @@
 import { api } from './client'
-import type { Media, PlaybackSegmentsResponse, Playlist } from '../types'
+import type { Media, PlaybackSegment, PlaybackSegmentsResponse, Playlist } from '../types'
+
+export interface MediaSegmentQueryResult {
+  source: string
+  found: boolean
+  fetched_at: string
+  segments: PlaybackSegment[]
+}
 
 // History rows arrive joined with their Media row; the backend returns null
 // for orphaned rows whose media has been removed.
@@ -55,6 +62,9 @@ export const playbackAPI = {
     api
       .get<PlaybackSegmentsResponse>(`/playback/${encodeURIComponent(mediaId)}/segments`)
       .then((r) => r.data),
+
+  querySegments: (mediaId: string, signal?: AbortSignal) =>
+    api.post<MediaSegmentQueryResult>(`/media/${encodeURIComponent(mediaId)}/segments/query`, undefined, { signal }).then(r => r.data),
 
   recordProgress: (payload: PlaybackProgressRequest) =>
     api.post('/history', payload).then((r) => r.data),

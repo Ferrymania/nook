@@ -32,6 +32,7 @@ func TestAdminRouteSurfacesAreRegistered(t *testing.T) {
 		"GET /api/admin/tools/ffmpeg/detect",
 		"GET /api/admin/tools/ffmpeg/status",
 		"POST /api/admin/tools/ffmpeg/install",
+		"POST /api/media/:id/segments/query",
 	} {
 		if !routes[want] {
 			t.Fatalf("%s route is not registered", want)

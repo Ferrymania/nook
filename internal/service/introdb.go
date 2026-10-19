@@ -49,6 +49,13 @@ type IntroDBSpan struct {
 	EndMs   int64
 }
 
+// IntroDBHTTPError distinguishes upstream rate limits from empty results.
+type IntroDBHTTPError struct{ StatusCode int }
+
+func (e *IntroDBHTTPError) Error() string {
+	return fmt.Sprintf("introdb: unexpected status %d", e.StatusCode)
+}
+
 // IntroDBService queries TheIntroDB for one media item.
 type IntroDBService struct {
 	log        *zap.Logger
@@ -158,7 +165,7 @@ func (s *IntroDBService) fetchOnce(ctx context.Context, endpoint string) introDB
 		return introDBFetchAttempt{}
 	case resp.StatusCode < 200 || resp.StatusCode >= 300:
 		return introDBFetchAttempt{
-			err:        fmt.Errorf("introdb: unexpected status %d", resp.StatusCode),
+			err:        &IntroDBHTTPError{StatusCode: resp.StatusCode},
 			retryable:  introDBRetryableStatus(resp.StatusCode),
 			retryAfter: parseIntroDBRetryAfter(resp.Header.Get("Retry-After")),
 		}

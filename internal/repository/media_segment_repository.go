@@ -105,6 +105,7 @@ LEFT JOIN (
   GROUP BY media_id
 ) ph ON ph.media_id = m.id
 WHERE m.deleted_at IS NULL
+  AND m.library_id IN ?
   AND m.tm_db_id > 0
   AND (
     (m.season_num > 0 AND m.episode_num > 0)
@@ -119,22 +120,23 @@ ORDER BY ph.last_played DESC NULLS LAST
 LIMIT ?
 `
 
-// ListPrewarmCandidates returns media that should be refreshed from source:
-// no ledger, expired miss (fetched_at < missBefore), or expired hit (fetched_at < hitBefore).
+// ListPrewarmCandidates returns media in the selected libraries that should be
+// refreshed: no ledger, expired miss or expired hit. Empty scope returns nothing.
 // Recently played items come first so hot titles recover coverage sooner.
 func (r *MediaSegmentRepository) ListPrewarmCandidates(
 	ctx context.Context,
 	source string,
 	missBefore, hitBefore time.Time,
 	limit int,
+	libraryIDs []string,
 ) ([]model.Media, error) {
-	if r == nil || limit <= 0 {
+	if r == nil || limit <= 0 || len(libraryIDs) == 0 {
 		return nil, nil
 	}
 	rows := make([]model.Media, 0, limit)
 	// 可查询：有 TMDb，且是剧集（有季集）或电影（无季集）。
 	err := r.db.WithContext(ctx).
-		Raw(segmentPrewarmCandidatesQuery, source, false, missBefore, true, hitBefore, limit).
+		Raw(segmentPrewarmCandidatesQuery, source, libraryIDs, false, missBefore, true, hitBefore, limit).
 		Scan(&rows).Error
 	return rows, err
 }

@@ -32,13 +32,13 @@ func TestLibraryScrapeSettingsAdminOnlyAndValidated(t *testing.T) {
 			t.Fatalf("viewer accessed admin settings: %d", w.Code)
 		}
 	}
-	body := `{"auto_probe":false,"settings":{"auto_on_scan":false,"providers":["tmdb","bangumi"],"language":"en-US","delay_min_ms":0,"delay_max_ms":0}}`
+	body := `{"auto_probe":false,"settings":{"auto_on_scan":false,"providers":["tmdb","bangumi"],"language":"en-US","delay_min_ms":0,"delay_max_ms":0,"segment_prewarm_enabled":true}}`
 	if w := request("PUT", "admin", body); w.Code != http.StatusOK {
 		t.Fatalf("save: %d %s", w.Code, w.Body.String())
 	}
 	view := service.LibraryScrapeSettingsView{}
 	w := request("GET", "admin", "")
-	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &view) != nil || view.Settings.Language != "en-US" || view.Settings.AutoOnScan || view.Settings.DelayMaxMS != 0 {
+	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &view) != nil || view.Settings.Language != "en-US" || view.Settings.AutoOnScan || view.Settings.DelayMaxMS != 0 || view.Settings.SegmentPrewarmEnabled == nil || !*view.Settings.SegmentPrewarmEnabled {
 		t.Fatalf("read saved settings: %d %s", w.Code, w.Body.String())
 	}
 	if strings.Contains(w.Body.String(), "api_key") || strings.Contains(w.Body.String(), "token") {
@@ -48,6 +48,10 @@ func TestLibraryScrapeSettingsAdminOnlyAndValidated(t *testing.T) {
 		if w := request("PUT", "admin", invalid); w.Code != http.StatusBadRequest {
 			t.Fatalf("invalid settings accepted: %d %s", w.Code, w.Body.String())
 		}
+	}
+	w = request("PUT", "admin", strings.Replace(body, `"segment_prewarm_enabled":true`, `"segment_prewarm_enabled":false`, 1))
+	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &view) != nil || view.Settings.SegmentPrewarmEnabled == nil || *view.Settings.SegmentPrewarmEnabled {
+		t.Fatalf("explicit false did not persist: %d %s", w.Code, w.Body.String())
 	}
 }
 
