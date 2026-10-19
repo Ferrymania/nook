@@ -176,6 +176,32 @@ func TestInferLibraryKindFromCategoryPathOverridesMovieDefault(t *testing.T) {
 	}
 }
 
+func TestInferLibraryKindMatchesCategoryWords(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		path      string
+		requested string
+		want      string
+	}{
+		{name: "综合", path: "/var/folders/6tvttyb151/T/library", requested: "movie", want: "movie"},
+		{name: "综合", path: "/var/folders/6tvttyb151/T/library", requested: "tv", want: "tv"},
+		{name: "综合", path: "/srv/activity/library", requested: "movie", want: "movie"},
+		{name: "综合", path: "/srv/filmstrip/library", requested: "tv", want: "tv"},
+		{name: "综合", path: "/srv/adulthood/library", requested: "movie", want: "movie"},
+		{name: "综合", path: "/srv/animecache/library", requested: "movie", want: "movie"},
+		{name: "综合", path: "/media/TV Shows/collection", requested: "movie", want: "tv"},
+		{name: "综合", path: `D:\media\TV\collection`, requested: "movie", want: "tv"},
+		{name: "My Movies", path: "/media/collection", requested: "tv", want: "movie"},
+		{name: "综合", path: "/media/Films/collection", requested: "tv", want: "movie"},
+	} {
+		t.Run(tc.path+"/"+tc.requested, func(t *testing.T) {
+			if got := inferLibraryKind(tc.name, tc.path, tc.requested); got != tc.want {
+				t.Fatalf("inferLibraryKind(%q, %q, %q) = %q, want %q", tc.name, tc.path, tc.requested, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestMappedPathCandidatesMapWindowsDriveDownloadMarker(t *testing.T) {
 	root := t.TempDir()
 	containerDownloads := filepath.Join(root, "container", "downloads")

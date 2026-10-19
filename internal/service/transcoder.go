@@ -54,6 +54,8 @@ type TranscoderService struct {
 	startGates  sync.Map // mediaID -> *sync.Mutex
 	strmResolve func(ctx context.Context, raw string) (*StrmPlayResult, error)
 	probe       *FFprobeService
+	// Keep discovery replaceable per instance so tests do not use host tools.
+	findExecutables func(configured, name string) []string
 
 	// availMu guards the cached ffmpeg availability used by Available().
 	availMu        sync.Mutex
@@ -96,11 +98,12 @@ var (
 // NewTranscoderService is the constructor.
 func NewTranscoderService(cfg *config.Config, log *zap.Logger, repo *repository.Container, hub *Hub) *TranscoderService {
 	return &TranscoderService{
-		cfg:  cfg,
-		log:  log,
-		repo: repo,
-		hub:  hub,
-		jobs: make(map[string]*hlsJob),
+		cfg:             cfg,
+		log:             log,
+		repo:            repo,
+		hub:             hub,
+		jobs:            make(map[string]*hlsJob),
+		findExecutables: executableCandidates,
 	}
 }
 

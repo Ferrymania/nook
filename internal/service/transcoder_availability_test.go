@@ -1,7 +1,9 @@
 package service
 
 import (
+	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"go.uber.org/zap"
@@ -27,9 +29,87 @@ func TestTranscoderAvailableGatesOnConfigAndBinary(t *testing.T) {
 			cfg.Transcoder.Enabled = tc.enabled
 			cfg.App.FFmpegPath = tc.ffmpegPath
 			svc := NewTranscoderService(cfg, zap.NewNop(), nil, NewHub(zap.NewNop()))
+			svc.findExecutables = func(configured, name string) []string {
+				if !tc.enabled {
+					t.Fatal("disabled transcoding must not discover or execute ffmpeg")
+				}
+				return nil
+			}
 
 			if svc.Available() {
 				t.Fatalf("Available() = true, want false (enabled=%v path=%q)", tc.enabled, tc.ffmpegPath)
+			}
+		})
+	}
+}
+
+func transcodeAvailabilityTool(t *testing.T, name, encoder, muxer string) string {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("uses local shell fixtures")
+	}
+	path := filepath.Join(t.TempDir(), name)
+	script := "#!/bin/sh\ncase \"$2\" in\n" +
+		"  -encoders) printf '%s\\n' ' V..... " + encoder + "' ;;\n" +
+		"  -muxers|-formats) printf '%s\\n' ' E " + muxer + "' ;;\n" +
+		"  *) exit 1 ;;\nesac\n"
+	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+func TestTranscoderAvailableValidatesCandidates(t *testing.T) {
+	usable := transcodeAvailabilityTool(t, "ffmpeg", "libx264", "hls")
+	noEncoder := transcodeAvailabilityTool(t, "ffmpeg", "mpeg4", "hls")
+	noHLS := transcodeAvailabilityTool(t, "ffmpeg", "libx264", "mp4")
+	missing := filepath.Join(t.TempDir(), "missing-ffmpeg")
+	for _, tc := range []struct {
+		name       string
+		candidates []string
+		wantPath   string
+	}{
+		{name: "missing executable", candidates: []string{missing}},
+		{name: "missing encoder", candidates: []string{noEncoder}},
+		{name: "missing HLS muxer", candidates: []string{noHLS}},
+		{name: "usable executable", candidates: []string{usable}, wantPath: usable},
+		{name: "fallback after unusable candidates", candidates: []string{missing, noEncoder, noHLS, usable}, wantPath: usable},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := &config.Config{}
+			cfg.Transcoder.Enabled = true
+			cfg.App.FFmpegPath = missing
+			svc := NewTranscoderService(cfg, zap.NewNop(), nil, nil)
+			svc.findExecutables = func(configured, name string) []string { return tc.candidates }
+			if got := svc.Available(); got != (tc.wantPath != "") {
+				t.Fatalf("Available() = %v, want %v", got, tc.wantPath != "")
+			}
+			if tc.wantPath != "" && cfg.App.FFmpegPath != tc.wantPath {
+				t.Fatalf("resolved path = %q, want %q", cfg.App.FFmpegPath, tc.wantPath)
+			}
+		})
+	}
+}
+
+func TestTranscoderResolveFFmpegPathPrefersConfiguredOrPATH(t *testing.T) {
+	configured := transcodeAvailabilityTool(t, "configured-ffmpeg", "libx264", "hls")
+	fallback := transcodeAvailabilityTool(t, "ffmpeg", "libx264", "hls")
+	t.Setenv("PATH", filepath.Dir(fallback))
+	for _, tc := range []struct {
+		name       string
+		configured string
+		want       string
+	}{
+		{name: "configured executable first", configured: configured, want: configured},
+		{name: "missing configured executable falls back to PATH", configured: filepath.Join(t.TempDir(), "missing-ffmpeg"), want: fallback},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := &config.Config{}
+			cfg.App.FFmpegPath = tc.configured
+			svc := NewTranscoderService(cfg, zap.NewNop(), nil, nil)
+			got, err := svc.resolveFFmpegPath()
+			if err != nil || got != tc.want {
+				t.Fatalf("resolveFFmpegPath() = %q, %v, want %q", got, err, tc.want)
 			}
 		})
 	}

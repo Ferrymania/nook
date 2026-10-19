@@ -78,7 +78,11 @@ func (t *TranscoderService) resolveFFmpegPath() (string, error) {
 	t.mu.Unlock()
 
 	var lastErr error
-	for _, bin := range executableCandidates(configuredPath, "ffmpeg") {
+	findExecutables := t.findExecutables
+	if findExecutables == nil {
+		findExecutables = executableCandidates
+	}
+	for _, bin := range findExecutables(configuredPath, "ffmpeg") {
 		if err := validateFFmpegForTranscode(context.Background(), bin, t.effectiveEncoder()); err != nil {
 			lastErr = err
 			continue

@@ -13,16 +13,31 @@ import (
 func inferLibraryKind(name, path, requested string) string {
 	requested = normalizeOrganizeMediaType(requested)
 	text := strings.ToLower(name + " " + filepath.ToSlash(path))
+	// English category names must be whole words: a random ancestor such as
+	// macOS's 6tvttyb... temporary directory is not a TV category.
+	words := strings.FieldsFunc(text, func(r rune) bool {
+		return (r < 'a' || r > 'z') && (r < '0' || r > '9')
+	})
+	containsWord := func(categories ...string) bool {
+		for _, word := range words {
+			for _, category := range categories {
+				if word == category {
+					return true
+				}
+			}
+		}
+		return false
+	}
 	switch {
-	case containsAnyText(text, "成人", "番号", "jav", "9kg", "adult", "nsfw"):
+	case containsAnyText(text, "成人", "番号") || containsWord("jav", "9kg", "adult", "nsfw"):
 		return "adult"
-	case containsAnyText(text, "综艺", "真人秀", "variety"):
+	case containsAnyText(text, "综艺", "真人秀") || containsWord("variety"):
 		return "variety"
-	case containsAnyText(text, "国漫", "日漫", "日番", "动漫", "动画", "anime", "bangumi") && !containsAnyText(text, "动画电影"):
+	case (containsAnyText(text, "国漫", "日漫", "日番", "动漫", "动画") || containsWord("anime", "bangumi")) && !containsAnyText(text, "动画电影"):
 		return "anime"
-	case containsAnyText(text, "电视剧", "剧集", "连续剧", "短剧", "国产剧", "国剧", "大陆剧", "华语剧", "国产电视剧", "大陆电视剧", "华语电视剧", "欧美剧", "欧美电视剧", "美剧", "英剧", "日韩剧", "日韩电视剧", "日剧", "韩剧", "港剧", "台剧", "港台剧", "泰剧", "tv", "series"):
+	case containsAnyText(text, "电视剧", "剧集", "连续剧", "短剧", "国产剧", "国剧", "大陆剧", "华语剧", "国产电视剧", "大陆电视剧", "华语电视剧", "欧美剧", "欧美电视剧", "美剧", "英剧", "日韩剧", "日韩电视剧", "日剧", "韩剧", "港剧", "台剧", "港台剧", "泰剧") || containsWord("tv", "series", "tvshow", "tvshows"):
 		return "tv"
-	case containsAnyText(text, "电影", "movie", "film"):
+	case containsAnyText(text, "电影") || containsWord("movie", "movies", "film", "films"):
 		return "movie"
 	}
 	if requested != "" {

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -78,8 +79,15 @@ func TestCreateLibraryWithRootsStoresAndUpdatesCustomCover(t *testing.T) {
 }
 
 func TestCreateLibraryWithRootsKeepsDifferentTypesSeparate(t *testing.T) {
-	rootMovie := t.TempDir()
-	rootTV := t.TempDir()
+	// Reproduce a macOS-style temporary ancestor on every platform.
+	parent := filepath.Join(t.TempDir(), "6tvttyb151")
+	rootMovie := filepath.Join(parent, "source-a")
+	rootTV := filepath.Join(parent, "source-b")
+	for _, root := range []string{rootMovie, rootTV} {
+		if err := os.MkdirAll(root, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
 	db := newServiceTestDB(t, &model.Library{}, &model.LibraryRoot{}, &model.Media{})
 	repos := repository.New(db)
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos)
