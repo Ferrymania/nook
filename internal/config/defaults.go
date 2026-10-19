@@ -38,7 +38,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("logging.enable_rotation", true)
 	v.SetDefault("logging.max_size_mb", 20)
 	v.SetDefault("logging.max_age_days", 30)
-	v.SetDefault("logging.max_backups", 10)
+	v.SetDefault("logging.max_backups", 5)
 
 	v.SetDefault("cache.cache_dir", "./cache")
 	v.SetDefault("cache.images_max_size_mb", 2000)
