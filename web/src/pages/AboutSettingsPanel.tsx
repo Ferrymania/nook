@@ -24,6 +24,8 @@ import {
 import toast from 'react-hot-toast'
 
 import { systemAPI } from '../api/system'
+import { formatAppVersion } from '../utils/formatAppVersion'
+import { VersionUpdatePanel } from './VersionUpdatePanel'
 
 type SystemInfo = {
   name: string
@@ -121,7 +123,7 @@ export function AboutSettingsPanel() {
       .then((res) => {
         setInfo({
           name: res.name || 'Nook',
-          version: res.version || '0.1.0',
+          version: res.version || 'dev',
           go: res.go || '',
           os: res.os || '',
           arch: res.arch || '',
@@ -132,7 +134,7 @@ export function AboutSettingsPanel() {
       .catch(() => {
         setInfo({
           name: 'Nook',
-          version: '0.1.0',
+          version: '未知',
           go: '',
           os: '',
           arch: '',
@@ -166,7 +168,7 @@ export function AboutSettingsPanel() {
               </h2>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-500/10 px-3 py-1 text-xs font-semibold text-brand-600 border border-brand-500/20">
                 <Tag size={13} />
-                {loading ? '加载中...' : `v${info?.version || '0.1.0'}`}
+                {loading ? '加载中...' : formatAppVersion(info?.version)}
               </span>
             </div>
             <p className="max-w-2xl text-sm leading-relaxed text-sand-600">
@@ -206,7 +208,7 @@ export function AboutSettingsPanel() {
               <span>系统版本</span>
             </div>
             <p className="mt-1 font-mono text-sm font-semibold text-ink-600">
-              {loading ? '...' : info?.version || '0.1.0'}
+              {loading ? '...' : formatAppVersion(info?.version)}
             </p>
           </div>
           <div className="rounded-xl bg-sand-100/50 p-3.5">
@@ -238,6 +240,8 @@ export function AboutSettingsPanel() {
           </div>
         </div>
       </div>
+
+      <VersionUpdatePanel />
 
       {/* 快速入门与使用流程 */}
       <div className="glass-panel p-6 sm:p-8 space-y-4">

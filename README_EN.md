@@ -146,6 +146,10 @@ If PostgreSQL is already part of an older Nook / MeBox Compose deployment, keep 
 | `./postgres` | Bundled PostgreSQL primary DB; back up external PostgreSQL at its original deployment |
 | `./cache`, `./redis` | Rebuildable |
 
+### Version checks
+
+**Settings → About** automatically checks the latest stable GitHub release, shows release notes, and offers manual checks and a copyable update command. Checks run on the server without a Docker socket. Results are cached for 30 minutes, with a one-minute minimum interval for manual refreshes and retries after failures. Development or unrecognized versions require manual comparison; network failures are never reported as up to date.
+
 ### Update
 
 ```bash
