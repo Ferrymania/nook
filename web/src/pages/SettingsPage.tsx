@@ -33,6 +33,7 @@ export function SettingsPage() {
   const [toolsBusy, setToolsBusy] = useState(false)
   const [libraries, setLibraries] = useState<Library[]>([])
   const visibleDirtyCount = dirty.size - (dirty.has('playback.direct_only') && dirty.has('transcode.enabled') ? 1 : 0)
+  const httpsEnabled = ['true', '1', 'on'].includes(values['https.enabled'] ?? '')
 
   useEffect(() => {
     const fromQuery = searchParams.get('group')
@@ -81,7 +82,7 @@ export function SettingsPage() {
     e.preventDefault()
     if (dirty.size === 0 || toolsBusy || saving) return
 
-    const wantHTTPS = values['https.enabled'] === 'true' || values['https.enabled'] === '1'
+    const wantHTTPS = httpsEnabled
     // 证书/私钥任一来源可用即可：路径优先，其次粘贴的内容。
     const materialOK = (content?: string, path?: string) =>
       Boolean((path ?? '').trim() || (content ?? '').trim())
@@ -220,13 +221,15 @@ export function SettingsPage() {
                   it.key !== 'playback.direct_only' && !it.key.startsWith('transcode.') &&
                   it.key !== 'ffmpeg.path' && it.key !== 'ffprobe.path'
                 )).map((it) => (
-                  <SettingRow
-                    key={it.key}
-                    def={it}
-                    value={values[it.key] ?? it.defaultValue ?? ''}
-                    onChange={(v) => onChange(it.key, v)}
-                    libraries={libraries}
-                  />
+                  (!it.key.startsWith('https.') || it.key === 'https.enabled' || httpsEnabled) && (
+                    <SettingRow
+                      key={it.key}
+                      def={it}
+                      value={values[it.key] ?? it.defaultValue ?? ''}
+                      onChange={(v) => onChange(it.key, v)}
+                      libraries={libraries}
+                    />
+                  )
                 ))}
                 <div className="flex items-center justify-between pt-2">
                   <span className="text-xs text-sand-500">

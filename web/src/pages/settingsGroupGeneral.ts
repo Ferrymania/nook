@@ -124,7 +124,7 @@ export const generalSettingsGroup: SettingGroup = {
       key: 'https.enabled',
       label: '启用 HTTPS',
       type: 'toggle',
-      hint: '开启后服务仅通过 HTTPS 提供访问，用 http:// 打开同一地址会被自动跳转到 https://（临时跳转，随时关掉 HTTPS 都不会被浏览器长期记住）；保存后当前页面会自动切换到 https 地址。必须先在下文配置好 SSL 证书与私钥（内容或路径任选其一，两者需匹配）才能启用；首次切换因浏览器以 origin（协议+域名+端口）隔离登录态，需要重新登录一次。',
+      hint: '勾选后展开证书配置，填写匹配的证书与私钥（粘贴内容或填写路径），点击“保存”后启用。取消勾选会收起配置并保留原值。启用后 HTTP 自动跳转 HTTPS，首次切换可能需要重新登录。',
       defaultValue: 'false',
     },
     {
