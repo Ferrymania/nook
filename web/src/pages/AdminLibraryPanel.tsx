@@ -2,6 +2,7 @@ import { AdminLibraryCreateForm } from './AdminLibraryPanelSections'
 import { AdminLibraryTable } from './AdminLibraryTable'
 import { LibraryStorageStats } from './LibraryStorageStats'
 import { LibraryCoverDialog } from './LibraryCoverDialog'
+import { LibraryPathChangeDialog } from './LibraryPathChangeDialog'
 import { useAdminLibraryPanel } from './useAdminLibraryPanel'
 
 export function AdminLibraryPanel() {
@@ -41,6 +42,13 @@ export function AdminLibraryPanel() {
         onReorder={libraryActions.reorderLibraries}
       />
       <LibraryStorageStats />
+      {rootActions.pathChange && (
+        <LibraryPathChangeDialog
+          {...rootActions.pathChange}
+          onClose={rootActions.closePathChange}
+          onSave={rootActions.confirmPathChange}
+        />
+      )}
       {libraryActions.coverLibrary && (
         <LibraryCoverDialog
           key={libraryActions.coverLibrary.id}

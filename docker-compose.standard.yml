@@ -61,11 +61,6 @@ services:
 
       NOOK_UPDATE_IMAGE: ${NOOK_IMAGE:-ghcr.io/ferrymania/nook:latest}
 
-      # 路径换算配置。左边宿主机真实路径要和 volumes 左边保持一致。
-      NOOK_MEDIA_DIR: /media
-      NOOK_MEDIA_CONTAINER_DIR: /media
-      NOOK_DOWNLOAD_DIR: /downloads
-      NOOK_DOWNLOAD_CONTAINER_DIR: /downloads
 
       # 播放模式、转码与硬件加速统一在网页「系统设置 → 常规」中管理。
 

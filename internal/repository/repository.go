@@ -5,10 +5,17 @@
 // 业务逻辑位于 internal/service。
 package repository
 
-import "gorm.io/gorm"
+import (
+	"sync"
+
+	"gorm.io/gorm"
+)
 
 // Container 是所有 repositories 的注册表，注入到 services 中。
 type Container struct {
+	// LibraryPaths keeps scans and watcher writes from using a stale root while
+	// an administrator changes indexed paths. Ordinary scans share the read lock.
+	LibraryPaths   sync.RWMutex
 	DB             *gorm.DB
 	User           *UserRepository
 	Library        *LibraryRepository
