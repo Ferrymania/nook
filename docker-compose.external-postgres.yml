@@ -58,13 +58,6 @@ services:
       NOOK_UPDATE_IMAGE: ${NOOK_IMAGE:-ghcr.io/ferrymania/nook:latest}
 
 
-      NOOK_LOGGING_LEVEL: info
-      NOOK_LOGGING_FORMAT: console
-      NOOK_LOGGING_OUTPUT_PATH: /data/logs
-      NOOK_LOGGING_MAX_SIZE_MB: "20"
-      NOOK_LOGGING_MAX_BACKUPS: "5"
-      NOOK_LOGGING_MAX_AGE_DAYS: "30"
-
       # 播放模式、转码与硬件加速统一在网页「系统设置 → 常规」中管理。
 
     healthcheck:

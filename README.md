@@ -215,8 +215,9 @@ volumes:
 
 **日志保留时间太短？**
 
-默认应用日志为 `20MB x 5`，容器 stdout 日志为 `20m x 3`。排障时可在 compose 中调大
-`NOOK_LOGGING_MAX_SIZE_MB`、`NOOK_LOGGING_MAX_BACKUPS` 与服务的 `logging.options.max-size/max-file`。
+应用日志默认保存在 `./data/logs`，单文件上限为 20 MB，每类日志最多保留 5 份轮转备份，轮转时清理超过 30 天的旧备份。Compose 模板使用内置默认值，不再重复列出应用日志参数；容器 stdout 日志仍限制为 `20m x 3`。
+
+排障时可在 Nook 服务的 `environment` 中临时添加 `NOOK_LOGGING_LEVEL: debug`，或按需添加 `NOOK_LOGGING_MAX_SIZE_MB`、`NOOK_LOGGING_MAX_BACKUPS`、`NOOK_LOGGING_MAX_AGE_DAYS` 覆盖默认值；修改后执行 `docker compose up -d --no-deps nook` 重新创建容器生效。Docker 日志限制仍通过 `logging.options.max-size/max-file` 调整。
 
 **第三方播放器连不上？**  
 确认地址为 `http://IP:18080`，使用 Nook 用户账号；反代部署需正确配置外部 URL 与 HTTPS 头。
