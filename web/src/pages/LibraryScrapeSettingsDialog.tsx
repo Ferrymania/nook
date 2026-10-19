@@ -110,7 +110,7 @@ export function LibraryScrapeSettingsDialog({ library, onClose, onSaved }: {
             <section>
               <h3 className="mb-2 text-sm font-semibold">片头／片尾时间点</h3>
               <div className="overflow-hidden rounded-2xl border border-[var(--app-border)]">
-                <ScrapeSwitch label="后台预取时间点" description="仅对当前媒体库生效。每 6 小时向 TheIntroDB 查询片头、片尾起止时间并保存到本地。" checked={data.settings.segment_prewarm_enabled} onChange={value => updateSettings({ segment_prewarm_enabled: value })} />
+                <ScrapeSwitch label="后台预取时间点" description="仅对当前媒体库生效。每 6 小时向 TheIntroDB 查询片头、片尾起止时间并保存到数据库。" checked={data.settings.segment_prewarm_enabled} onChange={value => updateSettings({ segment_prewarm_enabled: value })} />
               </div>
               <p className="mt-2 text-[11px] leading-relaxed text-[var(--app-muted)]">默认关闭。关闭后，播放器仍可在播放时按需获取时间点。查询不读取视频文件，无需 API Key。</p>
             </section>

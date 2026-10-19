@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"golang.org/x/sync/singleflight"
+	"gorm.io/gorm"
 
 	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/repository"
@@ -53,9 +55,10 @@ func ToSegmentViews(rows []model.MediaSegment) []SegmentView {
 
 // MediaSegmentService 负责把外部片头片尾数据补齐到本地并供播放器读取。
 type MediaSegmentService struct {
-	log     *zap.Logger
-	repo    *repository.Container
-	introdb *IntroDBService
+	log               *zap.Logger
+	repo              *repository.Container
+	introdb           *IntroDBService
+	manualQueryFlight singleflight.Group
 	// prewarmGap 是预热两次 IntroDB 请求之间的间隔；测试可设为 0。
 	prewarmGap time.Duration
 	now        func() time.Time
@@ -225,14 +228,15 @@ func (s *MediaSegmentService) refresh(ctx context.Context, m *model.Media) ([]mo
 			Source:   IntroDBSource,
 		})
 	}
-	if err := s.repo.MediaSegment.ReplaceForMedia(fetchCtx, m.ID, IntroDBSource, rows); err != nil {
-		return nil, true, err
-	}
-	if err := s.repo.MediaSegment.UpsertFetch(fetchCtx, &model.MediaSegmentFetch{
-		MediaID:   m.ID,
-		Source:    IntroDBSource,
-		FetchedAt: time.Now(),
-		Found:     len(rows) > 0,
+	// Keep timestamps and their query ledger consistent if either write fails.
+	if err := s.repo.DB.WithContext(fetchCtx).Transaction(func(tx *gorm.DB) error {
+		repo := repository.New(tx)
+		if err := repo.MediaSegment.ReplaceForMedia(fetchCtx, m.ID, IntroDBSource, rows); err != nil {
+			return err
+		}
+		return repo.MediaSegment.UpsertFetch(fetchCtx, &model.MediaSegmentFetch{
+			MediaID: m.ID, Source: IntroDBSource, FetchedAt: time.Now(), Found: len(rows) > 0,
+		})
 	}); err != nil {
 		return nil, true, err
 	}

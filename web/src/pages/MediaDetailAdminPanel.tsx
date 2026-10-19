@@ -1,6 +1,7 @@
 import { Database, FileText, FolderInput, Pencil, Search, ShieldAlert, Sparkles, Trash2 } from 'lucide-react'
 
 import { EpisodeArtworkToggle } from '../components/EpisodeArtworkToggle'
+import { MediaSegmentQueryButton } from '../components/MediaSegmentQueryButton'
 import type { Media } from '../types'
 import { isRemoteEmbyID } from '../utils/remoteEmby'
 
@@ -75,6 +76,7 @@ export function MediaDetailAdminPanel({
           <FileText size={13} className="text-brand-500" />
           <span>写出本地 NFO 属性</span>
         </button>
+        <MediaSegmentQueryButton key={media.id} media={media} />
         <button
           onClick={onDelete}
           className="btn-outline ml-auto h-9 rounded-lg px-3 text-xs gap-1.5 !border-red-100 !text-red-500 hover:!bg-red-50 hover:!border-red-200"
