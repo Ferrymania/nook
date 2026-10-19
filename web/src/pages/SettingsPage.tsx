@@ -28,6 +28,7 @@ export function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [libraries, setLibraries] = useState<Library[]>([])
+  const visibleDirtyCount = dirty.size - (dirty.has('playback.direct_only') && dirty.has('transcode.enabled') ? 1 : 0)
 
   useEffect(() => {
     const fromQuery = searchParams.get('group')
@@ -108,7 +109,7 @@ export function SettingsPage() {
         return
       }
 
-      toast.success(`已保存 ${dirty.size} 项配置`)
+      toast.success(`已保存 ${visibleDirtyCount} 项配置`)
       setDirty(new Set())
 
       // 切换 HTTPS 后（或关闭 HTTPS 后）连接会短暂中断，自动跳转到对应协议地址。
@@ -194,7 +195,7 @@ export function SettingsPage() {
               ))}
               <div className="flex items-center justify-between pt-2">
                 <span className="text-xs text-sand-500">
-                  {dirty.size > 0 ? `有 ${dirty.size} 项未保存` : '所有更改已保存'}
+                  {dirty.size > 0 ? `有 ${visibleDirtyCount} 项未保存` : '所有更改已保存'}
                 </span>
                 <button
                   type="submit"

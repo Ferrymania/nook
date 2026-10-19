@@ -31,4 +31,8 @@ export const GROUPS: SettingGroup[] = [
   aboutSettingsGroup,
 ]
 
-export const ALL_KEYS = new Set(GROUPS.flatMap((group) => group.items.map((item) => item.key)))
+export const ALL_KEYS = new Set([
+  ...GROUPS.flatMap((group) => group.items.map((item) => item.key)),
+  // Keep the legacy value for compatibility with the single client-decoding switch.
+  'transcode.enabled',
+])

@@ -7,9 +7,9 @@ export const generalSettingsGroup: SettingGroup = {
   items: [
     {
       key: 'playback.direct_only',
-      label: '仅直放模式',
+      label: '客户端直连解码',
       type: 'toggle',
-      hint: '开启后禁止服务端播放转码，视频由浏览器或第三方客户端解码。此模式优先于下方所有转码设置；客户端不支持源格式时可能无法播放。',
+      hint: '开启：由客户端解码，服务器不转码。关闭：允许服务器按需转码。客户端不支持源格式时，开启此项可能无法播放。',
       defaultValue: 'false',
     },
     {
@@ -18,13 +18,6 @@ export const generalSettingsGroup: SettingGroup = {
       type: 'toggle',
       hint: '默认关闭。开启后每 6 小时在后台向 TheIntroDB 拉取可识别媒体的片头/片尾区间并写入本地；关闭时仅在播放时按需请求。',
       defaultValue: 'false',
-    },
-    {
-      key: 'transcode.enabled',
-      label: '启用服务端转码',
-      type: 'toggle',
-      hint: '客户端无法直接播放或需要调整画质时，允许服务器按需转码。仅直放模式开启时，此开关不生效。',
-      defaultValue: 'true',
     },
     {
       key: 'transcode.hw_accel',
