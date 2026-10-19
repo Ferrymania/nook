@@ -75,7 +75,6 @@
 
 ```bash
 mkdir -p Nook && cd Nook
-mkdir -p media downloads
 
 # 没有 PostgreSQL：自动启动 Nook + PostgreSQL
 curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose.yml -o docker-compose.yml
@@ -86,6 +85,8 @@ curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose
 
 docker compose up -d
 ```
+
+默认挂载 Compose 文件同目录下的 `media`、`downloads` 文件夹，不存在时 Docker Compose 会自动创建。使用已有媒体目录时，修改 YAML 中挂载左侧的宿主机路径。
 
 浏览器访问：
 
@@ -158,12 +159,15 @@ NOOK_DATABASE_DSN: "postgres://数据库用户:数据库密码@数据库地址:5
 
 ### 更新镜像
 
+在 Compose 文件所在目录执行以下命令；通过容器管理面板部署时，也可以在面板中拉取新镜像并重建 Nook 容器。
+
 ```bash
 docker compose pull nook
 docker compose up -d --no-deps nook
 ```
 
 日常更新只拉 `nook` 服务即可，不要随意 `docker compose pull` 升级 PostgreSQL/Redis 基础镜像。
+更新后继续使用原有数据挂载。默认部署不向 Nook 容器挂载 Docker socket，网页目前没有一键更新入口。
 
 ---
 

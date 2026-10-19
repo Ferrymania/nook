@@ -41,9 +41,9 @@ services:
       - ./cache:/cache
 
       # 媒体库目录。自动整理/重命名/入库需要读写权限。
-      # NAS 示例：source: /vol1/1000/Media
-      # Windows Docker Desktop 示例：source: D:/Media
-      # create_host_path=false 可以避免路径写错时 Docker 自动创建空文件夹。
+      # 目录不存在时会自动创建。
+      # NAS 示例：- /vol1/1000/Media:/media
+      # Windows Docker Desktop 示例：- "D:/Media:/media"
       - ./media:/media
 
     environment:
@@ -57,10 +57,6 @@ services:
 
       # Redis 只做热缓存，源数据仍在 PostgreSQL；Redis 丢失可自动重建。
       NOOK_CACHE_REDIS_URL: redis://redis:6379/0
-      NOOK_CACHE_CACHE_DIR: /cache
-
-      NOOK_UPDATE_IMAGE: ${NOOK_IMAGE:-ghcr.io/ferrymania/nook:latest}
-
 
       # 播放模式、转码与硬件加速统一在网页「系统设置 → 常规」中管理。
 

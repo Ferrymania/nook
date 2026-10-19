@@ -72,7 +72,6 @@ Docker Compose is the recommended path. Choose a standalone template based on wh
 
 ```bash
 mkdir -p Nook && cd Nook
-mkdir -p media downloads
 
 # No PostgreSQL yet: start Nook + PostgreSQL
 curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose.yml -o docker-compose.yml
@@ -83,6 +82,8 @@ curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose
 
 docker compose up -d
 ```
+
+The default mounts use `media` and `downloads` folders beside the Compose file. Docker Compose creates them if they do not exist. To use existing media, change the host path on the left side of the mount in the YAML.
 
 Open:
 
@@ -152,10 +153,14 @@ If PostgreSQL is already part of an older Nook / MeBox Compose deployment, keep 
 
 ### Update
 
+Run these commands from the directory containing your Compose file. If you deployed through a container management panel, you can also use that panel to pull the new image and recreate the Nook container.
+
 ```bash
 docker compose pull nook
 docker compose up -d --no-deps nook
 ```
+
+For routine updates, pull only the `nook` service and keep the existing data mounts. The default deployment does not mount the Docker socket into Nook, and the web UI currently has no one-click update action.
 
 ---
 

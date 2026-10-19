@@ -5,7 +5,7 @@
 # 新手建议：
 #   1. 不用 .env。
 #   2. 直接改本文件。
-#   3. 第一次可以不改路径，先创建当前目录下的 media 和 downloads 目录。
+#   3. 第一次可以不改路径；media 和 downloads 目录不存在时会自动创建。
 #
 # 启动：
 #   docker compose up -d
@@ -47,34 +47,20 @@ services:
       # 媒体库目录。
       # 如果要使用自动整理/重命名/入库，这里必须保持读写，不能加 :ro。
       # 只有完全不整理、只扫描/播放已有媒体时，才建议手动改成只读。
-      # 新手可先创建当前目录的 ./media 并把影片放进去。
+      # 默认使用当前目录的 ./media；目录不存在时会自动创建。
       # NAS 用户把左边改成真实路径，例如：
-      #   source: /vol1/1000/Media
+      #   - /vol1/1000/Media:/media
       # Windows Docker Desktop 示例：
-      #   source: D:/Media
-      # create_host_path=false 可以避免路径写错时 Docker 自动创建空文件夹。
-      - type: bind
-        source: ./media
-        target: /media
-        bind:
-          create_host_path: false
+      #   - "D:/Media:/media"
+      - ./media:/media
 
       # 下载目录。
       # qB 下载目录、手动整理、自动整理会经常用到。
       # NAS 示例：
-      #   source: /vol1/1000/Downloads
+      #   - /vol1/1000/Downloads:/downloads
       # Windows Docker Desktop 示例：
-      #   source: D:/Downloads
-      - type: bind
-        source: ./downloads
-        target: /downloads
-        bind:
-          create_host_path: false
-
-      # 管理面板「系统更新」需要访问 Docker 引擎。
-      # 需要一键更新 Docker 镜像时取消下一行注释；如果提示权限不足，
-      # 请确认 PUID/PGID 对 /var/run/docker.sock 有读写权限。
-      # - /var/run/docker.sock:/var/run/docker.sock
+      #   - "D:/Downloads:/downloads"
+      - ./downloads:/downloads
 
     environment:
       TZ: Asia/Shanghai
@@ -87,11 +73,6 @@ services:
       # 轻量模式默认只使用 PostgreSQL，适合大多数 NAS。
       NOOK_DATABASE_TYPE: postgres
       NOOK_DATABASE_DSN: postgres://nook:nook@postgres:5432/nook?sslmode=disable
-
-      NOOK_CACHE_CACHE_DIR: /cache
-
-      # 管理面板热更新默认拉取此镜像，并用 Watchtower 一次性重建当前容器。
-      NOOK_UPDATE_IMAGE: ${NOOK_IMAGE:-ghcr.io/ferrymania/nook:latest}
 
       # 媒体库与下载器统一使用容器路径；更换媒体库目录请在网页管理。
 
