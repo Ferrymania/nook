@@ -74,8 +74,6 @@ services:
       NOOK_DATABASE_TYPE: postgres
       NOOK_DATABASE_DSN: postgres://nook:nook@postgres:5432/nook?sslmode=disable
 
-      NOOK_CACHE_CACHE_DIR: /cache
-
       # 媒体库与下载器统一使用容器路径；更换媒体库目录请在网页管理。
 
       # 播放模式、转码与硬件加速统一在网页「系统设置 → 常规」中管理。
