@@ -18,6 +18,18 @@ import (
 var scrapeProviderNames = map[string]string{"tmdb": "TMDb", "douban": "豆瓣", "bangumi": "Bangumi", "thetvdb": "TheTVDB", "fanart": "Fanart"}
 var defaultScrapeProviders = []string{"tmdb", "douban", "bangumi", "thetvdb", "fanart"}
 
+// The former global value is only a compatibility default for libraries that
+// have not saved the new preference. Explicit library values always win.
+const legacySegmentPrewarmEnabledKey = "segment.prewarm_enabled"
+
+func librarySegmentPrewarmEnabled(ctx context.Context, repo *repository.Container, lib *model.Library) (bool, error) {
+	if lib != nil && lib.ScrapeSettings != nil && lib.ScrapeSettings.SegmentPrewarmEnabled != nil {
+		return *lib.ScrapeSettings.SegmentPrewarmEnabled, nil
+	}
+	value, err := repo.Setting.Get(ctx, legacySegmentPrewarmEnabledKey)
+	return parseBoolSetting(value, false), err
+}
+
 // Legacy settings are read only for libraries that have never saved their own
 // preferences. Library-specific preferences never rewrite legacy defaults.
 func libraryScrapeSettings(ctx context.Context, repo *repository.Container, lib *model.Library) model.LibraryScrapeSettings {
@@ -138,6 +150,11 @@ func (s *ScraperService) GetLibraryScrapeSettings(ctx context.Context, id string
 		return nil, err
 	}
 	view := &LibraryScrapeSettingsView{EpisodeImages: parseBoolSetting(episodeImages, false), Settings: libraryScrapeSettings(ctx, s.repo, lib), AutoProbe: lib.AutoProbe}
+	prewarmEnabled, err := librarySegmentPrewarmEnabled(ctx, s.repo, lib)
+	if err != nil {
+		return nil, err
+	}
+	view.Settings.SegmentPrewarmEnabled = &prewarmEnabled
 	for _, p := range defaultScrapeProviders {
 		cfg := s.scrapeProviderConfig(ctx, p)
 		optional := p == "bangumi" || p == "douban"
@@ -158,8 +175,14 @@ func (s *ScraperService) SaveLibraryScrapeSettings(ctx context.Context, id strin
 	if err := validateLibraryScrapeSettings(settings); err != nil {
 		return nil, err
 	}
-	if _, err := s.GetLibraryScrapeSettings(ctx, id); err != nil {
+	current, err := s.GetLibraryScrapeSettings(ctx, id)
+	if err != nil {
 		return nil, err
+	}
+	// Older clients omit this new field; retain the effective preference instead
+	// of resetting it when they save unrelated scrape settings.
+	if settings.SegmentPrewarmEnabled == nil {
+		settings.SegmentPrewarmEnabled = current.Settings.SegmentPrewarmEnabled
 	}
 	data, err := json.Marshal(settings)
 	if err != nil {

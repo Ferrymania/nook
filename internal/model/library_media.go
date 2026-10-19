@@ -21,6 +21,8 @@ type LibraryScrapeSettings struct {
 	Language   string   `json:"language"`
 	DelayMinMS int      `json:"delay_min_ms"`
 	DelayMaxMS int      `json:"delay_max_ms"`
+	// nil preserves the former global preference until this library saves its own value.
+	SegmentPrewarmEnabled *bool `json:"segment_prewarm_enabled,omitempty"`
 }
 
 // LibraryRoot 是逻辑媒体库下的一条真实物理/挂载路径。

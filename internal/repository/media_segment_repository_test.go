@@ -180,8 +180,8 @@ func TestListPrewarmCandidatesOrdersRecentPlaysFirst(t *testing.T) {
 	ctx := t.Context()
 	now := time.Now()
 	for _, m := range []*model.Media{
-		{Base: model.Base{ID: "cold"}, Path: "/cold", TMDbID: 1},
-		{Base: model.Base{ID: "hot"}, Path: "/hot", TMDbID: 2},
+		{Base: model.Base{ID: "cold"}, LibraryID: "lib", Path: "/cold", TMDbID: 1},
+		{Base: model.Base{ID: "hot"}, LibraryID: "lib", Path: "/hot", TMDbID: 2},
 	} {
 		if err := repos.DB.Create(m).Error; err != nil {
 			t.Fatal(err)
@@ -193,7 +193,7 @@ func TestListPrewarmCandidatesOrdersRecentPlaysFirst(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, err := repos.MediaSegment.ListPrewarmCandidates(
-		ctx, "theintrodb", now.Add(-time.Hour), now.Add(-time.Hour), 10,
+		ctx, "theintrodb", now.Add(-time.Hour), now.Add(-time.Hour), 10, []string{"lib"},
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -203,5 +203,35 @@ func TestListPrewarmCandidatesOrdersRecentPlaysFirst(t *testing.T) {
 	}
 	if got[0].ID != "hot" {
 		t.Fatalf("first = %s, want hot (recently played)", got[0].ID)
+	}
+}
+
+func TestListPrewarmCandidatesFiltersLibrariesBeforeLimit(t *testing.T) {
+	repos := newSegmentTestRepos(t)
+	ctx := t.Context()
+	now := time.Now()
+	for _, m := range []*model.Media{
+		{Base: model.Base{ID: "allowed"}, LibraryID: "on", Path: "/allowed", TMDbID: 1},
+		{Base: model.Base{ID: "excluded"}, LibraryID: "off", Path: "/excluded", TMDbID: 2},
+	} {
+		if err := repos.DB.Create(m).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := repos.DB.Create(&model.PlaybackHistory{Base: model.Base{ID: "ph"}, UserID: "u", MediaID: "excluded"}).Error; err != nil {
+		t.Fatal(err)
+	}
+	for _, scope := range [][]string{nil, {}, {"on"}} {
+		got, err := repos.MediaSegment.ListPrewarmCandidates(ctx, "theintrodb", now, now, 1, scope)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(scope) == 0 {
+			if len(got) != 0 {
+				t.Fatalf("empty library scope returned media: %#v", got)
+			}
+		} else if len(got) != 1 || got[0].ID != "allowed" {
+			t.Fatalf("scope applied after limit: %#v", got)
+		}
 	}
 }
