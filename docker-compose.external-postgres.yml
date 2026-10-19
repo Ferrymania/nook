@@ -30,8 +30,6 @@ services:
       # 媒体与下载目录；目录不存在时会自动创建。
       - ./media:/media
       - ./downloads:/downloads
-      # 可选：管理面板一键更新需要访问 Docker 引擎。
-      # - /var/run/docker.sock:/var/run/docker.sock
 
     environment:
       TZ: Asia/Shanghai
@@ -48,8 +46,6 @@ services:
       # sslmode 按已有数据库要求设置；以下为同机/内网的连接示例。
       NOOK_DATABASE_DSN: "postgres://DB_USER:DB_PASSWORD@host.docker.internal:5432/DB_NAME?sslmode=disable"
       NOOK_CACHE_CACHE_DIR: /cache
-      NOOK_UPDATE_IMAGE: ${NOOK_IMAGE:-ghcr.io/ferrymania/nook:latest}
-
 
       # 播放模式、转码与硬件加速统一在网页「系统设置 → 常规」中管理。
 

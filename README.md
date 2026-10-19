@@ -155,12 +155,15 @@ NOOK_DATABASE_DSN: "postgres://数据库用户:数据库密码@数据库地址:5
 
 ### 更新镜像
 
+在 Compose 文件所在目录执行以下命令；通过容器管理面板部署时，也可以在面板中拉取新镜像并重建 Nook 容器。
+
 ```bash
 docker compose pull nook
 docker compose up -d --no-deps nook
 ```
 
 日常更新只拉 `nook` 服务即可，不要随意 `docker compose pull` 升级 PostgreSQL/Redis 基础镜像。
+更新后继续使用原有数据挂载。默认部署不向 Nook 容器挂载 Docker socket，网页目前没有一键更新入口。
 
 ---
 

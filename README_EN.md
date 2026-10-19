@@ -149,10 +149,14 @@ If PostgreSQL is already part of an older Nook / MeBox Compose deployment, keep 
 
 ### Update
 
+Run these commands from the directory containing your Compose file. If you deployed through a container management panel, you can also use that panel to pull the new image and recreate the Nook container.
+
 ```bash
 docker compose pull nook
 docker compose up -d --no-deps nook
 ```
+
+For routine updates, pull only the `nook` service and keep the existing data mounts. The default deployment does not mount the Docker socket into Nook, and the web UI currently has no one-click update action.
 
 ---
 

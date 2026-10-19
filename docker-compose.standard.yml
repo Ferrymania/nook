@@ -59,9 +59,6 @@ services:
       NOOK_CACHE_REDIS_URL: redis://redis:6379/0
       NOOK_CACHE_CACHE_DIR: /cache
 
-      NOOK_UPDATE_IMAGE: ${NOOK_IMAGE:-ghcr.io/ferrymania/nook:latest}
-
-
       # 播放模式、转码与硬件加速统一在网页「系统设置 → 常规」中管理。
 
     healthcheck:

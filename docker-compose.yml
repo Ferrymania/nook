@@ -62,11 +62,6 @@ services:
       #   - "D:/Downloads:/downloads"
       - ./downloads:/downloads
 
-      # 管理面板「系统更新」需要访问 Docker 引擎。
-      # 需要一键更新 Docker 镜像时取消下一行注释；如果提示权限不足，
-      # 请确认 PUID/PGID 对 /var/run/docker.sock 有读写权限。
-      # - /var/run/docker.sock:/var/run/docker.sock
-
     environment:
       TZ: Asia/Shanghai
 
@@ -80,9 +75,6 @@ services:
       NOOK_DATABASE_DSN: postgres://nook:nook@postgres:5432/nook?sslmode=disable
 
       NOOK_CACHE_CACHE_DIR: /cache
-
-      # 管理面板热更新默认拉取此镜像，并用 Watchtower 一次性重建当前容器。
-      NOOK_UPDATE_IMAGE: ${NOOK_IMAGE:-ghcr.io/ferrymania/nook:latest}
 
       # 媒体库与下载器统一使用容器路径；更换媒体库目录请在网页管理。
 
