@@ -17,7 +17,7 @@ export const databaseSettingsGroup: SettingGroup = {
 export const aboutSettingsGroup: SettingGroup = {
   key: 'about',
   label: '关于',
-  description: '项目信息、版本信息与使用指南',
+  description: '项目信息、运行环境与版本更新',
   items: [],
 }
 
