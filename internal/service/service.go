@@ -56,6 +56,7 @@ type Container struct {
 	PlayProfiles     *PlayProfileService
 	Permissions      *PermissionService
 	SystemUpdate     *SystemUpdateService
+	ReleaseCheck     *ReleaseCheckService
 	Organizer        *OrganizerService
 	OrganizePipeline *OrganizePipelineService
 	Douban           *DoubanProvider
