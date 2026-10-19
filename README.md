@@ -75,7 +75,6 @@
 
 ```bash
 mkdir -p Nook && cd Nook
-mkdir -p media downloads
 
 # 没有 PostgreSQL：自动启动 Nook + PostgreSQL
 curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose.yml -o docker-compose.yml
@@ -86,6 +85,8 @@ curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose
 
 docker compose up -d
 ```
+
+默认挂载 Compose 文件同目录下的 `media`、`downloads` 文件夹，不存在时 Docker Compose 会自动创建。使用已有媒体目录时，修改 YAML 中挂载左侧的宿主机路径。
 
 浏览器访问：
 

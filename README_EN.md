@@ -72,7 +72,6 @@ Docker Compose is the recommended path. Choose a standalone template based on wh
 
 ```bash
 mkdir -p Nook && cd Nook
-mkdir -p media downloads
 
 # No PostgreSQL yet: start Nook + PostgreSQL
 curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose.yml -o docker-compose.yml
@@ -83,6 +82,8 @@ curl -fsSL https://raw.githubusercontent.com/Ferrymania/nook/main/docker-compose
 
 docker compose up -d
 ```
+
+The default mounts use `media` and `downloads` folders beside the Compose file. Docker Compose creates them if they do not exist. To use existing media, change the host path on the left side of the mount in the YAML.
 
 Open:
 
