@@ -44,6 +44,7 @@ func registerAuthedLibraryRoutes(authed *gin.RouterGroup, svc *service.Container
 	authed.GET("/libraries/:id/roots", middleware.AdminRequired(), listLibraryRootsHandler(svc))
 	authed.POST("/libraries/:id/roots", middleware.AdminRequired(), createLibraryRootHandler(svc))
 	authed.PATCH("/libraries/:id/roots/:root_id", middleware.AdminRequired(), updateLibraryRootHandler(svc))
+	authed.POST("/libraries/:id/roots/:root_id/preview-path", middleware.AdminRequired(), previewLibraryRootPathHandler(svc))
 	authed.DELETE("/libraries/:id/roots/:root_id", middleware.AdminRequired(), deleteLibraryRootHandler(svc))
 	authed.POST("/libraries/:id/roots/:root_id/scan", middleware.AdminRequired(), scanLibraryRootHandler(svc))
 	authed.GET("/libraries/:id/scan-status", middleware.AdminRequired(), libraryScanStatusHandler(svc))

@@ -102,17 +102,7 @@ services:
       # 管理面板热更新默认拉取此镜像，并用 Watchtower 一次性重建当前容器。
       NOOK_UPDATE_IMAGE: ${NOOK_IMAGE:-ghcr.io/ferrymania/nook:latest}
 
-      # 路径换算配置。
-      # 默认推荐在网页里使用容器路径 /media。
-      # 如果旧媒体库已经保存了宿主机路径 /vol1/1000/Media，
-      # 再把这里改成同一个宿主机真实路径用于旧路径换算。
-      NOOK_MEDIA_DIR: /media
-      NOOK_MEDIA_CONTAINER_DIR: /media
-
-      # 默认推荐下载器保存路径使用 /downloads。
-      # 如果下载器只能返回宿主机路径，再改成同一个宿主机真实路径。
-      NOOK_DOWNLOAD_DIR: /downloads
-      NOOK_DOWNLOAD_CONTAINER_DIR: /downloads
+      # 媒体库与下载器统一使用容器路径；更换媒体库目录请在网页管理。
 
       # 播放模式、转码与硬件加速统一在网页「系统设置 → 常规」中管理。
 

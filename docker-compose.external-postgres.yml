@@ -57,10 +57,6 @@ services:
       NOOK_CACHE_CACHE_DIR: /cache
       NOOK_UPDATE_IMAGE: ${NOOK_IMAGE:-ghcr.io/ferrymania/nook:latest}
 
-      NOOK_MEDIA_DIR: /media
-      NOOK_MEDIA_CONTAINER_DIR: /media
-      NOOK_DOWNLOAD_DIR: /downloads
-      NOOK_DOWNLOAD_CONTAINER_DIR: /downloads
 
       NOOK_LOGGING_LEVEL: info
       NOOK_LOGGING_FORMAT: console

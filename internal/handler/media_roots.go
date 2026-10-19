@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -51,6 +52,11 @@ func updateLibraryRootHandler(svc *service.Container) gin.HandlerFunc {
 		}
 		root, err := svc.Media.UpdateLibraryRoot(c.Request.Context(), c.Param("id"), c.Param("root_id"), req)
 		if err != nil {
+			var validation *service.PathChangeError
+			if errors.As(err, &validation) {
+				c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+				return
+			}
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -65,6 +71,27 @@ func updateLibraryRootHandler(svc *service.Container) gin.HandlerFunc {
 			queueLibraryRootScan(svc, c.Param("id"), root.ID)
 		}
 		c.JSON(http.StatusOK, root)
+	}
+}
+
+func previewLibraryRootPathHandler(svc *service.Container) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req service.LibraryRootInput
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		preview, err := svc.Media.PreviewLibraryRootPath(c.Request.Context(), c.Param("id"), c.Param("root_id"), req)
+		if err != nil {
+			status := http.StatusInternalServerError
+			var validation *service.PathChangeError
+			if errors.As(err, &validation) {
+				status = http.StatusBadRequest
+			}
+			c.JSON(status, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, preview)
 	}
 }
 

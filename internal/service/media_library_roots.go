@@ -12,11 +12,13 @@ import (
 )
 
 type LibraryRootInput struct {
-	ID        string `json:"id,omitempty"`
-	Name      string `json:"name,omitempty"`
-	Path      string `json:"path"`
-	Enabled   *bool  `json:"enabled,omitempty"`
-	SortOrder *int   `json:"sort_order,omitempty"`
+	ID           string `json:"id,omitempty"`
+	Name         string `json:"name,omitempty"`
+	Path         string `json:"path"`
+	Enabled      *bool  `json:"enabled,omitempty"`
+	SortOrder    *int   `json:"sort_order,omitempty"`
+	ChangeMode   string `json:"change_mode,omitempty"`
+	PreviewToken string `json:"preview_token,omitempty"`
 }
 
 // CreateLibrary persists a library after validating that its path exists.
@@ -265,6 +267,9 @@ func (s *MediaService) UpdateLibraryRoot(ctx context.Context, libraryID, rootID 
 	root, err := s.repo.Library.FindRootByID(ctx, libraryID, rootID)
 	if err != nil || root == nil {
 		return root, err
+	}
+	if strings.TrimSpace(input.Path) != "" && !sameLibraryPath(input.Path, root.Path) {
+		return s.changeLibraryRootPath(ctx, libraryID, rootID, input)
 	}
 	updates := map[string]any{}
 	if input.Name != "" {

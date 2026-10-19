@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
-import { libraryAPI } from '../api/library'
+import { libraryAPI, type LibraryRootInput, type LibraryPathPreview } from '../api/library'
 import type { Library, LibraryRoot } from '../types'
 import { invalidateLibraries } from '../utils/libraryCache'
 import { confirmAction } from '../components/confirmAction'
@@ -133,21 +133,45 @@ function useEditableRootDrafts() {
 type EditableRootDrafts = ReturnType<typeof useEditableRootDrafts>
 
 function useEditableLibraryRootActions(refresh: () => Promise<void>, drafts: EditableRootDrafts) {
+  const [pathChange, setPathChange] = useState<{ libraryID: string; root: LibraryRoot; draft: LibraryRootInput } | null>(null)
   const saveLibraryRoot = async (libraryID: string, root: LibraryRoot) => {
     const draft = drafts.editableRootDraft(libraryID, root)
     if (!draft.path?.trim()) {
       toast.error('请填写路径')
       return
     }
-    await libraryAPI.updateRoot(libraryID, root.id, {
+    const payload = {
       name: draft.name?.trim(),
       path: draft.path.trim(),
       enabled: draft.enabled,
       sort_order: draft.sort_order,
+    }
+    if (payload.path !== root.path) {
+      setPathChange({ libraryID, root, draft: payload })
+      return
+    }
+    try {
+      await libraryAPI.updateRoot(libraryID, root.id, payload)
+      drafts.clearEditableRootDraft(libraryID, root.id)
+      toast.success('路径已保存')
+      await refresh()
+    } catch (err: unknown) {
+      toast.error(apiErrorMessage(err, '保存路径失败'))
+    }
+  }
+
+  const confirmPathChange = async (preview: LibraryPathPreview) => {
+    if (!pathChange) return
+    await libraryAPI.updateRoot(pathChange.libraryID, pathChange.root.id, {
+      ...pathChange.draft,
+      path: preview.new_path,
+      change_mode: preview.change_mode,
+      preview_token: preview.preview_token,
     })
-    drafts.clearEditableRootDraft(libraryID, root.id)
-    toast.success('路径已保存')
-    await refresh()
+    drafts.clearEditableRootDraft(pathChange.libraryID, pathChange.root.id)
+    setPathChange(null)
+    toast.success(preview.change_mode === 'migrate' ? '路径已更新，原有媒体记录已保留' : '已切换目录，旧索引已清除')
+    await refresh().catch(() => toast.error('已保存，请刷新媒体库列表查看结果'))
   }
 
   const scanLibraryRoot = async (libraryID: string, root: LibraryRoot) => {
@@ -170,7 +194,7 @@ function useEditableLibraryRootActions(refresh: () => Promise<void>, drafts: Edi
     await refresh()
   }
 
-  return { saveLibraryRoot, scanLibraryRoot, toggleLibraryRoot, removeLibraryRoot }
+  return { saveLibraryRoot, scanLibraryRoot, toggleLibraryRoot, removeLibraryRoot, pathChange, confirmPathChange, closePathChange: () => setPathChange(null) }
 }
 
 function useLibraryActions(refresh: () => Promise<void>) {

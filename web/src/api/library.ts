@@ -66,6 +66,21 @@ export interface LibraryRootInput {
   path: string
   enabled?: boolean
   sort_order?: number
+  change_mode?: 'migrate' | 'replace'
+  preview_token?: string
+}
+
+export interface LibraryPathPreview {
+  old_path: string
+  new_path: string
+  change_mode: 'migrate' | 'replace'
+  total: number
+  matched: number
+  missing: number
+  conflicts: number
+  issues: Array<{ path: string; reason: string }>
+  can_apply: boolean
+  preview_token: string
 }
 
 export interface ManualScrapeCandidate {
@@ -193,7 +208,10 @@ export const libraryAPI = {
     api.post<LibraryRoot>(`/libraries/${id}/roots`, root).then((r) => r.data),
 
   updateRoot: (id: string, rootID: string, root: Partial<LibraryRootInput>) =>
-    api.patch<LibraryRoot>(`/libraries/${id}/roots/${rootID}`, root).then((r) => r.data),
+    api.patch<LibraryRoot>(`/libraries/${id}/roots/${rootID}`, root, { timeout: BATCH_REQUEST_TIMEOUT }).then((r) => r.data),
+
+  previewRootPath: (id: string, rootID: string, root: LibraryRootInput) =>
+    api.post<LibraryPathPreview>(`/libraries/${id}/roots/${rootID}/preview-path`, root, { timeout: BATCH_REQUEST_TIMEOUT }).then(r => r.data),
 
   removeRoot: (id: string, rootID: string) => api.delete(`/libraries/${id}/roots/${rootID}`).then((r) => r.data),
 

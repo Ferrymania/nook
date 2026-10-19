@@ -15,6 +15,8 @@ import (
 // RemovePath 移除磁盘上已不存在的媒体记录。普通的删除仍做物理删除；
 // 可确认是 STRM 扩展名改名的路径则先保留软删除墓碑，供后续 ingest 继承元数据。
 func (s *ScannerService) RemovePath(ctx context.Context, path string) (int64, error) {
+	s.repo.LibraryPaths.RLock()
+	defer s.repo.LibraryPaths.RUnlock()
 	if _, err := os.Stat(path); err == nil {
 		return 0, nil // still exists; nothing to remove
 	}

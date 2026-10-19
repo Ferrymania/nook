@@ -20,6 +20,8 @@ func (s *ScannerService) ScanLibrary(ctx context.Context, libraryID string) (*Sc
 }
 
 func (s *ScannerService) ScanLibraryRoot(ctx context.Context, libraryID, rootID string) (*ScanResult, error) {
+	s.repo.LibraryPaths.RLock()
+	defer s.repo.LibraryPaths.RUnlock()
 	lib, err := s.repo.Library.FindByID(ctx, libraryID)
 	if err != nil {
 		return nil, err
@@ -66,6 +68,8 @@ func (s *ScannerService) TryBeginLocalScan(libraryID string) (func(), bool) {
 }
 
 func (s *ScannerService) scanLibrary(ctx context.Context, libraryID string, autoScrape bool) (*ScanResult, error) {
+	s.repo.LibraryPaths.RLock()
+	defer s.repo.LibraryPaths.RUnlock()
 	lib, err := s.repo.Library.FindByID(ctx, libraryID)
 	if err != nil {
 		return nil, err
@@ -237,6 +241,8 @@ func (s *ScannerService) finishLocalLibraryScan(ctx context.Context, lib *model.
 // Non-video files and directories are ignored. Returns true if a media row was
 // added or updated.
 func (s *ScannerService) IngestPath(ctx context.Context, libraryID, path string) (bool, error) {
+	s.repo.LibraryPaths.RLock()
+	defer s.repo.LibraryPaths.RUnlock()
 	lib, err := s.repo.Library.FindByID(ctx, libraryID)
 	if err != nil {
 		return false, err
@@ -250,6 +256,11 @@ func (s *ScannerService) IngestPath(ctx context.Context, libraryID, path string)
 	}
 	if err := s.resolveLocalLibraryRootPath(ctx, lib, root); err != nil {
 		return false, err
+	}
+	// A debounced watcher event can outlive a root change. Never re-import
+	// an old directory through localLibraryRootForPath's compatibility fallback.
+	if !pathBelongsToRoot(path, root.Path) {
+		return false, nil
 	}
 	fi, err := os.Stat(path)
 	if err != nil || fi.IsDir() {

@@ -161,7 +161,7 @@ The most common Docker mistake is mixing host paths with container paths.
 
 - Left side of `volumes` = real host/NAS path
 - Right side = container path; use `/media/...` in the web UI
-- Keep `NOOK_MEDIA_DIR` / `NOOK_DOWNLOAD_DIR` aligned with mounts when organizing or ingesting downloads
+- Use matching container paths in the downloader and Nook, such as `/downloads`; extra path-mapping environment variables are normally unnecessary
 
 Example:
 
@@ -169,12 +169,13 @@ Example:
 volumes:
   - /vol1/1000/Media:/media
   - /vol1/1000/Downloads:/downloads
-environment:
-  NOOK_MEDIA_DIR: /vol1/1000/Media
-  NOOK_MEDIA_CONTAINER_DIR: /media
-  NOOK_DOWNLOAD_DIR: /vol1/1000/Downloads
-  NOOK_DOWNLOAD_CONTAINER_DIR: /downloads
 ```
+
+To change an existing library source, browse to the new path in library management and save. Choose **Migrate existing content** to validate relative paths and file sizes (STRM playback targets) and preserve IDs, metadata, favorites, and progress. Missing files or conflicts block saving; confirmation checks again and database failures roll back the entire update. This is not a full content-hash comparison.
+
+Choose **Use a new directory** for different content. Confirmation removes only that source's old index, favorites, progress, and related records, then scans the new directory. Other sources are unaffected. Neither option moves, copies, renames, or deletes actual files. Prepare files or Docker mounts first; wait for scans/scraping to finish before changing a path.
+
+Advanced compatibility overrides remain available when a downloader returns host paths: `NOOK_MEDIA_DIR` / `NOOK_MEDIA_CONTAINER_DIR` and `NOOK_DOWNLOAD_DIR` / `NOOK_DOWNLOAD_CONTAINER_DIR`. These translate legacy path prefixes; they do not create mounts or migrate indexed records.
 
 ---
 

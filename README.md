@@ -169,7 +169,7 @@ Docker 部署最常见的问题是路径填错。记住：
 
 - `volumes` **左侧**是宿主机真实路径，**右侧**是容器内路径
 - 网页后台添加媒体库时，应填写**容器内**路径（如 `/media/电影`）
-- 若使用自动整理/下载入库，`NOOK_MEDIA_DIR` 与 `NOOK_DOWNLOAD_DIR` 需与挂载一致
+- 下载器与 Nook 应使用一致的容器路径（如 `/downloads`），通常不需要额外的路径换算参数
 
 NAS 示例：
 
@@ -177,12 +177,16 @@ NAS 示例：
 volumes:
   - /vol1/1000/Media:/media
   - /vol1/1000/Downloads:/downloads
-environment:
-  NOOK_MEDIA_DIR: /vol1/1000/Media
-  NOOK_MEDIA_CONTAINER_DIR: /media
-  NOOK_DOWNLOAD_DIR: /vol1/1000/Downloads
-  NOOK_DOWNLOAD_CONTAINER_DIR: /downloads
 ```
+
+已有媒体库更换目录时，在「管理媒体库」中浏览新路径并保存，选择：
+
+- **迁移原有内容**：同一批文件换位置。先按相对路径和文件大小检查（STRM 核对播放地址），全部通过后更新索引，保留媒体 ID、刮削资料、收藏与观看进度。缺失、冲突或检查后目录发生变化时，阻止保存；数据库更新失败会整体回滚。
+- **改用新目录**：换成另一批内容。确认后只清除该来源的旧媒体索引、收藏、进度及关联记录，再扫描新目录；同库的其他来源不受影响。
+
+两种操作都不会移动、复制、重命名或删除实际文件。请先自行准备文件或调整 Docker 挂载，再修改 Nook 路径。正在扫描或刮削时请等待完成后操作。迁移检查不比较整个视频的内容哈希，无法识别同名同大小但内容不同的文件。
+
+高级兼容：如果下载器只能返回宿主机路径，仍可按需添加 `NOOK_MEDIA_DIR` / `NOOK_MEDIA_CONTAINER_DIR`、`NOOK_DOWNLOAD_DIR` / `NOOK_DOWNLOAD_CONTAINER_DIR` 作为旧路径前缀换算。它们不创建 Docker 挂载，也不替代上述目录迁移。
 
 ---
 
