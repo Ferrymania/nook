@@ -84,11 +84,6 @@ services:
       PUID: "1000"
       PGID: "1000"
 
-      # 程序基础配置，通常不用改。
-      NOOK_APP_HOST: 0.0.0.0
-      NOOK_APP_PORT: 8080
-      NOOK_APP_WEB_DIR: /app/web/dist
-      NOOK_APP_DATA_DIR: /data
       # 详细应用日志会保存在 ./data/logs/app.log，warn/error 也会拆分保存。
       # 排查复杂问题时可临时改成 debug。
       NOOK_LOGGING_LEVEL: info
