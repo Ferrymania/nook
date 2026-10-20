@@ -3109,10 +3109,15 @@ func (s *ReaderService) fetchChapterContentShared(ctx context.Context, book *mod
 	// 抓取与调用方的取消脱钩：另一个等待者不该因为第一个调用方断开而拿到取消错误。
 	fetchCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), tocFetchTimeout)
 	defer cancel()
-	out, err := s.getContentFrom(fetchCtx, src, bs, book, book.BookURL, ch.URL, book.Type)
-	if err == nil && out != nil {
-		// 缓存「书源侧产物」：书源 replaceRegex 之后、用户规则与代理改写之前。
-		s.saveCachedContent(fetchCtx, src, book, ch, out)
+	// 首次缓存检查与登记单飞之间，另一个请求可能已经写好缓存并结束。
+	// 登记后再次检查，避免持有过期 miss 的调用方重复抓源；等待者仍共享本次结果。
+	out, cacheHit := s.loadCachedContent(fetchCtx, src, bs, book, ch, "")
+	if !cacheHit {
+		out, err = s.getContentFrom(fetchCtx, src, bs, book, book.BookURL, ch.URL, book.Type)
+		if err == nil && out != nil {
+			// 缓存「书源侧产物」：书源 replaceRegex 之后、用户规则与代理改写之前。
+			s.saveCachedContent(fetchCtx, src, book, ch, out)
+		}
 	}
 	f.data, f.err = out, err
 	close(f.done)

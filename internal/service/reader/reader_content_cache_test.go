@@ -2,6 +2,7 @@ package reader
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +12,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"gorm.io/gorm"
 
 	"github.com/Ferrymania/nook/internal/model"
 )
@@ -89,10 +92,16 @@ const cacheTestBookInfoHTML = `<html><body>
 // prepareCacheTestBook 建好「书源 + 书架书籍 + 目录缓存」并打开独立缓存目录。
 func prepareCacheTestBook(t *testing.T) (*ReaderService, *cacheTestServer, *model.ReaderBook) {
 	t.Helper()
+	svc, srv, book, _ := prepareCacheTestBookWithDB(t)
+	return svc, srv, book
+}
+
+func prepareCacheTestBookWithDB(t *testing.T) (*ReaderService, *cacheTestServer, *model.ReaderBook, *gorm.DB) {
+	t.Helper()
 	srv := newCacheTestServer()
 	t.Cleanup(srv.Close)
 
-	svc, _ := newLoginTestService(t)
+	svc, repos := newLoginTestService(t)
 	svc.cfg.Cache.CacheDir = t.TempDir()
 	svc.cfg.Cache.ReaderContentTTLHours = 168
 	srcID := importTestSource(t, svc, cacheTestSourceJSON(srv.URL), srv.URL)
@@ -115,7 +124,7 @@ func prepareCacheTestBook(t *testing.T) (*ReaderService, *cacheTestServer, *mode
 	if err := svc.SaveChapters(ctx, book.ID, chapters); err != nil {
 		t.Fatalf("保存目录失败: %v", err)
 	}
-	return svc, srv, book
+	return svc, srv, book, repos.DB
 }
 
 // 第一次读取抓源并写缓存；第二次直接命中持久缓存，不再访问书源。
@@ -220,6 +229,89 @@ func TestContentCacheSingleFlight(t *testing.T) {
 	}
 	if got := srv.count(1); got != 1 {
 		t.Fatalf("同一章并发应单飞为 1 次书源请求，实际 %d 次", got)
+	}
+}
+
+// A cache miss may become stale before the caller registers its shared fetch.
+// Hold that caller after its database read, finish another caller's fetch, then
+// resume it: both must receive the chapter with only one book-source request.
+func TestContentCacheSingleFlightRechecksStaleMiss(t *testing.T) {
+	svc, srv, book, db := prepareCacheTestBookWithDB(t)
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	type delayedRequestKey struct{}
+	delayedCtx := context.WithValue(ctx, delayedRequestKey{}, true)
+	missed := make(chan struct{})
+	resume := make(chan struct{})
+	var resumeOnce, pauseOnce sync.Once
+	release := func() { resumeOnce.Do(func() { close(resume) }) }
+
+	// Pause an actual cache-index miss without adding scheduling hooks to the
+	// production code. Other requests use the same database and local HTTP source.
+	if err := db.Callback().Query().After("gorm:query").Register("test:delay_content_cache_miss", func(tx *gorm.DB) {
+		if tx.Statement.Table != "reader_content_caches" ||
+			tx.Statement.Context.Value(delayedRequestKey{}) != true ||
+			!errors.Is(tx.Error, gorm.ErrRecordNotFound) {
+			return
+		}
+		pauseOnce.Do(func() {
+			close(missed)
+			select {
+			case <-resume:
+			case <-ctx.Done():
+			}
+		})
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	type result struct {
+		content *ChapterContent
+		err     error
+	}
+	delayed := make(chan result, 1)
+	delayedDone := make(chan struct{})
+	defer func() {
+		release()
+		select {
+		case <-delayedDone:
+		case <-time.After(10 * time.Second):
+			t.Error("delayed request did not stop before test cleanup")
+		}
+	}()
+	go func() {
+		defer close(delayedDone)
+		content, err := svc.GetContentForBook(delayedCtx, "u1", book.ID, 0)
+		delayed <- result{content, err}
+	}()
+
+	select {
+	case <-missed:
+	case <-ctx.Done():
+		t.Fatal("delayed request never reached the cache miss")
+	}
+	first, err := svc.GetContentForBook(ctx, "u1", book.ID, 0)
+	if err != nil {
+		t.Fatalf("first completed request: %v", err)
+	}
+	if first == nil || !strings.Contains(first.Content, "第1章的正文内容。") || srv.count(1) != 1 {
+		t.Fatalf("first request did not populate the chapter cache: content=%+v requests=%d", first, srv.count(1))
+	}
+
+	release()
+	select {
+	case second := <-delayed:
+		if second.err != nil || second.content == nil || second.content.Content != first.Content {
+			t.Fatalf("delayed request: content=%+v err=%v", second.content, second.err)
+		}
+		if second.content == first {
+			t.Fatal("callers must receive independent chapter content")
+		}
+	case <-ctx.Done():
+		t.Fatal("delayed request did not complete")
+	}
+	if got := srv.count(1); got != 1 {
+		t.Fatalf("stale cache miss fetched the same chapter again: got %d source requests, want 1", got)
 	}
 }
 
