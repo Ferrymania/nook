@@ -3,10 +3,11 @@ name: Build & Publish
 # 版本策略（version 分支托管，main 零污染）：
 # - VERSION 文件单独存放在 version 分支，CI 构建时读取并自增写回 version 分支，
 #   main 分支不再出现任何 CI 提交，本地推送永不与远程冲突。
-# - push 到 main：版本号自动 patch+1，发布 latest + 版本镜像、GitHub Release、
+# - push 到 main：先通过完整 CI，再自动 patch+1，发布 latest + 版本镜像、GitHub Release、
 #   多平台单文件二进制。服务器部署单独进行。
-# - push tag v*：正式发版，版本号取 tag 名（不 bump version 分支），其余同上。
-# - 手动触发：版本号在 version 分支当前值上自增，等同 push main 全量发布。
+# - push tag v* / 手动触发：同样先通过 CI，失败时不递增版本、不推送任何产物。
+# - 所有步骤固定使用 github.sha，测试与发布始终对应同一个提交。
+# - tag 版本号取 tag 名；其他事件读取 version 分支并自增。
 # 查看当前版本号：git show origin/version:VERSION
 on:
   push:
@@ -24,13 +25,22 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  verify:
+    name: CI
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
   build-image:
+    needs: [verify]
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
       release_tag: ${{ steps.version.outputs.release_tag }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
 
       # 1. 解析版本号：tag 触发取 tag 名（去掉 v 前缀）；其余场景读 version 分支并 patch+1
       - name: Resolve version
@@ -117,6 +127,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
@@ -145,6 +157,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.sha }}
           fetch-depth: 0  # changelog 需要上一个发布标签及完整提交历史
       - name: Generate changelog
         env:
@@ -196,6 +209,8 @@ jobs:
             ext: ""
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
       - uses: actions/setup-go@v5
         with:
           go-version: '1.26'

@@ -6,6 +6,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -191,27 +192,37 @@ func (s *MediaSegmentService) refresh(ctx context.Context, m *model.Media) ([]mo
 }
 
 type segmentRefreshOutcome struct {
-	rows      []model.MediaSegment
-	attempted bool
+	rows          []model.MediaSegment
+	attempted     bool
+	callerExpired bool
 }
 
 func (s *MediaSegmentService) refreshWithTrigger(ctx context.Context, m *model.Media, trigger string) ([]model.MediaSegment, bool, error) {
 	if m == nil || m.ID == "" {
 		return nil, false, nil
 	}
-	if err := ctx.Err(); err != nil {
-		return nil, false, err
-	}
-	result := s.refreshFlight.DoChan(m.ID, func() (any, error) {
-		rows, attempted, err := s.refreshOnce(ctx, m, trigger)
-		return segmentRefreshOutcome{rows: rows, attempted: attempted}, err
-	})
-	select {
-	case <-ctx.Done():
-		return nil, false, ctx.Err()
-	case outcome := <-result:
-		value := outcome.Val.(segmentRefreshOutcome)
-		return value.rows, value.attempted, outcome.Err
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil, false, err
+		}
+		result := s.refreshFlight.DoChan(m.ID, func() (any, error) {
+			rows, attempted, err := s.refreshOnce(ctx, m, trigger)
+			return segmentRefreshOutcome{rows: rows, attempted: attempted, callerExpired: ctx.Err() != nil}, err
+		})
+		select {
+		case <-ctx.Done():
+			return nil, false, ctx.Err()
+		case outcome := <-result:
+			value := outcome.Val.(segmentRefreshOutcome)
+			// A previous caller may still be recording its timeout when a new
+			// request joins. Wait for that flight to finish, then let a caller
+			// with time remaining start/share a fresh lookup with its own budget.
+			// Provider timeouts and other failures do not trigger extra retries.
+			if value.callerExpired && (errors.Is(outcome.Err, context.DeadlineExceeded) || errors.Is(outcome.Err, context.Canceled)) {
+				continue
+			}
+			return value.rows, value.attempted, outcome.Err
+		}
 	}
 }
 

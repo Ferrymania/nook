@@ -5,12 +5,115 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/Ferrymania/nook/internal/model"
+	"gorm.io/gorm"
 )
+
+// Observe when the follower is waiting for the shared lookup, rather than
+// depending on sleeps or on how quickly PostgreSQL finishes a failed task.
+type segmentWaitContext struct {
+	context.Context
+	waiting chan struct{}
+	once    sync.Once
+}
+
+func (c *segmentWaitContext) Done() <-chan struct{} {
+	c.once.Do(func() { close(c.waiting) })
+	return c.Context.Done()
+}
+
+func TestSegmentQueueRetriesAfterSharedCallerDeadline(t *testing.T) {
+	s, repos, calls := newSegmentServiceFixture(t, writeJSONBody(introDBMoviePayload))
+	var requests atomic.Int32
+	s.introdb.client.Transport = roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		if requests.Add(1) == 1 {
+			<-r.Context().Done()
+			return nil, r.Context().Err()
+		}
+		return http.DefaultTransport.RoundTrip(r)
+	})
+	m := &model.Media{Title: "超时后重试", Path: "/never-read.strm", TMDbID: 27205}
+	if err := repos.DB.Create(m).Error; err != nil {
+		t.Fatal(err)
+	}
+	failing, release := make(chan struct{}), make(chan struct{})
+	var releaseOnce sync.Once
+	unblock := func() { releaseOnce.Do(func() { close(release) }) }
+	t.Cleanup(unblock)
+	if err := repos.DB.Callback().Update().Before("gorm:update").Register("hold_failed_segment_task", func(tx *gorm.DB) {
+		if tx.Statement.Table == "media_segment_tasks" {
+			if task, ok := tx.Statement.Dest.(*model.MediaSegmentTask); ok && task.Status == model.SegmentTaskFailed {
+				close(failing)
+				<-release
+			}
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	budgeted, cancel := context.WithTimeout(t.Context(), 200*time.Millisecond)
+	defer cancel()
+	if rows, err := s.ListForPlayback(budgeted, m); err != nil || len(rows) != 0 {
+		t.Fatalf("expired playback rows=%+v err=%v", rows, err)
+	}
+	select {
+	case <-failing:
+	case <-time.After(3 * time.Second):
+		t.Fatal("timed-out lookup did not reach task completion")
+	}
+	follower := &segmentWaitContext{Context: t.Context(), waiting: make(chan struct{})}
+	finished := make(chan error, 1)
+	go func() {
+		rows, attempted, err := s.refreshWithTrigger(follower, m, "manual")
+		if err == nil && (!attempted || len(rows) != 1) {
+			err = errors.New("valid follower did not fetch timestamps")
+		}
+		finished <- err
+	}()
+	select {
+	case <-follower.waiting:
+	case <-time.After(3 * time.Second):
+		t.Fatal("follower did not join the lookup")
+	}
+	unblock()
+	select {
+	case err := <-finished:
+		if err != nil {
+			t.Fatalf("retry inherited the previous caller's deadline: %v", err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("retry did not finish")
+	}
+	queue, err := repos.SegmentTask.List(t.Context(), "all", "", 1, 50)
+	if err != nil || requests.Load() != 2 || atomic.LoadInt32(calls) != 1 || queue.Total != 2 || queue.Counts[model.SegmentTaskFailed] != 1 || queue.Counts[model.SegmentTaskFound] != 1 {
+		t.Fatalf("retry history=%+v err=%v requests=%d", queue, err, requests.Load())
+	}
+}
+
+func TestSegmentQueueDoesNotRetryProviderTimeout(t *testing.T) {
+	s, repos, _ := newSegmentServiceFixture(t, writeJSONBody(introDBMoviePayload))
+	var requests atomic.Int32
+	s.introdb.client.Transport = roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		requests.Add(1)
+		return nil, context.DeadlineExceeded
+	})
+	m := &model.Media{Title: "上游超时", Path: "/never-read.strm", TMDbID: 27205}
+	if err := repos.DB.Create(m).Error; err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	defer cancel()
+	if _, _, err := s.refreshWithTrigger(ctx, m, "manual"); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("timeout=%v", err)
+	}
+	if requests.Load() != 1 {
+		t.Fatalf("provider timeout retried %d times", requests.Load())
+	}
+}
 
 func TestSegmentQueueRecordsLookupsButNotCacheHits(t *testing.T) {
 	var status atomic.Int32
