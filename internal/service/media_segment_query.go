@@ -23,6 +23,14 @@ type MediaSegmentQueryResult struct {
 // QueryForMedia explicitly refreshes this media's provider data, even if its
 // playback cache is fresh. It only reads metadata and TheIntroDB's public API.
 func (s *MediaSegmentService) QueryForMedia(ctx context.Context, m *model.Media) (*MediaSegmentQueryResult, error) {
+	return s.queryForMedia(ctx, m, "manual")
+}
+
+func (s *MediaSegmentService) RetryForMedia(ctx context.Context, m *model.Media) (*MediaSegmentQueryResult, error) {
+	return s.queryForMedia(ctx, m, "retry")
+}
+
+func (s *MediaSegmentService) queryForMedia(ctx context.Context, m *model.Media, trigger string) (*MediaSegmentQueryResult, error) {
 	if s == nil || s.repo == nil || s.introdb == nil {
 		return nil, ErrSegmentQueryUnavailable
 	}
@@ -40,7 +48,7 @@ func (s *MediaSegmentService) QueryForMedia(ctx context.Context, m *model.Media)
 	result := s.manualQueryFlight.DoChan(m.ID, func() (any, error) {
 		fetchCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), introDBTimeout+2*time.Second)
 		defer cancel()
-		rows, attempted, err := s.refresh(fetchCtx, m)
+		rows, attempted, err := s.refreshWithTrigger(fetchCtx, m, trigger)
 		if err != nil {
 			return nil, err
 		}

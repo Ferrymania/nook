@@ -35,6 +35,9 @@ func AutoMigrateWithConfig(db *gorm.DB, cfg *config.Config, log *zap.Logger) err
 	if err := db.AutoMigrate(model.AllModels()...); err != nil {
 		return err
 	}
+	if err := backfillSegmentTasks(db); err != nil {
+		return err
+	}
 	if err := backfillLegacyEpisodeStills(db, legacyEpisodeArtwork); err != nil {
 		return err
 	}

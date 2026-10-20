@@ -23,6 +23,7 @@ type Container struct {
 	Series         *SeriesRepository
 	History        *HistoryRepository
 	MediaSegment   *MediaSegmentRepository
+	SegmentTask    *MediaSegmentTaskRepository
 	MediaProbe     *MediaProbeRepository
 	Favorite       *FavoriteRepository
 	Playlist       *PlaylistRepository
@@ -56,6 +57,7 @@ func New(db *gorm.DB) *Container {
 		Series:         &SeriesRepository{db: db},
 		History:        &HistoryRepository{db: db},
 		MediaSegment:   &MediaSegmentRepository{db: db},
+		SegmentTask:    &MediaSegmentTaskRepository{db: db},
 		MediaProbe:     &MediaProbeRepository{db: db},
 		Favorite:       &FavoriteRepository{db: db},
 		Playlist:       &PlaylistRepository{db: db},

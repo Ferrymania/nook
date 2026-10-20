@@ -22,6 +22,7 @@ func registerAdminRoutes(api *gin.RouterGroup, cfg *config.Config, svc *service.
 	registerAdminRecognitionWordRoutes(admin, svc)
 	registerAdminStrmRoutes(admin, svc)
 	registerAdminScraperRoutes(admin, svc)
+	registerAdminSegmentRoutes(admin, svc)
 	registerAdminDatabaseRoutes(admin, svc)
 
 	// FFmpeg/FFprobe 工具：状态查询 + 一键下载安装（自动匹配当前平台）。

@@ -1,24 +1,27 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Download, Sparkles, Upload } from 'lucide-react'
+import { Download, ListVideo, Sparkles, Upload } from 'lucide-react'
 import clsx from 'clsx'
 
 import type { ScrapeQueueCounts } from '../types/scraper'
 import type { StrmQueueCounts } from '../types/strm'
 import { ScraperQueuePage } from './ScraperQueuePage'
 import { StrmQueuePanel } from './StrmQueuePage'
+import { SegmentQueuePage } from './SegmentQueuePage'
+import type { SegmentTaskCounts } from '../api/segments'
 
-type QueueType = 'scrape' | 'download' | 'upload'
+type QueueType = 'scrape' | 'download' | 'upload' | 'segments'
 const QUEUE_TYPE_STORAGE_KEY = 'nook_task_queue_type'
 
 const QUEUE_TABS: { type: QueueType; label: string; icon: typeof Sparkles }[] = [
   { type: 'scrape', label: '刮削队列', icon: Sparkles },
   { type: 'download', label: '下载队列', icon: Download },
   { type: 'upload', label: '上传队列', icon: Upload },
+  { type: 'segments', label: '片头片尾', icon: ListVideo },
 ]
 
 function isQueueType(raw: string | null): raw is QueueType {
-  return raw === 'scrape' || raw === 'download' || raw === 'upload'
+  return raw === 'scrape' || raw === 'download' || raw === 'upload' || raw === 'segments'
 }
 
 function preferredQueueType(): QueueType {
@@ -32,7 +35,7 @@ function preferredQueueType(): QueueType {
 }
 
 /**
- * 任务队列：整合刮削 / 下载 / 上传 三类队列的统一入口，按类型 Tab 区分。
+ * 任务队列：整合刮削 / 下载 / 上传 / 片头片尾，按类型 Tab 区分。
  * 只挂载当前队列，复用其统计和轮询；有效链接优先，否则恢复上次类型。
  */
 export function TaskQueuePage() {
@@ -58,8 +61,9 @@ export function TaskQueuePage() {
   const [scrapeCounts, setScrapeCounts] = useState<ScrapeQueueCounts | null>(null)
   const [downloadCounts, setDownloadCounts] = useState<StrmQueueCounts | null>(null)
   const [uploadCounts, setUploadCounts] = useState<StrmQueueCounts | null>(null)
+  const [segmentCounts, setSegmentCounts] = useState<SegmentTaskCounts | null>(null)
 
-  const countBadge = (counts: ScrapeQueueCounts | StrmQueueCounts | null) => {
+  const countBadge = (counts: ScrapeQueueCounts | StrmQueueCounts | SegmentTaskCounts | null) => {
     if (!counts) return null
     const total = Object.values(counts).reduce((a, b) => a + (b || 0), 0)
     return <span className="tab-count">{total}</span>
@@ -78,7 +82,7 @@ export function TaskQueuePage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl font-bold text-ink-600">任务队列</h1>
-          <p className="mt-0.5 text-sm text-ink-50">刮削 / 下载 / 上传三类任务统一管理，按类型切换查看</p>
+          <p className="mt-0.5 text-sm text-ink-50">刮削 / 下载 / 上传 / 片头片尾任务统一管理，按类型切换查看</p>
         </div>
       </div>
 
@@ -94,7 +98,7 @@ export function TaskQueuePage() {
                 ? countBadge(downloadCounts)
                 : tab.type === 'upload'
                   ? countBadge(uploadCounts)
-                  : null
+                  : countBadge(segmentCounts)
           return (
             <button
               key={tab.type}
@@ -116,6 +120,7 @@ export function TaskQueuePage() {
       {type === 'scrape' && <ScraperQueuePage embedded onCountsChange={setScrapeCounts} />}
       {type === 'download' && <StrmQueuePanel kind="download" embedded onCountsChange={setDownloadCounts} />}
       {type === 'upload' && <StrmQueuePanel kind="upload" embedded onCountsChange={setUploadCounts} />}
+      {type === 'segments' && <SegmentQueuePage onCountsChange={setSegmentCounts} />}
     </div>
   )
 }
