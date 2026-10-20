@@ -1,5 +1,7 @@
 package service
 
+import "context"
+
 type ScrapeOptions struct {
 	RetryNoMatch        bool
 	IncludeMatched      bool
@@ -14,6 +16,21 @@ type ScrapeOptions struct {
 
 func (o ScrapeOptions) episodeArtworkEnabled() bool {
 	return o.EpisodeArtwork == nil || *o.EpisodeArtwork
+}
+
+// Resolve omitted options once when a task is queued. An explicit false must
+// survive persistence, and later settings changes must not alter queued work.
+func (s *ScraperService) queuedScrapeOptions(ctx context.Context, options ScrapeOptions) (ScrapeOptions, error) {
+	if options.EpisodeArtwork != nil {
+		return options, nil
+	}
+	value, err := s.repo.Setting.Get(ctx, "scrape.episode_images")
+	if err != nil {
+		return options, err
+	}
+	enabled := parseBoolSetting(value, false)
+	options.EpisodeArtwork = &enabled
+	return options, nil
 }
 
 func skipEpisodeArtworkOptions(retryNoMatch bool) ScrapeOptions {

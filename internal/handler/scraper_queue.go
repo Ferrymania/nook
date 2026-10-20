@@ -134,28 +134,15 @@ func cancelPendingScrapeTasksHandler(svc *service.Container) gin.HandlerFunc {
 	}
 }
 
-type enqueueScrapeReq struct {
-	EpisodeImages  bool `json:"episode_images"`
-	EpisodeArtwork bool `json:"episode_artwork"`
-	RefreshMatched bool `json:"refresh_matched"`
-	IncludeMatched bool `json:"include_matched"`
-}
-
-func (r enqueueScrapeReq) toOptions() service.ScrapeOptions {
-	epArtwork := r.EpisodeImages || r.EpisodeArtwork
-	return service.ScrapeOptions{
-		EpisodeArtwork: &epArtwork,
-		IncludeMatched: r.IncludeMatched || r.RefreshMatched,
-		RetryNoMatch:   true,
-	}
-}
-
 func enqueueLibraryScrapeHandler(svc *service.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var req enqueueScrapeReq
-		_ = c.ShouldBindJSON(&req)
+		options, err := scrapeOptionsFromRequest(c, true)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid scrape options"})
+			return
+		}
 		libID := c.Param("id")
-		n, err := svc.Scraper.EnqueueLibrary(c.Request.Context(), libID, req.toOptions())
+		n, err := svc.Scraper.EnqueueLibrary(c.Request.Context(), libID, options)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -166,9 +153,12 @@ func enqueueLibraryScrapeHandler(svc *service.Container) gin.HandlerFunc {
 
 func enqueueAllScrapeHandler(svc *service.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var req enqueueScrapeReq
-		_ = c.ShouldBindJSON(&req)
-		n, err := svc.Scraper.EnqueueAll(c.Request.Context(), req.toOptions())
+		options, err := scrapeOptionsFromRequest(c, true)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid scrape options"})
+			return
+		}
+		n, err := svc.Scraper.EnqueueAll(c.Request.Context(), options)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

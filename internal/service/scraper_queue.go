@@ -189,6 +189,10 @@ func (s *ScraperService) EnqueueMedia(ctx context.Context, mediaID string, optio
 	if active, _ := s.repo.ScrapeTask.FindActiveByMediaID(ctx, mediaID); active != nil {
 		return active, nil
 	}
+	options, err = s.queuedScrapeOptions(ctx, options)
+	if err != nil {
+		return nil, err
+	}
 
 	libName := ""
 	var lib *model.Library
@@ -226,6 +230,10 @@ func (s *ScraperService) EnqueueLibrary(ctx context.Context, libraryID string, o
 	lib, err := s.repo.Library.FindByID(ctx, libraryID)
 	if err != nil || lib == nil {
 		return 0, errors.New("library not found")
+	}
+	options, err = s.queuedScrapeOptions(ctx, options)
+	if err != nil {
+		return 0, err
 	}
 
 	rows, err := s.scrapeCandidateRows(ctx, libraryID, options)
@@ -273,6 +281,13 @@ func (s *ScraperService) EnqueueLibrary(ctx context.Context, libraryID string, o
 
 // EnqueueAll 把所有已启用媒体库的媒体推入刮削队列。
 func (s *ScraperService) EnqueueAll(ctx context.Context, options ScrapeOptions) (int, error) {
+	if s == nil || s.repo == nil {
+		return 0, errors.New("scraper service not initialized")
+	}
+	options, err := s.queuedScrapeOptions(ctx, options)
+	if err != nil {
+		return 0, err
+	}
 	libs, err := s.repo.Library.List(ctx)
 	if err != nil {
 		return 0, err

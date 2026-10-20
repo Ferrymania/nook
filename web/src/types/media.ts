@@ -22,6 +22,7 @@ export interface Media {
   container?: string
   poster_url?: string
   backdrop_url?: string
+  episode_still_url?: string
   overview?: string
   rating: number
   year: number

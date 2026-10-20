@@ -1,8 +1,10 @@
 import { isRemoteEmbyID } from '../utils/remoteEmby'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Database, FileText, Film, FolderInput, Pencil, Play, Search, Sparkles, Trash2 } from 'lucide-react'
+import { ArrowLeft, Database, FileText, FolderInput, Pencil, Play, Search, Sparkles, Trash2 } from 'lucide-react'
 
 import { ARTWORK, imageURL } from '../api/client'
+import { ArtworkImage } from '../components/ArtworkImage'
+import { artworkSources } from '../utils/artworkSources'
 import { ExternalPlayerButton } from '../components/ExternalPlayerButton'
 import { MediaFavouriteButton } from '../components/MediaFavouriteButton'
 import type { Media } from '../types'
@@ -69,20 +71,15 @@ export function LibrarySeriesDetailHeader({
 
       <div className="flex flex-col gap-6 sm:flex-row">
         <div className="w-40 shrink-0 overflow-hidden rounded-xl bg-sand-200 shadow-card">
-          {series.rep.poster_url ? (
-            <img
-              src={imageURL(series.rep.poster_url, series.rep.updated_at, ARTWORK.posterDetail)}
-              alt={series.rep.title}
-              loading="lazy"
-              decoding="async"
-              className="aspect-[2/3] w-full object-cover"
-              referrerPolicy="no-referrer"
-            />
-          ) : (
-            <div className="flex aspect-[2/3] items-center justify-center text-gray-500">
-              <Film size={40} />
-            </div>
-          )}
+          <ArtworkImage
+            sources={artworkSources(series.rep, 'poster').map(source => imageURL(source, series.rep.updated_at, ARTWORK.posterDetail))}
+            alt={series.rep.title}
+            loading="lazy"
+            decoding="async"
+            className="aspect-[2/3] w-full object-cover"
+            fallbackClassName="aspect-[2/3] w-full"
+            referrerPolicy="no-referrer"
+          />
         </div>
         <div className="flex-1 space-y-3">
           <p className="text-sm leading-relaxed text-ink-50">

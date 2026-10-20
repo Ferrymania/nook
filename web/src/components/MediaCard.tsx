@@ -1,8 +1,10 @@
 import { memo, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { Film, Play, Layers, Star } from 'lucide-react'
+import { Play, Layers, Star } from 'lucide-react'
 import { ARTWORK, imageURL } from '../api/client'
 import type { Media } from '../types'
+import { ArtworkImage } from './ArtworkImage'
+import { artworkSources } from '../utils/artworkSources'
 
 const ACTION_OVERLAY_CLASS =
   'absolute right-2 top-2 z-20 flex flex-wrap justify-end gap-1 opacity-100 transition-opacity sm:pointer-events-none sm:opacity-0 sm:group-hover:pointer-events-auto sm:group-hover:opacity-100 sm:focus-within:pointer-events-auto sm:focus-within:opacity-100'
@@ -27,7 +29,7 @@ export const MediaCard = memo(function MediaCard({
   const href = linkTo ?? `/media/${media.id}`
   const [posterFit, setPosterFit] = useState<'cover' | 'contain'>('cover')
   // 固定档位而不是在调用点拼尺寸：紧凑布局与普通卡片共用同一份缩略图缓存。
-  const posterSrc = imageURL(media.poster_url, media.updated_at, ARTWORK.posterCard)
+  const posterSources = artworkSources(media, 'poster').map(source => imageURL(source, media.updated_at, ARTWORK.posterCard))
   const blurredPosterSrc = imageURL(media.poster_url, media.updated_at, ARTWORK.posterTiny)
   const displayRating = rating ?? media.rating
   const versionCount = media.versions?.length ?? 0
@@ -41,20 +43,14 @@ export const MediaCard = memo(function MediaCard({
   const card = (
     <div ref={ref} className={`nook-media-card ${compact ? 'nook-media-card-compact' : ''}`}>
       <div className="nook-media-card-artwork">
-        {media.poster_url ? (
-          <>
-            {posterFit === 'contain' && <img src={blurredPosterSrc} alt="" aria-hidden="true" loading="lazy"
-              className="absolute inset-0 h-full w-full scale-110 object-cover object-center opacity-25 blur-xl" referrerPolicy="no-referrer" />}
-            <img src={posterSrc} alt={media.title} loading="lazy" decoding="async" referrerPolicy="no-referrer"
-              onLoad={(event) => {
-                const image = event.currentTarget
-                setPosterFit(image.naturalWidth > image.naturalHeight ? 'contain' : 'cover')
-              }}
-              className={`nook-media-card-image ${posterFit === 'contain' ? 'object-contain p-1.5' : 'object-cover'}`} />
-          </>
-        ) : (
-          <div className="nook-artwork-fallback"><Film size={28} /><span>无海报</span></div>
-        )}
+        {posterFit === 'contain' && <img src={blurredPosterSrc} alt="" aria-hidden="true" loading="lazy"
+          className="absolute inset-0 h-full w-full scale-110 object-cover object-center opacity-25 blur-xl" referrerPolicy="no-referrer" />}
+        <ArtworkImage sources={posterSources} alt={media.title} loading="lazy" decoding="async" referrerPolicy="no-referrer"
+          onLoad={(event) => {
+            const image = event.currentTarget
+            setPosterFit(image.naturalWidth > image.naturalHeight ? 'contain' : 'cover')
+          }}
+          className={`nook-media-card-image ${posterFit === 'contain' ? 'object-contain p-1.5' : 'object-cover'}`} fallbackClassName="nook-artwork-fallback" />
         <div className="nook-media-card-hover" aria-hidden="true">
           <span className="nook-media-play"><Play size={20} fill="currentColor" /></span>
           {!compact && <p>{media.overview || '暂无简介内容'}</p>}

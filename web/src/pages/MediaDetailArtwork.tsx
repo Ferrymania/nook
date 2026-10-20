@@ -1,8 +1,10 @@
 import { motion } from 'framer-motion'
-import { FileText, Play } from 'lucide-react'
+import { Play } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { ARTWORK, imageURL } from '../api/client'
+import { ArtworkImage } from '../components/ArtworkImage'
+import { artworkSources } from '../utils/artworkSources'
 import type { Media } from '../types'
 
 type MediaDetailArtworkProps = {
@@ -28,21 +30,16 @@ export function MediaDetailPoster({ media }: MediaDetailArtworkProps) {
         whileHover={{ scale: 1.02 }}
         className="aspect-[2/3] w-full rounded-lg overflow-hidden bg-[var(--app-panel-soft)] relative group"
       >
-        {media.poster_url ? (
-          <img
-            src={imageURL(media.poster_url, media.updated_at, ARTWORK.posterDetail)}
-            alt={media.title}
-            decoding="async"
-            fetchPriority="high"
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            referrerPolicy="no-referrer"
-          />
-        ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-gray-500 bg-gray-50">
-            <FileText size={40} className="stroke-[1]" />
-            <span className="text-xs uppercase tracking-wider font-bold">无海报</span>
-          </div>
-        )}
+        <ArtworkImage
+          sources={artworkSources(media, 'poster').map(source => imageURL(source, media.updated_at, ARTWORK.posterDetail))}
+          alt={media.title}
+          decoding="async"
+          loading="eager"
+          fetchPriority="high"
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          fallbackClassName="h-full w-full"
+          referrerPolicy="no-referrer"
+        />
 
         <Link
           to={`/play/${media.id}`}
