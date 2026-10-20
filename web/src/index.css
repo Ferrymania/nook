@@ -402,6 +402,53 @@ body {
   .warm-divider { @apply divider; }
 }
 
+/* GitHub release notes, scoped to the About panel. */
+.release-notes > * + * { margin-top: 0.75rem; }
+.release-notes :is(h1, h2, h3, h4, h5, h6) {
+  margin-top: 1.25rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--app-text);
+}
+.release-notes h1 { font-size: 1.25rem; }
+.release-notes h2 { font-size: 1.125rem; }
+.release-notes h3 { font-size: 1rem; }
+.release-notes > :first-child { margin-top: 0; }
+.release-notes :is(ul, ol) { padding-left: 1.5rem; }
+.release-notes ul { list-style: disc; }
+.release-notes ol { list-style: decimal; }
+.release-notes li + li,
+.release-notes li > :is(p, ul, ol) { margin-top: 0.25rem; }
+.release-notes a { color: var(--app-brand-text); text-decoration: underline; text-underline-offset: 2px; }
+.release-notes a:hover { text-decoration-thickness: 2px; }
+.release-notes blockquote {
+  border-left: 3px solid var(--app-border);
+  padding-left: 1rem;
+  color: var(--app-muted);
+}
+.release-notes code {
+  border-radius: 0.25rem;
+  background: var(--app-panel-soft);
+  padding: 0.125rem 0.25rem;
+  font-size: 0.875em;
+}
+.release-notes pre {
+  overflow-x: auto;
+  border: 1px solid var(--app-border);
+  border-radius: 0.5rem;
+  background: var(--app-panel-soft);
+  padding: 0.75rem;
+  line-height: 1.7;
+}
+.release-notes pre code { background: none; padding: 0; }
+.release-notes table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; }
+.release-notes :is(th, td) { border: 1px solid var(--app-border); padding: 0.25rem 0.75rem; }
+.release-notes th { background: var(--app-panel-soft); font-weight: 600; }
+.release-notes hr { border-color: var(--app-border); }
+.release-notes img { max-width: 100%; height: auto; }
+.release-notes .contains-task-list { list-style: none; }
+.release-notes .task-list-item > input { margin-right: 0.5rem; }
+
 .episode-artwork-toggle {
   background-color: var(--app-panel);
   border-color: var(--app-border);

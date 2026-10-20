@@ -3,6 +3,7 @@ import { AlertCircle, ArrowUpCircle, Check, CheckCircle2, Copy, ExternalLink, Lo
 import toast from 'react-hot-toast'
 
 import { systemAPI, type ReleaseCheckStatus } from '../api/system'
+import { ReleaseNotes } from '../components/ReleaseNotes'
 import { formatAppVersion } from '../utils/formatAppVersion'
 
 const RELEASES_URL = 'https://github.com/Ferrymania/nook/releases'
@@ -99,10 +100,12 @@ export function VersionUpdatePanel() {
         )}
       </div>
 
-      {result?.release_notes && !error && (
+      {available && result?.release_notes && (
         <details className="rounded-xl border border-[var(--app-border)] px-4 py-3" open={available || undefined}>
-          <summary className="cursor-pointer text-sm font-semibold text-ink-600">更新说明</summary>
-          <div className="mt-3 max-h-64 overflow-y-auto whitespace-pre-wrap break-words text-sm leading-7 text-[var(--app-subtle)]">{result.release_notes}</div>
+          <summary className="cursor-pointer text-sm font-semibold text-ink-600">
+            最新正式版{result.latest_version && ` ${formatAppVersion(result.latest_version)}`} 更新说明
+          </summary>
+          <ReleaseNotes>{result.release_notes}</ReleaseNotes>
         </details>
       )}
 
