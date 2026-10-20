@@ -344,7 +344,7 @@ type rankedMediaRow struct {
 	MmtlRN int `gorm:"column:nook_rn"`
 }
 
-// ListRecentByLibraries returns up to perLibrary recent items for each library
+// ListRecentByLibraries returns up to perLibrary recently added items for each library
 // in a single query using a window function (avoids N+1 on home preview).
 func (r *MediaRepository) ListRecentByLibraries(ctx context.Context, libraryIDs []string, perLibrary int, filter MediaQueryFilter) (map[string][]model.Media, error) {
 	out := make(map[string][]model.Media, len(libraryIDs))
@@ -372,12 +372,13 @@ func (r *MediaRepository) ListRecentByLibraries(ctx context.Context, libraryIDs 
 		SELECT * FROM (
 			SELECT *, ROW_NUMBER() OVER (
 				PARTITION BY library_id
-				ORDER BY release_date DESC, year DESC, updated_at DESC, created_at DESC, id DESC
+				ORDER BY created_at DESC, id DESC
 			) AS nook_rn
 			FROM media
 			WHERE %s
 		) ranked
 		WHERE nook_rn <= ?
+		ORDER BY library_id, nook_rn
 	`, where)
 
 	var rows []rankedMediaRow

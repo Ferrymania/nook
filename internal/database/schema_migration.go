@@ -359,7 +359,7 @@ WHERE table_schema = current_schema() AND table_name = ? AND column_name = ?
 
 func ensurePerformanceIndexes(db *gorm.DB) error {
 	statements := []string{
-		// 完整多级排序索引：媒体库分页与首页预览的 ORDER BY
+		// 完整多级排序索引：媒体库按上映时间分页的 ORDER BY
 		// (release_date, year, updated_at, created_at, id) DESC 与索引列完全一致，
 		// LIMIT 分页沿索引顺序直取，免去对整库行做临时 B-tree 排序。
 		`CREATE INDEX IF NOT EXISTS idx_media_library_recent_active ON media(library_id, release_date DESC, year DESC, updated_at DESC, created_at DESC, id DESC) WHERE deleted_at IS NULL`,
@@ -368,6 +368,7 @@ func ensurePerformanceIndexes(db *gorm.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_media_library_nsfw_active ON media(library_id, nsfw) WHERE deleted_at IS NULL`,
 		// 旧的两键前缀索引被上面的完整排序索引完全覆盖，删除以降低写放大。
 		`DROP INDEX IF EXISTS idx_media_library_release_active`,
+		// 首页与媒体库的最近添加预览复用入库时间索引。
 		`CREATE INDEX IF NOT EXISTS idx_media_library_created_active ON media(library_id, created_at DESC) WHERE deleted_at IS NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_media_library_episode_active ON media(library_id, season_num, episode_num, created_at DESC) WHERE deleted_at IS NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_media_library_root_active ON media(library_id, library_root_id) WHERE deleted_at IS NULL`,
