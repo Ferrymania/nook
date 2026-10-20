@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react'
 import {
-  Check,
-  Copy,
   Cpu,
   ExternalLink,
   Github,
@@ -9,7 +7,6 @@ import {
   Server,
   Tag,
 } from 'lucide-react'
-import toast from 'react-hot-toast'
 
 import { systemAPI } from '../api/system'
 import { formatAppVersion } from '../utils/formatAppVersion'
@@ -30,7 +27,6 @@ const GITHUB_REPO_URL = 'https://github.com/Ferrymania/nook'
 export function AboutSettingsPanel() {
   const [info, setInfo] = useState<SystemInfo | null>(null)
   const [loading, setLoading] = useState(true)
-  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     systemAPI
@@ -59,17 +55,6 @@ export function AboutSettingsPanel() {
       })
       .finally(() => setLoading(false))
   }, [])
-
-  const handleCopyGitURL = async () => {
-    try {
-      await navigator.clipboard.writeText(GITHUB_REPO_URL)
-      setCopied(true)
-      toast.success('GitHub 地址已复制到剪贴板')
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      toast.error('复制失败，请手动复制')
-    }
-  }
 
   return (
     <div className="space-y-6">
@@ -104,14 +89,6 @@ export function AboutSettingsPanel() {
               <span>访问 GitHub 仓库</span>
               <ExternalLink size={14} className="opacity-70" />
             </a>
-            <button
-              type="button"
-              onClick={handleCopyGitURL}
-              className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white/80 px-4 py-2.5 text-sm font-medium text-ink-600 shadow-sm transition hover:bg-white hover:text-brand-600"
-            >
-              {copied ? <Check size={16} className="text-emerald-500" /> : <Copy size={16} />}
-              <span>{copied ? '已复制' : '复制地址'}</span>
-            </button>
           </div>
         </div>
 
