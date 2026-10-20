@@ -128,6 +128,8 @@ test: cover subscription restore matching
 
 ## 维护者合并检查
 
+PR 运行独立的 CI。合并到 `main`、推送发布 tag 或手动发布时，发布工作流先调用同一套 CI（含独立 PostgreSQL 集成测试和 Compose 检查），全部成功后才递增版本、推送镜像和创建 Release。测试失败会阻止所有后续发布；测试与构建固定使用同一提交。手动指定其他 ref 发布镜像时，会先解析为固定 SHA，再测试和构建该 SHA。服务器部署仍需单独进行。
+
 合并前建议确认：
 
 - PR 范围清楚，没有夹带无关改动。
