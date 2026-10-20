@@ -37,9 +37,6 @@ export function MediaDetailMetadata({ media }: MediaDetailMetadataProps) {
               <span>{media.width} × {media.height}</span>
             </span>
           )}
-          {media.size_bytes > 0 && (
-            <span className="inline-flex min-h-7 items-center rounded-lg border border-gray-200/60 bg-gray-100 px-2.5 text-[13px] font-medium text-gray-700">{fmtSize(media.size_bytes)}</span>
-          )}
           {media.duration_sec > 0 && (
             <span className="inline-flex min-h-7 items-center rounded-lg border border-gray-200/60 bg-gray-100 px-2.5 text-[13px] font-medium text-gray-700">{fmtDuration(media.duration_sec)}</span>
           )}
@@ -113,18 +110,6 @@ function fmtDuration(sec: number): string {
   const h = Math.floor(sec / 3600)
   const m = Math.floor((sec % 3600) / 60)
   return h > 0 ? `${h}h ${m}m` : `${m}m`
-}
-
-function fmtSize(bytes: number): string {
-  if (!bytes || bytes <= 0) return '—'
-  const units = ['B', 'KB', 'MB', 'GB', 'TB']
-  let v = bytes
-  let i = 0
-  while (v >= 1024 && i < units.length - 1) {
-    v /= 1024
-    i++
-  }
-  return `${v.toFixed(2)} ${units[i]}`
 }
 
 function parseCSV(s?: string): string[] {
