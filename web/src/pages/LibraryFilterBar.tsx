@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ChevronDown, Dices, Filter, Loader2, SearchX, X } from 'lucide-react'
+import { ChevronDown, Dices, Filter, Loader2, X } from 'lucide-react'
 
 import type { LibraryFacets } from '../api/library'
 import {
@@ -17,7 +17,6 @@ type LibraryFilterBarProps = {
   /** 「随便看看」：接收面板当前有效草稿（已与 URL 保持同步后）作为筛选条件。 */
   onRandom: (filters: LibraryFilterParams) => void
   randomBusy: boolean
-  allowUnmatched?: boolean
 }
 
 // LibraryFilterBar 提供库内筛选与「随便看看」。
@@ -32,7 +31,6 @@ export function LibraryFilterBar({
   onReset,
   onRandom,
   randomBusy,
-  allowUnmatched = true,
 }: LibraryFilterBarProps) {
   const [open, setOpen] = useState(() => hasActiveFilters(filters))
   const [draft, setDraft] = useState<LibraryFilterParams>(filters)
@@ -72,7 +70,6 @@ export function LibraryFilterBar({
       ...range,
       rating_min: Number.isFinite(rating) && (rating ?? 0) > 0 ? rating : undefined,
       unwatched: draft.unwatched,
-      unmatched: draft.unmatched,
     }
   }
 
@@ -132,23 +129,6 @@ export function LibraryFilterBar({
               清除筛选
             </button>
           )}
-          {allowUnmatched && (
-            <button
-              type="button"
-              aria-pressed={Boolean(filters.unmatched)}
-              onClick={() => onApply({ ...collectDraft(), unmatched: filters.unmatched ? undefined : true })}
-              className={
-                'inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors ' +
-                (filters.unmatched
-                  ? 'border-[var(--app-brand-border)] bg-[var(--app-brand-soft)] text-[var(--app-brand-text)]'
-                  : 'border-[var(--app-border)] text-[var(--app-muted)] hover:bg-[var(--app-hover)]')
-              }
-              title="按媒体当前的匹配状态筛选，包含未刮削和匹配失败"
-            >
-              <SearchX size={13} />
-              仅看未匹配
-            </button>
-          )}
           <button
             type="button"
             onClick={handleRandom}
@@ -161,12 +141,6 @@ export function LibraryFilterBar({
           </button>
         </div>
       </div>
-
-      {allowUnmatched && filters.unmatched && (
-        <p className="px-3 pb-2.5 text-xs text-[var(--app-muted)]">
-          显示尚未匹配成功的媒体，包含未刮削和匹配失败。
-        </p>
-      )}
 
       {open && (
         <div className="space-y-4 border-t border-[var(--app-border)] px-3 py-3">

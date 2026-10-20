@@ -44,7 +44,6 @@ export function LibraryPage() {
   const { isFavourite, toggleFavourite } = useFavourites()
   const [favouriteBusyID, setFavouriteBusyID] = useState('')
 
-  const [scrapeDialogOpen, setScrapeDialogOpen] = useState(false)
   const [manualSeriesScrapeOpen, setManualSeriesScrapeOpen] = useState(false)
   const [seriesMetadataEditOpen, setSeriesMetadataEditOpen] = useState(false)
   const [manualMovie, setManualMovie] = useState<Media | null>(null)
@@ -73,6 +72,18 @@ export function LibraryPage() {
     () => parseLibraryFilters(location.search),
     [location.search],
   )
+
+  // 旧书签不再保留已经移除的未匹配筛选，其余查询条件照常保留。
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    if (!params.has('unmatched')) return
+    params.delete('unmatched')
+    navigate(
+      { pathname: location.pathname, search: params.toString(), hash: location.hash },
+      { replace: true, state: location.state },
+    )
+  }, [location, navigate])
+
   const [facets, setFacets] = useState<LibraryFacets | null>(null)
   const [loadingFacets, setLoadingFacets] = useState(true)
   const [randomBusy, setRandomBusy] = useState(false)
@@ -222,10 +233,8 @@ export function LibraryPage() {
   const {
     scraping,
     scrapeEpisodeArtwork,
-    repairing,
     seriesToolBusy,
-    setScrapeEpisodeArtwork,
-    handleRepairRescrape,
+    handleScrape,
     handleSeriesSmartScrape,
     handleSeriesProbe,
     handleSeriesNFO,
@@ -310,14 +319,12 @@ export function LibraryPage() {
           scanning={scanning}
           scanLabel={scanLabel}
           scraping={scraping}
-          repairing={repairing}
           sortField={sortField}
           sortOrder={sortOrder}
           onSortChange={handleSortChange}
           onReshuffle={handleReshuffle}
           onScan={handleScan}
-          onScrape={() => setScrapeDialogOpen(true)}
-          onRepairRescrape={handleRepairRescrape}
+          onScrape={handleScrape}
         />
       )}
 
@@ -329,7 +336,6 @@ export function LibraryPage() {
         onReset={resetFilters}
         onRandom={(f) => void handleRandom(f)}
         randomBusy={randomBusy}
-        allowUnmatched={!library?.is_remote_emby}
       />
 
       <LibraryMediaSections
@@ -376,8 +382,6 @@ export function LibraryPage() {
       />
 
       <LibraryPageDialogs
-        scrapeDialogOpen={scrapeDialogOpen}
-        library={library}
         manualSeriesScrapeOpen={manualSeriesScrapeOpen}
         seriesMetadataEditOpen={seriesMetadataEditOpen}
         manualMovie={manualMovie}
@@ -386,8 +390,6 @@ export function LibraryPage() {
         selectedSeriesMediaIDs={selectedSeriesMediaIDs}
         libraryType={library?.type}
         scrapeEpisodeArtwork={scrapeEpisodeArtwork}
-        onScrapeEpisodeArtworkChange={setScrapeEpisodeArtwork}
-        onCloseScrapeDialog={() => setScrapeDialogOpen(false)}
         onCloseManualSeriesScrape={() => setManualSeriesScrapeOpen(false)}
         onCloseSeriesMetadataEdit={() => setSeriesMetadataEditOpen(false)}
         onCloseManualMovie={() => setManualMovie(null)}

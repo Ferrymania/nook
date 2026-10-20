@@ -49,7 +49,6 @@ func filterFingerprint(filter repository.MediaQueryFilter) string {
 		fmt.Sprintf("year=%d-%d", filter.YearMin, filter.YearMax),
 		fmt.Sprintf("rating=%.2f", filter.RatingMin),
 		fmt.Sprintf("unwatched=%t:%s", filter.UnwatchedOnly, filter.UnwatchedUserID),
-		fmt.Sprintf("unmatched=%t", filter.UnmatchedOnly),
 	}, "&")
 }
 

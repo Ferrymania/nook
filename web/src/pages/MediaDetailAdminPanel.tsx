@@ -39,7 +39,7 @@ export function MediaDetailAdminPanel({
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200/60 px-4 py-3 sm:px-5">
         <p className="inline-flex items-center gap-2 text-2xs font-bold uppercase tracking-[0.18em] text-gray-500">
           <ShieldAlert size={14} className="text-brand-500" />
-          系统后台高级控制面板
+          媒体管理
         </p>
         {isEpisodeArtworkTarget(media) && (
           <EpisodeArtworkToggle

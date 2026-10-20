@@ -48,6 +48,7 @@ func registerAuthedLibraryRoutes(authed *gin.RouterGroup, svc *service.Container
 	authed.DELETE("/libraries/:id/roots/:root_id", middleware.AdminRequired(), deleteLibraryRootHandler(svc))
 	authed.POST("/libraries/:id/roots/:root_id/scan", middleware.AdminRequired(), scanLibraryRootHandler(svc))
 	authed.GET("/libraries/:id/scan-status", middleware.AdminRequired(), libraryScanStatusHandler(svc))
+	authed.GET("/libraries/:id/scrape-status", middleware.AdminRequired(), libraryScrapeStatusHandler(svc))
 	authed.POST("/libraries/:id/scan", middleware.AdminRequired(), scanLibraryHandler(svc))
 	authed.POST("/libraries/:id/scrape", middleware.AdminRequired(), scrapeLibraryHandler(svc))
 
