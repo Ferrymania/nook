@@ -27,7 +27,7 @@ type ScrapeTask struct {
 	Status         string     `gorm:"index;size:16;default:pending" json:"status"` // pending / running / done / failed / canceled
 	Error          string     `gorm:"type:text" json:"error"`
 	RetryCount     int        `gorm:"default:0" json:"retry_count"`
-	EpisodeImages  bool       `gorm:"default:true" json:"episode_images"`
+	EpisodeImages  bool       `gorm:"default:false" json:"episode_images"`
 	RefreshMatched bool       `gorm:"default:false" json:"refresh_matched"`
 	StartedAt      *time.Time `json:"started_at,omitempty"`
 	FinishedAt     *time.Time `json:"finished_at,omitempty"`

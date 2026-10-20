@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom'
 import { Play, Search } from 'lucide-react'
 
 import { ARTWORK, imageURL } from '../api/client'
+import { ArtworkImage } from '../components/ArtworkImage'
+import { artworkSources } from '../utils/artworkSources'
 import { ExternalPlayerButton } from '../components/ExternalPlayerButton'
 import type { Media } from '../types'
 import {
@@ -86,18 +88,16 @@ export function LibrarySeriesEpisodes({
                     className="relative flex h-11 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-brand-50/70 border border-sand-200/60"
                     title={displayTitle}
                   >
-                    {ep.backdrop_url || ep.poster_url ? (
-                      <img
-                        src={imageURL(ep.backdrop_url || ep.poster_url || '', ep.updated_at, ARTWORK.backdropStrip)}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <span className="text-brand-600 font-bold text-sm">{formatEpisodeNumber(ep) || '—'}</span>
-                    )}
+                    <ArtworkImage
+                      sources={artworkSources(ep, 'episode').map(source => imageURL(source, ep.updated_at, ARTWORK.backdropStrip))}
+                      alt={displayTitle}
+                      compact
+                      fallbackClassName="h-full w-full gap-1"
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      referrerPolicy="no-referrer"
+                    />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                       <Play size={15} className="fill-white text-white drop-shadow-sm" />
                     </div>

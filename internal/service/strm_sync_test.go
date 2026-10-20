@@ -512,9 +512,8 @@ func taskNames(tasks []model.StrmUploadTask) []string {
 	return names
 }
 
-// TestPruneLocalRemovesOrphanDirectory 验证远端目录不存在时，会递归删除整个本地
-// 目录，包括其中的 strm、NFO、图片等文件。
-func TestPruneLocalRemovesOrphanDirectory(t *testing.T) {
+// A remote directory disappearing does not establish ownership of local metadata.
+func TestPruneLocalKeepsMetadataInOrphanDirectory(t *testing.T) {
 	svc := testStrmService(t)
 	localDir := t.TempDir()
 
@@ -539,7 +538,6 @@ func TestPruneLocalRemovesOrphanDirectory(t *testing.T) {
 		rec:        &model.StrmSyncRecord{},
 		syncType:   model.StrmSyncTypeFull,
 		seenVideo:  map[string]bool{},
-		seenDir:    map[string]bool{"": true},
 		seenMeta:   map[string]bool{},
 		remoteMeta: map[string][]remoteMetaItem{},
 	}
@@ -547,11 +545,16 @@ func TestPruneLocalRemovesOrphanDirectory(t *testing.T) {
 		t.Fatalf("pruneLocal failed: %v", err)
 	}
 
-	if _, err := os.Stat(filepath.Join(localDir, "电影")); !os.IsNotExist(err) {
-		t.Fatalf("orphan directory should be removed recursively, stat err = %v", err)
+	if _, err := os.Stat(filepath.Join(localDir, "电影", "阿凡达.strm")); !os.IsNotExist(err) {
+		t.Fatalf("orphan STRM should be removed, stat err = %v", err)
 	}
-	if st.rec.Pruned != 3 {
-		t.Fatalf("expected 3 pruned files, got %d", st.rec.Pruned)
+	for _, name := range []string{"阿凡达.nfo", "poster.jpg"} {
+		if _, err := os.Stat(filepath.Join(localDir, "电影", name)); err != nil {
+			t.Fatalf("local metadata must survive: %s: %v", name, err)
+		}
+	}
+	if st.rec.Pruned != 1 {
+		t.Fatalf("expected only 1 pruned STRM, got %d", st.rec.Pruned)
 	}
 }
 
@@ -571,7 +574,6 @@ func TestPruneLocalKeepsMetaInExistingDirectory(t *testing.T) {
 		rec:       &model.StrmSyncRecord{},
 		syncType:  model.StrmSyncTypeFull,
 		seenVideo: map[string]bool{},
-		seenDir:   map[string]bool{"": true, "电影": true},
 	}
 	if err := st.pruneLocal(); err != nil {
 		t.Fatalf("pruneLocal failed: %v", err)

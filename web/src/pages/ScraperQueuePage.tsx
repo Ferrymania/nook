@@ -196,7 +196,7 @@ export function ScraperQueuePage({
     if (!window.confirm('确定将全库所有未匹配或需要更新的媒体重新推入刮削队列？')) return
     setBatchBusy(true)
     try {
-      const res = await scraperAPI.enqueueAll({ include_matched: false, refresh_matched: false, episode_images: true })
+      const res = await scraperAPI.enqueueAll({ include_matched: false, refresh_matched: false })
       toast.success(`已将 ${res.enqueued} 个媒体项推入刮削队列`)
       await refresh()
     } catch (err) {
