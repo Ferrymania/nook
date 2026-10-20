@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
-import { Download, Loader2, ScanSearch } from 'lucide-react'
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { Download, Loader2, ScanSearch, Wrench } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 import { toolsAPI, type FFmpegToolInfo, type FFmpegToolPair, type FFmpegToolsStatus } from '../api/tools'
+import { SettingsSection } from './SettingsSection'
 
 const TOOLS = ['ffmpeg', 'ffprobe'] as const
 
@@ -15,6 +16,7 @@ interface FFToolsPanelProps {
   statusRevision: number
   onChange: (key: string, value: string) => void
   onBusyChange: (busy: boolean) => void
+  children?: ReactNode
 }
 
 function errorMessage(err: unknown, fallback: string) {
@@ -22,7 +24,7 @@ function errorMessage(err: unknown, fallback: string) {
     (err as { message?: string })?.message ?? fallback
 }
 
-export function FFToolsPanel({ values, savedValues, dirty, saving, statusRevision, onChange, onBusyChange }: FFToolsPanelProps) {
+export function FFToolsPanel({ values, savedValues, dirty, saving, statusRevision, onChange, onBusyChange, children }: FFToolsPanelProps) {
   const [status, setStatus] = useState<FFmpegToolsStatus | null>(null)
   const [checking, setChecking] = useState(true)
   const [statusError, setStatusError] = useState(false)
@@ -140,47 +142,50 @@ export function FFToolsPanel({ values, savedValues, dirty, saving, statusRevisio
     (status.downloaded.ffmpeg.path !== status.ffmpeg?.path || status.downloaded.ffprobe.path !== status.ffprobe?.path)
 
   return (
-    <section className="glass-panel space-y-5" aria-label="FFmpeg / FFprobe 工具设置">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="font-display text-lg font-bold text-ink-600">FFmpeg / FFprobe 工具</h2>
-          <p className="text-xs text-sand-500">用于视频转码与媒体信息探测</p>
-        </div>
+    <SettingsSection title="媒体工具" description="配置 FFmpeg 转码与 FFprobe 信息探测" icon={Wrench} actions={
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => start('detect')} disabled={busy || saving} className="btn-outline disabled:opacity-50">
+          <button type="button" onClick={() => start('detect')} disabled={busy || saving} className="library-toolbar-button">
             {operation === 'detect' ? <Loader2 size={16} className="animate-spin" /> : <ScanSearch size={16} />}
             {operation === 'detect' ? '检测中…' : '自动检测'}
           </button>
-          <button type="button" onClick={() => start('install')} disabled={busy || saving} className="btn-outline disabled:opacity-50">
+          <button type="button" onClick={() => start('install')} disabled={busy || saving} className="library-toolbar-button">
             {installing || operation === 'install' ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
             {installing || operation === 'install' ? '下载安装中…' : '下载安装'}
           </button>
         </div>
-      </header>
-      {TOOLS.map((tool) => (
-        <ToolPath
-          key={tool} tool={tool} value={values[`${tool}.path`] ?? ''} active={status?.[tool]}
-          candidate={candidates[tool]} pending={dirty.has(`${tool}.path`)}
-          checking={checking} statusError={statusError} disabled={busy || saving}
-          onChange={(value) => { onChange(`${tool}.path`, value); setFeedback(null) }}
-        />
-      ))}
-      <p className="border-t border-gray-200 pt-4 text-xs text-sand-500">
-        可手动填写，也可自动检测或下载安装后填入。路径更改后，点击页面底部「保存」生效；留空时自动查找系统工具。
-      </p>
+      }>
+      <div className="settings-tool-paths">
+        {TOOLS.map((tool) => (
+          <div key={tool} className={tool === 'ffprobe' ? 'settings-probe-row' : undefined}>
+            <ToolPath
+              tool={tool} value={values[`${tool}.path`] ?? ''} active={status?.[tool]}
+              candidate={candidates[tool]} pending={dirty.has(`${tool}.path`)}
+              checking={checking} statusError={statusError} disabled={busy || saving}
+              onChange={(value) => { onChange(`${tool}.path`, value); setFeedback(null) }}
+            />
+            {tool === 'ffprobe' && children}
+          </div>
+        ))}
+      </div>
+      <p className="settings-help-text">留空自动查找系统工具。FFprobe 并发建议为 1。</p>
+      <details className="settings-disclosure mt-2">
+        <summary>路径说明与工具版本</summary>
+        <p className="settings-help-text">可手动填写或自动检测；Docker 部署请使用容器内可见的路径。检测或安装后，点击下方保存生效。</p>
+        {TOOLS.map((tool) => status?.[tool]?.version && <p key={tool} className="settings-help-text break-words font-mono">{status[tool]!.version!.split(' Copyright')[0]}</p>)}
+      </details>
       {statusError && <div role="alert" className="flex flex-wrap items-center gap-2 text-xs text-red-600">
         当前工具状态获取失败，路径修改已保留。
         <button type="button" className="underline" disabled={checking} onClick={() => setReload((v) => v + 1)}>重新检测状态</button>
       </div>}
       {(installing || feedback || downloadedUnused) && <div
         role={feedback?.error ? 'alert' : 'status'}
-        className={`rounded-xl px-3 py-2 text-xs ${feedback?.error ? 'bg-red-50 text-red-600' : 'bg-sand-100/70 text-ink-50'}`}
+        className={`rounded-xl px-3 py-2 text-xs ${feedback?.error ? 'bg-red-50 text-red-600' : 'bg-[var(--app-panel-soft)] text-[var(--app-muted)]'}`}
       >
         {feedback?.text ?? (installing
           ? `${status?.message || '正在下载安装…'} 当前配置继续使用；安装完成只填入路径，保存后才生效。`
           : '已下载的工具可复用。点击「下载安装」填入路径，再保存即可使用。')}
       </div>}
-    </section>
+    </SettingsSection>
   )
 }
 
@@ -192,21 +197,22 @@ function ToolPath({ tool, value, active, candidate, pending, checking, statusErr
   const name = tool === 'ffmpeg' ? 'FFmpeg' : 'FFprobe'
   const info = candidate?.path === value ? candidate : pending ? undefined : active
   const confirmed = !checking && !statusError
+  const showDetail = pending || !confirmed || !active?.installed
   return <div className="min-w-0 space-y-2">
     <div className="flex items-center justify-between gap-3">
       <label htmlFor={id} className="text-sm font-medium text-ink-600">{name} 程序路径</label>
-      <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${pending ? 'bg-brand-50 text-brand-500' : 'bg-sand-100/70 text-ink-50'}`}>
+      <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${pending ? 'bg-[var(--app-brand-soft)] text-[var(--app-brand-text)]' : 'bg-[var(--app-panel-soft)] text-[var(--app-muted)]'}`}>
         {pending ? '待保存' : checking ? '检测中' : statusError ? '状态未知' : active?.installed ? '可用' : '未检测到'}
       </span>
     </div>
     <input id={id} className="input-base font-mono text-sm" value={value}
       placeholder={confirmed && active?.path ? active.path : `输入 ${name} 程序路径，或点击自动检测`}
       onChange={(event) => onChange(event.target.value)} disabled={disabled} spellCheck={false}
-      aria-describedby={`${id}-detail`} />
-    <p id={`${id}-detail`} className="break-all text-xs text-sand-500">
+      aria-describedby={showDetail ? `${id}-detail` : undefined} />
+    {showDetail && <p id={`${id}-detail`} className="break-all text-xs text-[var(--app-muted)]">
       {info?.version && (pending || confirmed) ? `${info.version.split(' Copyright')[0]}${pending ? ' · 保存后使用' : ''}`
         : pending ? '路径尚未保存，当前配置继续使用。'
           : confirmed && active?.installed ? '当前工具可用。' : '填写完整程序路径；Docker 部署请使用容器内可见的路径。'}
-    </p>
+    </p>}
   </div>
 }
