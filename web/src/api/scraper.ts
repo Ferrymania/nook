@@ -9,10 +9,11 @@ export interface EnqueueScrapeOptions {
 }
 
 export const scraperAPI = {
-  queue: (status?: string, page = 1, pageSize = 50) =>
+  queue: (status?: string, page = 1, pageSize = 50, signal?: AbortSignal) =>
     api
       .get<ScrapeQueueSnapshot>('/admin/scraper/queue', {
         params: { status, page, page_size: pageSize },
+        signal,
       })
       .then((r) => r.data),
 
