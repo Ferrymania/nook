@@ -40,6 +40,7 @@ func AllModels() []interface{} {
 		&PlaybackHistory{},
 		&MediaSegment{},
 		&MediaSegmentFetch{},
+		&MediaSegmentTask{},
 		&MediaProbe{},
 		&Favorite{},
 		&Playlist{},

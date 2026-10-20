@@ -349,6 +349,7 @@ func newPlaybackScopeTestRouter(t *testing.T) (*gin.Engine, *service.Container, 
 		&model.Series{},
 		&model.MediaSegment{},
 		&model.MediaSegmentFetch{},
+		&model.MediaSegmentTask{},
 	); err != nil {
 		t.Fatal(err)
 	}

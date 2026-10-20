@@ -59,6 +59,7 @@ type MediaSegmentService struct {
 	repo              *repository.Container
 	introdb           *IntroDBService
 	manualQueryFlight singleflight.Group
+	refreshFlight     singleflight.Group
 	// prewarmGap 是预热两次 IntroDB 请求之间的间隔；测试可设为 0。
 	prewarmGap time.Duration
 	now        func() time.Time
@@ -186,6 +187,35 @@ func (s *MediaSegmentService) debug(message, mediaID string, err error) {
 // attempted=false 表示这部媒体缺少可查询的外部 ID（最常见的原因是还没刮削，
 // 剧集也还没关联到 Series），此时刻意不写负缓存：等元数据补齐后下次播放就能查到。
 func (s *MediaSegmentService) refresh(ctx context.Context, m *model.Media) ([]model.MediaSegment, bool, error) {
+	return s.refreshWithTrigger(ctx, m, "playback")
+}
+
+type segmentRefreshOutcome struct {
+	rows      []model.MediaSegment
+	attempted bool
+}
+
+func (s *MediaSegmentService) refreshWithTrigger(ctx context.Context, m *model.Media, trigger string) ([]model.MediaSegment, bool, error) {
+	if m == nil || m.ID == "" {
+		return nil, false, nil
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, false, err
+	}
+	result := s.refreshFlight.DoChan(m.ID, func() (any, error) {
+		rows, attempted, err := s.refreshOnce(ctx, m, trigger)
+		return segmentRefreshOutcome{rows: rows, attempted: attempted}, err
+	})
+	select {
+	case <-ctx.Done():
+		return nil, false, ctx.Err()
+	case outcome := <-result:
+		value := outcome.Val.(segmentRefreshOutcome)
+		return value.rows, value.attempted, outcome.Err
+	}
+}
+
+func (s *MediaSegmentService) refreshOnce(ctx context.Context, m *model.Media, trigger string) (_ []model.MediaSegment, _ bool, resultErr error) {
 	if s.introdb == nil {
 		return nil, false, nil
 	}
@@ -212,6 +242,23 @@ func (s *MediaSegmentService) refresh(ctx context.Context, m *model.Media) ([]mo
 	}
 	fetchCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), budget)
 	defer cancel()
+	task, err := s.startSegmentTask(fetchCtx, m, trigger)
+	if err != nil {
+		return nil, false, err
+	}
+	defer func() {
+		if resultErr == nil {
+			return
+		}
+		finishCtx, finishCancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
+		defer finishCancel()
+		finished := time.Now()
+		task.Status, task.Error, task.FinishedAt = model.SegmentTaskFailed, SegmentQueryErrorMessage(resultErr), &finished
+		task.Segments = []model.SegmentTaskSpan{}
+		if err := s.repo.SegmentTask.Finish(finishCtx, task); err != nil && s.log != nil {
+			s.log.Warn("persist segment query failure failed", zap.String("task_id", task.ID), zap.Error(err))
+		}
+	}()
 
 	spans, err := s.introdb.Fetch(fetchCtx, tmdbID, season, episode)
 	if err != nil {
@@ -234,9 +281,18 @@ func (s *MediaSegmentService) refresh(ctx context.Context, m *model.Media) ([]mo
 		if err := repo.MediaSegment.ReplaceForMedia(fetchCtx, m.ID, IntroDBSource, rows); err != nil {
 			return err
 		}
-		return repo.MediaSegment.UpsertFetch(fetchCtx, &model.MediaSegmentFetch{
+		if err := repo.MediaSegment.UpsertFetch(fetchCtx, &model.MediaSegmentFetch{
 			MediaID: m.ID, Source: IntroDBSource, FetchedAt: time.Now(), Found: len(rows) > 0,
-		})
+		}); err != nil {
+			return err
+		}
+		finished := time.Now()
+		task.Status = model.SegmentTaskMissing
+		if len(rows) > 0 {
+			task.Status = model.SegmentTaskFound
+		}
+		task.FinishedAt, task.Segments = &finished, segmentTaskSpans(rows)
+		return repo.SegmentTask.Finish(fetchCtx, task)
 	}); err != nil {
 		return nil, true, err
 	}
@@ -330,7 +386,7 @@ func (s *MediaSegmentService) Prewarm(ctx context.Context, libraryIDs []string, 
 			return attempted, err
 		}
 		m := &candidates[i]
-		_, did, err := s.refresh(ctx, m)
+		_, did, err := s.refreshWithTrigger(ctx, m, "prewarm")
 		if err != nil {
 			logIntroDBFailure(s.log, m.TMDbID, err)
 		}

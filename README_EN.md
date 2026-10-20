@@ -51,7 +51,7 @@ In practice, Nook gives you:
 | **Cloud & STRM** | OpenList, CloudDrive2, 115, WebDAV; STRM sync; upload/download queues; direct or 302 playback |
 | **Downloads & organize** | Scheduled download-folder organization (smart classification, auto library registration), file manager (copy/move/hardlink/symlink) |
 | **Users & permissions** | Admin/regular users, expiry, NSFW toggle, play-profile PIN, granular permissions |
-| **Operations** | Unified task queue, storage stats, DLNA casting, settings and logs |
+| **Operations** | Scrape, download, upload and intro/outro query queues; query history, retries, storage stats, DLNA casting, settings and logs |
 
 ### Tech stack
 
