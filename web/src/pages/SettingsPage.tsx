@@ -7,12 +7,11 @@ import { adminAPI } from '../api/admin'
 import { libraryAPI } from '../api/library'
 import type { Library, Setting } from '../types'
 import { APIConfigsPanel } from '../components/APIConfigsPanel'
-import { FFToolsPanel } from '../components/FFToolsPanel'
 import { AboutSettingsPanel } from './AboutSettingsPanel'
 import { AdultSettingsPanel } from './AdultSettingsPanel'
 import { DatabaseSettingsPanel } from './DatabaseSettingsPanel'
 import { RecognitionWordsPanel } from './RecognitionWordsPanel'
-import { PlaybackSettingsPanel } from './PlaybackSettingsPanel'
+import { GeneralSettingsPanel } from './GeneralSettingsPanel'
 import { SettingRow } from './SettingsRow'
 import { TelegramNotifyPanel } from './TelegramNotifyPanel'
 import { ALL_KEYS, GROUPS } from './settingsGroups'
@@ -155,6 +154,18 @@ export function SettingsPage() {
   }
 
   const group = GROUPS.find((g) => g.key === activeGroup)!
+  const saveControls = (
+    <div className={group.key === 'general' ? 'settings-save' : 'flex items-center justify-between pt-2'}>
+      <span className="text-xs text-[var(--app-muted)]" role="status">
+        {dirty.size > 0 ? `有 ${visibleDirtyCount} 项未保存` : '所有更改已保存'}
+      </span>
+      <button type="submit" disabled={saving || toolsBusy || dirty.size === 0}
+        className={group.key === 'general' ? 'btn-primary disabled:opacity-50' : 'neon-button disabled:opacity-50'}>
+        {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+        {group.key === 'general' ? '保存更改' : '保存'}
+      </button>
+    </div>
+  )
 
   return (
     <div className="space-y-6">
@@ -179,7 +190,7 @@ export function SettingsPage() {
               'border-b-2 px-4 py-2 text-sm whitespace-nowrap transition ' +
               (activeGroup === g.key
                 ? 'border-primary-400 text-brand-500'
-                : 'border-transparent text-ink-50 hover:text-white')
+                : 'border-transparent text-[var(--app-muted)] hover:text-[var(--app-text)]')
             }
           >
             {g.label}
@@ -202,49 +213,37 @@ export function SettingsPage() {
           {group.key === 'about' && <AboutSettingsPanel />}
           {group.key === 'device-notify' && <TelegramNotifyPanel />}
           {group.key !== 'adult' && group.key !== 'library' && group.items.length > 0 && (
-            <form onSubmit={onSave} className="space-y-4">
-              {group.key === 'general' && (
-                <FFToolsPanel
-                  values={values}
-                  savedValues={savedValues}
-                  dirty={dirty}
-                  saving={saving}
-                  statusRevision={toolsStatusRevision}
-                  onChange={onChange}
-                  onBusyChange={setToolsBusy}
-                />
-              )}
-              <div className="glass-panel space-y-4">
-                {group.description && <p className="text-xs text-sand-500">{group.description}</p>}
-                {group.key === 'general' && <PlaybackSettingsPanel values={values} onChange={onChange} />}
-                {group.items.filter((it) => group.key !== 'general' || (
-                  it.key !== 'playback.direct_only' && !it.key.startsWith('transcode.') &&
-                  it.key !== 'ffmpeg.path' && it.key !== 'ffprobe.path'
-                )).map((it) => (
-                  (!it.key.startsWith('https.') || it.key === 'https.enabled' || httpsEnabled) && (
-                    <SettingRow
-                      key={it.key}
-                      def={it}
-                      value={values[it.key] ?? it.defaultValue ?? ''}
-                      onChange={(v) => onChange(it.key, v)}
-                      libraries={libraries}
-                    />
-                  )
-                ))}
-                <div className="flex items-center justify-between pt-2">
-                  <span className="text-xs text-sand-500">
-                    {dirty.size > 0 ? `有 ${visibleDirtyCount} 项未保存` : '所有更改已保存'}
-                  </span>
-                  <button
-                    type="submit"
-                    disabled={saving || toolsBusy || dirty.size === 0}
-                    className="neon-button disabled:opacity-50"
-                  >
-                    {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                    保存
-                  </button>
+            <form onSubmit={onSave} className={group.key === 'general' ? 'general-settings space-y-4' : 'space-y-4'}>
+              {group.key === 'general' ? (
+                <>
+                  <GeneralSettingsPanel
+                    values={values}
+                    savedValues={savedValues}
+                    dirty={dirty}
+                    saving={saving}
+                    statusRevision={toolsStatusRevision}
+                    onChange={onChange}
+                    onBusyChange={setToolsBusy}
+                  />
+                  {saveControls}
+                </>
+              ) : (
+                <div className="glass-panel space-y-4">
+                  {group.description && <p className="text-xs text-sand-500">{group.description}</p>}
+                  {group.items.map((it) => (
+                    (!it.key.startsWith('https.') || it.key === 'https.enabled' || httpsEnabled) && (
+                      <SettingRow
+                        key={it.key}
+                        def={it}
+                        value={values[it.key] ?? it.defaultValue ?? ''}
+                        onChange={(v) => onChange(it.key, v)}
+                        libraries={libraries}
+                      />
+                    )
+                  ))}
+                  {saveControls}
                 </div>
-              </div>
+              )}
             </form>
           )}
         </div>

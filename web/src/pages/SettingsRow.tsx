@@ -18,9 +18,12 @@ type SettingsRowProps = {
   libraries?: Library[]
   disabled?: boolean
   showKey?: boolean
+  showHint?: boolean
+  layout?: 'horizontal' | 'stacked'
+  unit?: string
 }
 
-export function SettingRow({ def, value, onChange, libraries = [], disabled = false, showKey = true }: SettingsRowProps) {
+export function SettingRow({ def, value, onChange, libraries = [], disabled = false, showKey = true, showHint = true, layout = 'horizontal', unit }: SettingsRowProps) {
   const controlID = useId()
   const toggleOn = value === 'true' || value === '1' || value === 'on'
   const selectedLibraryIDs = parseLibraryIDs(value)
@@ -31,13 +34,13 @@ export function SettingRow({ def, value, onChange, libraries = [], disabled = fa
     onChange(JSON.stringify(next))
   }
   return (
-    <fieldset disabled={disabled} className={`grid min-w-0 items-start gap-2 md:grid-cols-[280px_1fr] ${disabled ? 'opacity-60' : ''}`}>
+    <fieldset disabled={disabled} className={`grid min-w-0 items-start gap-2 ${layout === 'horizontal' ? 'md:grid-cols-[280px_1fr]' : ''} ${disabled ? 'opacity-60' : ''}`}>
       <label htmlFor={controlID} className="text-sm text-ink-100">
         <div className="font-medium">{def.label}</div>
-        {def.hint && <div className="mt-0.5 text-xs text-sand-500">{def.hint}</div>}
+        {showHint && def.hint && <div className="mt-0.5 text-xs text-sand-500">{def.hint}</div>}
         {showKey && <div className="mt-0.5 font-mono text-[10px] text-gray-500">{def.key}</div>}
       </label>
-      <div>
+      <div className={unit ? 'relative' : undefined}>
         {def.type === 'text' && (
           <input
             id={controlID}
@@ -51,12 +54,14 @@ export function SettingRow({ def, value, onChange, libraries = [], disabled = fa
           <input
             id={controlID}
             type="number"
-            className="input-base"
+            className={`input-base ${unit ? 'pr-14' : ''}`}
+            aria-label={unit ? `${def.label} (${unit})` : undefined}
             value={value}
             placeholder={def.placeholder}
             onChange={(event) => onChange(event.target.value)}
           />
         )}
+        {unit && <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-[var(--app-muted)]">{unit}</span>}
         {def.type === 'textarea' && (
           <textarea
             id={controlID}
