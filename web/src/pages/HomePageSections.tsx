@@ -12,7 +12,6 @@ import {
   Pin,
   Play,
   PlayCircle,
-  Sparkles,
   Star,
   Tv,
 } from 'lucide-react'
@@ -75,7 +74,7 @@ export function HomeEmptyState() {
       <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-3xl border border-[var(--app-border)] bg-[var(--app-panel-soft)] shadow-sm">
         <Film className="h-10 w-10 text-[var(--app-muted)]" />
       </div>
-      <p className="text-xl font-bold text-[var(--app-text)]">您的家庭影视站暂无内容</p>
+      <h1 className="text-xl font-semibold text-[var(--app-text)]">您的家庭影视站暂无内容</h1>
       <p className="mt-2 text-sm leading-relaxed text-[var(--app-muted)]">
         前往媒体库添加媒体目录，扫描后首页将展示海报轮播、媒体库和最新入库。
       </p>
@@ -90,30 +89,16 @@ export function HomeEmptyState() {
 // 播放记录请求独立渐进加载时，避免区块突然弹入造成的布局跳动。
 export function ContinueWatchingSkeleton() {
   return (
-    <section className="space-y-4">
-      <div className="flex items-center justify-between border-b border-[var(--app-border)] pb-3">
-        <div className="flex items-center gap-2.5">
-          <span className="rounded-xl border border-[var(--app-border)] bg-[var(--app-panel-soft)] p-1.5 text-[var(--app-text)]">
-            <Clock size={18} />
-          </span>
-          <div className="space-y-1.5">
-            <div className="h-5 w-24 animate-pulse rounded bg-[var(--app-panel-soft)]" />
-            <div className="h-3 w-16 animate-pulse rounded bg-[var(--app-panel-soft)]" />
-          </div>
-        </div>
+    <section className="nook-shelf space-y-4" aria-label="继续观看加载中" aria-busy="true">
+      <div className="nook-shelf-heading flex items-center gap-3">
+        <h2>继续观看</h2>
       </div>
-
       <div className="flex gap-4 overflow-hidden pb-3 pt-1">
-        {[0, 1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="w-64 sm:w-72 shrink-0">
-            <div className="flex items-center gap-3.5 rounded-2xl border border-[var(--app-border)] bg-[var(--app-panel)] p-3 shadow-sm">
-              <div className="h-20 w-14 shrink-0 animate-pulse rounded-xl bg-[var(--app-panel-soft)]" />
-              <div className="min-w-0 flex-1 space-y-2">
-                <div className="h-3 w-3/4 animate-pulse rounded bg-[var(--app-panel-soft)]" />
-                <div className="h-2.5 w-1/2 animate-pulse rounded bg-[var(--app-panel-soft)]" />
-                <div className="h-1.5 w-full animate-pulse rounded-full bg-[var(--app-panel-soft)]" />
-              </div>
-            </div>
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="nook-continue-item shrink-0" aria-hidden="true">
+            <div className="nook-continue-artwork animate-pulse" />
+            <div className="mt-3 h-4 w-2/3 animate-pulse rounded bg-[var(--app-panel-soft)]" />
+            <div className="mt-2 h-3 w-1/2 animate-pulse rounded bg-[var(--app-panel-soft)]" />
           </div>
         ))}
       </div>
@@ -134,7 +119,6 @@ export function HomeCarouselSection({
 }) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
-
   const currentItem = items[currentIndex] || items[0]
   const count = items.length
 
@@ -148,203 +132,71 @@ export function HomeCarouselSection({
 
   if (!currentItem) return null
 
-  const handlePrev = () => {
-    setCurrentIndex((prev) => (prev - 1 + count) % count)
-  }
-
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % count)
-  }
-
+  const handlePrev = () => setCurrentIndex((prev) => (prev - 1 + count) % count)
+  const handleNext = () => setCurrentIndex((prev) => (prev + 1) % count)
   const visual = currentItem.backdrop_url || currentItem.poster_url || ''
   const poster = currentItem.poster_url || currentItem.backdrop_url || ''
   const lib = libraryMap.get(currentItem.display_library_id || currentItem.library_id)
 
   return (
     <section
+      aria-label="焦点推荐"
+      aria-roledescription="轮播"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      className="group relative overflow-hidden rounded-[2rem] border border-[var(--app-border)] bg-[var(--app-panel)] shadow-[0_24px_80px_var(--app-shadow)] min-h-[420px] md:min-h-[460px] flex flex-col justify-end"
+      className="nook-spotlight"
     >
-      {/* Background Backdrop Image with Crossfade */}
-      <div className="absolute inset-0 z-0">
-        <div className="theme-hero-bg h-full w-full" />
-        {visual && (
-          <img
-            key={visual + currentItem.id}
-            src={imageURL(visual, currentItem.updated_at, ARTWORK.backdropHero)}
-            alt=""
-            fetchPriority="high"
-            decoding="async"
-            className="absolute inset-0 h-full w-full object-cover object-center blur-[1px] animate-hero-in"
-            referrerPolicy="no-referrer"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none'
-            }}
-          />
+      <div className="nook-spotlight-copy">
+        <div className="nook-film-meta">
+          {currentItem.rating > 0 && <span className="nook-rating"><Star size={13} fill="currentColor" />{currentItem.rating.toFixed(1)}</span>}
+          {currentItem.year > 0 && <span>{currentItem.year} 年</span>}
+          {currentItem.video_codec && <span>{currentItem.video_codec}</span>}
+          {currentItem.container && <span>{currentItem.container}</span>}
+          {lib && <span className="nook-spotlight-library">{TYPE_ICONS[lib.type] || <FolderOpen size={14} />}{lib.name}</span>}
+        </div>
+        <h2 title={currentItem.title}>{currentItem.title}</h2>
+        {currentItem.original_name && currentItem.original_name !== currentItem.title && (
+          <p className="nook-original-title">{currentItem.original_name}</p>
         )}
-        <div className="theme-hero-overlay absolute inset-0" />
-        <div className="theme-hero-fade absolute inset-x-0 bottom-0 h-36" />
+        <p className="nook-spotlight-overview">
+          {currentItem.overview || '家庭私人媒体中心收藏。支持多端播放、高码率串流与智能刮削。'}
+        </p>
+        <div className="nook-spotlight-actions">
+          <Link to={`/play/${currentItem.id}`} className="btn-primary"><Play size={16} fill="currentColor" />立即播放</Link>
+          <Link to={`/media/${currentItem.id}`} className="btn-ghost">查看详情<ArrowRight size={15} /></Link>
+        </div>
+        {count > 1 && (
+          <div className="nook-spotlight-controls">
+            <div className="nook-slide-dots">
+              {items.map((item, idx) => (
+                <button key={`${item.id}-${idx}`} type="button" onClick={() => setCurrentIndex(idx)}
+                  aria-pressed={idx === currentIndex} title={`第 ${idx + 1} 张海报`} aria-label={`第 ${idx + 1} 张海报`} />
+              ))}
+            </div>
+            <span className="nook-slide-count">{currentIndex + 1} / {count}</span>
+            <button type="button" className="nook-icon-button" onClick={handlePrev} title="上一张" aria-label="上一张"><ChevronLeft size={16} /></button>
+            <button type="button" className="nook-icon-button" onClick={handleNext} title="下一张" aria-label="下一张"><ChevronRight size={16} /></button>
+          </div>
+        )}
       </div>
-
-      {/* Main Content Layout */}
-      <div className="relative z-10 grid gap-8 px-6 py-8 sm:px-8 md:grid-cols-[minmax(0,1fr)_260px] md:px-12 md:py-12 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-14 lg:py-14">
-        {/* Left Column: Metadata & Actions */}
-        <div className="flex min-w-0 flex-col justify-center space-y-4 sm:space-y-5">
-          {/* Tag / Library Label */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex w-fit items-center gap-1.5 rounded-full border border-[var(--app-brand-border)] bg-[var(--app-brand-soft)] px-3 py-1 text-xs font-bold uppercase tracking-widest text-[var(--app-brand-text)] shadow-sm backdrop-blur">
-              <Sparkles size={12} fill="currentColor" />
-              <span>焦点推荐</span>
-            </div>
-            {lib && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-[var(--app-border)] bg-[var(--app-panel)]/80 px-2.5 py-0.5 text-xs font-bold text-[var(--app-text)] shadow-sm backdrop-blur">
-                {TYPE_ICONS[lib.type] || <FolderOpen size={12} />}
-                <span>{lib.name}</span>
-              </span>
-            )}
-          </div>
-
-          {/* Title */}
-          <div className="space-y-2">
-            <h1
-              key={currentItem.title + currentItem.id}
-              className="font-display text-2xl font-extrabold leading-tight tracking-tight text-[var(--app-text)] sm:text-3xl md:text-4xl lg:text-5xl animate-title-in"
-            >
-              {currentItem.title}
-            </h1>
-            {currentItem.original_name && currentItem.original_name !== currentItem.title && (
-              <p className="text-xs font-semibold text-[var(--app-muted)] tracking-wide">
-                {currentItem.original_name}
-              </p>
-            )}
-          </div>
-
-          {/* Metadata Chips */}
-          <div className="flex flex-wrap items-center gap-2.5 text-xs font-bold text-[var(--app-muted)]">
-            {currentItem.rating > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-xl border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-500 shadow-sm">
-                <Star size={12} fill="currentColor" />
-                <span>{currentItem.rating.toFixed(1)}</span>
-              </span>
-            )}
-            {currentItem.year > 0 && (
-              <span className="rounded-xl border border-[var(--app-border)] bg-[var(--app-panel)] px-2.5 py-1 text-[var(--app-text)] shadow-sm">
-                {currentItem.year} 年
-              </span>
-            )}
-            {currentItem.video_codec && (
-              <span className="rounded-lg border border-[var(--app-brand-border)] bg-[var(--app-brand-soft)] px-2 py-1 text-[10px] font-bold uppercase text-[var(--app-brand-text)]">
-                {currentItem.video_codec}
-              </span>
-            )}
-            {currentItem.container && (
-              <span className="rounded-lg border border-[var(--app-border)] bg-[var(--app-panel)] px-2 py-1 font-mono text-[10px] uppercase text-[var(--app-subtle)]">
-                {currentItem.container}
-              </span>
-            )}
-          </div>
-
-          {/* Overview */}
-          <p className="line-clamp-3 max-w-2xl text-xs font-semibold leading-relaxed text-[var(--app-subtle)] sm:text-sm">
-            {currentItem.overview || '家庭私人媒体中心收藏。支持多端播放、高码率串流与智能刮削。'}
-          </p>
-
-          {/* Action Buttons */}
-          <div className="flex flex-wrap items-center gap-4 pt-2">
-            <Link
-              to={`/play/${currentItem.id}`}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--app-command-bg)] px-6 py-3.5 text-sm font-bold text-[var(--app-command-text)] shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-brand-500/25"
-            >
-              <Play size={16} fill="currentColor" />
-              <span>立即播放</span>
-            </Link>
-            <Link
-              to={`/media/${currentItem.id}`}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-panel)] px-5 py-3.5 text-sm font-bold text-[var(--app-subtle)] shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-500/40 hover:text-[var(--app-text)]"
-            >
-              <span>查看详情</span>
-              <ArrowRight size={16} />
-            </Link>
-          </div>
-        </div>
-
-        {/* Right Column: Floating 3D Poster Card */}
-        <div className="relative order-first mx-auto flex w-full max-w-[200px] items-center md:order-none md:max-w-[240px] lg:max-w-[280px]">
-          <div className="absolute -right-6 top-5 h-32 w-32 rounded-full bg-brand-500/20 blur-3xl" />
-          <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[1.7rem] border border-[var(--app-border)] bg-[var(--app-poster-shell)] p-2 shadow-[0_32px_80px_var(--app-shadow)]">
-            <div
-              className="flex h-full w-full flex-col items-center justify-center rounded-[1.25rem] text-center"
-              style={{ background: 'var(--app-poster-empty)' }}
-            >
-              <Film className="mb-4 h-12 w-12 text-[#c9954a]" />
-              <span className="px-6 font-display text-2xl font-black tracking-tight text-[var(--app-text)]">
-                {currentItem.title}
-              </span>
-            </div>
-            {poster && (
-              <img
-                src={imageURL(poster, currentItem.updated_at, ARTWORK.posterDetail)}
-                alt={currentItem.title}
-                fetchPriority="high"
-                decoding="async"
-                className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-[1.25rem] object-cover"
-                referrerPolicy="no-referrer"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                }}
-              />
-            )}
-          </div>
-        </div>
+      <div className="nook-spotlight-artwork">
+        <div className="nook-artwork-fallback" aria-hidden="true"><Film size={40} /><span>{currentItem.title}</span></div>
+        {visual && (
+          <img key={visual + currentItem.id} src={imageURL(visual, currentItem.updated_at, ARTWORK.backdropHero)}
+            alt={currentItem.title} fetchPriority="high" decoding="async" referrerPolicy="no-referrer"
+            className={!currentItem.backdrop_url ? 'nook-spotlight-poster' : undefined}
+            onError={(event) => {
+              const image = event.currentTarget
+              if (poster && visual !== poster && image.dataset.fallback !== 'true') {
+                image.dataset.fallback = 'true'
+                image.src = imageURL(poster, currentItem.updated_at, ARTWORK.posterDetail)
+                image.classList.add('nook-spotlight-poster')
+              } else {
+                image.style.display = 'none'
+              }
+            }} />
+        )}
       </div>
-
-      {/* Carousel Controls & Dots */}
-      {count > 1 && (
-        <div className="relative z-20 flex items-center justify-between border-t border-[var(--app-border)]/40 bg-[var(--app-panel)]/40 px-6 py-3 backdrop-blur-md">
-          {/* Navigation Indicators */}
-          <div className="flex items-center gap-1.5">
-            {items.map((_, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => setCurrentIndex(idx)}
-                className={`h-2 rounded-full transition-all duration-300 ${
-                  idx === currentIndex
-                    ? 'w-7 bg-brand-500'
-                    : 'w-2 bg-[var(--app-border)] hover:bg-[var(--app-muted)]'
-                }`}
-                title={`第 ${idx + 1} 张海报`}
-              />
-            ))}
-          </div>
-
-          {/* Slide Number & Arrow Buttons */}
-          <div className="flex items-center gap-3">
-            <span className="font-mono text-xs font-bold text-[var(--app-muted)]">
-              {String(currentIndex + 1).padStart(2, '0')} / {String(count).padStart(2, '0')}
-            </span>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={handlePrev}
-                className="rounded-xl border border-[var(--app-border)] p-1.5 text-[var(--app-muted)] hover:bg-[var(--app-hover)] hover:text-[var(--app-text)] transition-colors"
-                title="上一张"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <button
-                type="button"
-                onClick={handleNext}
-                className="rounded-xl border border-[var(--app-border)] p-1.5 text-[var(--app-muted)] hover:bg-[var(--app-hover)] hover:text-[var(--app-text)] transition-colors"
-                title="下一张"
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </section>
   )
 }
@@ -390,10 +242,10 @@ export function HomeLibrariesSection({
   }, [libraries, effectivePage])
 
   return (
-    <section className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--app-border)] pb-3">
+    <section className="nook-shelf space-y-4">
+      <div className="nook-shelf-heading flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <span className="rounded-xl border border-[var(--app-border)] bg-[var(--app-panel-soft)] p-1.5 text-[var(--app-text)]">
+          <span className="nook-section-icon">
             <LibraryIcon size={18} />
           </span>
           <div>
@@ -426,7 +278,7 @@ export function HomeLibrariesSection({
                 >
                   <ChevronLeft size={14} />
                 </button>
-                <span className="font-mono text-xs font-semibold text-[var(--app-subtle)]">
+                <span className="text-xs font-medium tabular-nums text-[var(--app-subtle)]">
                   {effectivePage} / {totalPages}
                 </span>
                 <button
@@ -454,7 +306,7 @@ export function HomeLibrariesSection({
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6">
+      <div className="nook-library-grid">
         {pagedLibraries.map((lib) => (
           <HomeLibraryCard
             key={lib.id}
@@ -496,17 +348,17 @@ export function HomeLibraryCard({
   return (
     <div
       ref={ref}
-      className={`group relative h-full overflow-hidden rounded-2xl border bg-[var(--app-panel)] transition-all duration-300 hover:-translate-y-1 hover:border-brand-500/50 hover:bg-[var(--app-hover)]/40 hover:shadow-lg hover:shadow-brand-500/10 ${
+      className={`nook-library-card group relative h-full overflow-hidden rounded-lg border bg-[var(--app-panel)] transition-colors hover:bg-[var(--app-hover)] ${
         pinned ? 'border-brand-500/60 ring-1 ring-brand-500/20' : 'border-[var(--app-border)]'
       }`}
     >
       <Link
         to={`/library/${library.id}`}
-        className="flex h-full flex-col justify-between p-3"
+        className="nook-library-link flex h-full flex-col justify-between p-3"
         title={library.name}
       >
         <div
-          className={`relative h-28 w-full overflow-hidden rounded-xl bg-[linear-gradient(135deg,var(--app-panel-soft),var(--app-panel))] shadow-inner ${
+          className={`nook-library-artwork relative h-28 w-full overflow-hidden rounded-lg bg-[var(--app-panel-soft)] ${
             artwork.length > 1 ? 'grid grid-cols-2 gap-0.5' : ''
           }`}
         >
@@ -534,12 +386,12 @@ export function HomeLibraryCard({
             </div>
           )}
 
-          <div className="absolute top-2 right-2 rounded-lg border border-white/20 bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-md shadow-sm">
+          <div className="absolute top-2 right-2 rounded-lg bg-[#111] px-2 py-0.5 text-[11px] font-medium text-white">
             {TYPE_LABELS[library.type] || '自定义'}
           </div>
         </div>
 
-        <div className="mt-3 flex flex-col justify-between">
+        <div className="nook-library-info mt-3 flex flex-col justify-between">
           <h3
             className="line-clamp-2 break-words font-display text-sm font-bold text-[var(--app-text)] group-hover:text-brand-500"
             title={library.name}
@@ -556,7 +408,7 @@ export function HomeLibraryCard({
         <button
           type="button"
           onClick={onTogglePin}
-          className={`absolute left-2 top-2 z-10 rounded-lg border p-1.5 shadow-sm backdrop-blur-md transition-all duration-200 opacity-100 sm:pointer-events-none sm:opacity-0 sm:group-hover:pointer-events-auto sm:group-hover:opacity-100 sm:group-focus-within:pointer-events-auto sm:group-focus-within:opacity-100 sm:focus-visible:pointer-events-auto sm:focus-visible:opacity-100 ${
+          className={`absolute left-2 top-2 z-10 rounded-lg border p-1.5 transition-[opacity,background-color] duration-200 opacity-100 sm:pointer-events-none sm:opacity-0 sm:group-hover:pointer-events-auto sm:group-hover:opacity-100 sm:group-focus-within:pointer-events-auto sm:group-focus-within:opacity-100 sm:focus-visible:pointer-events-auto sm:focus-visible:opacity-100 ${
             pinned
               ? 'border-brand-400/50 bg-brand-500 text-white'
               : 'border-white/20 bg-black/60 text-white hover:bg-black/75'
@@ -595,11 +447,11 @@ export function HomeLibraryRowSection({
   }
 
   return (
-    <section className="space-y-4">
+    <section className="nook-shelf space-y-4">
       {/* Row Header */}
-      <div className="flex items-center justify-between border-b border-[var(--app-border)] pb-3">
+      <div className="nook-shelf-heading flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <span className="rounded-xl border border-[var(--app-border)] bg-[var(--app-panel-soft)] p-1.5 text-brand-500">
+          <span className="nook-section-icon">
             {TYPE_ICONS[library.type] || <FolderOpen size={18} />}
           </span>
           <div>
@@ -652,7 +504,7 @@ export function HomeLibraryRowSection({
         {cards.map((card) => (
           <div
             key={card.key}
-            className="w-28 sm:w-32 md:w-36 lg:w-40 shrink-0 snap-start"
+            className="nook-shelf-item shrink-0 snap-start"
           >
             <MediaCard
               media={card.rep}
@@ -682,10 +534,10 @@ export function ContinueWatchingSection({ history }: { history: HistoryItem[] })
   }
 
   return (
-    <section className="space-y-4">
-      <div className="flex items-center justify-between border-b border-[var(--app-border)] pb-3">
+    <section className="nook-shelf space-y-4">
+      <div className="nook-shelf-heading flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <span className="rounded-xl border border-[var(--app-border)] bg-[var(--app-panel-soft)] p-1.5 text-[var(--app-text)]">
+          <span className="nook-section-icon">
             <Clock size={18} />
           </span>
           <div>
@@ -732,7 +584,7 @@ export function ContinueWatchingSection({ history }: { history: HistoryItem[] })
           } as Media)
           const progress = h.duration_ms > 0 ? h.position_ms / h.duration_ms : 0
           return (
-            <div key={h.id} className="w-64 sm:w-72 shrink-0">
+            <div key={h.id} className="nook-continue-item shrink-0">
               <ContinueCard media={media} progress={progress} />
             </div>
           )
@@ -743,51 +595,29 @@ export function ContinueWatchingSection({ history }: { history: HistoryItem[] })
 }
 
 function ContinueCard({ media, progress }: { media: Media; progress: number }) {
-  return (
-    <Link
-      to={`/play/${media.id}`}
-      className="group flex items-center gap-3.5 rounded-2xl border border-[var(--app-border)] bg-[var(--app-panel)] p-3 shadow-sm transition-all duration-300 hover:border-brand-500/30 hover:bg-[var(--app-panel-soft)] hover:shadow-md"
-    >
-      <div className="relative h-20 w-14 shrink-0 overflow-hidden rounded-xl bg-[var(--app-panel-soft)]">
-        {media.poster_url ? (
-          <img
-            src={imageURL(media.poster_url, media.updated_at, ARTWORK.posterCard)}
-            alt=""
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-[var(--app-muted)]">
-            <Film size={18} />
-          </div>
-        )}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Play size={16} fill="currentColor" className="text-white" />
-        </div>
-      </div>
+  const visual = media.backdrop_url || media.poster_url
 
-      <div className="min-w-0 flex-1 space-y-1">
-        <p className="truncate text-xs font-bold text-[var(--app-text)] group-hover:text-brand-500">
-          {media.title}
-        </p>
-        <div className="flex items-center gap-2 text-[10px] text-[var(--app-muted)]">
+  return (
+    <Link to={`/play/${media.id}`} className="nook-continue-card group">
+      <div className="nook-continue-artwork">
+        {visual ? (
+          <img src={imageURL(visual, media.updated_at, ARTWORK.backdropStrip)} alt=""
+            loading="lazy" decoding="async" referrerPolicy="no-referrer" />
+        ) : <div className="nook-artwork-fallback"><Film size={28} /></div>}
+        <span className="nook-resume-play"><Play size={16} fill="currentColor" /></span>
+        {progress > 0 && progress < 1 && (
+          <div className="nook-progress-track"><span style={{ width: `${Math.round(progress * 100)}%` }} /></div>
+        )}
+      </div>
+      <div className="nook-continue-info">
+        <p title={media.title}>{media.title}</p>
+        <div className="nook-continue-meta">
           {media.year > 0 && <span>{media.year}</span>}
           {media.season_num !== undefined && media.episode_num !== undefined && (
-            <span>
-              S{media.season_num}E{formatEpisodeNumber(media)}
-            </span>
+            <span>S{media.season_num}E{formatEpisodeNumber(media)}</span>
           )}
+          {progress > 0 && progress < 1 && <span className="ml-auto">已观看 {Math.round(progress * 100)}%</span>}
         </div>
-
-        {/* Progress Bar */}
-        {progress > 0 && progress < 1 && (
-          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--app-hover)]">
-            <div
-              className="h-full bg-brand-500 rounded-full"
-              style={{ width: `${Math.round(progress * 100)}%` }}
-            />
-          </div>
-        )}
       </div>
     </Link>
   )

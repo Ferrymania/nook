@@ -8,7 +8,7 @@ import { mediaAPI } from '../api/library'
 import { readerAPI, type ReaderBook } from '../api/reader'
 import type { Media, PlayProfile, User } from '../types'
 import { favouriteMediaLink } from '../utils/mediaNavigation'
-import { resolveHeaderBack } from './layoutNavigation'
+import { MEDIA_NAV_ITEMS, resolveHeaderBack, isSidebarLinkActive } from './layoutNavigation'
 import { LayoutThemeToggle } from './LayoutThemeToggle'
 import { LayoutUserMenu } from './LayoutUserMenu'
 import { LayoutReaderModeToggle } from './LayoutReaderModeToggle'
@@ -59,7 +59,7 @@ export function LayoutHeader({
   const headerBack = resolveHeaderBack(pathname)
 
   return (
-    <header className="relative z-30 flex h-16 shrink-0 items-center justify-between gap-2 border-b border-[var(--app-border)] bg-[var(--app-header-bg)] px-3 backdrop-blur-md sm:h-20 sm:gap-4 sm:px-4 md:px-8">
+    <header className="nook-header relative z-30 flex h-16 shrink-0 items-center justify-between gap-2 border-b border-[var(--app-border)] bg-[var(--app-header-bg)] px-3 sm:h-[4.5rem] sm:gap-4 sm:px-4 md:px-8">
       {/* Left: back / menu / brand */}
       <div className="flex items-center gap-2 shrink-0 sm:gap-3">
         {headerBack ? (
@@ -80,11 +80,11 @@ export function LayoutHeader({
         >
           <Menu size={18} />
         </button>
-        <Link to="/" className={`flex items-center gap-2.5 transition-transform hover:scale-105 ${showSidebar ? 'lg:hidden' : 'hidden sm:flex'}`}>
+        <Link to="/" className={`nook-brand flex items-center gap-2.5 ${showSidebar ? 'lg:hidden' : 'hidden sm:flex'}`}>
           <img
             src="/brand/logo-192.png?v=2"
             alt="Nook"
-            className="h-9 w-9 rounded-xl object-contain shadow-sm"
+            className="h-9 w-9 rounded-lg object-contain"
           />
           <span className="hidden font-display text-lg font-black tracking-tight text-[var(--app-text)] sm:inline-block">
             Nook
@@ -92,8 +92,10 @@ export function LayoutHeader({
         </Link>
       </div>
 
+      {!showSidebar && !readingMode && <LayoutMediaNavigation />}
+
       {/* Middle: Search Box */}
-      <div className="flex min-w-0 flex-1 max-w-xl mx-auto">
+      <div className="nook-header-search flex min-w-0 flex-1 max-w-xl mx-auto">
         {readingMode ? <LayoutHeaderBookSearch /> : !hideSearch && <LayoutHeaderSearch />}
       </div>
 
@@ -116,6 +118,23 @@ export function LayoutHeader({
         onLogout={onLogout}
       />
     </header>
+  )
+}
+
+function LayoutMediaNavigation() {
+  const location = useLocation()
+
+  return (
+    <nav className="nook-media-navigation hidden lg:flex" aria-label="影视导航">
+      {MEDIA_NAV_ITEMS.slice(0, 3).map((item) => {
+        const active = isSidebarLinkActive(item.to, location.pathname, location.search, item.end)
+        return (
+          <Link key={item.to} to={item.to} aria-current={active ? 'page' : undefined}>
+            {item.label}
+          </Link>
+        )
+      })}
+    </nav>
   )
 }
 

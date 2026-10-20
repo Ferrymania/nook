@@ -1,6 +1,6 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Loader2, Save, SettingsIcon } from 'lucide-react'
+import { Loader2, Save } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 import { adminAPI } from '../api/admin'
@@ -168,11 +168,8 @@ export function SettingsPage() {
   )
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sand-300/40 text-ink-100">
-          <SettingsIcon size={20} />
-        </div>
+    <div className="nook-settings space-y-6">
+      <div className="nook-page-header flex items-center gap-3">
         <div>
           <h1 className="font-display text-3xl font-bold text-ink-600">系统设置</h1>
           <p className="text-sm text-ink-50">
@@ -181,7 +178,7 @@ export function SettingsPage() {
         </div>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto border-b border-gray-200">
+      <div className="nook-settings-tabs flex gap-2 overflow-x-auto border-b border-[var(--app-border)]">
         {GROUPS.map((g) => (
           <button
             key={g.key}
@@ -189,7 +186,7 @@ export function SettingsPage() {
             className={
               'border-b-2 px-4 py-2 text-sm whitespace-nowrap transition ' +
               (activeGroup === g.key
-                ? 'border-primary-400 text-brand-500'
+                ? 'border-[var(--app-text)] text-[var(--app-text)]'
                 : 'border-transparent text-[var(--app-muted)] hover:text-[var(--app-text)]')
             }
           >

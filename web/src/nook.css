@@ -1,0 +1,200 @@
+/* Nook's shared appearance. Routes, data contracts and permission checks stay in
+   their existing components. Player/reader-specific layouts are deliberately excluded. */
+.nook-app { font-variant-numeric: tabular-nums; }
+.nook-app[data-screen='app'] .nook-workspace { padding-top: 28px; padding-inline: 28px; }
+.nook-app[data-screen='app'] .nook-canvas :is(h1.font-display, .page-heading),
+.nook-page-header h1 { font-size: 24px; font-weight: 600; line-height: 1.4; letter-spacing: -.02em; }
+.nook-app[data-screen='app'] .nook-canvas :is(.shadow-sm, .shadow-md, .shadow-card) { box-shadow: none; }
+.nook-app[data-screen='app'] .nook-canvas :is([class~='text-[9px]'], [class~='text-[10px]']),
+.nook-app[data-screen='app'] .nook-canvas .text-2xs,
+.nook-header :is([class~='text-[9px]'], [class~='text-[10px]']),
+.nook-user-menu :is([class~='text-[9px]'], [class~='text-[10px]']) { font-size: 11px; letter-spacing: 0; }
+.nook-app[data-screen='app'] .nook-canvas :is(.backdrop-blur, .backdrop-blur-md, .backdrop-blur-sm),
+.nook-user-menu { backdrop-filter: none; }
+
+.nook-header { gap: 20px; }
+.nook-brand > span { font-size: 23px; font-weight: 600; letter-spacing: -.04em; }
+.nook-media-navigation { align-items: center; gap: 24px; flex-shrink: 0; }
+.nook-media-navigation a { padding-block: 12px; font-size: 14px; color: var(--app-muted); white-space: nowrap; }
+.nook-media-navigation a[aria-current='page'] { color: var(--app-text); }
+.nook-header-search { max-width: 420px; margin-left: auto; margin-right: 0; }
+.nook-header-search input { border-radius: 999px; border-color: transparent; background: var(--app-control-bg); box-shadow: none; }
+.nook-user-trigger { min-height: 40px; }
+.nook-user-menu { box-shadow: 0 12px 32px var(--app-shadow); }
+.nook-user-menu a, .nook-user-menu button { font-weight: 400; }
+.nook-user-menu [class~='tracking-wider'] { letter-spacing: 0; font-weight: 500; }
+.nook-theme-toggle { padding: 3px; }
+.nook-sidebar > :first-child { height: 72px; padding-inline: 20px; }
+.nook-sidebar nav { padding: 24px 12px; }
+.nook-sidebar nav > a { padding: 10px 14px; border-radius: 8px; font-size: 14px; font-weight: 400; box-shadow: none; }
+.nook-sidebar [aria-current='page'] { font-weight: 500; }
+.nook-sidebar img { box-shadow: none; }
+.nook-bottom-nav a, .nook-bottom-nav button { font-size: 12px; font-weight: 400; min-height: 44px; }
+
+.nook-home-heading h1 { font-size: 24px; font-weight: 600; letter-spacing: -.02em; }
+.nook-home-heading p { margin-top: 5px; font-size: 14px; color: var(--app-muted); }
+.nook-home > * + * { margin-top: 32px; }
+.nook-home > .nook-spotlight { margin-top: 24px; }
+.nook-spotlight { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); overflow: hidden; border-radius: 20px; background: var(--app-panel); }
+.nook-spotlight-copy { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; padding: 30px 36px 18px; }
+.nook-film-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; font-size: 13px; line-height: 20px; color: var(--app-muted); }
+.nook-rating { display: inline-flex; align-items: center; gap: 4px; color: var(--app-brand-text); font-variant-numeric: tabular-nums; }
+.nook-spotlight h2 { margin-top: 12px; font-size: 32px; font-weight: 600; line-height: 1.3; letter-spacing: -.025em; overflow-wrap: anywhere; }
+.nook-original-title { margin-top: 4px; font-size: 13px; line-height: 1.5; color: var(--app-muted); }
+.nook-spotlight-library { display: inline-flex; align-items: center; gap: 7px; margin-top: 0; font-size: 12px; color: var(--app-muted); }
+.nook-spotlight-library svg { width: 14px; height: 14px; }
+.nook-spotlight-overview { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; margin-top: 16px; font-size: 14px; line-height: 1.8; color: var(--app-subtle); }
+.nook-spotlight-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+.nook-spotlight-actions .btn-ghost { padding-inline: 8px; }
+.nook-spotlight-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; align-self: stretch; margin-top: auto; padding-top: 18px; }
+.nook-slide-dots { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-right: auto; }
+.nook-slide-dots button { position: relative; width: 14px; height: 32px; }
+.nook-slide-dots button::after { position: absolute; content: ''; inset: 15px 0 auto; height: 3px; background: var(--app-border); border-radius: 999px; }
+.nook-slide-dots button[aria-pressed='true'] { width: 28px; }
+.nook-slide-dots button[aria-pressed='true']::after { background: var(--app-text); }
+.nook-slide-count { margin-inline: 10px; font-size: 12px; color: var(--app-muted); }
+.nook-icon-button { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; flex: none; border-radius: 999px; color: var(--app-muted); }
+.nook-spotlight-artwork { position: relative; min-height: 350px; overflow: hidden; background: var(--app-panel-soft); }
+.nook-spotlight-artwork > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.nook-spotlight-artwork > .nook-spotlight-poster { object-fit: contain; }
+.nook-artwork-fallback { display: flex; height: 100%; width: 100%; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; color: var(--app-muted); font-size: 13px; text-align: center; }
+.nook-spotlight-artwork > .nook-artwork-fallback { position: absolute; inset: 0; }
+
+.nook-shelf-heading { min-height: 32px; }
+.nook-shelf-heading h2 { font-size: 18px; font-weight: 600; letter-spacing: -.015em; }
+.nook-shelf-heading p, .nook-shelf-heading [class~='text-xs'] { font-size: 12px; font-weight: 400; }
+.nook-shelf-heading a { font-size: 13px; font-weight: 400; }
+.nook-section-icon { display: none; }
+/* Six cards and five 16px gutters fill the shelf: 6 × ((W − 80) / 6) + 80 = W.
+   The continue row uses the same arithmetic with three cards and two gutters. */
+.nook-shelf-item { width: calc((100% - 80px) / 6); }
+.nook-continue-item { width: calc((100% - 32px) / 3); }
+.nook-continue-card { display: block; min-width: 0; }
+.nook-continue-artwork { position: relative; aspect-ratio: 2.4; overflow: hidden; border-radius: 8px; background: var(--app-panel-soft); }
+.nook-continue-artwork > img { width: 100%; height: 100%; object-fit: cover; }
+.nook-resume-play { position: absolute; bottom: 12px; left: 12px; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 999px; color: #111; background: #f5f5f5; }
+.nook-continue-info { padding-top: 10px; }
+.nook-continue-info > p { overflow: hidden; font-size: 14px; font-weight: 500; white-space: nowrap; text-overflow: ellipsis; color: var(--app-text); }
+.nook-continue-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 3px; font-size: 12px; color: var(--app-muted); }
+.nook-progress-track { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: var(--app-hover); }
+.nook-progress-track > span { display: block; height: 100%; background: var(--app-brand-text); }
+
+/* A library remains the same navigable object, including its cover, type, count,
+   pin action and lazy-loading observer. Only its presentation becomes compact. */
+.nook-library-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.nook-library-card { border-color: transparent; }
+.nook-library-card:has(button[aria-pressed='true']) { border-color: var(--app-brand-border); }
+.nook-library-link { display: grid; grid-template-columns: minmax(0, 1fr) 72px; align-items: center; gap: 14px; min-height: 96px; padding: 14px 16px; }
+.nook-library-artwork { grid-column: 2; grid-row: 1; width: 72px; height: 64px; border-radius: 4px; }
+.nook-library-artwork > .absolute { font-size: 11px; border: 0; border-radius: 3px; padding: 1px 4px; right: 2px; top: 2px; background: #111; color: #fff; box-shadow: none; backdrop-filter: none; }
+.nook-library-info { grid-column: 1; grid-row: 1; margin-top: 0; }
+.nook-library-info h3 { font-size: 14px; font-weight: 500; }
+.nook-library-info p { margin-top: 5px; font-size: 13px; }
+.nook-library-card > button { left: auto; right: 8px; top: 8px; }
+
+.nook-media-card { position: relative; display: flex; height: 100%; flex-direction: column; min-width: 0; }
+.nook-media-card-artwork { position: relative; flex-shrink: 0; width: 100%; aspect-ratio: 2 / 3; overflow: hidden; border-radius: 8px; background: var(--app-panel-soft); }
+.nook-media-card-image { position: relative; display: block; width: 100%; height: 100%; object-position: center; }
+.nook-media-card-info { padding-top: 10px; }
+.nook-media-card-title { display: -webkit-box; min-height: 2.8em; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: 14px; font-weight: 500; line-height: 1.4; color: var(--app-text); }
+.nook-media-card-meta { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 13px; color: var(--app-muted); }
+.nook-media-card-formats { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-height: 20px; margin-top: 3px; font-size: 12px; color: var(--app-muted); }
+.nook-media-card-formats > span { align-items: center; gap: 4px; white-space: nowrap; }
+.nook-media-card-formats > span:has(svg) { display: inline-flex; }
+.nook-media-card-hover { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 16px; background: rgb(0 0 0 / .3); opacity: 0; pointer-events: none; transition: opacity .18s; }
+.nook-media-play { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; flex: none; border-radius: 999px; background: #f5f5f5; color: #111; }
+.nook-media-card-hover p { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; padding: 8px; border-radius: 4px; background: #111; color: #fff; font-size: 12px; line-height: 1.6; }
+.group:focus-within .nook-media-card-hover { opacity: 1; }
+
+.nook-settings .text-xs { font-size: 13px; }
+.nook-settings-tabs > button { min-height: 42px; padding: 10px 16px; font-size: 14px; }
+.nook-settings .settings-section { border: 0; border-radius: 12px; background: var(--app-panel); }
+.nook-settings .settings-switch[aria-checked='true'] { background: var(--app-command-bg); }
+.nook-settings .settings-switch[aria-checked='true'] > span { background: var(--app-command-text); }
+.nook-media-detail-content h1 { font-size: 28px; font-weight: 600; }
+.nook-media-detail-content .btn-primary { box-shadow: none; }
+.nook-detail-body { display: flex; flex-direction: column; gap: 20px; }
+
+@media (hover: hover) and (pointer: fine) {
+  .nook-icon-button:hover { background: var(--app-hover); color: var(--app-text); }
+  .nook-media-navigation a:hover { color: var(--app-text); }
+  .nook-continue-artwork > img, .nook-media-card-image { transition: transform .3s; }
+  .nook-continue-card:hover .nook-continue-artwork > img,
+  .group:hover .nook-media-card-image { transform: scale(1.025); }
+  .group:hover .nook-media-card-hover { opacity: 1; }
+}
+@media (min-width: 1024px) {
+  .nook-media-card-title { display: block; min-height: 0; white-space: nowrap; text-overflow: ellipsis; }
+}
+@media (max-width: 1100px) {
+  .nook-header { gap: 12px; }
+  .nook-header-search { max-width: 360px; }
+  .nook-media-navigation { gap: 16px; }
+  .nook-spotlight-copy { padding: 24px 26px 16px; }
+  .nook-spotlight h2 { font-size: 28px; }
+  .nook-shelf-item { width: calc((100% - 48px) / 4); }
+  .nook-library-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .nook-library-link { grid-template-columns: minmax(0, 1fr) 56px; gap: 10px; padding: 12px; }
+  .nook-library-artwork { width: 56px; }
+}
+@media (max-width: 800px) {
+  .nook-app[data-screen='app'] .nook-workspace { padding-top: 24px; padding-inline: 24px; }
+  .nook-spotlight { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .nook-spotlight-copy { padding: 24px; }
+  .nook-spotlight-overview { font-size: 13px; }
+  .nook-spotlight-artwork { min-height: 330px; }
+  .nook-library-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nook-library-link { grid-template-columns: minmax(0, 1fr) 72px; }
+  .nook-library-artwork { width: 72px; }
+  .nook-continue-item { width: calc((100% - 16px) / 2); }
+  .nook-shelf-item { width: calc((100% - 32px) / 3); }
+}
+@media (max-width: 639px) {
+  .nook-header { height: 64px; padding-inline: 14px; gap: 8px; }
+  .nook-header-search { max-width: none; margin: 0; }
+  .nook-header-search input { font-size: 14px; }
+  .nook-app[data-screen='app'] .nook-workspace { padding-top: 20px; padding-inline: 18px; }
+  .nook-app[data-screen='app'] .nook-canvas :is(h1.font-display, .page-heading),
+  .nook-page-header h1, .nook-home-heading h1 { font-size: 22px; }
+  .nook-home-heading p { font-size: 13px; }
+  .nook-spotlight { display: flex; flex-direction: column; border-radius: 16px; }
+  .nook-spotlight-artwork { order: -1; min-height: 0; width: 100%; aspect-ratio: 1.95; }
+  .nook-spotlight-copy { padding: 20px 22px 12px; }
+  .nook-spotlight h2 { font-size: 28px; }
+  .nook-spotlight-library { margin-top: 0; }
+  .nook-spotlight-overview { margin-top: 12px; font-size: 13px; line-height: 1.8; }
+  .nook-spotlight-actions { gap: 8px; margin-top: 18px; }
+  .nook-spotlight-actions > a { min-height: 44px; font-size: 13px; }
+  .nook-icon-button { width: 36px; height: 44px; }
+  .nook-slide-dots button { height: 44px; }
+  .nook-slide-dots button::after { top: 21px; }
+  .nook-slide-count { margin-inline: 5px; }
+  .nook-shelf-heading h2 { font-size: 18px; }
+  .nook-shelf-heading a { font-size: 12px; }
+  .nook-continue-item { width: 78%; }
+  .nook-continue-artwork { aspect-ratio: 2; }
+  .nook-continue-meta { font-size: 13px; }
+  .nook-shelf-item { width: 44%; }
+  .nook-library-grid { gap: 12px; }
+  .nook-library-link { min-height: 86px; grid-template-columns: minmax(0, 1fr) 42px; gap: 8px; padding: 12px; }
+  .nook-library-artwork { width: 42px; height: 58px; }
+  .nook-library-info h3 { font-size: 13px; }
+  .nook-library-info p { font-size: 12px; }
+  .nook-media-card-title { font-size: 14px; }
+  .nook-media-card-meta { font-size: 13px; }
+  .nook-media-card-formats { gap: 4px; font-size: 12px; }
+  .nook-settings-tabs > button { min-height: 44px; padding-inline: 14px; font-size: 13px; }
+  .nook-settings .settings-section { padding: 18px 16px; }
+  .nook-media-detail-content { padding: 24px 18px; gap: 24px; }
+  .nook-media-detail-content h1 { font-size: 24px; }
+  .nook-detail-poster { width: 144px; }
+  .nook-detail-heading { order: 0; }
+  .nook-detail-playback { order: 1; }
+  .nook-detail-body > .divider { order: 2; }
+  .nook-detail-overview { order: 3; }
+  .nook-detail-taxonomy { order: 4; }
+  .nook-detail-body > :last-child:not(.nook-detail-playback) { order: 5; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nook-app *, .nook-user-menu { transition-duration: .01ms !important; }
+}

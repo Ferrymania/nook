@@ -16,7 +16,7 @@ export function MediaDetailMetadata({ media }: MediaDetailMetadataProps) {
 
   return (
     <>
-      <div className="space-y-3">
+      <div className="nook-detail-heading space-y-3">
         <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 leading-tight">
           {heading}
         </h1>
@@ -27,24 +27,24 @@ export function MediaDetailMetadata({ media }: MediaDetailMetadataProps) {
         )}
         <div className="flex flex-wrap items-center gap-2">
           {media.year > 0 && (
-            <span className="inline-flex h-7 items-center rounded-lg border border-gray-200/60 bg-gray-100 px-2.5 text-2xs font-bold uppercase tracking-wide gap-1.5 text-gray-700">
+            <span className="inline-flex min-h-7 items-center rounded-lg border border-gray-200/60 bg-gray-100 px-2.5 text-[13px] font-medium gap-1.5 text-gray-700">
               <Calendar size={13} className="text-brand-500" />
               <span>{media.year} 年</span>
             </span>
           )}
           {media.width > 0 && media.height > 0 && (
-            <span className="inline-flex h-7 items-center rounded-lg border border-brand-100/50 bg-brand-50 px-2.5 text-2xs font-bold uppercase tracking-wide text-brand-700">
+            <span className="inline-flex min-h-7 items-center rounded-lg border border-brand-100/50 bg-brand-50 px-2.5 text-[13px] font-medium text-brand-700">
               <span>{media.width} × {media.height}</span>
             </span>
           )}
           {media.size_bytes > 0 && (
-            <span className="inline-flex h-7 items-center rounded-lg border border-gray-200/60 bg-gray-100 px-2.5 text-2xs font-bold uppercase tracking-wide text-gray-700">{fmtSize(media.size_bytes)}</span>
+            <span className="inline-flex min-h-7 items-center rounded-lg border border-gray-200/60 bg-gray-100 px-2.5 text-[13px] font-medium text-gray-700">{fmtSize(media.size_bytes)}</span>
           )}
           {media.duration_sec > 0 && (
-            <span className="inline-flex h-7 items-center rounded-lg border border-gray-200/60 bg-gray-100 px-2.5 text-2xs font-bold uppercase tracking-wide text-gray-700">{fmtDuration(media.duration_sec)}</span>
+            <span className="inline-flex min-h-7 items-center rounded-lg border border-gray-200/60 bg-gray-100 px-2.5 text-[13px] font-medium text-gray-700">{fmtDuration(media.duration_sec)}</span>
           )}
           {media.container && (
-            <span className="inline-flex h-7 items-center rounded-lg border border-gray-200/60 bg-gray-100 px-2.5 text-2xs font-bold uppercase tracking-wide text-gray-700 font-mono">
+            <span className="inline-flex min-h-7 items-center rounded-lg border border-gray-200/60 bg-gray-100 px-2.5 text-[13px] font-medium text-gray-700">
               {media.container}
             </span>
           )}
@@ -52,16 +52,16 @@ export function MediaDetailMetadata({ media }: MediaDetailMetadataProps) {
       </div>
 
       {media.overview && (
-        <div className="rounded-2xl bg-gray-50/50 border border-gray-100 p-5 space-y-2">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-brand-500">剧情简介</h3>
-          <p className="text-sm text-gray-600 leading-relaxed font-semibold">
+        <div className="nook-detail-overview rounded-xl bg-[var(--app-panel-soft)] p-5 space-y-2">
+          <h2 className="text-[13px] font-medium text-[var(--app-subtle)]">剧情简介</h2>
+          <p className="text-sm text-[var(--app-subtle)] leading-relaxed">
             {media.overview}
           </p>
         </div>
       )}
 
       {hasTaxonomy && (
-        <div className="space-y-3">
+        <div className="nook-detail-taxonomy space-y-3">
           <MetadataRow label="类型流派" values={parseCSV(media.genres)} tone="brand" />
           <MetadataRow label="语言" values={parseCSV(media.languages)} />
           <MetadataRow label="国家/地区" values={parseCSV(media.countries)} />
@@ -88,7 +88,7 @@ function MetadataRow({
 }) {
   if (values.length === 0) return null
   const tagClass = [
-    'inline-flex items-center rounded-lg border px-2.5 py-1 text-2xs font-bold uppercase tracking-wide',
+    'inline-flex items-center rounded-lg border px-2.5 py-1 text-xs font-medium',
     tone === 'brand'
       ? 'border-brand-100/50 bg-brand-50 text-brand-700'
       : 'border-gray-200/60 bg-gray-100 text-gray-600',

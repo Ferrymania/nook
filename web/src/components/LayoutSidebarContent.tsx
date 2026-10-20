@@ -31,7 +31,7 @@ export function LayoutSidebarContent({
   const adminItems = visibleSidebarItems({ isAdmin, can, items: LAYOUT_NAV_ITEMS })
 
   return (
-    <div className="flex h-full min-h-0 flex-col border-r border-[var(--app-border)] bg-[var(--app-panel)]">
+    <div className="nook-sidebar flex h-full min-h-0 flex-col border-r border-[var(--app-border)] bg-[var(--app-bg)]">
       <LayoutSidebarHeader
         sidebarExpanded={sidebarExpanded}
         onToggleSidebar={onToggleSidebar}

@@ -39,121 +39,44 @@ export const MediaCard = memo(function MediaCard({
   }, [media.poster_url, media.updated_at])
 
   const card = (
-      <div
-        ref={ref}
-        className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-panel)] shadow-[0_1px_3px_rgba(0,0,0,0.01),0_1px_2px_rgba(0,0,0,0.015)] transition-all duration-300 hover:scale-[1.04] hover:-translate-y-1.5 hover:border-brand-500/40 hover:shadow-[0_12px_32px_var(--app-shadow)]"
-      >
-        {/* Poster Wrapper */}
-        <div className="relative aspect-[2/3] w-full shrink-0 overflow-hidden bg-[var(--app-panel-soft)]">
-          {media.poster_url ? (
-            <>
-              {posterFit === 'contain' && (
-                <img
-                  src={blurredPosterSrc}
-                  alt=""
-                  aria-hidden="true"
-                  loading="lazy"
-                  className="absolute inset-0 h-full w-full scale-110 object-cover object-center opacity-25 blur-xl"
-                  referrerPolicy="no-referrer"
-                />
-              )}
-              <img
-                src={posterSrc}
-                alt={media.title}
-                loading="lazy"
-                decoding="async"
-                onLoad={(event) => {
-                  const img = event.currentTarget
-                  setPosterFit(img.naturalWidth > img.naturalHeight ? 'contain' : 'cover')
-                }}
-                className={
-                  'relative block h-full w-full object-center transition-transform duration-700 ease-out group-hover:scale-105 ' +
-                  (posterFit === 'contain' ? 'object-contain p-1.5' : 'object-cover')
-                }
-                referrerPolicy="no-referrer"
-              />
-            </>
-          ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-[var(--app-panel-soft)] text-[var(--app-muted)]">
-              <Film size={28} className="stroke-[1.5]" />
-              <span className="text-[10px] uppercase tracking-wider font-bold">No Poster</span>
-            </div>
-          )}
-
-          {/* Rating Badge */}
-          {displayRating > 0 && (
-            <span className="absolute left-2 top-2 inline-flex items-center gap-0.5 rounded-lg border border-white/15 bg-[#111827]/90 px-1.5 py-0.5 text-[10px] font-bold text-[#c9954a] shadow-sm">
-              <Star size={10} fill="currentColor" className="shrink-0" />
-              <span>{displayRating.toFixed(1)}</span>
-            </span>
-          )}
-
-          {/* Premium Hover Overlay（CSS 过渡替代 framer-motion 逐卡动画实例） */}
-          <div className={`absolute inset-0 bg-gradient-to-t from-[#111827]/90 via-[#111827]/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end ${
-            compact ? 'p-3' : 'p-4'
-          }`}>
-            <div className="space-y-2 translate-y-4 transition-transform duration-200 group-hover:translate-y-0">
-              <span className={`inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2 font-bold text-white shadow-md shadow-brand-500/20 ${
-                compact ? 'py-1.5 text-[11px]' : 'text-xs py-2'
-              }`}>
-                <Play size={compact ? 8 : 10} fill="currentColor" className="text-white" />
-                <span>立即观影</span>
-              </span>
-              {!compact && (
-                <p className="text-[10px] text-gray-200 font-semibold line-clamp-2 leading-relaxed">
-                  {media.overview || "暂无简介内容"}
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Progress Bar overlay */}
-          {progress !== undefined && progress > 0 && progress < 1 && (
-            <div className="absolute inset-x-0 bottom-0 h-1.5 bg-[var(--app-hover)]">
-              <div
-                className="h-full bg-gradient-to-r from-brand-400 to-brand-500 rounded-r-full transition-all duration-300"
-                style={{ width: `${Math.round(progress * 100)}%` }}
-              />
-            </div>
-          )}
+    <div ref={ref} className={`nook-media-card ${compact ? 'nook-media-card-compact' : ''}`}>
+      <div className="nook-media-card-artwork">
+        {media.poster_url ? (
+          <>
+            {posterFit === 'contain' && <img src={blurredPosterSrc} alt="" aria-hidden="true" loading="lazy"
+              className="absolute inset-0 h-full w-full scale-110 object-cover object-center opacity-25 blur-xl" referrerPolicy="no-referrer" />}
+            <img src={posterSrc} alt={media.title} loading="lazy" decoding="async" referrerPolicy="no-referrer"
+              onLoad={(event) => {
+                const image = event.currentTarget
+                setPosterFit(image.naturalWidth > image.naturalHeight ? 'contain' : 'cover')
+              }}
+              className={`nook-media-card-image ${posterFit === 'contain' ? 'object-contain p-1.5' : 'object-cover'}`} />
+          </>
+        ) : (
+          <div className="nook-artwork-fallback"><Film size={28} /><span>无海报</span></div>
+        )}
+        <div className="nook-media-card-hover" aria-hidden="true">
+          <span className="nook-media-play"><Play size={20} fill="currentColor" /></span>
+          {!compact && <p>{media.overview || '暂无简介内容'}</p>}
         </div>
-
-        {/* Media Metadata Info */}
-        <div className={`space-y-1 border-t border-[var(--app-border)] bg-[var(--app-panel)] ${
-          compact ? 'p-2' : 'p-2.5 sm:p-4'
-        }`}>
-          {/* 手机端一张卡只有 ~100px 宽：标题放开到两行，并预留两行高度，
-              这样同一行的卡片不会因为标题行数不同而参差不齐。 */}
-          <p className={`font-bold text-[var(--app-text)] transition-colors duration-200 group-hover:text-brand-500 ${
-            compact
-              ? 'truncate text-xs'
-              : 'line-clamp-2 min-h-[2.75em] text-[13px] leading-snug sm:line-clamp-none sm:min-h-0 sm:truncate sm:text-sm sm:leading-normal'
-          }`}>
-            {media.title}
-          </p>
-          {/* 年份完整显示；空间不足时徽标换行，避免把年份挤成「2…」。
-              min-h 统一无徽标时的信息行高度。 */}
-          <div className="flex min-h-[21px] flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-bold uppercase text-[var(--app-muted)] sm:min-h-0 sm:text-[11px] sm:tracking-wider">
-            <span className="shrink-0 whitespace-nowrap">{media.year > 0 ? media.year : "未知年份"}</span>
-            <span className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-0.5 sm:gap-1.5">
-              {/* 集数/版本数徽标：放在海报下方的信息行而不是压在画面上。海报底部通常
-                  自带片名，角标会盖住它（Game of Thrones / Breaking Bad 都很明显）。 */}
-              {(count !== undefined && count > 1) || (count === undefined && versionCount > 1) ? (
-                <span className="inline-flex items-center gap-0.5 whitespace-nowrap rounded-xl border border-[var(--app-border)] bg-[var(--app-panel-soft)] px-1 py-0.5 text-[var(--app-subtle)] sm:gap-1 sm:px-1.5">
-                  <Layers size={10} className="shrink-0 text-[#c9954a]" />
-                  <span>{count !== undefined && count > 1 ? `${count} 集` : `${versionCount} 版本`}</span>
-                </span>
-              ) : null}
-              {/* 编码格式在小卡片上没有信息价值，手机上直接隐藏，避免挤掉集数徽标。 */}
-              {media.video_codec && (
-                <span className="hidden whitespace-nowrap rounded-xl border border-[var(--app-border)] bg-[var(--app-panel-soft)] px-1.5 py-0.5 text-[var(--app-subtle)] sm:inline-block">
-                  {media.video_codec}
-                </span>
-              )}
-            </span>
-          </div>
+        {progress !== undefined && progress > 0 && progress < 1 && (
+          <div className="nook-progress-track"><span style={{ width: `${Math.round(progress * 100)}%` }} /></div>
+        )}
+      </div>
+      <div className="nook-media-card-info">
+        <p className="nook-media-card-title" title={media.title}>{media.title}</p>
+        <div className="nook-media-card-meta">
+          <span>{media.year > 0 ? media.year : '未知年份'}</span>
+          {displayRating > 0 && <span className="nook-rating ml-auto"><Star size={11} fill="currentColor" />{displayRating.toFixed(1)}</span>}
+        </div>
+        <div className="nook-media-card-formats">
+          {(count !== undefined && count > 1) || (count === undefined && versionCount > 1) ? (
+            <span><Layers size={12} /><span>{count !== undefined && count > 1 ? `${count} 集` : `${versionCount} 版本`}</span></span>
+          ) : null}
+          {media.video_codec && <span className="hidden sm:inline-flex">{media.video_codec}</span>}
         </div>
       </div>
+    </div>
   )
 
   if (onClick) {
