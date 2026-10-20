@@ -226,7 +226,10 @@ export const libraryAPI = {
     api.post<ScanResult>(`/libraries/${id}/roots/${rootID}/scan`, null, { timeout: BATCH_REQUEST_TIMEOUT }).then((r) => r.data),
 
   scrape: (id: string, options?: ScrapeOptions) =>
-    api.post(`/libraries/${id}/scrape`, options ?? null, { timeout: BATCH_REQUEST_TIMEOUT }).then((r) => r.data),
+    api.post<{ enqueued: number }>(`/libraries/${id}/scrape`, options ?? null, { timeout: BATCH_REQUEST_TIMEOUT }).then((r) => r.data),
+
+  scrapeStatus: (id: string, signal?: AbortSignal) =>
+    api.get<{ pending: number; running: number }>(`/libraries/${id}/scrape-status`, { signal }).then(r => r.data),
 
   listMedia: (
     id: string,

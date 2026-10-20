@@ -124,6 +124,26 @@ func (r *ScrapeTaskRepository) CountByStatus(ctx context.Context) (map[string]in
 	return out, nil
 }
 
+// CountActiveForLibraries reads only the current library's queued/running work.
+// Empty scope must never fall back to a global queue count.
+func (r *ScrapeTaskRepository) CountActiveForLibraries(ctx context.Context, libraryIDs []string) (map[string]int64, error) {
+	out := map[string]int64{}
+	if len(libraryIDs) == 0 {
+		return out, nil
+	}
+	var rows []struct {
+		Status string
+		Count  int64
+	}
+	err := r.db.WithContext(ctx).Model(&model.ScrapeTask{}).
+		Where("library_id IN ? AND status IN ?", libraryIDs, []string{model.ScrapeTaskPending, model.ScrapeTaskRunning}).
+		Select("status, count(*) as count").Group("status").Scan(&rows).Error
+	for _, row := range rows {
+		out[row.Status] = row.Count
+	}
+	return out, err
+}
+
 // ClaimPending picks pending scrape tasks and marks them running.
 func (r *ScrapeTaskRepository) ClaimPending(ctx context.Context, limit int) ([]model.ScrapeTask, error) {
 	scrapeClaimMu.Lock()

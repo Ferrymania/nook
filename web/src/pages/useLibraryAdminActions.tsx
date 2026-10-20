@@ -2,7 +2,6 @@ import { useState, type ReactNode } from 'react'
 import toast from 'react-hot-toast'
 
 import { api } from '../api/client'
-import { libraryAPI } from '../api/library'
 import { mediaAPI } from '../api/library'
 import { toolsAPI } from '../api/tools'
 import { confirmAction, confirmActionResult } from '../components/confirmAction'
@@ -10,6 +9,7 @@ import { useEpisodeArtworkPreference } from '../hooks/useEpisodeArtworkPreferenc
 import type { Library, Media } from '../types'
 import { seriesTitle, type SeriesCard } from '../utils/groupSeries'
 import { LibraryMovieActions } from './LibraryMovieActions'
+import { useLibraryScrapeStatus } from './useLibraryScrapeStatus'
 import { seriesSourceRoot } from './libraryPageModel'
 
 type UseLibraryAdminActionsOptions = {
@@ -33,36 +33,10 @@ export function useLibraryAdminActions({
   clearSelectedSeries,
   setManualMovie,
 }: UseLibraryAdminActionsOptions) {
-  const [scraping, setScraping] = useState(false)
-  const [scrapeEpisodeArtwork, setScrapeEpisodeArtwork] = useEpisodeArtworkPreference()
-  const [repairing, setRepairing] = useState(false)
+  const [scrapeEpisodeArtwork] = useEpisodeArtworkPreference()
   const [seriesToolBusy, setSeriesToolBusy] = useState('')
   const [movieToolBusy, setMovieToolBusy] = useState('')
-  const handleScrape = async () => {
-    setScraping(true)
-    try {
-      await libraryAPI.scrape(libraryID, { episode_images: scrapeEpisodeArtwork, refresh_matched: true })
-      toast.success('刮削已加入后台队列')
-    } catch {
-      toast.error('刮削失败')
-    } finally {
-      setScraping(false)
-    }
-  }
-
-  const handleRepairRescrape = async () => {
-    if (repairing) return
-    if (!await confirmAction({ title: '修复并重新刮削', message: `将重新识别并刮削「${library?.name || '当前媒体库'}」中的媒体，可能产生较多请求。`, confirmText: '确认修复' })) return
-    setRepairing(true)
-    try {
-      await toolsAPI.repairAndRescrapeLibrary(libraryID, { episode_images: scrapeEpisodeArtwork, refresh_matched: true })
-      toast.success('本库修复+重刮已加入后台队列，进度可在任务中查看')
-    } catch {
-      toast.error('修复+重刮启动失败')
-    } finally {
-      setRepairing(false)
-    }
-  }
+  const { scraping, handleScrape } = useLibraryScrapeStatus({ libraryID, isAdmin: role === 'admin', episodeArtwork: scrapeEpisodeArtwork, onLibraryChanged: reloadCurrentLibrary })
 
   const runSeriesTool = async (key: string, label: string, action: (media: Media) => Promise<unknown>) => {
     if (selectedSeriesEpisodes.length === 0) return
@@ -201,11 +175,8 @@ export function useLibraryAdminActions({
   return {
     scraping,
     scrapeEpisodeArtwork,
-    repairing,
     seriesToolBusy,
-    setScrapeEpisodeArtwork,
     handleScrape,
-    handleRepairRescrape,
     handleSeriesSmartScrape,
     handleSeriesProbe,
     handleSeriesNFO,

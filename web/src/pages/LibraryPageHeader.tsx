@@ -1,8 +1,7 @@
 import type { Library } from '../types'
-import { LibraryScrapeMenu } from '../components/LibraryScrapeMenu'
 import { MediaSortDropdown } from '../components/MediaSortDropdown'
 import { useState } from 'react'
-import { Loader2, ScanLine, Settings2 } from 'lucide-react'
+import { Loader2, ScanLine, Settings2, Sparkles } from 'lucide-react'
 import { LibraryScrapeSettingsDialog } from './LibraryScrapeSettingsDialog'
 import type { SortField, SortOrder } from '../utils/mediaSort'
 import { libraryDisplayPath } from './libraryDisplayModel'
@@ -17,14 +16,12 @@ type LibraryPageHeaderProps = {
   scanLabel: string
   scanning: boolean
   scraping: boolean
-  repairing: boolean
   sortField: SortField
   sortOrder: SortOrder
   onSortChange: (field: SortField, order: SortOrder) => void
   onReshuffle: () => void
   onScan: () => void
   onScrape: () => void
-  onRepairRescrape: () => void
 }
 
 export function LibraryPageHeader({
@@ -37,14 +34,12 @@ export function LibraryPageHeader({
   scanLabel,
   scanning,
   scraping,
-  repairing,
   sortField,
   sortOrder,
   onSortChange,
   onReshuffle,
   onScan,
   onScrape,
-  onRepairRescrape,
 }: LibraryPageHeaderProps) {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const displayPath = library ? libraryDisplayPath(library.path) : ''
@@ -74,7 +69,10 @@ export function LibraryPageHeader({
               {scanning ? <Loader2 size={16} className="animate-spin" /> : <ScanLine size={16} />}
               {scanLabel}
             </button>
-            <LibraryScrapeMenu scraping={scraping} repairing={repairing} onScrape={onScrape} onRepair={onRepairRescrape} />
+            <button type="button" onClick={onScrape} disabled={scraping || !library} aria-busy={scraping} className="library-toolbar-button" title="刮削当前库全部媒体，包括已匹配项；进度可在任务队列查看">
+              {scraping ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+              {scraping ? '正在刮削…' : '刮削媒体库'}
+            </button>
             <button type="button" onClick={() => setSettingsOpen(true)} disabled={!library} aria-haspopup="dialog" className="library-toolbar-button" title="打开刮削设置"><Settings2 size={16} />刮削设置</button>
           </>
         )}

@@ -44,7 +44,6 @@ export function LibraryPage() {
   const { isFavourite, toggleFavourite } = useFavourites()
   const [favouriteBusyID, setFavouriteBusyID] = useState('')
 
-  const [scrapeDialogOpen, setScrapeDialogOpen] = useState(false)
   const [manualSeriesScrapeOpen, setManualSeriesScrapeOpen] = useState(false)
   const [seriesMetadataEditOpen, setSeriesMetadataEditOpen] = useState(false)
   const [manualMovie, setManualMovie] = useState<Media | null>(null)
@@ -222,10 +221,8 @@ export function LibraryPage() {
   const {
     scraping,
     scrapeEpisodeArtwork,
-    repairing,
     seriesToolBusy,
-    setScrapeEpisodeArtwork,
-    handleRepairRescrape,
+    handleScrape,
     handleSeriesSmartScrape,
     handleSeriesProbe,
     handleSeriesNFO,
@@ -310,14 +307,12 @@ export function LibraryPage() {
           scanning={scanning}
           scanLabel={scanLabel}
           scraping={scraping}
-          repairing={repairing}
           sortField={sortField}
           sortOrder={sortOrder}
           onSortChange={handleSortChange}
           onReshuffle={handleReshuffle}
           onScan={handleScan}
-          onScrape={() => setScrapeDialogOpen(true)}
-          onRepairRescrape={handleRepairRescrape}
+          onScrape={handleScrape}
         />
       )}
 
@@ -376,8 +371,6 @@ export function LibraryPage() {
       />
 
       <LibraryPageDialogs
-        scrapeDialogOpen={scrapeDialogOpen}
-        library={library}
         manualSeriesScrapeOpen={manualSeriesScrapeOpen}
         seriesMetadataEditOpen={seriesMetadataEditOpen}
         manualMovie={manualMovie}
@@ -386,8 +379,6 @@ export function LibraryPage() {
         selectedSeriesMediaIDs={selectedSeriesMediaIDs}
         libraryType={library?.type}
         scrapeEpisodeArtwork={scrapeEpisodeArtwork}
-        onScrapeEpisodeArtworkChange={setScrapeEpisodeArtwork}
-        onCloseScrapeDialog={() => setScrapeDialogOpen(false)}
         onCloseManualSeriesScrape={() => setManualSeriesScrapeOpen(false)}
         onCloseSeriesMetadataEdit={() => setSeriesMetadataEditOpen(false)}
         onCloseManualMovie={() => setManualMovie(null)}
