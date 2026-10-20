@@ -11,30 +11,22 @@ type MediaDetailArtworkProps = {
 
 export function MediaDetailBackdrop({ media }: MediaDetailArtworkProps) {
   return (
-    <div className="absolute inset-0 h-[480px] z-0 overflow-hidden">
-      {media.backdrop_url || media.poster_url ? (
-        <img
-          src={imageURL(media.backdrop_url || media.poster_url || '', media.updated_at, ARTWORK.backdropHero)}
-          alt=""
-          decoding="async"
-          fetchPriority="low"
-          className="w-full h-full object-cover opacity-[0.04] scale-110 blur-2xl"
-          referrerPolicy="no-referrer"
-        />
-      ) : (
-        <div className="w-full h-full bg-gradient-to-b from-gray-50 to-transparent" />
+    <div className="nook-detail-backdrop absolute inset-0 h-[480px] z-0 overflow-hidden" aria-hidden="true">
+      {(media.backdrop_url || media.poster_url) && (
+        <img src={imageURL(media.backdrop_url || media.poster_url || '', media.updated_at, ARTWORK.backdropHero)}
+          alt="" decoding="async" fetchPriority="low" className="w-full h-full object-cover opacity-[0.04]"
+          referrerPolicy="no-referrer" />
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-white via-white/95 to-transparent" />
     </div>
   )
 }
 
 export function MediaDetailPoster({ media }: MediaDetailArtworkProps) {
   return (
-    <div className="w-56 shrink-0 mx-auto md:mx-0">
+    <div className="nook-detail-poster w-56 shrink-0 mx-auto md:mx-0">
       <motion.div
         whileHover={{ scale: 1.02 }}
-        className="aspect-[2/3] w-full rounded-2xl overflow-hidden bg-gray-50 border border-gray-200 shadow-md relative group"
+        className="aspect-[2/3] w-full rounded-lg overflow-hidden bg-[var(--app-panel-soft)] relative group"
       >
         {media.poster_url ? (
           <img
@@ -57,7 +49,7 @@ export function MediaDetailPoster({ media }: MediaDetailArtworkProps) {
           state={{ from: `/media/${media.id}` }}
           className="absolute inset-0 bg-[#111827]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
         >
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-500 text-white shadow-xl transform scale-90 group-hover:scale-100 transition-transform">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--app-command-bg)] text-[var(--app-command-text)] transform scale-90 group-hover:scale-100 transition-transform">
             <Play size={24} fill="currentColor" />
           </div>
         </Link>

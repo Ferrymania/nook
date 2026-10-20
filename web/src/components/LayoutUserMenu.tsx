@@ -113,7 +113,7 @@ export function LayoutUserMenu({
             key="layout-user-menu-panel"
             role="menu"
             style={{ top: menuPosition.top, right: menuPosition.right }}
-            className="fixed z-[121] w-56 origin-top-right rounded-2xl border border-[var(--app-border)] bg-[var(--app-panel)] p-2 shadow-xl animate-menu-in"
+            className="nook-user-menu fixed z-[121] w-56 origin-top-right rounded-2xl border border-[var(--app-border)] bg-[var(--app-panel)] p-2 shadow-xl animate-menu-in"
             onPointerDown={(event) => event.stopPropagation()}
           >
 	            <UserMenuLink to="/profile" icon={<Settings size={16} />} label="设置" onNavigate={onClose} />
@@ -195,14 +195,14 @@ export function LayoutUserMenu({
         onClick={onToggle}
         aria-expanded={isOpen}
         aria-haspopup="menu"
-        className="relative z-[122] flex items-center gap-2.5 rounded-full border border-[var(--app-border)] p-1 pr-3 transition-all hover:bg-[var(--app-hover)]"
+        className="nook-user-trigger relative z-[122] flex items-center gap-2.5 rounded-full p-1 pr-3 transition-colors hover:bg-[var(--app-hover)]"
       >
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#111827] to-[#1f2937] font-display text-xs font-bold text-white shadow-sm">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--app-hover)] text-xs font-medium text-[var(--app-text)]">
           {user?.username?.slice(0, 2).toUpperCase() || 'US'}
         </div>
         <div className="hidden text-left md:block">
-          <p className="text-xs font-bold leading-none text-[var(--app-text)]">{user?.username}</p>
-          <p className="mt-0.5 text-[9px] font-bold uppercase leading-none tracking-wider text-[var(--app-muted)]">
+          <p className="text-[13px] font-medium leading-none text-[var(--app-text)]">{user?.username}</p>
+          <p className="mt-1 text-[11px] leading-none text-[var(--app-muted)]">
             {activeProfile ? `Profile: ${activeProfile.name}` : user?.role}
           </p>
         </div>

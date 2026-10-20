@@ -59,9 +59,9 @@ export function LibrarySeriesDetailHeader({
           <ArrowLeft size={16} />
           返回列表
         </button>
-        <h2 className="truncate font-display text-2xl font-bold text-ink-600">
+        <h1 className="min-w-0 font-display text-2xl font-semibold text-ink-600">
           {seriesTitle(series.rep)}
-        </h2>
+        </h1>
         <span className="text-sm text-sand-500">
           共 {tvEpisodes.length} 集{theatricalCount > 0 ? ` · ${theatricalCount} 部剧场版` : ''}
         </span>

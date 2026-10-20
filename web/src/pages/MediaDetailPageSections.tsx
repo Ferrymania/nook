@@ -82,7 +82,7 @@ export function MediaDetailBackButton({ onBack }: { onBack: () => void }) {
       <button
         type="button"
         onClick={onBack}
-        className="btn-ghost gap-2 bg-white/80 shadow-sm backdrop-blur hover:bg-white"
+        className="btn-ghost gap-2"
       >
         <ArrowLeft size={16} />
         <span>返回</span>
@@ -127,7 +127,7 @@ export function MediaDetailPlaybackActions({
         className={
           'btn-outline h-11 gap-2 ' +
           (favourite
-            ? '!border-red-200 !bg-red-50 !text-red-600 hover:!bg-red-100/50'
+            ? '!border-[var(--app-danger-text)] !bg-[var(--app-danger-soft)] !text-[var(--app-danger-text)] hover:opacity-80'
             : 'hover:border-red-200 hover:text-red-600 hover:bg-red-50/50')
         }
       >
@@ -155,13 +155,13 @@ export function MediaDetailMainContent({
   onDelete,
 }: MediaDetailMainContentProps) {
   return (
-    <div className="relative z-10 p-6 sm:p-10 flex flex-col md:flex-row gap-8 lg:gap-12">
+    <div className="nook-media-detail-content relative z-10 p-6 sm:p-10 flex flex-col md:flex-row gap-8 lg:gap-12">
       <MediaDetailPoster media={media} />
 
-      <div className="min-w-0 flex-1 space-y-5">
+      <div className="nook-detail-body min-w-0 flex-1">
         <MediaDetailMetadata media={media} />
         <div className="divider" />
-        <div className="space-y-4">
+        <div className="nook-detail-playback space-y-4">
           <MediaDetailPlaybackActions
             media={media}
             favourite={favourite}

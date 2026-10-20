@@ -8,6 +8,7 @@ import App from './App'
 import { GlobalEvents } from './components/GlobalEvents'
 import { initializeThemeMode } from './components/useThemeMode'
 import './index.css'
+import './nook.css'
 
 initializeThemeMode()
 

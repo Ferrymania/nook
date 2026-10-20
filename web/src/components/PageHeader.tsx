@@ -24,7 +24,7 @@ export function PageHeader({
   const showBack = Boolean(backTo || onBack)
 
   return (
-    <header className={className ?? 'space-y-3'}>
+    <header className={`nook-page-header ${className ?? 'space-y-3'}`}>
       {showBack && <PageBackButton to={backTo} label={backLabel} onClick={onBack} />}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">

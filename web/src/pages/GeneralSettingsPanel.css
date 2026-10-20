@@ -1,24 +1,24 @@
 .general-settings { font-size: 13px; color: var(--app-text); }
-.general-settings .settings-section { min-width: 0; padding: 20px 22px; border: 1px solid var(--app-border); border-radius: 14px; background: var(--app-panel); }
+.general-settings .settings-section { min-width: 0; padding: 20px 22px; border: 0; border-radius: 12px; background: var(--app-panel); }
 .general-settings .settings-section-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
 .general-settings .settings-section-heading { display: flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 600; }
 .general-settings .settings-section-heading svg { flex-shrink: 0; color: var(--app-muted); }
-.general-settings .settings-section-description { margin-top: 4px; color: var(--app-muted); font-size: 12px; line-height: 1.6; }
+.general-settings .settings-section-description { margin-top: 4px; color: var(--app-muted); font-size: 13px; line-height: 1.6; }
 .general-settings .settings-mode-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-width: 0; }
 .general-settings .settings-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px 22px; }
 .general-settings .settings-fields > .settings-mode-row { align-self: end; min-height: 40px; }
 .general-settings .settings-switch { position: relative; flex-shrink: 0; width: 38px; height: 23px; border-radius: 999px; background: var(--app-border); transition: background-color .15s; }
-.general-settings .settings-switch[aria-checked='true'] { background: #c9954a; }
+.general-settings .settings-switch[aria-checked='true'] { background: var(--app-command-bg); }
 .general-settings .settings-switch > span { position: absolute; left: 3px; top: 3px; width: 17px; height: 17px; border-radius: 50%; background: var(--app-panel); transition: transform .15s; }
-.general-settings .settings-switch[aria-checked='true'] > span { transform: translateX(15px); }
+.general-settings .settings-switch[aria-checked='true'] > span { transform: translateX(15px); background: var(--app-command-text); }
 .general-settings .settings-switch:disabled { opacity: .6; cursor: not-allowed; }
-.general-settings .settings-disclosure > summary { display: flex; align-items: center; gap: 7px; min-height: 28px; list-style: none; cursor: pointer; color: var(--app-muted); font-size: 12px; }
+.general-settings .settings-disclosure > summary { display: flex; align-items: center; gap: 7px; min-height: 28px; list-style: none; cursor: pointer; color: var(--app-muted); font-size: 13px; }
 .general-settings .settings-disclosure > summary::-webkit-details-marker { display: none; }
 .general-settings .settings-disclosure > summary::before { content: '›'; width: 10px; font-size: 18px; transition: transform .15s; }
 .general-settings .settings-disclosure[open] > summary::before { transform: rotate(90deg); }
 .general-settings .settings-disclosure-divided { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--app-border); }
 .general-settings .settings-state { margin-left: auto; padding: 3px 7px; border-radius: 5px; background: var(--app-panel-soft); color: var(--app-muted); font-size: 11px; }
-.general-settings .settings-help-text { margin-top: 12px; color: var(--app-muted); font-size: 12px; line-height: 1.7; }
+.general-settings .settings-help-text { margin-top: 12px; color: var(--app-muted); font-size: 13px; line-height: 1.7; }
 .general-settings .settings-https-fields { display: grid; gap: 14px; padding-top: 16px; border-top: 1px solid var(--app-border); }
 .general-settings .input-base { min-height: 40px; padding-top: 8px; padding-bottom: 8px; padding-left: 11px; border-radius: 8px; font-size: 13px; }
 .general-settings .text-sm { font-size: 13px; }

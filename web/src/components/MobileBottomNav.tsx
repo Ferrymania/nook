@@ -13,7 +13,7 @@ export function MobileBottomNav({ onOpenMenu }: MobileBottomNavProps) {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--app-border)] bg-[var(--app-panel)]/95 backdrop-blur-md lg:hidden"
+      className="nook-bottom-nav fixed inset-x-0 bottom-0 z-40 border-t border-[var(--app-border)] bg-[var(--app-bg)] lg:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       aria-label="主导航"
     >
@@ -32,7 +32,7 @@ export function MobileBottomNav({ onOpenMenu }: MobileBottomNavProps) {
               to={item.to}
               className={clsx(
                 'flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1 text-[10px] font-semibold transition-colors',
-                active ? 'text-brand-600' : 'text-[var(--app-muted)] hover:text-[var(--app-text)]',
+                active ? 'text-[var(--app-text)]' : 'text-[var(--app-muted)] hover:text-[var(--app-text)]',
               )}
             >
               <Icon size={18} strokeWidth={active ? 2.4 : 2} />
