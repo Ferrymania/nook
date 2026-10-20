@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { libraryAPI } from '../api/library'
-import { toolsAPI } from '../api/tools'
-import { confirmAction } from '../components/confirmAction'
 import { LibraryTagBar } from '../components/LibraryTagBar'
 import { ManageLibraryTagsDialogView } from '../components/ManageLibraryTagsDialogView'
 import { openManageLibrariesDialog } from '../components/manageLibrariesDialog'
@@ -17,6 +15,7 @@ import {
   LibrariesHeader,
 } from './LibrariesPageSections'
 import type { LibraryPreview } from './librariesPageModel'
+import { useLibraryScrapeStatus } from './useLibraryScrapeStatus'
 import type { Library } from '../types'
 import type { SeriesCard } from '../utils/groupSeries'
 import {
@@ -38,16 +37,16 @@ export function LibrariesPage() {
   const { pinnedIds, togglePin } = usePinnedLibraries()
   const libraryTags = useLibraryTags()
   const [loading, setLoading] = useState(() => peekLibraries() === null)
-  const [repairing, setRepairing] = useState(false)
-  const [repairEpisodeArtwork] = useEpisodeArtworkPreference()
-  const [repairMsg, setRepairMsg] = useState('')
+  const [scrapeEpisodeArtwork] = useEpisodeArtworkPreference()
   const { field: sortField, order: sortOrder, setSort: setLibrarySort } = useLibraryListSort()
 
   // 缓存每个库已加载到的预览数量：入口网格只需要 2 张，横向货架需要 10 张。
   const fetchedPreviewLimitsRef = useRef<Map<string, number>>(new Map())
   const fetchingPreviewLimitsRef = useRef<Map<string, number>>(new Map())
+  const previewGenerationRef = useRef(0)
 
   const fetchPreviews = useCallback(async (ids: string[], limit = 10) => {
+    const generation = previewGenerationRef.current
     const targets = ids.filter(
       (id) =>
         (fetchedPreviewLimitsRef.current.get(id) ?? 0) < limit &&
@@ -62,6 +61,7 @@ export function LibrariesPage() {
         let loaded = false
         try {
           const rows = await libraryAPI.listPreviews(batch, limit)
+          if (generation !== previewGenerationRef.current) return
           loaded = true
           const accepted = rows.filter(
             (row) => (fetchedPreviewLimitsRef.current.get(row.id) ?? 0) < limit,
@@ -85,17 +85,19 @@ export function LibrariesPage() {
         } catch {
           // 单个批次失败不影响其他批次。
         } finally {
-          batch.forEach((id) => {
-            if (loaded) {
-              fetchedPreviewLimitsRef.current.set(
-                id,
-                Math.max(fetchedPreviewLimitsRef.current.get(id) ?? 0, limit),
-              )
-            }
-            if (fetchingPreviewLimitsRef.current.get(id) === limit) {
-              fetchingPreviewLimitsRef.current.delete(id)
-            }
-          })
+          if (generation === previewGenerationRef.current) {
+            batch.forEach((id) => {
+              if (loaded) {
+                fetchedPreviewLimitsRef.current.set(
+                  id,
+                  Math.max(fetchedPreviewLimitsRef.current.get(id) ?? 0, limit),
+                )
+              }
+              if (fetchingPreviewLimitsRef.current.get(id) === limit) {
+                fetchingPreviewLimitsRef.current.delete(id)
+              }
+            })
+          }
         }
       }),
     )
@@ -119,20 +121,20 @@ export function LibrariesPage() {
     }
   }, [])
 
-  async function handleRepairRescrape() {
-    if (!isAdmin || repairing) return
-    if (!await confirmAction({ title: '全库修复并重新刮削', message: '将重新识别并刮削所有媒体库中的媒体，可能产生较多请求。', confirmText: '确认修复' })) return
-    setRepairing(true)
-    setRepairMsg('')
-    try {
-      await toolsAPI.repairAndRescrapeAll({ episode_images: repairEpisodeArtwork, refresh_matched: true })
-      setRepairMsg('已开始全库修复+重刮，进度可在任务中查看。')
-    } catch {
-      setRepairMsg('启动失败，请稍后重试。')
-    } finally {
-      setRepairing(false)
-    }
-  }
+  const refreshAfterScrape = useCallback(() => {
+    previewGenerationRef.current += 1
+    fetchedPreviewLimitsRef.current.clear()
+    fetchingPreviewLimitsRef.current.clear()
+    setLibraryData({})
+    void loadLibraries({ force: true }).catch(() => undefined)
+  }, [loadLibraries])
+
+  const { scraping, handleScrape } = useLibraryScrapeStatus({
+    allLibraries: true,
+    isAdmin,
+    episodeArtwork: scrapeEpisodeArtwork,
+    onLibraryChanged: refreshAfterScrape,
+  })
 
   const handleManageLibraries = async () => {
     if (!isAdmin) return
@@ -194,12 +196,11 @@ export function LibrariesPage() {
         previewCount={taggedPreviews.length}
         total={taggedTotal}
         isAdmin={isAdmin}
-        repairMsg={repairMsg}
-        repairing={repairing}
+        scraping={scraping}
         sortField={sortField}
         sortOrder={sortOrder}
         onSortChange={handleSortChange}
-        onRepairRescrape={handleRepairRescrape}
+        onScrape={handleScrape}
         onManageLibraries={handleManageLibraries}
       />
 

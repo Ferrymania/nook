@@ -35,10 +35,16 @@ func TestListRecentByLibraries(t *testing.T) {
 	var rows []model.Media
 	for i := 1; i <= 5; i++ {
 		rows = append(rows, model.Media{
-			Base:      model.Base{ID: fmt.Sprintf("movie-%02d", i), CreatedAt: now.Add(time.Duration(i) * time.Hour)},
-			LibraryID: lib1.ID,
-			Title:     fmt.Sprintf("电影%d", i),
-			Path:      fmt.Sprintf("/media/movies/电影%d/movie%d.mp4", i, i),
+			Base: model.Base{
+				ID:        fmt.Sprintf("movie-%02d", i),
+				CreatedAt: now.Add(time.Duration(i) * time.Hour),
+				UpdatedAt: now.Add(time.Duration(10-i) * time.Hour),
+			},
+			LibraryID:   lib1.ID,
+			Title:       fmt.Sprintf("电影%d", i),
+			Path:        fmt.Sprintf("/media/movies/电影%d/movie%d.mp4", i, i),
+			ReleaseDate: fmt.Sprintf("%d-01-01", 2026-i),
+			Year:        2026 - i,
 		})
 	}
 	for i := 1; i <= 8; i++ {
@@ -68,5 +74,10 @@ func TestListRecentByLibraries(t *testing.T) {
 	}
 	if got[lib1.ID][0].ID != "movie-05" {
 		t.Fatalf("lib1 newest = %q, want movie-05", got[lib1.ID][0].ID)
+	}
+	for i, row := range got[lib1.ID] {
+		if want := fmt.Sprintf("movie-%02d", 5-i); row.ID != want {
+			t.Fatalf("lib1 position %d = %q, want %q (ordered by added time)", i, row.ID, want)
+		}
 	}
 }

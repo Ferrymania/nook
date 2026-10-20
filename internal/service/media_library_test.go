@@ -209,3 +209,99 @@ func TestListLibraryPreviewsCachesEachLibraryIndependently(t *testing.T) {
 		t.Fatalf("per-library preview cache = %#v, want one cached card", cached)
 	}
 }
+
+func TestLibraryPreviewsOrderByLastAddedTime(t *testing.T) {
+	db := newServiceTestDB(t, &model.Library{}, &model.Media{})
+	repos := repository.New(db)
+	movies := model.Library{Name: "电影", Path: "/movies", Type: "movie", Enabled: true}
+	tv := model.Library{Name: "剧集", Path: "/tv", Type: "tv", Enabled: true}
+	for _, lib := range []*model.Library{&movies, &tv} {
+		if err := repos.Library.Create(t.Context(), lib); err != nil {
+			t.Fatal(err)
+		}
+	}
+	now := time.Date(2026, 10, 20, 0, 0, 0, 0, time.UTC)
+	var rows []model.Media
+	for i := 1; i <= 12; i++ {
+		rows = append(rows, model.Media{
+			Base: model.Base{
+				ID:        fmt.Sprintf("movie-%02d", i),
+				CreatedAt: now.Add(time.Duration(i) * time.Hour),
+				UpdatedAt: now.Add(time.Duration(100-i) * time.Hour),
+			},
+			LibraryID: movies.ID, Title: fmt.Sprintf("电影%d", i), Path: fmt.Sprintf("/movies/%d.mkv", i),
+			TMDbID: 1000 + i, ReleaseDate: fmt.Sprintf("%d-01-01", 2026-i), Year: 2026 - i,
+		})
+	}
+	latestEpisodeAdded := now.Add(24 * time.Hour)
+	rows = append(rows,
+		model.Media{
+			Base:      model.Base{ID: "old-show-1", CreatedAt: now.Add(-100 * time.Hour)},
+			LibraryID: tv.ID, Title: "旧剧", Path: "/tv/旧剧/S01E01.mkv", TMDbID: 9001,
+			SeasonNum: 1, EpisodeNum: 1, ReleaseDate: "2020-01-01", Year: 2020,
+		},
+		model.Media{
+			Base:      model.Base{ID: "old-show-2", CreatedAt: latestEpisodeAdded},
+			LibraryID: tv.ID, Title: "旧剧", Path: "/tv/旧剧/S01E02.mkv", TMDbID: 9001,
+			SeasonNum: 1, EpisodeNum: 2, ReleaseDate: "2020-01-02", Year: 2020,
+		},
+		model.Media{
+			Base:      model.Base{ID: "new-show-1", CreatedAt: now.Add(12 * time.Hour)},
+			LibraryID: tv.ID, Title: "新剧", Path: "/tv/新剧/S01E01.mkv", TMDbID: 9002,
+			SeasonNum: 1, EpisodeNum: 1, ReleaseDate: "2026-01-01", Year: 2026,
+		},
+	)
+	if err := db.Create(&rows).Error; err != nil {
+		t.Fatal(err)
+	}
+	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos)
+	visibility := MediaVisibility{IncludeNSFW: true}
+	check := func() {
+		t.Helper()
+		for _, includeCounts := range []bool{false, true} {
+			previews, err := svc.listLibrariesWithPreview(t.Context(), []model.Library{movies, tv}, visibility, 10, includeCounts)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(previews[0].Cards) != 10 {
+				t.Fatalf("movie preview size = %d, want 10", len(previews[0].Cards))
+			}
+			for i, card := range previews[0].Cards {
+				if want := fmt.Sprintf("movie-%02d", 12-i); card.Rep.ID != want {
+					t.Fatalf("movie position %d = %q, want %q", i, card.Rep.ID, want)
+				}
+			}
+			cards := previews[1].Cards
+			if len(cards) != 2 || cards[0].Rep.TMDbID != 9001 || cards[0].Count != 2 ||
+				cards[0].LastAddedAt == nil || !cards[0].LastAddedAt.Equal(latestEpisodeAdded) {
+				t.Fatalf("series with the latest added episode must come first: %+v", cards)
+			}
+		}
+	}
+	check()
+	// Scraping metadata must not promote an older library entry.
+	if err := db.Model(&model.Media{}).Where("id = ?", "movie-01").Updates(map[string]any{
+		"updated_at": now.Add(1000 * time.Hour), "release_date": "2099-01-01", "year": 2099,
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+	check()
+	// A new version counts as an addition but stays within the same movie card.
+	versionAdded := now.Add(48 * time.Hour)
+	if err := db.Create(&model.Media{
+		Base:      model.Base{ID: "movie-01-new-version", CreatedAt: versionAdded},
+		LibraryID: movies.ID, Title: "电影1", Path: "/movies/1-new-version.mkv", TMDbID: 1001,
+		ReleaseDate: "2000-01-01", Year: 2000,
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+	previews, err := svc.ListLibraryPreviews(t.Context(), []model.Library{movies}, visibility, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cards := previews[0].Cards
+	if len(cards) != 10 || cards[0].Rep.TMDbID != 1001 || cards[0].Count != 1 ||
+		cards[0].LastAddedAt == nil || !cards[0].LastAddedAt.Equal(versionAdded) {
+		t.Fatalf("new movie version must promote a single grouped card: %+v", cards)
+	}
+}

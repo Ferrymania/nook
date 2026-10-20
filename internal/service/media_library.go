@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"sort"
 
 	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/repository"
@@ -156,6 +157,21 @@ func (s *MediaService) listLibrariesWithPreview(ctx context.Context, libraries [
 			continue
 		}
 		cards := groupMediaSeriesCards(items)
+		// Preview shelves use actual library additions, including a new episode
+		// or movie version. Keep release-date ordering on other series surfaces.
+		sort.SliceStable(cards, func(i, j int) bool {
+			left, right := cards[i].LastAddedAt, cards[j].LastAddedAt
+			switch {
+			case left == nil && right != nil:
+				return false
+			case left != nil && right == nil:
+				return true
+			case left != nil && right != nil && !left.Equal(*right):
+				return left.After(*right)
+			default:
+				return cards[i].Key < cards[j].Key
+			}
+		})
 		if len(cards) > cardLimit {
 			cards = cards[:cardLimit]
 		}

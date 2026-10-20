@@ -260,7 +260,7 @@ export function HomeLibrariesSection({
               )}
             </div>
             <p className="text-xs text-[var(--app-muted)]">
-              点击卡片浏览对应媒体库精选内容
+              点击卡片浏览对应媒体库
             </p>
           </div>
         </div>
@@ -459,7 +459,7 @@ export function HomeLibraryRowSection({
               {library.name}
             </h2>
             <span className="text-xs text-[var(--app-muted)]">
-              共 {cards.length} 部精选内容
+              最近添加 · {cards.length} 部
             </span>
           </div>
         </div>

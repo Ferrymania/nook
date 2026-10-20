@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { Library as LibraryIcon, Sparkles } from 'lucide-react'
+import { Library as LibraryIcon, Loader2, Sparkles } from 'lucide-react'
 
-import { LibraryScrapeMenu } from '../components/LibraryScrapeMenu'
 import { LibraryListSortDropdown } from '../components/LibraryListSortDropdown'
 import { useRememberedListPosition } from '../hooks/useListPositionMemory'
 import type { LibraryListSortField, LibraryListSortOrder } from '../utils/libraryListSort'
@@ -17,23 +16,21 @@ export function LibrariesHeader({
   previewCount,
   total,
   isAdmin,
-  repairMsg,
-  repairing,
+  scraping,
   sortField,
   sortOrder,
   onSortChange,
-  onRepairRescrape,
+  onScrape,
   onManageLibraries,
 }: {
   previewCount: number
   total: number
   isAdmin: boolean
-  repairMsg: string
-  repairing: boolean
+  scraping: boolean
   sortField: LibraryListSortField
   sortOrder: LibraryListSortOrder
   onSortChange: (field: LibraryListSortField, order: LibraryListSortOrder) => void
-  onRepairRescrape: () => void
+  onScrape: () => void
   onManageLibraries: () => void
 }) {
   return (
@@ -48,8 +45,10 @@ export function LibrariesHeader({
         <LibraryListSortDropdown value={sortField} order={sortOrder} onChange={onSortChange} buttonClassName="library-toolbar-button" />
         {isAdmin && (
           <>
-            {repairMsg && <span className="w-full text-xs text-ink-50">{repairMsg}</span>}
-            <LibraryScrapeMenu allLibraries repairing={repairing} onRepair={onRepairRescrape} />
+            <button type="button" onClick={onScrape} disabled={scraping} aria-busy={scraping} className="library-toolbar-button" title="刮削全部已启用的本地媒体库，包括已匹配项；进度可在刮削队列查看">
+              {scraping ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+              {scraping ? '正在刮削…' : '刮削全部媒体库'}
+            </button>
             <Link
               to="/scraper/queue"
               className="library-toolbar-button"
