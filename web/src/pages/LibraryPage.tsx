@@ -72,6 +72,18 @@ export function LibraryPage() {
     () => parseLibraryFilters(location.search),
     [location.search],
   )
+
+  // 旧书签不再保留已经移除的未匹配筛选，其余查询条件照常保留。
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    if (!params.has('unmatched')) return
+    params.delete('unmatched')
+    navigate(
+      { pathname: location.pathname, search: params.toString(), hash: location.hash },
+      { replace: true, state: location.state },
+    )
+  }, [location, navigate])
+
   const [facets, setFacets] = useState<LibraryFacets | null>(null)
   const [loadingFacets, setLoadingFacets] = useState(true)
   const [randomBusy, setRandomBusy] = useState(false)
@@ -324,7 +336,6 @@ export function LibraryPage() {
         onReset={resetFilters}
         onRandom={(f) => void handleRandom(f)}
         randomBusy={randomBusy}
-        allowUnmatched={!library?.is_remote_emby}
       />
 
       <LibraryMediaSections

@@ -38,8 +38,6 @@ type MediaQueryFilter struct {
 	// 与「继续观看」互补而不是重复。
 	UnwatchedOnly   bool
 	UnwatchedUserID string
-	// UnmatchedOnly includes never-scraped and failed matches, using current media state.
-	UnmatchedOnly bool
 }
 
 func applyMediaQueryFilter(q *gorm.DB, filter MediaQueryFilter) *gorm.DB {
@@ -69,9 +67,6 @@ func applyMediaQueryFilter(q *gorm.DB, filter MediaQueryFilter) *gorm.DB {
 	}
 	if filter.RatingMin > 0 {
 		q = q.Where("rating >= ?", filter.RatingMin)
-	}
-	if filter.UnmatchedOnly {
-		q = q.Where("scrape_status IS NULL OR scrape_status <> ?", "matched")
 	}
 	if filter.UnwatchedOnly {
 		userID := strings.TrimSpace(filter.UnwatchedUserID)

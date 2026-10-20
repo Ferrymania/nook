@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"testing"
 
 	"github.com/Ferrymania/nook/internal/testutil"
@@ -146,28 +147,21 @@ func TestListMediaAppliesGenreFilter(t *testing.T) {
 	}
 }
 
-func TestListMediaUnmatchedUsesCurrentState(t *testing.T) {
+func TestListMediaIgnoresRemovedUnmatchedFilter(t *testing.T) {
 	router, svc, _, libID := newLibraryFilterEnv(t)
 	svc.Media.SetRuntimeCache(service.NewRuntimeCacheService(nil, zap.NewNop()))
-	if err := svc.Repo.DB.AutoMigrate(&model.ScrapeTask{}); err != nil {
-		t.Fatal(err)
-	}
 	seedLibraryMedia(t, svc,
-		&model.Media{Base: model.Base{ID: "matched"}, LibraryID: libID, Title: "Matched without poster", Path: "/matched.mkv", ScrapeStatus: "matched"},
+		&model.Media{Base: model.Base{ID: "matched"}, LibraryID: libID, Title: "Matched without poster", Path: "/matched.mkv", ScrapeStatus: "matched", Genres: "Comedy"},
 		&model.Media{Base: model.Base{ID: "failed"}, LibraryID: libID, Title: "Failed", Path: "/failed.mkv", ScrapeStatus: "no_match"},
 		&model.Media{Base: model.Base{ID: "pending"}, LibraryID: libID, Title: "Pending", Path: "/pending.mkv", ScrapeStatus: "pending"},
 		&model.Media{Base: model.Base{ID: "legacy"}, LibraryID: libID, Title: "Legacy", Path: "/legacy.mkv"},
-		&model.Media{LibraryID: "other-library", Title: "Other", Path: "/other.mkv", ScrapeStatus: "no_match"},
-		&model.Media{LibraryID: libID, Title: "Hidden", Path: "/hidden.mkv", ScrapeStatus: "no_match", NSFW: true},
+		&model.Media{LibraryID: "other-library", Title: "Other", Path: "/other.mkv", ScrapeStatus: "no_match", Genres: "Comedy"},
+		&model.Media{LibraryID: libID, Title: "Hidden", Path: "/hidden.mkv", ScrapeStatus: "no_match", Genres: "Comedy", NSFW: true},
 	)
 	if err := svc.Repo.DB.Model(&model.Media{}).Where("id = ?", "legacy").UpdateColumn("scrape_status", nil).Error; err != nil {
 		t.Fatal(err)
 	}
-	// A retained failed task must not make an already-matched film appear again.
-	if err := svc.Repo.DB.Create(&model.ScrapeTask{MediaID: "matched", MediaTitle: "Old title", MediaPath: "/matched.mkv", Status: "failed"}).Error; err != nil {
-		t.Fatal(err)
-	}
-	read := func(query string, wantTotal int64) {
+	read := func(query string, wantTotal int64) []string {
 		t.Helper()
 		code, body := getJSON(t, router, "/api/libraries/"+libID+"/media?"+query)
 		var payload struct {
@@ -177,22 +171,27 @@ func TestListMediaUnmatchedUsesCurrentState(t *testing.T) {
 		if code != http.StatusOK || json.Unmarshal(body, &payload) != nil || payload.Total != wantTotal {
 			t.Fatalf("query %s: status=%d body=%s, want total %d", query, code, body, wantTotal)
 		}
-		if len(payload.Items) != 1 {
-			t.Fatalf("query %s: expected one paged item, got %d", query, len(payload.Items))
+		ids := make([]string, len(payload.Items))
+		for i, item := range payload.Items {
+			ids[i] = item.ID
 		}
-		if containsSubstring(query, "unmatched=1") && payload.Items[0].ScrapeStatus == "matched" {
-			t.Fatalf("matched media returned by unmatched filter: %+v", payload.Items[0])
-		}
+		return ids
 	}
 	for _, grouping := range []string{"group_versions=0&", ""} {
-		read(grouping+"page_size=1", 4)
-		read(grouping+"unmatched=1&page_size=1&page=2", 3)
-	}
-	if _, err := svc.Media.UpdateMetadata(t.Context(), "failed", service.MediaMetadataUpdate{}); err != nil {
-		t.Fatal(err)
-	}
-	for _, grouping := range []string{"group_versions=0&", ""} {
-		read(grouping+"unmatched=1&page_size=1", 2)
+		all := read(grouping+"page_size=10", 4)
+		legacy := read(grouping+"unmatched=1&page_size=10", 4)
+		if !slices.Equal(all, legacy) || !slices.Contains(legacy, "matched") {
+			t.Fatalf("removed filter changed visible media: baseline=%v legacy=%v", all, legacy)
+		}
+		page := read(grouping+"page_size=1&page=2", 4)
+		legacyPage := read(grouping+"unmatched=1&page_size=1&page=2", 4)
+		if len(page) != 1 || !slices.Equal(page, legacyPage) {
+			t.Fatalf("removed filter changed pagination: baseline=%v legacy=%v", page, legacyPage)
+		}
+		filtered := read(grouping+"unmatched=1&genre=Comedy", 1)
+		if !slices.Equal(filtered, []string{"matched"}) {
+			t.Fatalf("remaining genre and visibility filters changed: %v", filtered)
+		}
 	}
 }
 
