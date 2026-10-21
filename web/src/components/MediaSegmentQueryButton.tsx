@@ -5,18 +5,27 @@ import { CircleCheck, Database, ListVideo, Loader2, RefreshCw, X } from 'lucide-
 
 import { playbackAPI, type MediaSegmentQueryResult } from '../api/playback'
 import type { Media, PlaybackSegmentKind } from '../types'
+import { formatEpisodeNumber } from '../utils/episodeNumber'
+import { querySegmentBatch, segmentQueryError, segmentQueryTargets, type SegmentBatchResult } from '../utils/segmentQueryBatch'
 
 const KIND_LABELS: Record<PlaybackSegmentKind, string> = { intro: '片头', credits: '片尾', recap: '前情回顾', preview: '预告' }
 
-export function MediaSegmentQueryButton({ media }: { media: Media }) {
+export function MediaSegmentQueryButton({ media, episodes, disabled = false }: { media: Media; episodes?: Media[]; disabled?: boolean }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<MediaSegmentQueryResult | null>(null)
   const [error, setError] = useState('')
+  const [batchResults, setBatchResults] = useState<SegmentBatchResult[]>([])
   const request = useRef<AbortController | null>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const titleId = useId()
+  const isBatch = episodes !== undefined
+  const targets = segmentQueryTargets(episodes ?? [])
+  const title = isBatch ? '查询整剧片头片尾' : '查询片头片尾'
+  const found = batchResults.filter(row => row.status === 'found').length
+  const missing = batchResults.filter(row => row.status === 'missing').length
+  const failed = batchResults.filter(row => row.status === 'failed').length
 
   useEffect(() => () => { request.current?.abort() }, [])
   useEffect(() => {
@@ -40,19 +49,24 @@ export function MediaSegmentQueryButton({ media }: { media: Media }) {
     request.current = controller
     setLoading(true)
     setError('')
+    if (isBatch) setBatchResults([])
     try {
+      if (isBatch) {
+        await querySegmentBatch(targets, playbackAPI.querySegments, controller.signal, setBatchResults)
+        return
+      }
       const value = await playbackAPI.querySegments(media.id, controller.signal)
       if (!controller.signal.aborted) setResult(value)
     } catch (err: unknown) {
-      if (!controller.signal.aborted) setError((err as { response?: { data?: { error?: string } } })?.response?.data?.error || '查询失败，请检查网络后重试；已有时间点保留')
+      if (!controller.signal.aborted) setError(segmentQueryError(err))
     } finally {
       if (request.current === controller) { request.current = null; setLoading(false) }
     }
   }
 
   return <>
-    <button type="button" aria-haspopup="dialog" onClick={() => { setOpen(true); void query() }} className="btn-outline h-9 rounded-lg px-3 text-xs gap-1.5 border-gray-200 hover:border-brand-500/50 hover:bg-brand-50">
-      <ListVideo size={13} className="text-brand-500" /><span>查询片头片尾</span>
+    <button type="button" disabled={disabled || (isBatch && targets.length === 0)} aria-haspopup="dialog" onClick={() => { setOpen(true); void query() }} className="media-management-action">
+      <ListVideo size={14} aria-hidden="true" /><span>{title}</span>
     </button>
     {open && createPortal(
       <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/35 p-4 backdrop-blur-sm" onClick={close}>
@@ -63,21 +77,34 @@ export function MediaSegmentQueryButton({ media }: { media: Media }) {
           onKeyDown={event => {
             if (event.key === 'Escape') { event.preventDefault(); close() }
             if (event.key !== 'Tab') return
-            const targets = Array.from(dialogRef.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? [])
-            const first = targets[0], last = targets[targets.length - 1]
+            const focusable = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), a[href]') ?? [])
+            const first = focusable[0], last = focusable[focusable.length - 1]
             if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
             if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
           }}
         >
           <header className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--app-border)] p-5">
-            <div><h2 id={titleId} className="font-display text-lg font-semibold">查询片头片尾</h2><p className="mt-1 break-words text-xs text-[var(--app-muted)]">{media.title}{media.season_num > 0 && media.episode_num > 0 ? ` · S${media.season_num}E${media.episode_num}` : ''}</p></div>
+            <div><h2 id={titleId} className="font-display text-lg font-semibold">{title}</h2><p className="mt-1 break-words text-xs text-[var(--app-muted)]">{media.title}{isBatch ? ` · ${targets.length} 个媒体` : media.episode_num > 0 ? ` · S${media.season_num}E${formatEpisodeNumber(media)}` : ''}</p></div>
             <button type="button" ref={closeRef} aria-label="关闭" onClick={close} className="rounded-lg p-1.5 text-[var(--app-muted)] hover:bg-[var(--app-panel-soft)]"><X size={18} /></button>
           </header>
           <div className="min-h-0 space-y-4 overflow-y-auto p-5">
             <p className="text-xs leading-relaxed text-[var(--app-muted)]">向 TheIntroDB 查询时间点，不读取视频文件，无需 API Key。</p>
-            {loading && <div role="status" className="flex items-center justify-center gap-2 py-8 text-sm text-[var(--app-muted)]"><Loader2 size={20} className="animate-spin" />正在查询…</div>}
+            {isBatch && <div className="space-y-3">
+              <div role="status" aria-live="polite" className="space-y-2 text-sm">
+                <p className="flex items-center gap-2">{loading && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}{loading ? '正在逐集查询' : batchResults.length === targets.length ? '查询完成' : '查询已停止'} · {batchResults.length} / {targets.length}</p>
+                <p className="text-xs text-[var(--app-muted)]">已找到 {found} · 未找到 {missing} · 失败 {failed}</p>
+              </div>
+              <p className="text-xs leading-relaxed text-[var(--app-muted)]">查询记录可在片头片尾队列查看。关闭窗口会停止后续查询，当前查询的结果仍会保存。</p>
+              {batchResults.length > 0 && <ul className="divide-y divide-[var(--app-border)] rounded-xl border border-[var(--app-border)] px-3">
+                {batchResults.map(row => <li key={row.media.id} className="py-3 text-xs">
+                  <div className="flex items-start justify-between gap-3"><span className="min-w-0 break-words">S{row.media.season_num}E{formatEpisodeNumber(row.media) || '—'} · {row.media.title}</span><span className={`shrink-0 ${row.status === 'failed' ? 'text-[var(--app-danger-text)]' : 'text-[var(--app-muted)]'}`}>{row.status === 'found' ? '已找到' : row.status === 'missing' ? '未找到' : '失败'}</span></div>
+                  {row.error && <p className="mt-1.5 break-words text-[var(--app-danger-text)]">{row.error}</p>}
+                </li>)}
+              </ul>}
+            </div>}
+            {loading && !isBatch && <div role="status" className="flex items-center justify-center gap-2 py-8 text-sm text-[var(--app-muted)]"><Loader2 size={20} className="animate-spin" />正在查询…</div>}
             {error && <p role="alert" className="rounded-xl bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
-            {!loading && result && <div className="space-y-3" aria-live="polite">
+            {!isBatch && !loading && result && <div className="space-y-3" aria-live="polite">
               {result.found ? <>
                 <p className="flex items-center gap-2 text-sm font-medium"><CircleCheck size={17} className="text-emerald-600" />{error ? '上次保存的时间点' : '已查到时间点'}</p>
                 <div className="overflow-hidden rounded-xl border border-[var(--app-border)]">
@@ -89,10 +116,10 @@ export function MediaSegmentQueryButton({ media }: { media: Media }) {
               <p className="flex items-start gap-1.5 text-xs text-[var(--app-muted)]"><Database size={13} className="mt-0.5 shrink-0" /><span>已保存到数据库 · {new Date(result.fetched_at).toLocaleString('zh-CN', { hour12: false })}</span></p>
             </div>}
           </div>
-          <footer className="flex shrink-0 justify-end gap-2 border-t border-[var(--app-border)] bg-[var(--app-panel-soft)] px-5 py-4">
+          <footer className="flex shrink-0 flex-wrap justify-end gap-2 border-t border-[var(--app-border)] bg-[var(--app-panel-soft)] px-5 py-4">
             <Link to="/queue?type=segments" onClick={close} className="mr-auto self-center text-xs text-brand-600 hover:underline">查看查询队列</Link>
             <button type="button" disabled={loading} onClick={() => { void query() }} className="btn-outline !px-3 !py-2 text-xs"><RefreshCw size={13} />重新查询</button>
-            <button type="button" onClick={close} className="btn-primary !px-4 !py-2 text-xs">关闭</button>
+            <button type="button" onClick={close} className="btn-primary !px-4 !py-2 text-xs">{isBatch && loading ? '停止并关闭' : '关闭'}</button>
           </footer>
         </div>
       </div>, document.body,
