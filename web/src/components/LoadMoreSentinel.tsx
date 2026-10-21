@@ -53,12 +53,12 @@ export function LoadMoreSentinel({
   const showRetry = !!error && !!onRetry
   return (
     <div ref={ref} className="flex flex-col items-center gap-1.5 py-8">
-      {error && <p className="text-2xs text-[var(--app-muted)]">{error}</p>}
+      {error && <p className="text-2xs text-(--app-muted)">{error}</p>}
       <button
         type="button"
         disabled={loadingMore}
         onClick={showRetry ? onRetry : onLoadMore}
-        className="rounded-xl border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-2 text-sm font-bold text-[var(--app-subtle)] transition-colors hover:bg-[var(--app-hover)] hover:text-[var(--app-text)] disabled:cursor-wait disabled:opacity-60"
+        className="rounded-xl border border-(--app-border) bg-(--app-panel) px-4 py-2 text-sm font-bold text-(--app-subtle) transition-colors hover:bg-(--app-hover) hover:text-(--app-text) disabled:cursor-wait disabled:opacity-60"
       >
         {loadingMore ? loadingLabel : label}
       </button>

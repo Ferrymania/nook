@@ -151,17 +151,17 @@ export function FileManagerPage() {
       )}
 
       {loading && <p className="text-sand-500">加载中…</p>}
-      {error && <div className="glass-panel !border-red-400/40 text-red-400">{error}</div>}
+      {error && <div className="glass-panel border-red-400/40! text-red-400">{error}</div>}
 
       {!loading && data && !data.path && data.roots && (
         <FileBrowserRoots roots={data.roots} onOpen={setPath} />
       )}
 
       {!loading && data?.path && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-(--app-border) bg-(--app-surface) px-3 py-2 shadow-xs">
           <div className="flex flex-wrap items-center gap-2">
             <button
-              className="inline-flex h-9 items-center gap-2 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-strong)] px-3 text-sm font-medium text-[var(--app-text)] transition hover:border-primary-400/50 hover:text-primary-500"
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-(--app-border) bg-(--app-surface-strong) px-3 text-sm font-medium text-(--app-text) transition hover:border-primary-400/50 hover:text-primary-500"
               onClick={() => setPath('')}
               title="返回根列表"
             >
@@ -170,7 +170,7 @@ export function FileManagerPage() {
             </button>
             {data.parent && (
               <button
-                className="inline-flex h-9 items-center gap-2 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-strong)] px-3 text-sm font-medium text-[var(--app-text)] transition hover:border-primary-400/50 hover:text-primary-500"
+                className="inline-flex h-9 items-center gap-2 rounded-lg border border-(--app-border) bg-(--app-surface-strong) px-3 text-sm font-medium text-(--app-text) transition hover:border-primary-400/50 hover:text-primary-500"
                 onClick={() => setPath(data.parent || '')}
                 title="返回上级目录"
               >
@@ -179,7 +179,7 @@ export function FileManagerPage() {
               </button>
             )}
           </div>
-          <span className="min-w-0 flex-1 truncate text-right font-mono text-xs text-[var(--app-muted)]" title={data.path}>
+          <span className="min-w-0 flex-1 truncate text-right font-mono text-xs text-(--app-muted)" title={data.path}>
             {data.path}
           </span>
         </div>

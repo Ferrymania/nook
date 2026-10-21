@@ -46,7 +46,7 @@ export function MediaFavouriteButton({
       className={
         'btn-outline gap-2 ' +
         (favourite
-          ? '!border-red-200 !bg-red-50 !text-red-600 hover:!bg-red-100/50'
+          ? 'border-red-200! bg-red-50! text-red-600! hover:bg-red-100/50!'
           : 'hover:border-red-200 hover:text-red-600 hover:bg-red-50/50') +
         (className ? ` ${className}` : '')
       }

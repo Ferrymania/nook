@@ -31,7 +31,7 @@ export function MediaManagementPanel({
       <header className="media-management-header">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <h2 className="inline-flex items-center gap-2 text-[13px] font-semibold"><SlidersHorizontal size={14} aria-hidden="true" />媒体管理</h2>
-          <span className="text-xs text-[var(--app-muted)]">{scope}</span>
+          <span className="text-xs text-(--app-muted)">{scope}</span>
         </div>
         {headerActions}
       </header>

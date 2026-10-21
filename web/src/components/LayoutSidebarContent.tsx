@@ -31,7 +31,7 @@ export function LayoutSidebarContent({
   const adminItems = visibleSidebarItems({ isAdmin, can, items: LAYOUT_NAV_ITEMS })
 
   return (
-    <div className="nook-sidebar flex h-full min-h-0 flex-col border-r border-[var(--app-border)] bg-[var(--app-bg)]">
+    <div className="nook-sidebar flex h-full min-h-0 flex-col border-r border-(--app-border) bg-(--app-bg)">
       <LayoutSidebarHeader
         sidebarExpanded={sidebarExpanded}
         onToggleSidebar={onToggleSidebar}
@@ -68,15 +68,15 @@ function LayoutSidebarHeader({
   onCloseMobileDrawer: () => void
 }) {
   return (
-    <div className="flex h-20 shrink-0 items-center justify-between border-b border-[var(--app-border)] px-6">
+    <div className="flex h-20 shrink-0 items-center justify-between border-b border-(--app-border) px-6">
       <Link to="/" className="flex items-center gap-3">
         <img
           src="/brand/logo-192.png?v=2"
           alt="Nook"
-          className="h-10 w-10 shrink-0 rounded-xl object-contain shadow-sm"
+          className="h-10 w-10 shrink-0 rounded-xl object-contain shadow-xs"
         />
         {sidebarExpanded && (
-          <span className="font-display text-lg font-extrabold tracking-tight text-[var(--app-text)] animate-fade-slide-in">
+          <span className="font-display text-lg font-extrabold tracking-tight text-(--app-text) animate-fade-slide-in">
             Nook
           </span>
         )}
@@ -119,14 +119,14 @@ function LayoutSidebarNav({
 
 function LayoutSidebarHomeBack({ sidebarExpanded }: { sidebarExpanded: boolean }) {
   return (
-    <div className="shrink-0 border-t border-[var(--app-border)] bg-[var(--app-panel-soft)] p-4">
+    <div className="shrink-0 border-t border-(--app-border) bg-(--app-panel-soft) p-4">
       <Link
         to="/"
         className={clsx(
           'flex items-center gap-3.5 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-300 w-full group',
           sidebarExpanded
-            ? 'justify-start text-[var(--app-muted)] hover:bg-[var(--app-hover)] hover:text-[var(--app-text)]'
-            : 'justify-center text-[var(--app-muted)] hover:text-[var(--app-text)]',
+            ? 'justify-start text-(--app-muted) hover:bg-(--app-hover) hover:text-(--app-text)'
+            : 'justify-center text-(--app-muted) hover:text-(--app-text)',
         )}
         title="返回系统首页"
       >
@@ -150,7 +150,7 @@ function SidebarIconButton({
     <button
       onClick={onClick}
       className={clsx(
-        'rounded-xl p-1.5 text-[var(--app-muted)] hover:bg-[var(--app-hover)] hover:text-[var(--app-text)] transition-colors',
+        'rounded-xl p-1.5 text-(--app-muted) hover:bg-(--app-hover) hover:text-(--app-text) transition-colors',
         className,
       )}
     >

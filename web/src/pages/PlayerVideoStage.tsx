@@ -940,7 +940,7 @@ export function PlayerVideoStage({
                 onSkipPrompt?.()
               }}
               onPointerDown={(event) => event.stopPropagation()}
-              className="absolute bottom-16 right-3 z-30 inline-flex items-center gap-2 rounded-xl border border-white/15 bg-black/70 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_28px_rgba(0,0,0,0.5)] backdrop-blur-md transition hover:bg-black/85 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400 sm:bottom-20 sm:right-5"
+              className="absolute bottom-16 right-3 z-30 inline-flex items-center gap-2 rounded-xl border border-white/15 bg-black/70 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_28px_rgba(0,0,0,0.5)] backdrop-blur-md transition hover:bg-black/85 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400 sm:bottom-20 sm:right-5"
             >
               <SkipForward size={16} />
               <span>{skipPrompt.label}</span>
@@ -1042,7 +1042,7 @@ export function PlayerVideoStage({
         tabIndex={lockVisible ? 0 : -1}
         aria-label={locked ? '解锁画面，恢复操作栏' : '锁定画面，隐藏操作栏和进度框'}
         title={locked ? '点一下解锁，恢复操作栏与进度框' : '锁上后画面轻触无效，只留这个锁'}
-        className={`absolute left-2.5 top-1/2 z-30 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border shadow-[0_6px_20px_rgba(0,0,0,0.45)] backdrop-blur transition-opacity duration-200 sm:left-4 ${
+        className={`absolute left-2.5 top-1/2 z-30 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border shadow-[0_6px_20px_rgba(0,0,0,0.45)] backdrop-blur-sm transition-opacity duration-200 sm:left-4 ${
           lockVisible ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
         } ${
           locked
@@ -1066,7 +1066,7 @@ export function PlayerVideoStage({
         </div>
       ) : null}
       {waiting ? (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 px-4 backdrop-blur-xs">
           <div className="max-w-md rounded-2xl border border-white/10 bg-[#0d0e12]/95 px-6 py-5 text-center text-white shadow-[0_10px_38px_rgba(0,0,0,0.6)]">
             <Loader2 className="mx-auto mb-3 animate-spin text-rose-400" size={26} />
             <p className="text-sm font-medium">{waitingMessage || '115 正在转码…'}</p>

@@ -71,7 +71,7 @@ export function ActiveUsersStrip({ users }: { users: User[] }) {
               <span className="mt-1.5 block text-[11px] text-sand-500">
                 最近活跃：{formatActivityTime(entry.last_active_at)}
               </span>
-              <span className="mt-1 block break-words text-[11px] text-sand-500">
+              <span className="mt-1 block wrap-break-word text-[11px] text-sand-500">
                 最近设备：{device || '未上报'}
               </span>
             </button>

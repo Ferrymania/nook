@@ -74,7 +74,7 @@ export function OrganizeMediaDialog({ open, media, onClose, onOrganized }: Organ
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 px-4 py-8 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 px-4 py-8 backdrop-blur-xs">
       <div className="flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
         <div className="flex items-start justify-between gap-4 border-b border-gray-200 px-5 py-4">
           <div>
@@ -99,7 +99,7 @@ export function OrganizeMediaDialog({ open, media, onClose, onOrganized }: Organ
             <select
               value={form.media_type}
               onChange={(e) => set('media_type', e.target.value)}
-              className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 outline-none focus:border-brand-300"
+              className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 outline-hidden focus:border-brand-300"
             >
               <option value="">自动识别</option>
               <option value="movie">电影</option>
@@ -126,7 +126,7 @@ export function OrganizeMediaDialog({ open, media, onClose, onOrganized }: Organ
             <select
               value={form.transfer_mode}
               onChange={(e) => set('transfer_mode', e.target.value)}
-              className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 outline-none focus:border-brand-300"
+              className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 outline-hidden focus:border-brand-300"
             >
               <option value="hardlink">硬链接</option>
               <option value="symlink">软链接</option>
@@ -139,7 +139,7 @@ export function OrganizeMediaDialog({ open, media, onClose, onOrganized }: Organ
               type="checkbox"
               checked={form.scrape_after}
               onChange={(e) => set('scrape_after', e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-brand-600"
+              className="h-4 w-4 rounded-sm border-gray-300 text-brand-600"
             />
             整理后刮削
           </label>
@@ -148,7 +148,7 @@ export function OrganizeMediaDialog({ open, media, onClose, onOrganized }: Organ
               type="checkbox"
               checked={form.scan_after}
               onChange={(e) => set('scan_after', e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-brand-600"
+              className="h-4 w-4 rounded-sm border-gray-300 text-brand-600"
             />
             整理后扫描入库
           </label>
@@ -194,7 +194,7 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 outline-none focus:border-brand-300"
+        className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 outline-hidden focus:border-brand-300"
       />
     </label>
   )

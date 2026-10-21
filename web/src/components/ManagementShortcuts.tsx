@@ -21,17 +21,17 @@ export function ManagementShortcuts({ title, description, items }: ManagementSho
 
   return (
     <section className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--app-border)] pb-3">
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-(--app-border) pb-3">
         <div>
-          <h2 className="font-display text-lg font-bold text-[var(--app-text)]">{title}</h2>
-          {description && <p className="mt-1 text-sm text-[var(--app-muted)]">{description}</p>}
+          <h2 className="font-display text-lg font-bold text-(--app-text)">{title}</h2>
+          {description && <p className="mt-1 text-sm text-(--app-muted)">{description}</p>}
         </div>
       </div>
       {hasNamedGroups ? (
         <div className="grid gap-5 lg:grid-cols-2">
           {groups.map((group) => (
             <div key={group.label || 'default'} className="space-y-3">
-              {group.label && <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--app-brand-text)]">{group.label}</h3>}
+              {group.label && <h3 className="text-xs font-bold uppercase tracking-wider text-(--app-brand-text)">{group.label}</h3>}
               <ShortcutGrid items={group.items} />
             </div>
           ))}
@@ -71,23 +71,23 @@ function ShortcutCard({ item }: { item: ShortcutItem }) {
   return (
     <Link
       to={item.to}
-      className="group rounded-lg border border-[var(--app-border)] bg-[var(--app-panel)] p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-500/50 hover:bg-[var(--app-panel-soft)] hover:shadow-md"
+      className="group rounded-lg border border-(--app-border) bg-(--app-panel) p-4 shadow-xs transition hover:-translate-y-0.5 hover:border-brand-500/50 hover:bg-(--app-panel-soft) hover:shadow-md"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="truncate text-sm font-bold text-[var(--app-text)]">{item.title}</h3>
+            <h3 className="truncate text-sm font-bold text-(--app-text)">{item.title}</h3>
             {item.badge && (
-              <span className="shrink-0 rounded-full border border-[var(--app-brand-border)] bg-[var(--app-brand-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--app-brand-text)]">
+              <span className="shrink-0 rounded-full border border-(--app-brand-border) bg-(--app-brand-soft) px-2 py-0.5 text-[10px] font-bold text-(--app-brand-text)">
                 {item.badge}
               </span>
             )}
           </div>
-          <p className="mt-2 line-clamp-2 text-xs leading-5 text-[var(--app-muted)]">{item.description}</p>
+          <p className="mt-2 line-clamp-2 text-xs leading-5 text-(--app-muted)">{item.description}</p>
         </div>
         <ArrowRight
           size={16}
-          className="mt-0.5 shrink-0 text-[var(--app-brand-text)] transition group-hover:translate-x-0.5 group-hover:text-brand-500"
+          className="mt-0.5 shrink-0 text-(--app-brand-text) transition group-hover:translate-x-0.5 group-hover:text-brand-500"
         />
       </div>
     </Link>

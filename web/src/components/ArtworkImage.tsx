@@ -25,7 +25,7 @@ function ArtworkImageAttempt({ sources, alt, compact = false, fallbackClassName 
 
   if (!source) {
     return (
-      <div role="img" aria-label={`${alt}：图片暂不可用`} title="图片暂不可用" className={`flex flex-col items-center justify-center gap-2 bg-[var(--app-panel-soft)] text-[var(--app-muted)] ${fallbackClassName}`}>
+      <div role="img" aria-label={`${alt}：图片暂不可用`} title="图片暂不可用" className={`flex flex-col items-center justify-center gap-2 bg-(--app-panel-soft) text-(--app-muted) ${fallbackClassName}`}>
         <ImageOff size={compact ? 16 : 28} aria-hidden="true" />
         <span className={compact ? 'text-[11px] leading-none' : 'text-xs'}>{compact ? '缺图' : '图片暂不可用'}</span>
       </div>

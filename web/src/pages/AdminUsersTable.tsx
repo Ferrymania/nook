@@ -100,13 +100,13 @@ export function AdminUsersTable({
               <td className={`whitespace-nowrap ${u.is_active ? 'text-green-500' : 'text-red-400'}`}>
                 {u.is_active ? '正常' : '已禁用'}
               </td>
-              <td className="text-ink-50 max-w-[22rem]">
+              <td className="text-ink-50 max-w-88">
                 {u.role === 'admin' ? '全部管理权限' : '仅浏览/播放/外部播放器，无下载与文件操作'}
               </td>
               <td className="text-ink-50 whitespace-nowrap">
                 <span className="inline-flex flex-wrap items-center gap-2">
                   <span>{u.last_login_at ? new Date(u.last_login_at).toLocaleString() : '从未登录'}</span>
-                  {u.realtime_online && <span className="rounded border border-green-400/40 px-1.5 py-0.5 text-[11px] text-green-500">在线</span>}
+                  {u.realtime_online && <span className="rounded-sm border border-green-400/40 px-1.5 py-0.5 text-[11px] text-green-500">在线</span>}
                 </span>
               </td>
               <td className="space-x-2 py-2 text-right">

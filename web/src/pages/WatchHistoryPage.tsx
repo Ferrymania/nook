@@ -79,7 +79,7 @@ export function WatchHistoryPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Link
             to="/history/stats"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-600 shadow-sm transition hover:border-brand-300 hover:text-brand-600"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-600 shadow-xs transition hover:border-brand-300 hover:text-brand-600"
           >
             <BarChart3 size={14} />
             观看统计
@@ -87,14 +87,14 @@ export function WatchHistoryPage() {
           <button
             onClick={() => clearByStatus('incomplete')}
             disabled={busy !== '' || items.every((item) => item.completed)}
-            className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-600 shadow-sm transition hover:border-amber-300 hover:text-amber-600 disabled:cursor-not-allowed disabled:opacity-45"
+            className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-600 shadow-xs transition hover:border-amber-300 hover:text-amber-600 disabled:cursor-not-allowed disabled:opacity-45"
           >
             清除未看完
           </button>
           <button
             onClick={() => clearByStatus('completed')}
             disabled={busy !== '' || items.every((item) => !item.completed)}
-            className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-600 shadow-sm transition hover:border-emerald-300 hover:text-emerald-600 disabled:cursor-not-allowed disabled:opacity-45"
+            className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-600 shadow-xs transition hover:border-emerald-300 hover:text-emerald-600 disabled:cursor-not-allowed disabled:opacity-45"
           >
             清除已看完
           </button>
@@ -119,7 +119,7 @@ export function WatchHistoryPage() {
           return (
             <div
               key={h.id}
-              className="glass-panel flex flex-col gap-3 !p-3 sm:flex-row sm:items-center sm:gap-4"
+              className="glass-panel flex flex-col gap-3 p-3! sm:flex-row sm:items-center sm:gap-4"
             >
               <div className="h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-surface-900">
                 {m.poster_url ? (
@@ -159,7 +159,7 @@ export function WatchHistoryPage() {
                 <Link
                   to={`/play/${m.id}`}
                   state={{ from: '/history' }}
-                  className="neon-button !px-3 !py-1 !text-xs"
+                  className="neon-button px-3! py-1! text-xs!"
                 >
                   <Play size={12} /> 继续
                 </Link>

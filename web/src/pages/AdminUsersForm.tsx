@@ -50,7 +50,7 @@ export function AdminUsersForm({
       </div>
 
       <div className="md:col-span-3 flex flex-wrap items-end gap-3 rounded-2xl border border-sand-200/80 bg-white/60 p-4">
-        <label className="min-w-[10rem] flex-1">
+        <label className="min-w-40 flex-1">
           <span className="mb-1 block text-xs font-medium text-sand-500">单实例用户数量上限</span>
           <input
             type="number"

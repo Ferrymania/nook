@@ -26,7 +26,7 @@ export function TaskDetailModal({
 
   return (
     <div
-      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-110 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs"
       onClick={onClose}
     >
       <div
@@ -179,7 +179,7 @@ export function TaskDetailModal({
               <button
                 type="button"
                 onClick={() => onRetry(task)}
-                className="neon-button !py-2 !px-4 text-xs font-semibold"
+                className="neon-button py-2! px-4! text-xs font-semibold"
               >
                 <RefreshCw size={13} />
                 重新入队

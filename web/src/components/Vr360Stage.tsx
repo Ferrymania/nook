@@ -630,7 +630,7 @@ export function Vr360Stage({
             </>
           ) : null}
         </div>
-        <p className="pointer-events-none rounded-md bg-black/45 px-3 py-1 text-[10px] text-white/65 backdrop-blur">
+        <p className="pointer-events-none rounded-md bg-black/45 px-3 py-1 text-[10px] text-white/65 backdrop-blur-sm">
           {hint || '拖动旋转视角 · 滚轮或双指缩放'}
         </p>
         {settingsOpen ? (

@@ -84,6 +84,9 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Dependency security audit
+        run: npm audit --audit-level=moderate --registry=https://registry.npmjs.org/
+
       - name: Type-check & build
         run: npm run build
 
@@ -91,11 +94,12 @@ jobs:
         run: |
           frontend_test_dir=$(mktemp -d)
           trap 'rm -rf "$frontend_test_dir"' EXIT
-          npx tsc src/utils/artworkSources.test.ts src/utils/segmentQueryBatch.test.ts src/utils/homeCarousel.test.ts src/utils/mediaStatistics.test.ts --module commonjs --target ES2020 --strict --skipLibCheck --outDir "$frontend_test_dir"
+          npx tsc src/utils/artworkSources.test.ts src/utils/segmentQueryBatch.test.ts src/utils/homeCarousel.test.ts src/utils/mediaStatistics.test.ts src/utils/subtitleDisplay.test.ts --module commonjs --target ES2020 --strict --skipLibCheck --outDir "$frontend_test_dir"
           node "$frontend_test_dir/utils/artworkSources.test.js"
           node "$frontend_test_dir/utils/segmentQueryBatch.test.js"
           node "$frontend_test_dir/utils/homeCarousel.test.js"
           node "$frontend_test_dir/utils/mediaStatistics.test.js"
+          node "$frontend_test_dir/utils/subtitleDisplay.test.js"
 
   smoke:
     name: Deployment smoke test

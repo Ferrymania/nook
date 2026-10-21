@@ -59,7 +59,7 @@ export function LayoutMobileSidebar({ children, isOpen, onClose }: LayoutMobileS
     <div className="fixed inset-0 z-50 flex lg:hidden">
       <div
         onClick={onClose}
-        className="fixed inset-0 bg-black/15 backdrop-blur-sm animate-overlay-in"
+        className="fixed inset-0 bg-black/15 backdrop-blur-xs animate-overlay-in"
       />
       <div className="relative z-10 flex h-full min-h-0 w-64 max-w-xs flex-col overflow-hidden shadow-xl animate-drawer-in">
         {children}

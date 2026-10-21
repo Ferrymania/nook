@@ -9,7 +9,7 @@
  * 新加控件也不会再各写一套。
  */
 
-/** 面板底色。比纯黑更「实」，配合 backdrop-blur 后压在画面上仍然清晰可读。 */
+/** 面板底色。比纯黑更「实」，配合 backdrop-blur-sm 后压在画面上仍然清晰可读。 */
 const PANEL_BG = 'bg-[#0d0e12]/95'
 
 /** 浮层外圈阴影：暗背景下用大范围柔光，避免出现一圈生硬的黑边。 */
@@ -36,7 +36,7 @@ export const PLAYER_DRAWER =
  * 若以它为定位基准，面板最高只能到视频高度的 72%，内容会被压得很窄。
  */
 export const PLAYER_SHEET =
-  `player-sheet-height fixed inset-x-0 bottom-0 z-40 flex min-h-[10rem] flex-col overflow-hidden rounded-t-2xl border border-b-0 border-white/10 ${PANEL_BG} text-white ${PANEL_SHADOW} backdrop-blur-xl`
+  `player-sheet-height fixed inset-x-0 bottom-0 z-40 flex min-h-40 flex-col overflow-hidden rounded-t-2xl border border-b-0 border-white/10 ${PANEL_BG} text-white ${PANEL_SHADOW} backdrop-blur-xl`
 
 /** 底部动作面板的标题栏（带关闭按钮）。 */
 export const PLAYER_SHEET_HEADER =
@@ -89,7 +89,7 @@ export const PLAYER_STATUS_DOT = 'h-1.5 w-1.5 shrink-0 rounded-full'
  * pointer-events-none，否则拖不动。
  */
 export const PLAYER_RANGE_OVERLAY =
-  'absolute inset-0 h-full w-full cursor-pointer appearance-none bg-transparent outline-none ' +
+  'absolute inset-0 h-full w-full cursor-pointer appearance-none bg-transparent outline-hidden ' +
   '[&::-webkit-slider-runnable-track]:bg-transparent ' +
   '[&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none ' +
   '[&::-moz-range-track]:bg-transparent ' +

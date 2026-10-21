@@ -76,7 +76,7 @@ export function MyDevicesPanel() {
           <button
             type="button"
             onClick={() => void load()}
-            className="rounded-xl border border-[var(--app-border)] p-2 text-[var(--app-muted)] transition-colors hover:bg-[var(--app-hover)] hover:text-[var(--app-text)]"
+            className="rounded-xl border border-(--app-border) p-2 text-(--app-muted) transition-colors hover:bg-(--app-hover) hover:text-(--app-text)"
             title="刷新"
           >
             <RefreshCw size={16} />
@@ -98,7 +98,7 @@ export function MyDevicesPanel() {
           <Loader2 className="animate-spin" />
         </div>
       ) : devices.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-[var(--app-border)] p-6 text-center text-sm text-[var(--app-muted)]">
+        <p className="rounded-2xl border border-dashed border-(--app-border) p-6 text-center text-sm text-(--app-muted)">
           暂无设备记录。使用 Emby / Infuse 等客户端登录后会自动出现在这里。
         </p>
       ) : (
@@ -106,10 +106,10 @@ export function MyDevicesPanel() {
           {devices.map((device) => (
             <li
               key={device.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--app-border)] bg-[var(--app-panel)] p-3"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-(--app-border) bg-(--app-panel) p-3"
             >
               <div className="min-w-0">
-                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--app-text)]">
+                <div className="flex items-center gap-2 text-sm font-semibold text-(--app-text)">
                   {deviceIcon(device)}
                   <span className="truncate">
                     {device.device_name || device.client || '未知设备'}
@@ -125,7 +125,7 @@ export function MyDevicesPanel() {
                     </span>
                   )}
                 </div>
-                <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-[var(--app-muted)]">
+                <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-(--app-muted)">
                   {device.client && <span>{device.client}</span>}
                   {device.last_ip && <span className="font-mono">{device.last_ip}</span>}
                   {device.last_seen_at && (
@@ -137,7 +137,7 @@ export function MyDevicesPanel() {
                 type="button"
                 onClick={() => void kick(device)}
                 disabled={busyId === (device.device_id || device.id)}
-                className="shrink-0 rounded-xl border border-[var(--app-border)] px-3 py-1.5 text-xs font-semibold text-[var(--app-muted)] transition-colors hover:border-rose-300 hover:text-rose-500 disabled:opacity-40"
+                className="shrink-0 rounded-xl border border-(--app-border) px-3 py-1.5 text-xs font-semibold text-(--app-muted) transition-colors hover:border-rose-300 hover:text-rose-500 disabled:opacity-40"
               >
                 {busyId === (device.device_id || device.id) ? '下线中…' : '踢下线'}
               </button>

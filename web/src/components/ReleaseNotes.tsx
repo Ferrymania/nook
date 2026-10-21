@@ -3,7 +3,7 @@ import remarkGfm from 'remark-gfm'
 
 export function ReleaseNotes({ children }: { children: string }) {
   return (
-    <div className="release-notes mt-3 max-h-64 overflow-y-auto break-words text-sm leading-7 text-[var(--app-subtle)]">
+    <div className="release-notes mt-3 max-h-64 overflow-y-auto wrap-break-word text-sm leading-7 text-(--app-subtle)">
       <Markdown
         remarkPlugins={[remarkGfm]}
         skipHtml

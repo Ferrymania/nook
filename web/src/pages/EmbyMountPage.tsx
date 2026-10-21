@@ -589,7 +589,7 @@ export function EmbyMountPage() {
           return (
             <div key={acct.id} className="overflow-hidden rounded-3xl border border-sand-200 bg-white shadow-card">
               {/* 账号头部 */}
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-sand-100 bg-gradient-to-r from-brand-50/60 to-transparent px-5 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-sand-100 bg-linear-to-r from-brand-50/60 to-transparent px-5 py-4">
                 <div className="flex items-center gap-3">
                   <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-100 text-brand-600">
                     <Server size={20} />
@@ -614,7 +614,7 @@ export function EmbyMountPage() {
                     <Pencil size={13} />
                     编辑
                   </button>
-                  <button onClick={() => removeAccount(acct)} className="iconButtonCls !text-red-500 hover:!bg-red-50">
+                  <button onClick={() => removeAccount(acct)} className="iconButtonCls text-red-500! hover:bg-red-50!">
                     <Trash2 size={13} />
                     删除
                   </button>

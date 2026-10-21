@@ -78,7 +78,7 @@ export function VersionUpdatePanel() {
       </div>
 
       <div
-        className={`rounded-2xl border p-4 sm:p-5 ${available ? 'border-brand-500/30 bg-brand-500/5' : 'border-[var(--app-border)] bg-[var(--app-panel-soft)]'}`}
+        className={`rounded-2xl border p-4 sm:p-5 ${available ? 'border-brand-500/30 bg-brand-500/5' : 'border-(--app-border) bg-(--app-panel-soft)'}`}
         role="status" aria-live="polite" aria-busy={checking}
       >
         <div className="flex items-center gap-2 text-ink-600">
@@ -101,7 +101,7 @@ export function VersionUpdatePanel() {
       </div>
 
       {available && result?.release_notes && (
-        <details className="rounded-xl border border-[var(--app-border)] px-4 py-3" open={available || undefined}>
+        <details className="rounded-xl border border-(--app-border) px-4 py-3" open={available || undefined}>
           <summary className="cursor-pointer text-sm font-semibold text-ink-600">
             最新正式版{result.latest_version && ` ${formatAppVersion(result.latest_version)}`} 更新说明
           </summary>
@@ -117,11 +117,11 @@ export function VersionUpdatePanel() {
             {copied ? '已复制更新命令' : '复制更新命令'}
           </button>
         </div>
-        <pre className="overflow-x-auto rounded-xl border border-[var(--app-border)] bg-[var(--app-panel-soft)] p-4 text-xs leading-7 text-ink-600 sm:text-sm"><code>{UPDATE_COMMAND}</code></pre>
+        <pre className="overflow-x-auto rounded-xl border border-(--app-border) bg-(--app-panel-soft) p-4 text-xs leading-7 text-ink-600 sm:text-sm"><code>{UPDATE_COMMAND}</code></pre>
         <p className="text-xs leading-relaxed text-sand-500">在服务器的 Compose 文件所在目录执行。通过容器管理面板部署时，可在面板中更新；二进制部署请前往发布页下载。</p>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--app-border)] pt-4 text-xs text-sand-500">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-(--app-border) pt-4 text-xs text-sand-500">
         <p>{result ? `检查于 ${formatDate(result.checked_at)} · 手动检查间隔至少 1 分钟` : error ? '可稍后重试或前往发布页查看' : '检查结果缓存 30 分钟'}</p>
         <a href={result?.release_url || RELEASES_URL} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 font-medium text-brand-600 hover:underline">
           查看 GitHub 发布页 <ExternalLink size={13} aria-hidden="true" />

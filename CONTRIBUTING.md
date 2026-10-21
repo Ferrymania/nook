@@ -71,6 +71,10 @@ PR 应该尽量小而清晰。一次 PR 聚焦一个问题或一组强相关改�
 
 根据改动范围选择运行：
 
+前端开发与构建统一使用 Node.js 24.22.1 LTS 或更新的 24.x 安全补丁版本。使用 nvm 时先在仓库根目录执行 `nvm install` 和 `nvm use`；CI 从 `.nvmrc` 读取版本，Docker 前端构建阶段使用相同版本。升级时同步更新 `.nvmrc`、`Dockerfile` 和 `web/package.json` / `web/package-lock.json` 的 Node 版本要求。
+
+前端使用 Tailwind CSS 4，浏览器最低要求为 Safari 16.4、Chrome/Edge 111、Firefox 128。主题与共享样式位于 `web/src/index.css`。升级样式依赖后需在浏览器验证布局、主题及交互；CI 会通过官方 npm 审计接口检查全部依赖，中危及以上漏洞会使 CI 失败并阻止后续发布。
+
 本地以 mock、单元测试、前端构建和 lint 为主，无需启动 Docker 或 PostgreSQL。未设置 `NOOK_TEST_POSTGRES_DSN` 时，`go test` 会跳过依赖数据库的集成测试，其余测试正常运行。前端构建需先完成，以便 Go 嵌入 `web/dist`。
 
 数据库集成测试交给 CI：流水线自动启动独立 PostgreSQL 测试实例、配置 `NOOK_TEST_POSTGRES_DSN` 并初始化 `pg_trgm` 扩展。每个测试使用独立 schema，结束后自动清理；测试失败会阻止后续发布。本地如需排查数据库问题，也可显式指定独立测试库，不能使用生产数据库地址。

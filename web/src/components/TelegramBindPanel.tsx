@@ -139,7 +139,7 @@ export function TelegramBindPanel() {
             type="button"
             onClick={() => void unbind()}
             disabled={unbinding}
-            className="inline-flex items-center gap-2 rounded-xl border border-[var(--app-border)] px-3 py-2 text-sm font-semibold text-[var(--app-muted)] transition-colors hover:border-rose-300 hover:text-rose-500 disabled:opacity-40"
+            className="inline-flex items-center gap-2 rounded-xl border border-(--app-border) px-3 py-2 text-sm font-semibold text-(--app-muted) transition-colors hover:border-rose-300 hover:text-rose-500 disabled:opacity-40"
           >
             {unbinding ? <Loader2 size={16} className="animate-spin" /> : <Unlink size={16} />}
             解除绑定

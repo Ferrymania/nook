@@ -105,7 +105,7 @@ export function LayoutUserMenu({
         <>
           <div
             key="layout-user-menu-backdrop"
-            className="fixed inset-0 z-[120] animate-overlay-in"
+            className="fixed inset-0 z-120 animate-overlay-in"
             aria-hidden="true"
             onPointerDown={onClose}
           />
@@ -113,7 +113,7 @@ export function LayoutUserMenu({
             key="layout-user-menu-panel"
             role="menu"
             style={{ top: menuPosition.top, right: menuPosition.right }}
-            className="nook-user-menu fixed z-[121] w-56 origin-top-right rounded-2xl border border-[var(--app-border)] bg-[var(--app-panel)] p-2 shadow-xl animate-menu-in"
+            className="nook-user-menu fixed z-121 w-56 origin-top-right rounded-2xl border border-(--app-border) bg-(--app-panel) p-2 shadow-xl animate-menu-in"
             onPointerDown={(event) => event.stopPropagation()}
           >
 	            <UserMenuLink to="/profile" icon={<Settings size={16} />} label="设置" onNavigate={onClose} />
@@ -127,22 +127,22 @@ export function LayoutUserMenu({
 	                onClose()
 	                setIsOtpOpen(true)
 	              }}
-	              className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-[var(--app-subtle)] transition-colors hover:bg-[var(--app-hover)] hover:text-[var(--app-text)]"
+	              className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-(--app-subtle) transition-colors hover:bg-(--app-hover) hover:text-(--app-text)"
 	            >
 	              <Tv size={16} />
 	              <span>电视端临时登录码</span>
 	            </button>
             {themeMode && onThemeChange ? (
               <div className="px-3 py-2 sm:hidden">
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-[var(--app-muted)]">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-(--app-muted)">
                   主题
                 </p>
                 <LayoutThemeToggle mode={themeMode} onChange={onThemeChange} />
               </div>
             ) : null}
-            <div className="my-1.5 border-t border-[var(--app-border)]" />
+            <div className="my-1.5 border-t border-(--app-border)" />
             <div className="px-3 py-2">
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-[var(--app-muted)]">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-(--app-muted)">
                 当前观影 Profile
               </p>
               <div className="space-y-1">
@@ -171,13 +171,13 @@ export function LayoutUserMenu({
               label="管理观影 Profile"
               onNavigate={onClose}
             />
-            <div className="my-1.5 border-t border-[var(--app-border)]" />
+            <div className="my-1.5 border-t border-(--app-border)" />
             <button
               onClick={() => {
                 onClose()
                 onLogout()
               }}
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-red-500 transition-colors hover:bg-[var(--app-danger-soft)]"
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-red-500 transition-colors hover:bg-(--app-danger-soft)"
             >
               <LogOut size={16} />
               <span>安全登出系统</span>
@@ -189,24 +189,24 @@ export function LayoutUserMenu({
     : null
 
   return (
-    <div className="relative z-[122]" data-testid="layout-user-menu">
+    <div className="relative z-122" data-testid="layout-user-menu">
       <button
         ref={triggerRef}
         onClick={onToggle}
         aria-expanded={isOpen}
         aria-haspopup="menu"
-        className="nook-user-trigger relative z-[122] flex items-center gap-2.5 rounded-full p-1 pr-3 transition-colors hover:bg-[var(--app-hover)]"
+        className="nook-user-trigger relative z-122 flex items-center gap-2.5 rounded-full p-1 pr-3 transition-colors hover:bg-(--app-hover)"
       >
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--app-hover)] text-xs font-medium text-[var(--app-text)]">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-(--app-hover) text-xs font-medium text-(--app-text)">
           {user?.username?.slice(0, 2).toUpperCase() || 'US'}
         </div>
         <div className="hidden text-left md:block">
-          <p className="text-[13px] font-medium leading-none text-[var(--app-text)]">{user?.username}</p>
-          <p className="mt-1 text-[11px] leading-none text-[var(--app-muted)]">
+          <p className="text-[13px] font-medium leading-none text-(--app-text)">{user?.username}</p>
+          <p className="mt-1 text-[11px] leading-none text-(--app-muted)">
             {activeProfile ? `Profile: ${activeProfile.name}` : user?.role}
           </p>
         </div>
-        <ChevronDown size={14} className="text-[var(--app-muted)]" />
+        <ChevronDown size={14} className="text-(--app-muted)" />
       </button>
       {menuPortal}
       <TemporaryPasswordDialog isOpen={isOtpOpen} onClose={() => setIsOtpOpen(false)} />
@@ -229,7 +229,7 @@ function UserMenuLink({
     <Link
       to={to}
       onClick={onNavigate}
-      className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-[var(--app-subtle)] transition-colors hover:bg-[var(--app-hover)] hover:text-[var(--app-text)]"
+      className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-(--app-subtle) transition-colors hover:bg-(--app-hover) hover:text-(--app-text)"
     >
       {icon}
       <span>{label}</span>
@@ -241,7 +241,7 @@ function profileButtonClass(active: boolean): string {
   return clsx(
     'flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-left text-xs transition-colors',
     active
-      ? 'bg-[var(--app-active-bg)] text-[var(--app-active-text)]'
-      : 'text-[var(--app-subtle)] hover:bg-[var(--app-hover)]',
+      ? 'bg-(--app-active-bg) text-(--app-active-text)'
+      : 'text-(--app-subtle) hover:bg-(--app-hover)',
   )
 }

@@ -62,11 +62,11 @@ export function PlayerTopBar({
   const status = modeLabel ? { ...derived, label: modeLabel } : derived
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 bg-gradient-to-b from-black/60 via-black/20 to-transparent px-2.5 pb-10 pt-2.5 sm:px-3.5 sm:pt-3.5">
+    <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 bg-linear-to-b from-black/60 via-black/20 to-transparent px-2.5 pb-10 pt-2.5 sm:px-3.5 sm:pt-3.5">
       <div className="flex min-w-0 items-center gap-2">
         <button
           onClick={onBack}
-          className={`${PLAYER_ICON_BUTTON} pointer-events-auto h-8 w-8 bg-black/35 backdrop-blur hover:bg-black/60 sm:h-9 sm:w-9`}
+          className={`${PLAYER_ICON_BUTTON} pointer-events-auto h-8 w-8 bg-black/35 backdrop-blur-sm hover:bg-black/60 sm:h-9 sm:w-9`}
           title="返回 (Esc)"
         >
           <ArrowLeft size={18} />
@@ -86,7 +86,7 @@ export function PlayerTopBar({
       </div>
 
       <span
-        className="pointer-events-auto flex shrink-0 items-center gap-1.5 rounded-md border border-white/10 bg-black/40 px-2 py-1 text-[11px] font-medium text-white/80 backdrop-blur"
+        className="pointer-events-auto flex shrink-0 items-center gap-1.5 rounded-md border border-white/10 bg-black/40 px-2 py-1 text-[11px] font-medium text-white/80 backdrop-blur-sm"
         title={status.title}
       >
         {status.icon}

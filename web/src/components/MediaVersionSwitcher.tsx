@@ -31,7 +31,7 @@ export function MediaVersionSwitcher({ media, className = '' }: MediaVersionSwit
           const isStrm = isStrmMedia(version)
           const label = mediaVersionLabel(version)
           const btnClass = active
-            ? 'border-brand-500/40 bg-brand-50 text-[#b07d35] font-bold shadow-sm'
+            ? 'border-brand-500/40 bg-brand-50 text-[#b07d35] font-bold shadow-xs'
             : 'border-gray-200 bg-white text-ink-100 hover:border-brand-500/30 hover:bg-brand-50/40'
 
           return (

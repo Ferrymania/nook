@@ -244,7 +244,7 @@ export function ScraperQueuePage({
       {!embedded && (
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-400/30 bg-primary-400/10 text-brand-500 shadow-sm">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-400/30 bg-primary-400/10 text-brand-500 shadow-xs">
             <Sparkles size={22} />
           </div>
           <div>
@@ -274,7 +274,7 @@ export function ScraperQueuePage({
             type="button"
             disabled={batchBusy}
             onClick={handleEnqueueAll}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-brand-500/40 bg-brand-500/10 px-3 py-2 text-xs font-semibold text-brand-500 shadow-sm transition hover:bg-brand-500/20 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-brand-500/40 bg-brand-500/10 px-3 py-2 text-xs font-semibold text-brand-500 shadow-xs transition hover:bg-brand-500/20 disabled:opacity-50"
             title="将所有媒体库未刮削媒体加入队列"
           >
             <Sparkles size={13} />
@@ -299,7 +299,7 @@ export function ScraperQueuePage({
             type="button"
             disabled={isRefreshing}
             onClick={() => refresh(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-ink-100 shadow-sm transition hover:border-gray-300 hover:bg-gray-50"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-ink-100 shadow-xs transition hover:border-gray-300 hover:bg-gray-50"
             title="手动刷新"
           >
             <RefreshCw size={13} className={isRefreshing ? 'animate-spin text-brand-500' : ''} />
@@ -307,11 +307,11 @@ export function ScraperQueuePage({
           </button>
 
           <details className="relative inline-block">
-            <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-ink-100 shadow-sm transition hover:border-gray-300 hover:bg-gray-50 [&::-webkit-details-marker]:hidden">
+            <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-ink-100 shadow-xs transition hover:border-gray-300 hover:bg-gray-50 [&::-webkit-details-marker]:hidden">
               <Trash2 size={13} className="text-sand-500" />
               <span>批量操作</span>
             </summary>
-            <div className="absolute right-0 top-10 z-30 min-w-44 rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl backdrop-blur">
+            <div className="absolute right-0 top-10 z-30 min-w-44 rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl backdrop-blur-sm">
               {failedCount > 0 && (
                 <button
                   type="button"
@@ -407,7 +407,7 @@ export function ScraperQueuePage({
               }}
               className={`flex flex-col justify-between rounded-2xl border p-3.5 text-left transition-all duration-200 select-none ${
                 isActive
-                  ? 'border-brand-500 bg-primary-400/10 shadow-sm ring-2 ring-brand-500/20'
+                  ? 'border-brand-500 bg-primary-400/10 shadow-xs ring-2 ring-brand-500/20'
                   : 'border-gray-200 bg-white/80 hover:border-gray-300 hover:bg-white'
               }`}
             >
@@ -433,13 +433,13 @@ export function ScraperQueuePage({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="搜索媒体标题、匹配结果、媒体库或错误信息…"
-            className="h-9 w-full rounded-xl border border-gray-200 bg-white pl-9 pr-8 text-xs text-ink-600 placeholder:text-gray-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100/60"
+            className="h-9 w-full rounded-xl border border-gray-200 bg-white pl-9 pr-8 text-xs text-ink-600 placeholder:text-gray-400 outline-hidden transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100/60"
           />
           {search && (
             <button
               type="button"
               onClick={() => setSearch('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-400 hover:text-ink-600"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-gray-400 hover:text-ink-600"
             >
               <X size={13} />
             </button>
@@ -588,11 +588,11 @@ export function ScraperQueuePage({
 
             {/* 下拉批量操作菜单：随时可做任意全局操作 */}
             <details className="relative inline-block">
-              <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-100 shadow-sm transition hover:border-gray-300 hover:bg-gray-50 [&::-webkit-details-marker]:hidden">
+              <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-100 shadow-xs transition hover:border-gray-300 hover:bg-gray-50 [&::-webkit-details-marker]:hidden">
                 <Trash2 size={12} className="text-sand-500" />
                 <span>批量清理</span>
               </summary>
-              <div className="absolute right-0 top-9 z-30 min-w-44 rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl backdrop-blur">
+              <div className="absolute right-0 top-9 z-30 min-w-44 rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl backdrop-blur-sm">
                 {failedCount > 0 && (
                   <button
                     type="button"
@@ -677,7 +677,7 @@ export function ScraperQueuePage({
       </div>
 
       {/* 4. Table */}
-      <div className="glass-panel overflow-hidden !p-0 shadow-sm">
+      <div className="glass-panel overflow-hidden p-0! shadow-xs">
         {loading ? (
           <div className="flex justify-center py-16 text-ink-50">
             <Loader2 className="animate-spin text-brand-500" size={28} />
@@ -700,7 +700,7 @@ export function ScraperQueuePage({
                       type="checkbox"
                       checked={allCurrentChecked}
                       onChange={toggleSelectAll}
-                      className="h-3.5 w-3.5 rounded border-gray-300 text-brand-500 focus:ring-brand-400 cursor-pointer"
+                      className="h-3.5 w-3.5 rounded-sm border-gray-300 text-brand-500 focus:ring-brand-400 cursor-pointer"
                       title="全选 / 反选本页"
                     />
                   </th>
@@ -730,7 +730,7 @@ export function ScraperQueuePage({
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => toggleSelectRow(task.id)}
-                          className="h-3.5 w-3.5 rounded border-gray-300 text-brand-500 focus:ring-brand-400 cursor-pointer"
+                          className="h-3.5 w-3.5 rounded-sm border-gray-300 text-brand-500 focus:ring-brand-400 cursor-pointer"
                         />
                       </td>
 
@@ -768,13 +768,13 @@ export function ScraperQueuePage({
                               <img
                                 src={imageURL(task.poster_url, undefined, ARTWORK.posterTiny)}
                                 alt=""
-                                className="h-10 w-7 rounded object-cover border border-gray-200 shrink-0"
+                                className="h-10 w-7 rounded-sm object-cover border border-gray-200 shrink-0"
                                 onError={(e) => {
                                   e.currentTarget.style.display = 'none'
                                 }}
                               />
                             ) : (
-                              <div className="h-10 w-7 rounded bg-gray-100 flex items-center justify-center text-gray-400 shrink-0">
+                              <div className="h-10 w-7 rounded-sm bg-gray-100 flex items-center justify-center text-gray-400 shrink-0">
                                 <ImageIcon size={12} />
                               </div>
                             )}
@@ -801,7 +801,7 @@ export function ScraperQueuePage({
                       {/* Provider */}
                       <td className="px-3 py-2.5 text-xs text-ink-100 whitespace-nowrap">
                         {task.provider ? (
-                          <span className="rounded bg-brand-500/10 border border-brand-500/20 px-1.5 py-0.5 text-[10px] font-bold text-brand-500">
+                          <span className="rounded-sm bg-brand-500/10 border border-brand-500/20 px-1.5 py-0.5 text-[10px] font-bold text-brand-500">
                             {PROVIDER_LABELS[task.provider] ?? task.provider}
                           </span>
                         ) : (

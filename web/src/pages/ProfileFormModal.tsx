@@ -71,8 +71,8 @@ export function ProfileFormModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="glass-panel max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto !p-4 sm:!p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+      <div className="glass-panel max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto p-4! sm:p-6!">
         <h2 className="mb-4 font-display text-xl font-semibold text-ink-600">
           {editing ? '编辑 Profile' : '创建 Profile'}
         </h2>

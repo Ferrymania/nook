@@ -105,7 +105,7 @@ export function TaskQueuePage() {
               onClick={() => switchType(tab.type)}
               className={clsx(
                 'inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition',
-                active ? 'bg-brand-500 text-white shadow-sm' : 'text-ink-100 hover:bg-brand-50 hover:text-brand-600',
+                active ? 'bg-brand-500 text-white shadow-xs' : 'text-ink-100 hover:bg-brand-50 hover:text-brand-600',
               )}
             >
               <Icon size={14} />

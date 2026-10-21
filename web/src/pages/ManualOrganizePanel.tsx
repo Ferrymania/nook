@@ -140,7 +140,7 @@ export function ManualOrganizePanel({
         </label>
         <button
           type="button"
-          className="neon-button !border-primary-400/30 !bg-white !text-brand-500"
+          className="neon-button border-primary-400/30! bg-white! text-brand-500!"
           disabled={!organizeReady || organizeBusy !== ''}
           onClick={onPreview}
         >

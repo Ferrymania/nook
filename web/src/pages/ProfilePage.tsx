@@ -270,7 +270,7 @@ export function ProfilePage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between rounded-xl bg-white/90 p-4 border border-brand-100 shadow-sm">
+            <div className="flex items-center justify-between rounded-xl bg-white/90 p-4 border border-brand-100 shadow-xs">
               <div className="font-mono text-3xl font-black tracking-widest text-brand-600 select-all">
                 {otpCode}
               </div>

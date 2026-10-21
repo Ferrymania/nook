@@ -84,7 +84,7 @@ function ExternalPlayerModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-90 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs" onClick={onClose}>
       <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-white/70 bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
         <div className="flex items-start justify-between gap-4 border-b border-gray-100 p-5">
           <div>
@@ -111,7 +111,7 @@ function ExternalPlayerModal({
               <a
                 key={player.name}
                 href={player.url}
-                className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-4 py-3 text-sm font-semibold text-ink-600 shadow-sm hover:border-brand-300 hover:bg-brand-50"
+                className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-4 py-3 text-sm font-semibold text-ink-600 shadow-xs hover:border-brand-300 hover:bg-brand-50"
               >
                 <span>{player.name}</span>
                 <ExternalLink size={15} className="text-brand-500" />

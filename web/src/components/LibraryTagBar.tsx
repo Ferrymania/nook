@@ -60,7 +60,7 @@ export function LibraryTagBar({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-[var(--app-border)] pb-3">
+    <div className="flex flex-wrap items-center gap-2 border-b border-(--app-border) pb-3">
       <div className="flex flex-wrap items-center gap-1.5">
         {tabs.map((tab) => {
           const active = tab.id === selectedTagId
@@ -73,13 +73,13 @@ export function LibraryTagBar({
               className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors ${
                 active
                   ? 'border-brand-500/60 bg-brand-500/10 text-brand-600'
-                  : 'border-[var(--app-border)] bg-[var(--app-panel-soft)] text-[var(--app-subtle)] hover:border-brand-500/40 hover:text-[var(--app-text)]'
+                  : 'border-(--app-border) bg-(--app-panel-soft) text-(--app-subtle) hover:border-brand-500/40 hover:text-(--app-text)'
               }`}
               title={tab.isAll ? '显示全部媒体库' : `只看「${tab.name}」标签下的媒体库`}
             >
               {tab.isAll && <Layers size={13} />}
-              <span className="max-w-[8rem] truncate">{tab.name}</span>
-              <span className={`font-mono text-[10px] ${active ? 'text-brand-500' : 'text-[var(--app-muted)]'}`}>
+              <span className="max-w-32 truncate">{tab.name}</span>
+              <span className={`font-mono text-[10px] ${active ? 'text-brand-500' : 'text-(--app-muted)'}`}>
                 {tab.count}
               </span>
             </button>
@@ -90,7 +90,7 @@ export function LibraryTagBar({
       {(showCreate || onManage) && (
         <div className="flex flex-wrap items-center gap-1.5">
           {showCreate && onCreate && (creating || !hasTags) && (
-            <div className="inline-flex items-center gap-1 rounded-xl border border-[var(--app-border)] bg-[var(--app-panel-soft)] px-2 py-1">
+            <div className="inline-flex items-center gap-1 rounded-xl border border-(--app-border) bg-(--app-panel-soft) px-2 py-1">
               <input
                 ref={inputRef}
                 value={draft}
@@ -109,7 +109,7 @@ export function LibraryTagBar({
                 onBlur={() => submit()}
                 maxLength={24}
                 placeholder="新标签名"
-                className="h-6 w-24 bg-transparent text-xs font-semibold text-[var(--app-text)] outline-none placeholder:text-[var(--app-muted)]"
+                className="h-6 w-24 bg-transparent text-xs font-semibold text-(--app-text) outline-hidden placeholder:text-(--app-muted)"
                 title={`最多 24 个字，当前最多 ${MAX_LIBRARY_TAGS} 个标签`}
               />
               <button
@@ -117,7 +117,7 @@ export function LibraryTagBar({
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={submit}
                 disabled={busy || !draft.trim()}
-                className="rounded-lg p-1 text-brand-500 transition-colors hover:bg-[var(--app-hover)] disabled:opacity-40"
+                className="rounded-lg p-1 text-brand-500 transition-colors hover:bg-(--app-hover) disabled:opacity-40"
                 title="创建标签"
               >
                 <Plus size={13} />
@@ -126,7 +126,7 @@ export function LibraryTagBar({
                 type="button"
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={cancel}
-                className="rounded-lg p-1 text-[var(--app-muted)] transition-colors hover:bg-[var(--app-hover)]"
+                className="rounded-lg p-1 text-(--app-muted) transition-colors hover:bg-(--app-hover)"
                 title="取消"
               >
                 <X size={13} />
@@ -139,7 +139,7 @@ export function LibraryTagBar({
               type="button"
               onClick={() => setCreating(true)}
               disabled={busy || tabs.length - 1 >= MAX_LIBRARY_TAGS}
-              className="inline-flex items-center gap-1 rounded-xl border border-dashed border-[var(--app-border)] px-2.5 py-1.5 text-xs font-bold text-[var(--app-muted)] transition-colors hover:border-brand-500/50 hover:text-brand-500 disabled:opacity-40"
+              className="inline-flex items-center gap-1 rounded-xl border border-dashed border-(--app-border) px-2.5 py-1.5 text-xs font-bold text-(--app-muted) transition-colors hover:border-brand-500/50 hover:text-brand-500 disabled:opacity-40"
               title="新建标签"
             >
               <Plus size={13} />
@@ -151,7 +151,7 @@ export function LibraryTagBar({
             <button
               type="button"
               onClick={onManage}
-              className="inline-flex items-center gap-1 rounded-xl border border-[var(--app-border)] bg-[var(--app-panel-soft)] px-2.5 py-1.5 text-xs font-bold text-[var(--app-subtle)] transition-colors hover:border-brand-500/40 hover:text-brand-500"
+              className="inline-flex items-center gap-1 rounded-xl border border-(--app-border) bg-(--app-panel-soft) px-2.5 py-1.5 text-xs font-bold text-(--app-subtle) transition-colors hover:border-brand-500/40 hover:text-brand-500"
               title="重命名 / 删除标签，调整标签下的媒体库，拖拽排序"
             >
               <Settings2 size={13} />

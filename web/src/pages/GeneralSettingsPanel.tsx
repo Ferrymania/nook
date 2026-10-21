@@ -45,7 +45,7 @@ export function GeneralSettingsPanel(props: Props) {
         <details className="settings-disclosure mt-4">
           <summary>使用建议与清理规则</summary>
           <div className="space-y-3 pt-3">
-            {cacheSettings.map((setting) => <p key={setting.key} className="settings-help-text !mt-0"><span className="font-medium">{setting.label}：</span>{setting.hint}</p>)}
+            {cacheSettings.map((setting) => <p key={setting.key} className="settings-help-text mt-0!"><span className="font-medium">{setting.label}：</span>{setting.hint}</p>)}
           </div>
         </details>
       </SettingsSection>
@@ -64,7 +64,7 @@ function HTTPSSettingsPanel({ values, saving, onChange }: Pick<Props, 'values' |
       actions={<SettingsSwitch label="启用 HTTPS" checked={enabled} disabled={saving} describedBy={enabled ? descriptionID : undefined} onChange={(checked) => onChange('https.enabled', String(checked))} />}>
       {enabled && (
         <div className="settings-https-fields">
-          <p id={descriptionID} className="settings-help-text !mt-0">填写证书与私钥，文件路径或 PEM 内容任选一种；同时填写时优先使用对应文件。保存后切换为 HTTPS 访问，可能需要重新登录。</p>
+          <p id={descriptionID} className="settings-help-text mt-0!">填写证书与私钥，文件路径或 PEM 内容任选一种；同时填写时优先使用对应文件。保存后切换为 HTTPS 访问，可能需要重新登录。</p>
           <details className="settings-disclosure" open={hasPaths || !hasContents || undefined}>
             <summary>证书文件路径</summary>
             <div className="settings-fields mt-3">

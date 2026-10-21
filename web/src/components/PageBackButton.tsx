@@ -36,7 +36,7 @@ export function PageBackButton({
       type="button"
       onClick={handleClick}
       className={clsx(
-        'inline-flex items-center gap-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-panel)] px-3 py-2 text-sm font-semibold text-[var(--app-subtle)] shadow-sm transition-colors hover:bg-[var(--app-hover)] hover:text-[var(--app-text)]',
+        'inline-flex items-center gap-2 rounded-xl border border-(--app-border) bg-(--app-panel) px-3 py-2 text-sm font-semibold text-(--app-subtle) shadow-xs transition-colors hover:bg-(--app-hover) hover:text-(--app-text)',
         compact && 'px-2.5 py-1.5 text-xs',
         className,
       )}

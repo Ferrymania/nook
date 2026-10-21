@@ -23,7 +23,7 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: bo
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-gray-50 px-6 py-16 text-gray-900">
-          <div className="mx-auto max-w-xl rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mx-auto max-w-xl rounded-2xl border border-gray-200 bg-white p-6 shadow-xs">
             <p className="text-lg font-bold">页面加载失败</p>
             <p className="mt-2 text-sm text-gray-500">
               当前页面遇到异常，刷新后会重新加载资源和登录状态。
