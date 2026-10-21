@@ -59,15 +59,6 @@ func (c *Config) normalize() error {
 	if c.Cache.MediaTTLSeconds < 1 {
 		c.Cache.MediaTTLSeconds = 90
 	}
-	if c.Cache.ReaderContentMaxSizeMB < 0 {
-		c.Cache.ReaderContentMaxSizeMB = 0
-	}
-	if c.Cache.ReaderContentTTLHours < 0 {
-		c.Cache.ReaderContentTTLHours = 0
-	}
-	if c.Cache.ReaderFilesTTLHours < 0 {
-		c.Cache.ReaderFilesTTLHours = 0
-	}
 	if c.Secrets.JWTSecret == "" {
 		// 持久化自动生成的密钥以在操作员忘记配置时保持会话稳定。
 		path := filepath.Join(c.App.DataDir, ".jwt_secret")
