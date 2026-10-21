@@ -33,7 +33,7 @@ docker compose up -d
 - 访问地址：`http://服务器IP:18080`
 - 初始账号：`admin` / `admin123`，首次登录后修改密码。
 - 镜像：`ghcr.io/ferrymania/nook:latest`，支持 `linux/amd64` 和 `linux/arm64`。
-- 已有 PostgreSQL 或需要 Redis：查看 [部署指南](https://github.com/Ferrymania/nook/wiki/Deployment)。
+- 已有 PostgreSQL：查看 [部署指南](https://github.com/Ferrymania/nook/wiki/Deployment)。
 
 升级前保留现有数据库连接参数和数据挂载。部署、更新与备份步骤见下方文档。
 
@@ -41,7 +41,7 @@ docker compose up -d
 
 | 文档 | 内容 |
 | --- | --- |
-| [部署指南](https://github.com/Ferrymania/nook/wiki/Deployment) | Compose 模板、已有 PostgreSQL、Redis 与二进制部署 |
+| [部署指南](https://github.com/Ferrymania/nook/wiki/Deployment) | Compose 模板、已有 PostgreSQL 与二进制部署 |
 | [路径与媒体库](https://github.com/Ferrymania/nook/wiki/Paths-and-Libraries) | Docker 路径映射、下载目录与媒体库目录迁移 |
 | [首次使用](https://github.com/Ferrymania/nook/wiki/Getting-Started) | 添加媒体、刮削、播放设置与第三方客户端 |
 | [更新与备份](https://github.com/Ferrymania/nook/wiki/Updates-and-Backups) | 版本检查、更新镜像、数据备份与旧安装升级 |

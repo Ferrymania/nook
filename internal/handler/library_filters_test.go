@@ -149,7 +149,7 @@ func TestListMediaAppliesGenreFilter(t *testing.T) {
 
 func TestListMediaIgnoresRemovedUnmatchedFilter(t *testing.T) {
 	router, svc, _, libID := newLibraryFilterEnv(t)
-	svc.Media.SetRuntimeCache(service.NewRuntimeCacheService(nil, zap.NewNop()))
+	svc.Media.SetRuntimeCache(service.NewRuntimeCacheService(nil))
 	seedLibraryMedia(t, svc,
 		&model.Media{Base: model.Base{ID: "matched"}, LibraryID: libID, Title: "Matched without poster", Path: "/matched.mkv", ScrapeStatus: "matched", Genres: "Comedy"},
 		&model.Media{Base: model.Base{ID: "failed"}, LibraryID: libID, Title: "Failed", Path: "/failed.mkv", ScrapeStatus: "no_match"},

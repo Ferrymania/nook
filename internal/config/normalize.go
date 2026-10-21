@@ -53,9 +53,6 @@ func (c *Config) normalize() error {
 	if c.Cache.MemoryMaxSizeMB <= 0 {
 		c.Cache.MemoryMaxSizeMB = DefaultCacheMemoryMaxSizeMB
 	}
-	if c.Cache.RedisPrefix == "" {
-		c.Cache.RedisPrefix = "nook"
-	}
 	if c.Cache.MediaTTLSeconds < 1 {
 		c.Cache.MediaTTLSeconds = 90
 	}

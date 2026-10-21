@@ -8,9 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/redis/go-redis/v9"
-	"go.uber.org/zap"
-
 	"github.com/Ferrymania/nook/internal/config"
 )
 
@@ -23,13 +20,6 @@ const (
 )
 
 type RuntimeCacheService struct {
-	log    *zap.Logger
-	client *redis.Client
-	// redisGet is separated from client so cache ordering can be tested without
-	// requiring a live Redis instance.
-	redisGet func(ctx context.Context, key string) ([]byte, error)
-	prefix   string
-
 	mu        sync.RWMutex
 	memory    map[string]runtimeCacheItem
 	obj       map[string]runtimeObjectItem
@@ -60,8 +50,7 @@ type runtimeCacheItem struct {
 // runtimeObjectItem 直存 Go 对象，跳过 JSON 编解码。热点路径（整库行、
 // 分组结果）每次请求都要完整反序列化，字节缓存避免了 SQL 却没避免解码；
 // 对象缓存命中时零解码零分配。存储的值视为不可变：读取方如需修改必须
-// 自行浅拷贝。仅进程内生效（Redis 只支持字节），多实例部署退化为各实例
-// 独立缓存，与现有内存 L1 语义一致。
+// 自行浅拷贝。每个进程独立缓存，和 JSON 缓存共用容量与淘汰预算。
 type runtimeObjectItem struct {
 	value     any
 	expiresAt time.Time
@@ -70,52 +59,16 @@ type runtimeObjectItem struct {
 	size      int64
 }
 
-func NewRuntimeCacheService(cfg *config.Config, log *zap.Logger) *RuntimeCacheService {
+func NewRuntimeCacheService(cfg *config.Config) *RuntimeCacheService {
 	maxBytes := int64(config.DefaultCacheMemoryMaxSizeMB) * 1024 * 1024
 	if cfg != nil && cfg.Cache.MemoryMaxSizeMB > 0 {
 		maxBytes = int64(cfg.Cache.MemoryMaxSizeMB) * 1024 * 1024
 	}
 	c := &RuntimeCacheService{
-		log:      log,
 		memory:   map[string]runtimeCacheItem{},
 		obj:      map[string]runtimeObjectItem{},
 		limit:    defaultRuntimeCacheEntryLimit,
 		maxBytes: maxBytes,
-	}
-	if cfg == nil {
-		return c
-	}
-	c.prefix = strings.Trim(strings.TrimSpace(cfg.Cache.RedisPrefix), ":")
-	if c.prefix == "" {
-		c.prefix = "nook"
-	}
-	rawURL := strings.TrimSpace(cfg.Cache.RedisURL)
-	if rawURL == "" {
-		return c
-	}
-	opts, err := redis.ParseURL(rawURL)
-	if err != nil {
-		if log != nil {
-			log.Warn("redis cache disabled: invalid redis url", zap.Error(err))
-		}
-		return c
-	}
-	client := redis.NewClient(opts)
-	pingCtx, cancel := context.WithTimeout(context.Background(), 1200*time.Millisecond)
-	defer cancel()
-	if err := client.Ping(pingCtx).Err(); err != nil {
-		if log != nil {
-			log.Warn("redis cache unavailable; using in-process cache", zap.Error(err))
-		}
-		_ = client.Close()
-		return c
-	}
-	c.client = client
-	c.redisGet = func(ctx context.Context, key string) ([]byte, error) {
-		return client.Get(ctx, key).Bytes()
-	}
-	if log != nil {
-		log.Info("redis runtime cache enabled with in-process L1", zap.String("addr", opts.Addr), zap.String("prefix", c.prefix))
 	}
 	return c
 }
@@ -124,65 +77,29 @@ func (c *RuntimeCacheService) Enabled() bool {
 	return c != nil
 }
 
-func (c *RuntimeCacheService) Close() error {
-	if c == nil || c.client == nil {
-		return nil
-	}
-	return c.client.Close()
-}
-
-func (c *RuntimeCacheService) GetJSON(ctx context.Context, key string, out any) bool {
+func (c *RuntimeCacheService) GetJSON(_ context.Context, key string, out any) bool {
 	if !c.Enabled() || strings.TrimSpace(key) == "" || out == nil {
 		return false
 	}
-	fullKey := c.key(key)
-	if raw, ok := c.getMemory(fullKey); ok {
-		return json.Unmarshal(raw, out) == nil
-	}
-	if c.redisGet != nil {
-		raw, err := c.redisGet(ctx, fullKey)
-		if err == nil {
-			if json.Unmarshal(raw, out) != nil {
-				return false
-			}
-			c.setMemoryOwned(fullKey, raw, 2*time.Second)
-			return true
-		}
-	}
-	return false
+	raw, ok := c.getMemory(c.key(key))
+	return ok && json.Unmarshal(raw, out) == nil
 }
 
 // GetJSONStale returns a fresh value when available and otherwise a retained
 // stale value stored with SetJSONWithStale. The stale flag lets
 // callers serve immediately while refreshing in the background.
-func (c *RuntimeCacheService) GetJSONStale(ctx context.Context, key string, out any) (found bool, stale bool) {
+func (c *RuntimeCacheService) GetJSONStale(_ context.Context, key string, out any) (found bool, stale bool) {
 	if !c.Enabled() || strings.TrimSpace(key) == "" || out == nil {
 		return false, false
 	}
-	fullKey := c.key(key)
-	raw, ok, isStale := c.getMemoryWithStale(fullKey)
-	if ok && !isStale {
-		return json.Unmarshal(raw, out) == nil, false
+	raw, ok, isStale := c.getMemoryWithStale(c.key(key))
+	if !ok {
+		return false, false
 	}
-	// A stale L1 entry must not hide a newer value written by another
-	// instance. Prefer Redis whenever the local copy is stale, then fall back
-	// to it only when Redis is unavailable or its fresh value has expired.
-	if c.redisGet != nil {
-		redisRaw, err := c.redisGet(ctx, fullKey)
-		if err == nil {
-			if json.Unmarshal(redisRaw, out) == nil {
-				c.setMemoryOwned(fullKey, redisRaw, 2*time.Second)
-				return true, false
-			}
-		}
-	}
-	if ok {
-		return json.Unmarshal(raw, out) == nil, isStale
-	}
-	return false, false
+	return json.Unmarshal(raw, out) == nil, isStale
 }
 
-func (c *RuntimeCacheService) SetJSON(ctx context.Context, key string, value any, ttl time.Duration) {
+func (c *RuntimeCacheService) SetJSON(_ context.Context, key string, value any, ttl time.Duration) {
 	if !c.Enabled() || strings.TrimSpace(key) == "" || value == nil || ttl <= 0 {
 		return
 	}
@@ -192,15 +109,11 @@ func (c *RuntimeCacheService) SetJSON(ctx context.Context, key string, value any
 	}
 	fullKey := c.key(key)
 	c.setMemoryOwned(fullKey, raw, ttl)
-	if c.client != nil {
-		_ = c.client.Set(ctx, fullKey, raw, ttl).Err()
-	}
 }
 
 // SetJSONWithStale stores a fresh value for freshTTL and keeps an in-process
-// stale copy for staleTTL. Redis keeps only the fresh window so multi-instance
-// deployments retain the existing consistency semantics.
-func (c *RuntimeCacheService) SetJSONWithStale(ctx context.Context, key string, value any, freshTTL, staleTTL time.Duration) {
+// stale copy for staleTTL. Callers may serve it while refreshing in the background.
+func (c *RuntimeCacheService) SetJSONWithStale(_ context.Context, key string, value any, freshTTL, staleTTL time.Duration) {
 	if !c.Enabled() || strings.TrimSpace(key) == "" || value == nil || freshTTL <= 0 {
 		return
 	}
@@ -213,9 +126,6 @@ func (c *RuntimeCacheService) SetJSONWithStale(ctx context.Context, key string, 
 	}
 	fullKey := c.key(key)
 	c.setMemoryBytesWithStale(fullKey, raw, freshTTL, staleTTL, true)
-	if c.client != nil {
-		_ = c.client.Set(ctx, fullKey, raw, freshTTL).Err()
-	}
 }
 
 // GetObject 返回缓存中的对象。返回值不可变：调用方需要修改时必须先自行拷贝。
@@ -293,37 +203,15 @@ func (c *RuntimeCacheService) SetMaxSizeMB(maxMB int) {
 	}
 }
 
-func (c *RuntimeCacheService) DeletePrefix(ctx context.Context, prefix string) {
+func (c *RuntimeCacheService) DeletePrefix(_ context.Context, prefix string) {
 	if !c.Enabled() || strings.TrimSpace(prefix) == "" {
 		return
 	}
-	fullPrefix := c.key(prefix)
-	c.deleteMemoryPrefix(fullPrefix)
-	if c.client != nil {
-		pattern := fullPrefix + "*"
-		var cursor uint64
-		for {
-			keys, next, err := c.client.Scan(ctx, cursor, pattern, 200).Result()
-			if err != nil {
-				return
-			}
-			if len(keys) > 0 {
-				_ = c.client.Del(ctx, keys...).Err()
-			}
-			cursor = next
-			if cursor == 0 {
-				return
-			}
-		}
-	}
+	c.deleteMemoryPrefix(c.key(prefix))
 }
 
-func (c *RuntimeCacheService) key(key string) string {
-	key = strings.TrimLeft(strings.TrimSpace(key), ":")
-	if c.prefix == "" {
-		return key
-	}
-	return c.prefix + ":" + key
+func (*RuntimeCacheService) key(key string) string {
+	return strings.TrimLeft(strings.TrimSpace(key), ":")
 }
 
 func (c *RuntimeCacheService) getMemory(key string) ([]byte, bool) {

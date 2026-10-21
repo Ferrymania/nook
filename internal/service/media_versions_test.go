@@ -282,7 +282,7 @@ func TestListMediaVisibleGroupedPaginatesAfterVersionGrouping(t *testing.T) {
 	}
 
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos).
-		SetRuntimeCache(NewRuntimeCacheService(&config.Config{}, zap.NewNop()))
+		SetRuntimeCache(NewRuntimeCacheService(&config.Config{}))
 	page, total, err := svc.ListMediaVisibleGrouped(t.Context(), lib.ID, 1, 1, MediaVisibility{IncludeNSFW: true})
 	if err != nil {
 		t.Fatal(err)
@@ -688,7 +688,7 @@ func TestGetMediaItemListsAdultVersionsAcrossMetadataSources(t *testing.T) {
 	}
 
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos).
-		SetRuntimeCache(NewRuntimeCacheService(&config.Config{}, zap.NewNop()))
+		SetRuntimeCache(NewRuntimeCacheService(&config.Config{}))
 	item, err := svc.GetMediaItem(t.Context(), rows[0].ID)
 	if err != nil {
 		t.Fatal(err)

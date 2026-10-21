@@ -25,7 +25,7 @@ func TestDeleteMediaInvalidatesMediaAndStatsCache(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cache := NewRuntimeCacheService(&config.Config{}, zap.NewNop())
+	cache := NewRuntimeCacheService(&config.Config{})
 	cache.SetJSON(t.Context(), "media:list:test", map[string]string{"state": "stale"}, time.Minute)
 	cache.SetJSON(t.Context(), "stats:snapshot:base", map[string]int{"media": 1}, time.Minute)
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos).SetRuntimeCache(cache)

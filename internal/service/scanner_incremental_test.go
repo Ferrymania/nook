@@ -550,7 +550,7 @@ func TestScanLibraryMapsPersistedHostLibraryPath(t *testing.T) {
 
 func TestRemovePathDeletesVanishedMedia(t *testing.T) {
 	sc, repos := newScannerTestEnv(t)
-	cache := NewRuntimeCacheService(&config.Config{}, zap.NewNop())
+	cache := NewRuntimeCacheService(&config.Config{})
 	sc.SetRuntimeCache(cache)
 	root := t.TempDir()
 	lib := model.Library{Name: "Movies", Path: root, Type: "movie", Enabled: true}

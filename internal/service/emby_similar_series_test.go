@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"testing"
 
-	"go.uber.org/zap"
-
 	"github.com/Ferrymania/nook/internal/config"
 	"github.com/Ferrymania/nook/internal/model"
 )
@@ -121,7 +119,7 @@ func TestSimilarSeriesExpandsAfterDeduplication(t *testing.T) {
 
 func TestSimilarVirtualSeriesCacheRetainsWholeShowArtwork(t *testing.T) {
 	svc := newTestEmbyService(t)
-	svc.SetRuntimeCache(NewRuntimeCacheService(&config.Config{}, zap.NewNop()))
+	svc.SetRuntimeCache(NewRuntimeCacheService(&config.Config{}))
 	libID := seedDiscoveryLibrary(t, svc.repo, "tv")
 	var sourceID string
 	for _, title := range []string{"源剧", "候选剧"} {

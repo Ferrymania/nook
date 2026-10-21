@@ -197,7 +197,7 @@ func TestListLibraryPreviewsCachesEachLibraryIndependently(t *testing.T) {
 	}
 
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos).
-		SetRuntimeCache(NewRuntimeCacheService(&config.Config{}, zap.NewNop()))
+		SetRuntimeCache(NewRuntimeCacheService(&config.Config{}))
 	visibility := MediaVisibility{IncludeNSFW: true}
 	if _, err := svc.ListLibraryPreviews(t.Context(), []model.Library{lib}, visibility, 10); err != nil {
 		t.Fatal(err)

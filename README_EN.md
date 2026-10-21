@@ -33,7 +33,7 @@ docker compose up -d
 - Open `http://SERVER_IP:18080`.
 - Initial account: `admin` / `admin123`. Change the password after signing in.
 - Image: `ghcr.io/ferrymania/nook:latest`, available for `linux/amd64` and `linux/arm64`.
-- For an existing PostgreSQL instance or optional Redis, see the [deployment guide](https://github.com/Ferrymania/nook/wiki/Deployment).
+- For an existing PostgreSQL instance, see the [deployment guide](https://github.com/Ferrymania/nook/wiki/Deployment).
 
 Keep existing database credentials and data mounts when upgrading. Detailed setup and maintenance instructions are in the Wiki below (in Chinese).
 
@@ -41,7 +41,7 @@ Keep existing database credentials and data mounts when upgrading. Detailed setu
 
 | Guide | Covers |
 | --- | --- |
-| [Deployment](https://github.com/Ferrymania/nook/wiki/Deployment) | Compose templates, external PostgreSQL, Redis, and binary deployment |
+| [Deployment](https://github.com/Ferrymania/nook/wiki/Deployment) | Compose templates, external PostgreSQL, and binary deployment |
 | [Paths and libraries](https://github.com/Ferrymania/nook/wiki/Paths-and-Libraries) | Docker mounts, download paths, and library directory migration |
 | [First-time setup](https://github.com/Ferrymania/nook/wiki/Getting-Started) | Media, metadata, playback settings, and clients |
 | [Updates and backups](https://github.com/Ferrymania/nook/wiki/Updates-and-Backups) | Version checks, image updates, backups, and legacy installations |

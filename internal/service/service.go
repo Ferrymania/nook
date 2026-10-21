@@ -193,9 +193,6 @@ func (c *Container) Close() {
 	if c.Transcoder != nil {
 		c.Transcoder.StopAll()
 	}
-	if c.Cache != nil {
-		_ = c.Cache.Close()
-	}
 	if c.WSHub != nil {
 		c.WSHub.Stop()
 	}

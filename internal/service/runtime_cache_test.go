@@ -4,10 +4,9 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 	"time"
-
-	"go.uber.org/zap"
 
 	"github.com/Ferrymania/nook/internal/config"
 	"github.com/Ferrymania/nook/internal/model"
@@ -17,7 +16,7 @@ func newRuntimeCacheForTest(t *testing.T, maxMB int) *RuntimeCacheService {
 	t.Helper()
 	cfg := &config.Config{}
 	cfg.Cache.MemoryMaxSizeMB = maxMB
-	return NewRuntimeCacheService(cfg, zap.NewNop())
+	return NewRuntimeCacheService(cfg)
 }
 
 func TestRuntimeCacheEvictsByByteBudget(t *testing.T) {
@@ -163,27 +162,91 @@ func TestRuntimeCacheDoesNotReturnOrdinaryEntryAsStale(t *testing.T) {
 	}
 }
 
-func TestRuntimeCacheStalePrefersFreshRedisValue(t *testing.T) {
+func TestRuntimeCacheRefreshReplacesStaleValue(t *testing.T) {
 	cache := newRuntimeCacheForTest(t, 1)
-	key := "latest:redis-fresh"
-	cache.SetJSONWithStale(context.Background(), key, "local-stale", time.Minute, time.Hour)
-
-	fullKey := cache.key(key)
+	ctx := context.Background()
+	key := "latest:refresh"
+	cache.SetJSONWithStale(ctx, key, "old", time.Minute, time.Hour)
 	cache.mu.Lock()
-	item := cache.memory[fullKey]
+	item := cache.memory[cache.key(key)]
 	item.expiresAt = time.Now().Add(-time.Second)
-	cache.memory[fullKey] = item
+	cache.memory[cache.key(key)] = item
 	cache.mu.Unlock()
 
-	cache.redisGet = func(context.Context, string) ([]byte, error) {
-		return []byte(`"redis-fresh"`), nil
-	}
 	var out string
-	found, stale := cache.GetJSONStale(context.Background(), key, &out)
-	if !found || stale {
-		t.Fatalf("GetJSONStale found=%t stale=%t, want true/false", found, stale)
+	if found, stale := cache.GetJSONStale(ctx, key, &out); !found || !stale || out != "old" {
+		t.Fatalf("retained value: found=%v stale=%v value=%q", found, stale, out)
 	}
-	if out != "redis-fresh" {
-		t.Fatalf("value=%q, want redis-fresh", out)
+	cache.SetJSONWithStale(ctx, key, "new", time.Minute, time.Hour)
+	if found, stale := cache.GetJSONStale(ctx, key, &out); !found || stale || out != "new" {
+		t.Fatalf("refreshed value: found=%v stale=%v value=%q", found, stale, out)
+	}
+	if !cache.GetJSON(ctx, key, &out) || out != "new" {
+		t.Fatalf("fresh read after refresh = %q", out)
+	}
+}
+
+func TestRuntimeCachePrefixInvalidationCoversJSONAndObjects(t *testing.T) {
+	cache := newRuntimeCacheForTest(t, 1)
+	ctx := context.Background()
+	cache.SetJSON(ctx, "media:json", "remove", time.Minute)
+	cache.SetObject("media:object", "remove", time.Minute)
+	cache.SetJSONWithStale(ctx, "media:stale", "remove", time.Minute, time.Hour)
+	cache.SetJSON(ctx, "history:json", "keep", time.Minute)
+	cache.SetObject("history:object", "keep", time.Minute)
+
+	cache.DeletePrefix(ctx, "media:")
+	var out string
+	if cache.GetJSON(ctx, "media:json", &out) {
+		t.Fatal("JSON entry survived invalidation")
+	}
+	if found, _ := cache.GetJSONStale(ctx, "media:stale", &out); found {
+		t.Fatal("retained entry survived invalidation")
+	}
+	if _, found := cache.GetObject("media:object"); found {
+		t.Fatal("object entry survived invalidation")
+	}
+	if !cache.GetJSON(ctx, "history:json", &out) || out != "keep" {
+		t.Fatal("unrelated JSON entry was invalidated")
+	}
+	if value, found := cache.GetObject("history:object"); !found || value != "keep" {
+		t.Fatal("unrelated object entry was invalidated")
+	}
+}
+
+func TestRuntimeCacheConcurrentMemoryOperations(t *testing.T) {
+	cache := newRuntimeCacheForTest(t, 1)
+	ctx := context.Background()
+	var workers sync.WaitGroup
+	for worker := 0; worker < 8; worker++ {
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			jsonKey := fmt.Sprintf("concurrent:json:%d", worker)
+			objectKey := fmt.Sprintf("concurrent:object:%d", worker)
+			for iteration := 0; iteration < 100; iteration++ {
+				want := fmt.Sprintf("%d:%d", worker, iteration)
+				cache.SetJSONWithStale(ctx, jsonKey, want, time.Minute, time.Hour)
+				var got string
+				if found, _ := cache.GetJSONStale(ctx, jsonKey, &got); found && got != want {
+					t.Errorf("JSON value=%q, want %q", got, want)
+				}
+				cache.SetObject(objectKey, want, time.Minute)
+				if value, found := cache.GetObject(objectKey); found && value != want {
+					t.Errorf("object value=%v, want %q", value, want)
+				}
+				if iteration%20 == 0 {
+					cache.DeletePrefix(ctx, "concurrent:")
+				}
+				if iteration%25 == 0 {
+					cache.SetMaxSizeMB(1)
+				}
+			}
+		}()
+	}
+	workers.Wait()
+	cache.DeletePrefix(ctx, "concurrent:")
+	if cache.bytesUsed != 0 || cache.entryCountLocked() != 0 {
+		t.Fatal("invalidation did not release all memory cache entries")
 	}
 }

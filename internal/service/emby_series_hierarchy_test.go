@@ -447,7 +447,7 @@ func TestEmbyVirtualSeriesArtworkUsesListCache(t *testing.T) {
 
 func TestEmbyVirtualSeriesArtworkRebuildsAfterMemoryDrop(t *testing.T) {
 	svc := newTestEmbyService(t)
-	svc.cache = NewRuntimeCacheService(nil, nil)
+	svc.cache = NewRuntimeCacheService(nil)
 	lib := model.Library{Name: "番剧", Path: `/media/anime`, Type: "anime", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
 		t.Fatalf("create library: %v", err)
@@ -730,7 +730,7 @@ func TestEmbySeriesSortByDateLastMediaAdded(t *testing.T) {
 
 func TestEmbySeriesLibraryListUsesRuntimeCache(t *testing.T) {
 	svc := newTestEmbyService(t)
-	svc.cache = NewRuntimeCacheService(nil, nil)
+	svc.cache = NewRuntimeCacheService(nil)
 	lib := model.Library{Name: "番剧", Path: `/media/anime`, Type: "anime", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
 		t.Fatalf("create library: %v", err)

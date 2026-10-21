@@ -79,8 +79,8 @@ func TestComposeTargetInDirIgnoresUnrelatedCompose(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "docker-compose.yml"), []byte(`
 services:
-  redis:
-    image: redis:7
+  postgres:
+    image: postgres:16-alpine
 `), 0o600); err != nil {
 		t.Fatal(err)
 	}
