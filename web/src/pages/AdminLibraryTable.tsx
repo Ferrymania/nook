@@ -69,6 +69,9 @@ export function AdminLibraryTable({ libs, ...actions }: LibraryTableProps) {
   return (
     <>
       <div className="glass-panel overflow-x-auto !p-3">
+        <p id="home-carousel-help" className="mb-3 px-1 text-xs leading-relaxed text-[var(--app-muted)]">
+          首页轮播仅展示已开启媒体库的最近添加内容，多个媒体库交替展示，最多 10 条；全部关闭时隐藏。
+        </p>
         <table className="w-full min-w-[960px] text-left text-sm">
           <thead className="text-xs uppercase tracking-wider text-sand-500">
             <tr>
@@ -78,7 +81,7 @@ export function AdminLibraryTable({ libs, ...actions }: LibraryTableProps) {
               <th className="w-28 py-2">名称</th>
               <th>路径</th>
               <th className="w-20">类型</th>
-              <th className="w-24">轮播</th>
+              <th className="w-32">参与首页轮播</th>
               <th className="w-12 text-right">操作</th>
             </tr>
           </thead>
@@ -206,12 +209,15 @@ function CarouselToggle({ library, onToggleCarousel }: { library: Library; onTog
     <button
       type="button"
       onClick={() => onToggleCarousel(library)}
+      aria-label={`${library.name}参与首页轮播`}
+      aria-pressed={on}
+      aria-describedby="home-carousel-help"
       className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition ${
         on
           ? 'border-brand-500/50 bg-brand-500/10 text-brand-500'
           : 'border-gray-300 bg-white text-ink-50 hover:border-gray-400'
       }`}
-      title={on ? '已开启首页海报轮播（点击关闭）' : '未开启首页海报轮播（点击开启）'}
+      title={on ? '已参与首页轮播，点击关闭' : '未参与首页轮播，点击开启'}
     >
       <span className={`h-3.5 w-3.5 rounded-full ${on ? 'bg-brand-500' : 'bg-gray-300'}`} />
       {on ? '参与轮播' : '未参与'}

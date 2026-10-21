@@ -14,6 +14,7 @@ import { usePinnedLibraries } from '../hooks/usePinnedLibraries'
 import { useLibraryListSort } from '../hooks/useLibraryListSort'
 import { sortLibrariesByField } from '../utils/libraryListSort'
 import { partitionPreviewIDs } from '../utils/remoteEmby'
+import { selectHomeCarouselMedia } from '../utils/homeCarousel'
 import {
   ContinueWatchingSection,
   ContinueWatchingSkeleton,
@@ -23,8 +24,6 @@ import {
   HomeLibraryRowSection,
   HomeLoadingState,
 } from './HomePageSections'
-
-const hasArtwork = (media?: Media | null) => !!(media?.poster_url || media?.backdrop_url)
 
 export function HomePage() {
   const [libraries, setLibraries] = useState<Library[]>([])
@@ -278,40 +277,10 @@ export function HomePage() {
     return counts
   }, [libraries, libraryData])
 
-  // Compute items to show in the Hero Carousel. Only libraries flagged
-  // carousel_enabled contribute; a library's items array is empty for
-  // series-type libs (loaded via /series), so gate on cards instead.
-  const carouselItems = useMemo(() => {
-    const candidateMedia: Media[] = []
-    const effectiveSelectedIds = taggedLibraries
-      .filter((l) => l.carousel_enabled === true)
-      .map((l) => l.id)
-
-    for (const libId of effectiveSelectedIds) {
-      const data = libraryData[libId]
-      if (data && data.cards.length > 0) {
-        for (const card of data.cards) {
-          if (hasArtwork(card.rep)) {
-            candidateMedia.push(card.rep)
-          }
-        }
-      }
-    }
-
-    // Fallback to all loaded items with artwork
-    if (candidateMedia.length === 0) {
-      for (const lib of taggedLibraries) {
-        const data = libraryData[lib.id]
-        if (data) {
-          for (const card of data.cards) {
-            candidateMedia.push(card.rep)
-          }
-        }
-      }
-    }
-
-    return candidateMedia.slice(0, 10)
-  }, [taggedLibraries, libraryData])
+  const carouselItems = useMemo(
+    () => selectHomeCarouselMedia(taggedLibraries, libraryData),
+    [taggedLibraries, libraryData],
+  )
 
   // 库列表还没回来先展示整页 loading；库为空时再等一下播放记录，
   // 以免在"空站点"和"有观看记录"两个终态之间闪空白。
