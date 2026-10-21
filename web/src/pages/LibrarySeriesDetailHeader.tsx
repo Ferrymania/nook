@@ -1,14 +1,16 @@
 import { isRemoteEmbyID } from '../utils/remoteEmby'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Database, FileText, FolderInput, Pencil, Play, Search, Sparkles, Trash2 } from 'lucide-react'
+import { ArrowLeft, Play } from 'lucide-react'
 
 import { ARTWORK, imageURL } from '../api/client'
 import { ArtworkImage } from '../components/ArtworkImage'
 import { artworkSources } from '../utils/artworkSources'
 import { ExternalPlayerButton } from '../components/ExternalPlayerButton'
 import { MediaFavouriteButton } from '../components/MediaFavouriteButton'
+import { MediaManagementPanel } from '../components/MediaManagementPanel'
+import { MediaSegmentQueryButton } from '../components/MediaSegmentQueryButton'
 import type { Media } from '../types'
-import { isTheatricalFeature, seriesTitle, type SeriesCard } from '../utils/groupSeries'
+import { expandSeriesMediaVersions, isTheatricalFeature, seriesTitle, type SeriesCard } from '../utils/groupSeries'
 import { episodeNumberValue } from '../utils/episodeNumber'
 
 type LibrarySeriesDetailHeaderProps = {
@@ -51,6 +53,7 @@ export function LibrarySeriesDetailHeader({
   onDelete,
 }: LibrarySeriesDetailHeaderProps) {
   const tvEpisodes = allEpisodes.filter((media) => !isTheatricalFeature(media))
+  const queryEpisodes = expandSeriesMediaVersions(tvEpisodes)
   const theatricalCount = allEpisodes.length - tvEpisodes.length
   const firstEpisode = firstPlayableEpisode(tvEpisodes)
 
@@ -106,39 +109,19 @@ export function LibrarySeriesDetailHeader({
           </div>
 
           {isAdmin && allEpisodes.length > 0 && !isRemoteEmbyID(series.rep.id) && (
-            <div className="rounded-2xl border border-sand-200 bg-white/80 p-4 shadow-sm">
-              <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[#c9954a]">媒体管理</p>
-              <div className="flex flex-wrap gap-2">
-                <button onClick={onSmartScrape} disabled={!!seriesToolBusy} className="btn-outline px-3.5 py-2 text-xs gap-1.5">
-                  <Sparkles size={13} className="text-[#c9954a]" />
-                  <span>{seriesToolBusy === 'scrape' ? '刮削中…' : '整剧智能刮削'}</span>
-                </button>
-                <button onClick={onManualScrape} disabled={!!seriesToolBusy} className="btn-outline px-3.5 py-2 text-xs gap-1.5">
-                  <Search size={13} className="text-[#c9954a]" />
-                  <span>{theatricalCount > 0 ? '手动匹配 TV 版' : '手动匹配整剧'}</span>
-                </button>
-                <button onClick={onMetadataEdit} disabled={!!seriesToolBusy} className="btn-outline px-3.5 py-2 text-xs gap-1.5">
-                  <Pencil size={13} />
-                  <span>编辑元数据</span>
-                </button>
-                <button onClick={onProbe} disabled={!!seriesToolBusy} className="btn-outline px-3.5 py-2 text-xs gap-1.5">
-                  <Database size={13} />
-                  <span>{seriesToolBusy === 'probe' ? '探测中…' : '探测媒体轨'}</span>
-                </button>
-                <button onClick={onNFO} disabled={!!seriesToolBusy} className="btn-outline px-3.5 py-2 text-xs gap-1.5">
-                  <FileText size={13} />
-                  <span>{seriesToolBusy === 'nfo' ? '写出中…' : '写出本地 NFO'}</span>
-                </button>
-                <button onClick={onOrganize} disabled={!!seriesToolBusy} className="btn-outline px-3.5 py-2 text-xs gap-1.5">
-                  <FolderInput size={13} />
-                  <span>{seriesToolBusy === 'organize' ? '整理中…' : '整理当前合集'}</span>
-                </button>
-                <button onClick={onDelete} disabled={!!seriesToolBusy} className="btn-outline px-3.5 py-2 text-xs gap-1.5 !border-red-100 !text-red-500 hover:!border-red-200 hover:!bg-red-50">
-                  <Trash2 size={13} />
-                  <span>{seriesToolBusy === 'delete' ? '处理中…' : '删除'}</span>
-                </button>
-              </div>
-            </div>
+            <MediaManagementPanel
+              scope={`整剧 · ${expandSeriesMediaVersions(allEpisodes).length} 个媒体`}
+              busy={seriesToolBusy}
+              manualMatchLabel={theatricalCount > 0 ? '手动匹配 TV 版' : '手动匹配'}
+              onSmartScrape={onSmartScrape}
+              onManualScrape={onManualScrape}
+              onMetadataEdit={onMetadataEdit}
+              onProbe={onProbe}
+              onExportNFO={onNFO}
+              onOrganize={onOrganize}
+              onDelete={onDelete}
+              segmentAction={<MediaSegmentQueryButton key={series.rep.id} media={series.rep} episodes={queryEpisodes} disabled={!!seriesToolBusy} />}
+            />
           )}
         </div>
       </div>

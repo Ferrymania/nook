@@ -360,6 +360,26 @@ body {
     border-color: var(--app-border);
   }
 
+  .media-management-panel {
+    @apply overflow-hidden rounded-2xl border;
+    border-color: var(--app-border);
+    background: var(--app-panel);
+    color: var(--app-text);
+  }
+  .media-management-header {
+    @apply flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3;
+    border-color: var(--app-border);
+  }
+  .media-management-actions { @apply flex flex-wrap items-center gap-2 p-4; }
+  .media-management-action {
+    @apply btn-outline min-h-10 gap-2 px-3.5 py-2 text-xs whitespace-nowrap
+      disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .media-management-action svg { @apply shrink-0; }
+  .media-management-delete { margin-left: auto; color: var(--app-danger-text); }
+  .media-management-delete:hover:not(:disabled) { background: var(--app-danger-soft); }
+  @media (pointer: coarse) { .media-management-action { min-height: 44px; } }
+
   .library-toolbar-button {
     @apply inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-full border px-3 text-xs font-medium transition-colors sm:text-sm;
     color: var(--app-text);
