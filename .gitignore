@@ -42,6 +42,7 @@ logs/
 # Editor / OS
 .idea/
 .vscode/
+.cursor/
 .DS_Store
 Thumbs.db
 

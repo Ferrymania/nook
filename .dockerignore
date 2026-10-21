@@ -46,6 +46,7 @@ token.*
 password.*
 .idea/
 .vscode/
+.cursor/
 .workbuddy/
 .dev-cache/
 .dev-data/
