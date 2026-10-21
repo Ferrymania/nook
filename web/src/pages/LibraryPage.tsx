@@ -20,7 +20,7 @@ import {
   type SortField,
   type SortOrder,
 } from '../utils/mediaSort'
-import { LibraryPageDialogs } from './LibraryPageDialogs'
+import { LibraryPageDialogs, type LibraryMovieDialog } from './LibraryPageDialogs'
 import { PageBackButton } from '../components/PageBackButton'
 import { MediaFavouriteButton } from '../components/MediaFavouriteButton'
 import { LibraryPageHeader } from './LibraryPageHeader'
@@ -47,6 +47,7 @@ export function LibraryPage() {
   const [manualSeriesScrapeOpen, setManualSeriesScrapeOpen] = useState(false)
   const [seriesMetadataEditOpen, setSeriesMetadataEditOpen] = useState(false)
   const [manualMovie, setManualMovie] = useState<Media | null>(null)
+  const [movieDialog, setMovieDialog] = useState<LibraryMovieDialog>(null)
 
   // 排序状态（支持按库记忆）
   const [sortField, setSortField] = useState<SortField>(() => {
@@ -250,6 +251,9 @@ export function LibraryPage() {
     reloadCurrentLibrary,
     clearSelectedSeries,
     setManualMovie,
+    onMovieMetadataEdit: media => setMovieDialog({ kind: 'metadata', media }),
+    onMovieOrganize: media => setMovieDialog({ kind: 'organize', media }),
+    onMovieQuerySegments: media => setMovieDialog({ kind: 'segments', media }),
   })
 
   const handleToggleFavourite = useCallback(async (mediaID: string) => {
@@ -385,6 +389,7 @@ export function LibraryPage() {
         manualSeriesScrapeOpen={manualSeriesScrapeOpen}
         seriesMetadataEditOpen={seriesMetadataEditOpen}
         manualMovie={manualMovie}
+        movieDialog={movieDialog}
         selectedSeries={selectedSeries}
         selectedSeriesScrapeMedia={selectedSeriesScrapeMedia}
         selectedSeriesMediaIDs={selectedSeriesMediaIDs}
@@ -393,6 +398,7 @@ export function LibraryPage() {
         onCloseManualSeriesScrape={() => setManualSeriesScrapeOpen(false)}
         onCloseSeriesMetadataEdit={() => setSeriesMetadataEditOpen(false)}
         onCloseManualMovie={() => setManualMovie(null)}
+        onCloseMovieDialog={() => setMovieDialog(null)}
         onApplied={reloadCurrentLibrary}
       />
     </div>

@@ -20,6 +20,8 @@ export function MediaFavouriteButton({
       <button
         type="button"
         title={favourite ? '取消收藏' : '加入收藏'}
+        aria-label={favourite ? '取消收藏' : '加入收藏'}
+        aria-pressed={favourite}
         disabled={disabled}
         onClick={(event) => {
           event.preventDefault()
@@ -27,8 +29,7 @@ export function MediaFavouriteButton({
           onToggle()
         }}
         className={
-          'flex h-8 w-8 items-center justify-center rounded-lg border border-white/70 bg-white/90 shadow-sm backdrop-blur transition hover:bg-red-50 disabled:opacity-50 ' +
-          (favourite ? 'text-red-500' : 'text-gray-700 hover:text-red-500') +
+          'nook-poster-action' +
           (className ? ` ${className}` : '')
         }
       >

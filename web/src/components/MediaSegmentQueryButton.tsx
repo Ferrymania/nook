@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { CircleCheck, Database, ListVideo, Loader2, RefreshCw, X } from 'lucide-react'
@@ -10,8 +10,19 @@ import { querySegmentBatch, segmentQueryError, segmentQueryTargets, type Segment
 
 const KIND_LABELS: Record<PlaybackSegmentKind, string> = { intro: '片头', credits: '片尾', recap: '前情回顾', preview: '预告' }
 
-export function MediaSegmentQueryButton({ media, episodes, disabled = false }: { media: Media; episodes?: Media[]; disabled?: boolean }) {
+type MediaSegmentQueryProps = { media: Media; episodes?: Media[] }
+
+export function MediaSegmentQueryButton({ media, episodes, disabled = false }: MediaSegmentQueryProps & { disabled?: boolean }) {
   const [open, setOpen] = useState(false)
+  return <>
+    <button type="button" disabled={disabled || (episodes !== undefined && segmentQueryTargets(episodes).length === 0)} aria-haspopup="dialog" onClick={() => setOpen(true)} className="media-management-action">
+      <ListVideo size={14} aria-hidden="true" /><span>{episodes !== undefined ? '查询整剧片头片尾' : '查询片头片尾'}</span>
+    </button>
+    {open && <MediaSegmentQueryDialog media={media} episodes={episodes} onClose={() => setOpen(false)} />}
+  </>
+}
+
+export function MediaSegmentQueryDialog({ media, episodes, onClose }: MediaSegmentQueryProps & { onClose: () => void }) {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<MediaSegmentQueryResult | null>(null)
   const [error, setError] = useState('')
@@ -21,29 +32,27 @@ export function MediaSegmentQueryButton({ media, episodes, disabled = false }: {
   const closeRef = useRef<HTMLButtonElement>(null)
   const titleId = useId()
   const isBatch = episodes !== undefined
-  const targets = segmentQueryTargets(episodes ?? [])
+  // 查询范围固定为打开弹窗时的剧集，避免父页面刷新时重启整批查询。
+  const [targets] = useState(() => segmentQueryTargets(episodes ?? []))
   const title = isBatch ? '查询整剧片头片尾' : '查询片头片尾'
   const found = batchResults.filter(row => row.status === 'found').length
   const missing = batchResults.filter(row => row.status === 'missing').length
   const failed = batchResults.filter(row => row.status === 'failed').length
 
-  useEffect(() => () => { request.current?.abort() }, [])
   useEffect(() => {
-    if (!open) return
     const previous = document.activeElement as HTMLElement | null
     const overflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     closeRef.current?.focus()
     return () => { document.body.style.overflow = overflow; previous?.focus() }
-  }, [open])
+  }, [])
 
   const close = () => {
     request.current?.abort()
     request.current = null
-    setLoading(false)
-    setOpen(false)
+    onClose()
   }
-  const query = async () => {
+  const query = useCallback(async () => {
     if (request.current) return
     const controller = new AbortController()
     request.current = controller
@@ -62,13 +71,14 @@ export function MediaSegmentQueryButton({ media, episodes, disabled = false }: {
     } finally {
       if (request.current === controller) { request.current = null; setLoading(false) }
     }
-  }
+  }, [isBatch, media.id, targets])
 
-  return <>
-    <button type="button" disabled={disabled || (isBatch && targets.length === 0)} aria-haspopup="dialog" onClick={() => { setOpen(true); void query() }} className="media-management-action">
-      <ListVideo size={14} aria-hidden="true" /><span>{title}</span>
-    </button>
-    {open && createPortal(
+  useEffect(() => {
+    void query()
+    return () => { request.current?.abort(); request.current = null }
+  }, [query])
+
+  return createPortal(
       <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/35 p-4 backdrop-blur-sm" onClick={close}>
         <div
           ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId}
@@ -123,8 +133,7 @@ export function MediaSegmentQueryButton({ media, episodes, disabled = false }: {
           </footer>
         </div>
       </div>, document.body,
-    )}
-  </>
+    )
 }
 
 function formatTime(milliseconds: number): string {

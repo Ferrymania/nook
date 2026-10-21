@@ -6,8 +6,7 @@ import type { Media } from '../types'
 import { ArtworkImage } from './ArtworkImage'
 import { artworkSources } from '../utils/artworkSources'
 
-const ACTION_OVERLAY_CLASS =
-  'absolute right-2 top-2 z-20 flex flex-wrap justify-end gap-1 opacity-100 transition-opacity sm:pointer-events-none sm:opacity-0 sm:group-hover:pointer-events-auto sm:group-hover:opacity-100 sm:focus-within:pointer-events-auto sm:focus-within:opacity-100'
+const ACTION_OVERLAY_CLASS = 'nook-media-card-actions'
 
 // memo：父级状态变化（如轮播切图、其它卡片操作）不再级联重渲染所有卡片。
 // 注意 actions/renderActions 必须引用稳定（用 renderActions 传函数）memo 才生效。
@@ -53,7 +52,7 @@ export const MediaCard = memo(function MediaCard({
           className={`nook-media-card-image ${posterFit === 'contain' ? 'object-contain p-1.5' : 'object-cover'}`} fallbackClassName="nook-artwork-fallback" />
         <div className="nook-media-card-hover" aria-hidden="true">
           <span className="nook-media-play"><Play size={20} fill="currentColor" /></span>
-          {!compact && <p>{media.overview || '暂无简介内容'}</p>}
+          {!compact && media.overview && <p>{media.overview}</p>}
         </div>
         {progress !== undefined && progress > 0 && progress < 1 && (
           <div className="nook-progress-track"><span style={{ width: `${Math.round(progress * 100)}%` }} /></div>
