@@ -87,12 +87,13 @@ jobs:
       - name: Type-check & build
         run: npm run build
 
-      - name: Artwork source regression tests
+      - name: Frontend regression tests
         run: |
-          artwork_test_dir=$(mktemp -d)
-          trap 'rm -rf "$artwork_test_dir"' EXIT
-          npx tsc src/utils/artworkSources.test.ts --module commonjs --target ES2020 --skipLibCheck --outDir "$artwork_test_dir"
-          node "$artwork_test_dir/utils/artworkSources.test.js"
+          frontend_test_dir=$(mktemp -d)
+          trap 'rm -rf "$frontend_test_dir"' EXIT
+          npx tsc src/utils/artworkSources.test.ts src/utils/segmentQueryBatch.test.ts --module commonjs --target ES2020 --strict --skipLibCheck --outDir "$frontend_test_dir"
+          node "$frontend_test_dir/utils/artworkSources.test.js"
+          node "$frontend_test_dir/utils/segmentQueryBatch.test.js"
 
   smoke:
     name: Deployment smoke test
