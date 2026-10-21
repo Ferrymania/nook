@@ -53,7 +53,7 @@ func TestApplyProviderMatchInvalidatesMediaCache(t *testing.T) {
 	scraper, repos, closeServer := newTestScraper(t)
 	defer closeServer()
 
-	cache := NewRuntimeCacheService(&config.Config{}, zap.NewNop())
+	cache := NewRuntimeCacheService(&config.Config{})
 	cache.SetJSON(t.Context(), "media:list:stale", map[string]string{"poster": ""}, time.Minute)
 	cache.SetJSON(t.Context(), "stats:snapshot:base", map[string]int{"media": 1}, time.Minute)
 	scraper.SetRuntimeCache(cache)

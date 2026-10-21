@@ -4,8 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"go.uber.org/zap"
-
 	"github.com/Ferrymania/nook/internal/config"
 	"github.com/Ferrymania/nook/internal/model"
 )
@@ -32,7 +30,7 @@ func totalRecordCount(t *testing.T, out map[string]any) int {
 func TestSimilarItemsServesCachedPayload(t *testing.T) {
 	svc := newTestEmbyService(t)
 	repos := svc.repo
-	svc.SetRuntimeCache(NewRuntimeCacheService(&config.Config{}, zap.NewNop()))
+	svc.SetRuntimeCache(NewRuntimeCacheService(&config.Config{}))
 
 	libID := seedDiscoveryLibrary(t, repos, "movie")
 	source := seedSimilarMedia(t, repos, libID, "源片", "Action", 2010, 7)
@@ -76,7 +74,7 @@ func TestSimilarItemsServesCachedPayload(t *testing.T) {
 func TestSimilarItemsCacheSeparatesLimit(t *testing.T) {
 	svc := newTestEmbyService(t)
 	repos := svc.repo
-	svc.SetRuntimeCache(NewRuntimeCacheService(&config.Config{}, zap.NewNop()))
+	svc.SetRuntimeCache(NewRuntimeCacheService(&config.Config{}))
 
 	libID := seedDiscoveryLibrary(t, repos, "movie")
 	source := seedSimilarMedia(t, repos, libID, "源片", "Action", 2010, 7)

@@ -26,7 +26,7 @@ func newDanmakuRemoteResolverTest(t *testing.T, handler http.Handler) *serviceCo
 	repos := repository.New(db)
 	cfg := &config.Config{}
 	remote := NewEmbyRemoteService(cfg, zap.NewNop(), repos, NewCryptoService("", zap.NewNop()))
-	remote.SetRuntimeCache(NewRuntimeCacheService(cfg, zap.NewNop()))
+	remote.SetRuntimeCache(NewRuntimeCacheService(cfg))
 
 	rawConfig, _ := json.Marshal(map[string]string{
 		"url":            server.URL,

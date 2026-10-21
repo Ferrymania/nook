@@ -71,7 +71,7 @@ func (b *serviceContainerBuilder) startRealtimeServices() {
 
 func (b *serviceContainerBuilder) initProviderServices() {
 	b.c.FFprobe = NewFFprobeService(b.cfg, b.log)
-	b.c.Cache = NewRuntimeCacheService(b.cfg, b.log)
+	b.c.Cache = NewRuntimeCacheService(b.cfg)
 
 	b.c.Crypto = NewCryptoService(b.cfg.Secrets.JWTSecret, b.log)
 	b.c.APIConfig = NewAPIConfigService(b.log, b.repos, b.c.Crypto)

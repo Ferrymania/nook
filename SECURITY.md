@@ -71,7 +71,7 @@ Nook 是自托管媒体系统，常部署在 NAS、家庭网络、Docker、反�
 部署 Nook 时建议：
 
 - 首次登录后立即修改默认 `admin / admin123`。
-- 不要把 PostgreSQL、Redis、qBittorrent WebUI 暴露到公网。
+- 不要把 PostgreSQL、qBittorrent WebUI 暴露到公网。
 - 反向代理公网访问时启用 HTTPS，并限制管理后台访问来源。
 - 使用强随机的 JWT / 加密密钥，妥善备份 `./data` 和数据库。
 - 不要在 Issue、PR、截图或日志中公开站点 Cookie、API Key、Passkey、下载器密码。

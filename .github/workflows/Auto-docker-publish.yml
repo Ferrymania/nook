@@ -120,8 +120,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # 单文件可执行构建：把前端打包进二进制（go:embed），交叉编译 Windows /
-  # Linux / macOS 的 amd64 / arm64 产物，作为 GitHub Release 附件发布。
+  # 单文件可执行构建：把前端打包进二进制（go:embed），交叉编译 Linux amd64/arm64、
+  # Windows amd64 和 macOS arm64 产物，作为 GitHub Release 附件发布。
   build-frontend:
     needs: [build-image]
     runs-on: ubuntu-latest
@@ -200,9 +200,6 @@ jobs:
             ext: ""
           - goos: windows
             goarch: amd64
-            ext: .exe
-          - goos: windows
-            goarch: arm64
             ext: .exe
           - goos: darwin
             goarch: arm64

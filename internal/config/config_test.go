@@ -37,9 +37,6 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.Database.MaxOpenConns != defaultDatabaseMaxOpenConns {
 		t.Fatalf("expected default MaxOpenConns %d, got %d", defaultDatabaseMaxOpenConns, cfg.Database.MaxOpenConns)
 	}
-	if cfg.Cache.RedisPrefix != "nook" {
-		t.Fatalf("expected default redis prefix, got %q", cfg.Cache.RedisPrefix)
-	}
 	if cfg.Cache.MediaTTLSeconds != 90 {
 		t.Fatalf("expected default media cache ttl 90, got %d", cfg.Cache.MediaTTLSeconds)
 	}
@@ -83,7 +80,6 @@ func TestEnvOverride(t *testing.T) {
 	t.Setenv("NOOK_APP_PORT", "9090")
 	t.Setenv("NOOK_DATABASE_TYPE", "postgres")
 	t.Setenv("NOOK_DATABASE_DSN", "postgres://nook:secret@postgres:5432/nook?sslmode=disable")
-	t.Setenv("NOOK_CACHE_REDIS_URL", "redis://redis:6379/0")
 	t.Setenv("NOOK_CACHE_MEDIA_TTL_SECONDS", "30")
 	t.Setenv("NOOK_CACHE_MEMORY_MAX_SIZE_MB", "48")
 	t.Setenv("NOOK_LICENSE_SERVER_URL", "https://license.example.com")
@@ -99,8 +95,8 @@ func TestEnvOverride(t *testing.T) {
 	if cfg.Database.Type != "postgres" || cfg.Database.DSN == "" {
 		t.Fatalf("expected postgres database config from env, got type=%q dsn=%q", cfg.Database.Type, cfg.Database.DSN)
 	}
-	if cfg.Cache.RedisURL != "redis://redis:6379/0" || cfg.Cache.MediaTTLSeconds != 30 || cfg.Cache.MemoryMaxSizeMB != 48 {
-		t.Fatalf("expected redis cache config from env, got url=%q ttl=%d memory=%d", cfg.Cache.RedisURL, cfg.Cache.MediaTTLSeconds, cfg.Cache.MemoryMaxSizeMB)
+	if cfg.Cache.MediaTTLSeconds != 30 || cfg.Cache.MemoryMaxSizeMB != 48 {
+		t.Fatalf("expected memory cache config from env, got ttl=%d memory=%d", cfg.Cache.MediaTTLSeconds, cfg.Cache.MemoryMaxSizeMB)
 	}
 	if cfg.License.ServerURL != "https://license.example.com" || cfg.License.HMACSecret != "override-secret" || cfg.License.PublicKey != "override-public-key" {
 		t.Fatalf("expected license config from env, got url=%q secret=%q public_key=%q", cfg.License.ServerURL, cfg.License.HMACSecret, cfg.License.PublicKey)

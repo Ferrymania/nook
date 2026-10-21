@@ -612,7 +612,7 @@ func TestListMediaEpisodesMovieTypeSkipsFullLibraryIndex(t *testing.T) {
 	}
 
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos).
-		SetRuntimeCache(NewRuntimeCacheService(&config.Config{}, zap.NewNop()))
+		SetRuntimeCache(NewRuntimeCacheService(&config.Config{}))
 	eps, err := svc.ListMediaEpisodes(t.Context(), movie.ID, MediaVisibility{IncludeNSFW: true})
 	if err != nil {
 		t.Fatal(err)
@@ -664,7 +664,7 @@ func TestListMediaEpisodesUsesSeriesIDFastPath(t *testing.T) {
 	}
 
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos).
-		SetRuntimeCache(NewRuntimeCacheService(&config.Config{}, zap.NewNop()))
+		SetRuntimeCache(NewRuntimeCacheService(&config.Config{}))
 	eps, err := svc.ListMediaEpisodes(t.Context(), "episode-1", MediaVisibility{IncludeNSFW: true})
 	if err != nil {
 		t.Fatal(err)
@@ -693,7 +693,7 @@ func TestListLibrarySeriesCardsCachesPrecomputedCards(t *testing.T) {
 	}
 
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos).
-		SetRuntimeCache(NewRuntimeCacheService(&config.Config{}, zap.NewNop()))
+		SetRuntimeCache(NewRuntimeCacheService(&config.Config{}))
 	visibility := MediaVisibility{IncludeNSFW: true}
 	cards, total, err := svc.ListLibrarySeriesCards(t.Context(), lib.ID, visibility)
 	if err != nil {
