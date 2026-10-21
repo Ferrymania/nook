@@ -21,6 +21,9 @@ type UseLibraryAdminActionsOptions = {
   reloadCurrentLibrary: () => void
   clearSelectedSeries: () => void
   setManualMovie: (media: Media | null) => void
+  onMovieMetadataEdit: (media: Media) => void
+  onMovieOrganize: (media: Media) => void
+  onMovieQuerySegments: (media: Media) => void
 }
 
 export function useLibraryAdminActions({
@@ -32,6 +35,9 @@ export function useLibraryAdminActions({
   reloadCurrentLibrary,
   clearSelectedSeries,
   setManualMovie,
+  onMovieMetadataEdit,
+  onMovieOrganize,
+  onMovieQuerySegments,
 }: UseLibraryAdminActionsOptions) {
   const [scrapeEpisodeArtwork] = useEpisodeArtworkPreference()
   const [seriesToolBusy, setSeriesToolBusy] = useState('')
@@ -165,8 +171,11 @@ export function useLibraryAdminActions({
         busy={movieToolBusy.endsWith(`:${media.id}`)}
         onSmartScrape={handleMovieSmartScrape}
         onManualScrape={setManualMovie}
+        onMetadataEdit={onMovieMetadataEdit}
         onProbe={handleMovieProbe}
         onNFO={handleMovieNFO}
+        onOrganize={onMovieOrganize}
+        onQuerySegments={onMovieQuerySegments}
         onDelete={handleMovieDelete}
       />
     )
