@@ -1,0 +1,48 @@
+.nook-media-statistics { color: var(--app-text); }
+.nook-statistics-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; }
+.nook-statistics-heading h2 { margin: 0; font-size: 20px; font-weight: 600; }
+.nook-statistics-heading p { margin: 5px 0 0; color: var(--app-muted); font-size: 13px; }
+.nook-statistics-refresh { display: flex; align-items: center; gap: 12px; color: var(--app-muted); font-size: 12px; }
+.nook-statistics-refresh button { /* Native-style app control border; app-screens §13. taste-skill-ignore */ display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 7px; padding: 0 12px; border: 1px solid var(--app-border); border-radius: 8px; background: var(--app-panel); color: var(--app-text); font-size: 13px; }
+.nook-statistics-refresh button:hover { background: var(--app-hover); }
+.nook-statistics-refresh button:disabled { cursor: wait; opacity: .6; }
+.nook-statistics-refresh button:focus-visible, .nook-statistics-definition summary:focus-visible { outline: 2px solid var(--app-brand-text); outline-offset: 3px; }
+.nook-statistics-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 22px 0; border-radius: 10px; background: var(--app-panel-soft); }
+.nook-statistics-summary > div { padding: 0 24px; }
+.nook-statistics-summary > div + div { /* App metric dividers; app-screens §13. taste-skill-ignore */ border-left: 1px solid var(--app-border); }
+.nook-statistics-summary dt { color: var(--app-muted); font-size: 13px; }
+.nook-statistics-summary dd { margin: 8px 0 0; font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.nook-statistics-coverage { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; margin: 14px 0 18px; color: var(--app-muted); font-size: 13px; }
+.nook-statistics-coverage > span:first-child { color: var(--app-text); font-variant-numeric: tabular-nums; }
+.nook-statistics-unknown { margin-left: auto; }
+.nook-statistics-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.nook-statistics-table th { font-weight: 400; }
+.nook-statistics-table thead th { padding: 12px 16px; color: var(--app-muted); font-size: 12px; }
+.nook-statistics-table :is(th, td) { text-align: right; font-variant-numeric: tabular-nums; }
+.nook-statistics-table th:first-child { text-align: left; }
+.nook-statistics-table tbody tr { border-top: 1px solid var(--app-border); }
+.nook-statistics-table tbody :is(th, td) { padding: 15px 16px; }
+.nook-statistics-table tbody th { font-weight: 500; overflow-wrap: anywhere; }
+.nook-statistics-table .nook-statistics-empty { padding: 28px 16px; text-align: center; color: var(--app-muted); }
+.nook-statistics-definition { margin-top: 18px; color: var(--app-muted); font-size: 13px; line-height: 1.7; }
+.nook-statistics-definition summary { width: fit-content; min-height: 40px; padding: 8px 0; cursor: pointer; color: var(--app-text); }
+.nook-statistics-definition p { max-width: 75ch; margin: 4px 0 8px; }
+.nook-statistics-error { margin: 0 0 16px; color: var(--app-text); font-size: 13px; }
+@media (max-width: 640px) {
+  .nook-statistics-heading { gap: 8px; }
+  .nook-statistics-refresh > span { display: none; }
+  .nook-statistics-refresh button { min-height: 44px; }
+  .nook-statistics-summary { display: block; padding: 0 16px; }
+  .nook-statistics-summary > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 16px 0; }
+  .nook-statistics-summary > div + div { /* App metric dividers; app-screens §13. taste-skill-ignore */ border-left: 0; /* App metric dividers; app-screens §13. taste-skill-ignore */ border-top: 1px solid var(--app-border); }
+  .nook-statistics-summary dd { margin: 0; font-size: 24px; }
+  .nook-statistics-unknown { width: 100%; margin-left: 0; }
+  .nook-statistics-table, .nook-statistics-table tbody, .nook-statistics-table tr { display: block; }
+  .nook-statistics-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .nook-statistics-table tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 14px 0; gap: 8px 16px; }
+  .nook-statistics-table tbody th { grid-column: 1; grid-row: 1 / span 3; }
+  .nook-statistics-table tbody :is(th, td) { padding: 0; }
+  .nook-statistics-table tbody td { display: flex; justify-content: space-between; grid-column: 2; gap: 8px; font-size: 13px; }
+  .nook-statistics-table td::before { content: attr(data-label); color: var(--app-muted); font-size: 12px; }
+  .nook-statistics-table .nook-statistics-empty { grid-column: 1 / -1; display: block; padding: 16px 0; }
+}
