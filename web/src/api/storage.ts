@@ -6,6 +6,8 @@ export interface LibraryUsage {
   type: string
   path: string
   media_count: number
+  known_size_count: number
+  unknown_size_count: number
   total_bytes: number
   total_seconds: number
 }
@@ -17,6 +19,9 @@ export interface ContainerStat {
 }
 
 export interface StorageBreakdown {
+  media_count: number
+  known_size_count: number
+  unknown_size_count: number
   total_bytes: number
   total_seconds: number
   by_library: LibraryUsage[]
@@ -24,5 +29,5 @@ export interface StorageBreakdown {
 }
 
 export const storageAPI = {
-  breakdown: () => api.get<StorageBreakdown>('/storage').then((r) => r.data),
+  breakdown: (signal?: AbortSignal) => api.get<StorageBreakdown>('/storage', { signal }).then((r) => r.data),
 }
