@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { isAxiosError } from 'axios'
 import toast from 'react-hot-toast'
 import {
   Ban,
@@ -26,6 +27,7 @@ import { STRM_PROVIDER_LABELS, type StrmProvider } from '../types/strm'
 import { StrmAccountDialog, StrmSettingsDialog, StrmSyncPathDialog } from './StrmDialogs'
 
 type StrmDialogKey = 'account' | 'settings' | 'path' | null
+type AccountTestState = { pending: boolean; error?: string }
 
 const STATUS_META: Record<string, { label: string; cls: string }> = {
   '': { label: '尚未同步', cls: 'bg-gray-100 text-gray-500' },
@@ -48,7 +50,7 @@ const RECORD_STATUS_META: Record<string, { label: string; cls: string }> = {
 }
 
 const iconButtonCls =
-  'inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2 py-1 text-xs font-semibold text-ink-100 transition hover:bg-gray-50'
+  'inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2 py-1 text-xs font-semibold text-ink-100 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50'
 
 export function providerIcon(provider: StrmProvider) {
   switch (provider) {
@@ -74,6 +76,8 @@ export function StrmManagePage() {
   const [editingPath, setEditingPath] = useState<StrmSyncPath | null>(null)
   const [editingAccount, setEditingAccount] = useState<StrmAccount | null>(null)
   const [actingPath, setActingPath] = useState<string | null>(null)
+  const [accountTests, setAccountTests] = useState<Record<string, AccountTestState>>({})
+  const testingAccountIds = useRef(new Set<string>())
 
   const refresh = useCallback(async () => {
     try {
@@ -154,6 +158,9 @@ export function StrmManagePage() {
   }
 
   const testAccount = async (account: StrmAccount) => {
+    if (testingAccountIds.current.has(account.id)) return
+    testingAccountIds.current.add(account.id)
+    setAccountTests((tests) => ({ ...tests, [account.id]: { pending: true } }))
     try {
       const updated = await strmAPI.testAccount(account.id)
       setAccounts((list) => list.map((a) => (a.id === updated.id ? updated : a)))
@@ -163,7 +170,12 @@ export function StrmManagePage() {
         toast.error(`「${account.name}」连接失败：${updated.last_test_result}`)
       }
     } catch (err) {
-      toast.error(apiErrorMessage(err))
+      const message = accountTestErrorMessage(err)
+      setAccountTests((tests) => ({ ...tests, [account.id]: { pending: true, error: message } }))
+      toast.error(`「${account.name}」${message}`)
+    } finally {
+      testingAccountIds.current.delete(account.id)
+      setAccountTests((tests) => ({ ...tests, [account.id]: { ...tests[account.id], pending: false } }))
     }
   }
 
@@ -221,6 +233,7 @@ export function StrmManagePage() {
         <>
           <AccountSection
             accounts={accounts}
+            accountTests={accountTests}
             onAdd={() => { setEditingAccount(null); setDialog('account') }}
             onEdit={(account) => { setEditingAccount(account); setDialog('account') }}
             onDelete={deleteAccount}
@@ -267,12 +280,14 @@ export function StrmManagePage() {
 
 function AccountSection({
   accounts,
+  accountTests,
   onAdd,
   onEdit,
   onDelete,
   onTest,
 }: {
   accounts: StrmAccount[]
+  accountTests: Record<string, AccountTestState>
   onAdd: () => void
   onEdit: (account: StrmAccount) => void
   onDelete: (account: StrmAccount) => void
@@ -297,6 +312,9 @@ function AccountSection({
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {accounts.map((account) => {
             const Icon = providerIcon(account.provider)
+            const testState = accountTests[account.id]
+            const testing = testState?.pending ?? false
+            const testError = testState?.error
             return (
               <div key={account.id} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
                 <div className="flex items-start justify-between gap-2">
@@ -327,22 +345,28 @@ function AccountSection({
                       <span className="text-gray-400">未配置</span>
                     )}
                   </p>
-                  {account.last_test_at && (
-                    <p className={account.last_test_ok ? 'text-emerald-600' : 'text-rose-500'}>
-                      最近测试：{account.last_test_ok ? '正常' : account.last_test_result}
-                    </p>
-                  )}
+                  <div role="status" aria-live="polite" aria-atomic="true" className="[overflow-wrap:anywhere]">
+                    {testing ? (
+                      <p>正在测试连接，请稍候…</p>
+                    ) : testError ? (
+                      <p className="text-rose-500">测试未完成：{testError}</p>
+                    ) : account.last_test_at ? (
+                      <p className={account.last_test_ok ? 'text-emerald-600' : 'text-rose-500'}>
+                        最近测试：{account.last_test_ok ? '正常' : account.last_test_result}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="mt-3 flex items-center gap-1.5">
-                  <button type="button" onClick={() => onTest(account)} className={`${iconButtonCls}`}>
-                    <RefreshCw size={14} />
-                    测试
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  <button type="button" disabled={testing} aria-busy={testing} onClick={() => onTest(account)} className={iconButtonCls}>
+                    <RefreshCw size={14} className={testing ? 'animate-spin' : undefined} />
+                    {testing ? '测试中…' : '测试'}
                   </button>
-                  <button type="button" onClick={() => onEdit(account)} className={`${iconButtonCls}`}>
+                  <button type="button" disabled={testing} onClick={() => onEdit(account)} className={iconButtonCls}>
                     <Pencil size={14} />
                     编辑
                   </button>
-                  <button type="button" onClick={() => onDelete(account)} className={`${iconButtonCls} text-rose-500`}>
+                  <button type="button" disabled={testing} onClick={() => onDelete(account)} className={`${iconButtonCls} text-rose-500`}>
                     <Trash2 size={14} />
                     删除
                   </button>
@@ -613,6 +637,17 @@ export function formatTime(value?: string | null): string {
 export function apiErrorMessage(err: unknown): string {
   const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
   return msg ?? '操作失败'
+}
+
+function accountTestErrorMessage(err: unknown): string {
+  if (isAxiosError<{ error?: string }>(err)) {
+    if (err.response?.data?.error) return err.response.data.error
+    if (err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT') {
+      return '等待测试结果超时，请检查网盘服务地址、端口和容器网络后重试'
+    }
+    if (!err.response) return '无法连接 Nook 服务，请检查网络后重试'
+  }
+  return '连接测试未完成，请稍后重试'
 }
 
 export function formatBytes(size: number): string {
