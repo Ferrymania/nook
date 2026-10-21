@@ -91,9 +91,10 @@ jobs:
         run: |
           frontend_test_dir=$(mktemp -d)
           trap 'rm -rf "$frontend_test_dir"' EXIT
-          npx tsc src/utils/artworkSources.test.ts src/utils/segmentQueryBatch.test.ts --module commonjs --target ES2020 --strict --skipLibCheck --outDir "$frontend_test_dir"
+          npx tsc src/utils/artworkSources.test.ts src/utils/segmentQueryBatch.test.ts src/utils/homeCarousel.test.ts --module commonjs --target ES2020 --strict --skipLibCheck --outDir "$frontend_test_dir"
           node "$frontend_test_dir/utils/artworkSources.test.js"
           node "$frontend_test_dir/utils/segmentQueryBatch.test.js"
+          node "$frontend_test_dir/utils/homeCarousel.test.js"
 
   smoke:
     name: Deployment smoke test
