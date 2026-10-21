@@ -57,7 +57,7 @@ export function AdminLibraryCreateForm({
       <form onSubmit={onSubmit} className="glass-panel grid gap-3 md:grid-cols-4">
         <div className="md:col-span-4">
           <h3 className="font-semibold text-ink-900">新建媒体库 / 追加来源路径</h3>
-          <p className="mt-1 text-sm text-sand-500">① 填写名称和类型　② 选择目录　③ 点击下方主按钮保存</p>
+          <p className="mt-1 text-sm text-sand-500">① 填写名称和类型 ② 选择目录 ③ 点击下方主按钮保存</p>
         </div>
         <input
           required={!createPerSubfolder}

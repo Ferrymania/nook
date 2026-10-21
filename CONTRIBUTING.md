@@ -71,21 +71,14 @@ PR 应该尽量小而清晰。一次 PR 聚焦一个问题或一组强相关改�
 
 根据改动范围选择运行：
 
-数据库测试需要独立的 PostgreSQL 测试库，通过 `NOOK_TEST_POSTGRES_DSN` 指定。每个测试使用独立 schema，结束后自动清理；未设置时跳过数据库集成测试。不要填写生产数据库地址。CI 会自动提供测试实例。
+本地以 mock、单元测试、前端构建和 lint 为主，无需启动 Docker 或 PostgreSQL。未设置 `NOOK_TEST_POSTGRES_DSN` 时，`go test` 会跳过依赖数据库的集成测试，其余测试正常运行。前端构建需先完成，以便 Go 嵌入 `web/dist`。
 
-本地可先启动临时实例：
-
-```bash
-docker run -d --rm --name nook-test-postgres -p 127.0.0.1:15433:5432 --tmpfs /var/lib/postgresql/data -e POSTGRES_PASSWORD=nook-test -e POSTGRES_DB=nook_test postgres:16-alpine
-# 等待 pg_isready 成功后再初始化扩展并运行测试。
-docker exec nook-test-postgres pg_isready -U postgres -d nook_test
-docker exec nook-test-postgres psql -U postgres -d nook_test -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public'
-export NOOK_TEST_POSTGRES_DSN='postgres://postgres:nook-test@127.0.0.1:15433/nook_test?sslmode=disable'
-```
+数据库集成测试交给 CI：流水线自动启动独立 PostgreSQL 测试实例、配置 `NOOK_TEST_POSTGRES_DSN` 并初始化 `pg_trgm` 扩展。每个测试使用独立 schema，结束后自动清理；测试失败会阻止后续发布。本地如需排查数据库问题，也可显式指定独立测试库，不能使用生产数据库地址。
 
 ```bash
-go test ./...
 npm --prefix web run build
+npm --prefix web run lint
+go test ./...
 git diff --check
 ```
 

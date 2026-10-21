@@ -469,7 +469,7 @@ func (s *StrmService) TestStrmAccount(ctx context.Context, id string) *model.Str
 	provider, err := s.providerFor(ctx, acct)
 	if err != nil {
 		result = err.Error()
-	} else if err := provider.Ping(ctx); err != nil {
+	} else if err := probeStrmAccount(ctx, provider); err != nil {
 		result = err.Error()
 	} else {
 		result = "ok"
@@ -496,6 +496,20 @@ func (s *StrmService) TestStrmAccount(ctx context.Context, id string) *model.Str
 	acct.LastTestResult = result
 	acct.LastTestOK = ok
 	return acct
+}
+
+// 连通性测试使用独立的短超时，早于前端请求超时返回可见结果；
+// 只约束网盘请求，写回测试结果仍使用调用方 ctx。
+func probeStrmAccount(ctx context.Context, provider cloud.Provider) error {
+	probeCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	if err := provider.Ping(probeCtx); err != nil {
+		if errors.Is(err, context.DeadlineExceeded) || errors.Is(probeCtx.Err(), context.DeadlineExceeded) {
+			return fmt.Errorf("连接测试超时，请检查服务地址、端口和容器网络后重试：%w", err)
+		}
+		return err
+	}
+	return nil
 }
 
 // ListAccounts 返回全部网盘账号。
