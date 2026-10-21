@@ -49,9 +49,6 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("cache.redis_prefix", "nook")
 	v.SetDefault("cache.media_ttl_seconds", 90)
 	v.SetDefault("cache.emby_latest_ttl_seconds", 300)
-	v.SetDefault("cache.reader_content_max_size_mb", 1024)
-	v.SetDefault("cache.reader_content_ttl_hours", 168)
-	v.SetDefault("cache.reader_files_ttl_hours", 720)
 
 	v.SetDefault("ai.enabled", false)
 	v.SetDefault("ai.provider", "openai")

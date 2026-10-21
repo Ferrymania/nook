@@ -12,7 +12,6 @@ import (
 	"github.com/Ferrymania/nook/internal/helper"
 	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/repository"
-	"github.com/Ferrymania/nook/internal/service/reader"
 )
 
 type serviceContainerBuilder struct {
@@ -87,7 +86,6 @@ func (b *serviceContainerBuilder) initProviderServices() {
 	b.c.Fanart.apiConfig = b.c.APIConfig
 	b.c.RecognitionWords = NewRecognitionWordsService(b.log, b.repos)
 	b.c.Danmaku = NewDanmakuService(b.log, b.repos)
-	b.c.Reader = reader.NewReaderService(b.cfg, b.log, b.repos)
 
 	adult := NewAdultProvider(b.log, b.c.APIConfig, b.repos)
 	b.c.Scraper = NewScraperService(
@@ -217,13 +215,6 @@ func (b *serviceContainerBuilder) initAccessAndStorageServices() {
 		}
 		return policy
 	})
-	// 阅读正文缓存清理：由阅读模块自己按 TTL + 容量 LRU 淘汰（见 reader_content_cache.go）。
-	if b.c.Reader != nil {
-		b.c.Scheduler.SetReaderContentCleaner(b.c.Reader.PruneContentCache)
-	}
-	if b.cfg != nil {
-		b.c.Scheduler.SetReaderFilesTTL(b.cfg.Cache.ReaderFilesTTLHours)
-	}
 }
 
 func (b *serviceContainerBuilder) initIdentityServices() {

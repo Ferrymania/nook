@@ -1,5 +1,5 @@
 /* Nook's shared appearance. Routes, data contracts and permission checks stay in
-   their existing components. Player/reader-specific layouts are deliberately excluded. */
+   their existing components. Player-specific layouts are deliberately excluded. */
 .nook-app { font-variant-numeric: tabular-nums; }
 .nook-app[data-screen='app'] .nook-workspace { padding-top: 28px; padding-inline: 28px; }
 .nook-app[data-screen='app'] .nook-canvas :is(h1.font-display, .page-heading),

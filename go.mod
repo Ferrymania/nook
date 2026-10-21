@@ -4,14 +4,8 @@ go 1.26.0
 
 require (
 	fyne.io/systray v1.12.2
-	github.com/PaesslerAG/jsonpath v0.1.1
-	github.com/PuerkitoBio/goquery v1.13.0
 	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.5.2
-	github.com/andybalholm/cascadia v1.3.4
-	github.com/antchfx/htmlquery v1.3.6
 	github.com/disintegration/imaging v1.6.3-0.20201218193011-d40f48ce0f09
-	github.com/dlclark/regexp2 v1.12.0
-	github.com/dop251/goja v0.0.0-20260926152631-39ec2650adc9
 	github.com/esimov/pigo v1.4.7-0.20240801095032-7465ed14de47
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/gin-contrib/gzip v1.2.6
@@ -28,7 +22,6 @@ require (
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.55.0
 	golang.org/x/image v0.45.0
-	golang.org/x/net v0.58.0
 	golang.org/x/sync v0.23.0
 	golang.org/x/sys v0.47.0
 	golang.org/x/text v0.42.0
@@ -39,8 +32,6 @@ require (
 )
 
 require (
-	github.com/PaesslerAG/gval v1.0.0 // indirect
-	github.com/antchfx/xpath v1.3.6 // indirect
 	github.com/bytedance/gopkg v0.1.4 // indirect
 	github.com/bytedance/sonic v1.15.0 // indirect
 	github.com/bytedance/sonic/loader v0.5.0 // indirect
@@ -48,19 +39,15 @@ require (
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/dlclark/regexp2/v2 v2.5.2 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.30.1 // indirect
-	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
-	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
-	github.com/google/pprof v0.0.0-20250317173921-a4b03ec1a45e // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
@@ -98,6 +85,7 @@ require (
 	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/arch v0.25.0 // indirect
 	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 // indirect
+	golang.org/x/net v0.58.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 )

@@ -4,7 +4,6 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { prefetchCommonRouteChunks } from '../appRoutes'
 import { useAuthStore } from '../stores/auth'
 import { usePlayProfileStore } from '../stores/playProfile'
-import { useReaderSettingsStore } from '../stores/readerSettings'
 import {
   LayoutHeader,
   LayoutSidebars,
@@ -49,7 +48,6 @@ export function Layout() {
 
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
-  const homeMode = useReaderSettingsStore((s) => s.homeMode)
   const activeProfileId = usePlayProfileStore((s) => s.activeProfileId)
   const setActiveProfile = usePlayProfileStore((s) => s.setActiveProfile)
   const theme = useThemeMode()
@@ -63,12 +61,10 @@ export function Layout() {
   const showSidebar = !isMediaView(location.pathname, location.search)
   const hideSearch = location.pathname.startsWith('/settings')
   const isPlayPage = isPlayerRoute(location.pathname)
-  // 阅读模式：首页切到阅读后，影视那一套壳（媒体搜索、账号菜单、底部导航）都不该出现
-  const readingMode = homeMode === 'reading' && location.pathname === '/'
-  const showMobileBottomNav = shouldShowMobileBottomNav(location.pathname) && !readingMode
+  const showMobileBottomNav = shouldShowMobileBottomNav(location.pathname)
 
   return (
-    <div data-screen={isPlayPage ? 'player' : readingMode ? 'reader' : 'app'} className="nook-app flex h-[100dvh] min-h-0 w-full overflow-hidden bg-[var(--app-bg)] text-[var(--app-text)] font-body select-none">
+    <div data-screen={isPlayPage ? 'player' : 'app'} className="nook-app flex h-[100dvh] min-h-0 w-full overflow-hidden bg-[var(--app-bg)] text-[var(--app-text)] font-body select-none">
       <LayoutSidebars
         sidebar={sidebar}
         isAdmin={permissions.isAdmin}
@@ -88,8 +84,6 @@ export function Layout() {
             onLogout={closeProfileAndLogout}
             showSidebar={showSidebar}
             hideSearch={hideSearch}
-            readingMode={readingMode}
-            showReaderToggle={location.pathname === '/'}
             pathname={location.pathname}
           />
         )}
