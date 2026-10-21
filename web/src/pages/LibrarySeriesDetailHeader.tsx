@@ -79,8 +79,8 @@ export function LibrarySeriesDetailHeader({
             alt={series.rep.title}
             loading="lazy"
             decoding="async"
-            className="aspect-[2/3] w-full object-cover"
-            fallbackClassName="aspect-[2/3] w-full"
+            className="aspect-2/3 w-full object-cover"
+            fallbackClassName="aspect-2/3 w-full"
             referrerPolicy="no-referrer"
           />
         </div>

@@ -109,7 +109,7 @@ export function AdultSettingsPanel() {
         <XCircle className="text-rose-500" size={24} />
         <p className="text-sm text-ink-100">成人设置加载失败：{loadError}</p>
         <p className="text-xs text-sand-500">当前展示的并非已保存配置，请重新加载后再修改</p>
-        <button type="button" onClick={() => refresh()} className="neon-button !px-4 !py-1.5 !text-xs">
+        <button type="button" onClick={() => refresh()} className="neon-button px-4! py-1.5! text-xs!">
           重试
         </button>
       </div>

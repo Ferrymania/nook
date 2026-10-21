@@ -20,7 +20,7 @@ const options: Array<{
 
 export function LayoutThemeToggle({ mode, onChange }: LayoutThemeToggleProps) {
   return (
-    <div className="nook-theme-toggle flex items-center rounded-full bg-[var(--app-control-bg)] p-1">
+    <div className="nook-theme-toggle flex items-center rounded-full bg-(--app-control-bg) p-1">
       {options.map((option) => {
         const Icon = option.icon
         const active = mode === option.mode
@@ -34,8 +34,8 @@ export function LayoutThemeToggle({ mode, onChange }: LayoutThemeToggleProps) {
             className={clsx(
               'inline-flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200',
               active
-                ? 'bg-[var(--app-command-bg)] text-[var(--app-command-text)]'
-                : 'text-[var(--app-muted)] hover:bg-[var(--app-hover)] hover:text-[var(--app-text)]',
+                ? 'bg-(--app-command-bg) text-(--app-command-text)'
+                : 'text-(--app-muted) hover:bg-(--app-hover) hover:text-(--app-text)',
             )}
             onClick={() => onChange(option.mode)}
           >

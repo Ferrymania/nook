@@ -76,9 +76,9 @@ export function LibrariesHeader({
 
 export function LibrariesEmptyState({ isAdmin = false }: { isAdmin?: boolean }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-[var(--app-border)] bg-[var(--app-panel)] py-24 text-center">
-      <LibraryIcon className="mb-4 h-12 w-12 text-[var(--app-muted)]" />
-      <p className="text-sm text-[var(--app-muted)]">
+    <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-(--app-border) bg-(--app-panel) py-24 text-center">
+      <LibraryIcon className="mb-4 h-12 w-12 text-(--app-muted)" />
+      <p className="text-sm text-(--app-muted)">
         {isAdmin ? '暂无媒体库，请到管理后台添加目录。' : '暂无可用媒体库。'}
       </p>
     </div>
@@ -214,7 +214,7 @@ export function LibrariesContent({
               onClick={revealMoreShelves}
               className="flex h-10 w-full items-center justify-center py-2 opacity-60 transition-opacity hover:opacity-100"
             >
-              <div className="flex items-center gap-2 text-xs text-[var(--app-muted)]">
+              <div className="flex items-center gap-2 text-xs text-(--app-muted)">
                 <div className="h-1.5 w-1.5 animate-ping rounded-full bg-brand-500" />
                 <span>加载更多媒体库货架…</span>
               </div>

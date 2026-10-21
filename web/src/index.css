@@ -1,17 +1,389 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@theme {
+  --font-display: Geist, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-body: Geist, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  --color-brand-50: #fdf9f4;
+  --color-brand-100: #fbeedf;
+  --color-brand-200: #f6dbb9;
+  --color-brand-300: #efc187;
+  --color-brand-400: #e5a153;
+  --color-brand-500: #c9954a;
+  --color-brand-600: #b07f3c;
+  --color-brand-700: #926630;
+  --color-brand-800: #755027;
+  --color-brand-900: #5e4121;
+  --color-brand-950: #332110;
+  --color-brand: #c9954a;
+
+  --color-sage-50: #f4f6f5;
+  --color-sage-100: #e5eae7;
+  --color-sage-200: #ccd7d1;
+  --color-sage-300: #a3b8ad;
+  --color-sage-400: #6b8275;
+  --color-sage-500: #54685d;
+  --color-sage-600: #425149;
+  --color-sage-700: #35413a;
+  --color-sage-800: #2d3531;
+  --color-sage-950: #141a17;
+  --color-sage: #6b8275;
+
+  --color-ink-50: #6b7280;
+  --color-ink-100: #4b5563;
+  --color-ink-200: #374151;
+  --color-ink-300: #1f2937;
+  --color-ink-400: #111827;
+  --color-ink-500: #111827;
+  --color-ink-600: #111827;
+  --color-ink-700: #030712;
+  --color-ink-800: #000000;
+  --color-ink-900: #000000;
+  --color-ink: #111827;
+
+  --color-sand-50: #ffffff;
+  --color-sand-100: #f9fafb;
+  --color-sand-200: #f3f4f6;
+  --color-sand-300: #e5e7eb;
+  --color-sand-400: #d1d5db;
+  --color-sand-500: #9ca3af;
+  --color-sand-600: #6b7280;
+  --color-sand-700: #4b5563;
+  --color-sand-800: #374151;
+  --color-sand-900: #1f2937;
+  --color-sand: #f9fafb;
+
+  --color-surface-50: #ffffff;
+  --color-surface-100: #f9fafb;
+  --color-surface-200: #f3f4f6;
+  --color-surface-300: #e5e7eb;
+  --color-surface-400: #ffffff;
+  --color-surface-500: #ffffff;
+  --color-surface-600: #1f2937;
+  --color-surface-700: #111827;
+  --color-surface-800: #030712;
+  --color-surface-900: #000000;
+  --color-surface-950: #000000;
+  --color-surface: #ffffff;
+
+  --color-primary-400: #e5a153;
+  --color-primary-500: #c9954a;
+  --color-primary-600: #b07f3c;
+
+  --color-accent-400: #6b8275;
+  --color-accent-500: #54685d;
+
+  --color-cream-50: #ffffff;
+  --color-cream-100: #faf9f6;
+  --color-cream-200: #f4f3ee;
+  --color-cream-300: #e8e6dc;
+  --color-cream-400: #9ca3af;
+  --color-cream-500: #6b7280;
+  --color-cream-600: #4b5563;
+  --color-cream-700: #1f2937;
+  --color-cream-800: #111827;
+  --color-cream-900: #000000;
+  --color-cream: #faf9f6;
+
+  --text-2xs: 0.625rem;
+  --text-2xs--line-height: 0.875rem;
+
+  --transition-duration-400: 400ms;
+
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.01);
+  --shadow-card-hover:
+    0 10px 30px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.02);
+  --shadow-elevated:
+    0 20px 50px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.03);
+  --shadow-sidebar: 1px 0 0 rgba(0, 0, 0, 0.03);
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@utility theme-hero-bg {
+  background: var(--app-hero-bg);
+}
+
+@utility theme-hero-overlay {
+  background: var(--app-hero-overlay);
+}
+
+@utility theme-hero-fade {
+  background: var(--app-hero-fade);
+}
+
+@utility card {
+  /* ── Shared flat panels ── */
+  @apply rounded-xl p-4 sm:p-6;
+  background: var(--app-panel);
+  color: var(--app-text);
+}
+
+@utility card-hover {
+  @apply card transition-colors duration-200 hover:bg-(--app-hover);
+}
+
+@utility card-elevated {
+  @apply card;
+}
+
+@utility glass-panel {
+  /* ── Panel compatibility classes ── */
+  @apply card;
+}
+
+@utility glass-card {
+  @apply card;
+}
+
+@utility glass-card-elevated {
+  @apply card;
+}
+
+@utility input-field {
+  /* ── Input Fields Redesign ── */
+  @apply w-full rounded-lg border px-3 py-2.5 text-sm outline-hidden transition-colors duration-150
+      focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15;
+  background: var(--app-control-bg);
+  border-color: var(--app-border);
+  color: var(--app-text);
+  &::placeholder {
+    color: var(--app-muted);
+  }
+}
+
+@utility input-label {
+  @apply mb-2 block text-[13px] font-medium;
+  color: var(--app-muted);
+}
+
+@utility btn-primary {
+  /* ── Shared controls ── */
+  @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-full px-5 py-2.5
+      text-sm font-medium transition-opacity duration-150 hover:opacity-85 active:opacity-75
+      disabled:cursor-not-allowed disabled:opacity-50;
+  background: var(--app-command-bg);
+  color: var(--app-command-text);
+}
+
+@utility btn-ghost {
+  @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-full px-4 py-2.5
+      text-sm font-medium transition-colors duration-150 hover:bg-(--app-hover);
+  color: var(--app-subtle);
+}
+
+@utility btn-outline {
+  @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-full border
+      px-4 py-2.5 text-sm font-medium transition-colors duration-150 hover:bg-(--app-hover);
+  background: transparent;
+  color: var(--app-subtle);
+  border-color: var(--app-border);
+}
+
+@utility media-management-panel {
+  @apply overflow-hidden rounded-2xl border;
+  border-color: var(--app-border);
+  background: var(--app-panel);
+  color: var(--app-text);
+}
+
+@utility media-management-header {
+  @apply flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3;
+  border-color: var(--app-border);
+}
+
+@utility media-management-actions {
+  @apply flex flex-wrap items-center gap-2 p-4;
+}
+
+@utility media-management-action {
+  @apply btn-outline min-h-10 gap-2 px-3.5 py-2 text-xs whitespace-nowrap
+      disabled:cursor-not-allowed disabled:opacity-50;
+  & svg {
+    @apply shrink-0;
+  }
+  @media (pointer: coarse) {
+    min-height: 44px;
+  }
+}
+
+@utility media-management-delete {
+  margin-left: auto;
+  color: var(--app-danger-text);
+  &:hover:not(:disabled) {
+    background: var(--app-danger-soft);
+  }
+}
+
+@utility library-toolbar-button {
+  @apply inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-full border px-3 text-xs font-medium transition-colors sm:text-sm;
+  color: var(--app-text);
+  background: var(--app-panel);
+  border-color: var(--app-border);
+  & svg {
+    color: inherit;
+  }
+  &:hover:not(:disabled) {
+    background: var(--app-panel-soft);
+  }
+  &:active:not(:disabled) {
+    background: var(--app-border);
+  }
+  &:disabled {
+    @apply cursor-not-allowed opacity-60;
+  }
+  @media (pointer: coarse) {
+    min-height: 44px;
+  }
+}
+
+@utility library-toolbar-menu-item {
+  &:hover:not(:disabled) {
+    background: var(--app-panel-soft);
+  }
+  @apply flex w-full items-start gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm disabled:cursor-not-allowed disabled:opacity-50;
+  & svg {
+    @apply mt-0.5 shrink-0;
+  }
+  & small {
+    @apply mt-1 block text-xs;
+    color: var(--app-muted);
+  }
+  @media (pointer: coarse) {
+    min-height: 44px;
+  }
+}
+
+@utility library-toolbar-menu {
+  @apply fixed z-90 w-[260px] max-w-[calc(100vw-24px)] rounded-xl border p-1.5 shadow-xl;
+  background: var(--app-panel);
+  border-color: var(--app-border);
+}
+
+@utility badge {
+  /* ── Badges Redesign ── */
+  @apply inline-flex items-center rounded-full px-3 py-1 text-2xs font-bold uppercase tracking-wider;
+}
+
+@utility badge-brand {
+  @apply badge bg-brand-50 text-brand-700 border border-brand-100/30;
+}
+
+@utility badge-sage {
+  @apply badge bg-sage-50 text-sage-700 border border-sage-100/30;
+}
+
+@utility badge-neutral {
+  @apply badge bg-gray-100 text-gray-600 border border-gray-200/50;
+}
+
+@utility page-heading {
+  /* ── Page Headings ── */
+  @apply font-display text-2xl font-semibold tracking-tight text-(--app-text);
+}
+
+@utility page-subtitle {
+  @apply mt-1 text-sm text-gray-500;
+}
+
+@utility table-scroll {
+  /* ── Mobile Data Tables ── */
+  @apply overflow-x-auto overscroll-x-contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+@utility data-table {
+  @apply w-full text-left text-sm border-collapse;
+  & thead {
+    @apply border-b border-(--app-border);
+  }
+  & th {
+    @apply px-5 py-3 text-xs font-medium text-(--app-muted) whitespace-nowrap;
+  }
+  & td {
+    @apply px-5 py-4 text-(--app-subtle) border-b border-(--app-border) max-w-xs truncate;
+  }
+  & tbody tr {
+    @apply transition-colors hover:bg-(--app-hover);
+  }
+}
+
+@utility divider {
+  /* ── Dividers ── */
+  @apply border-t border-gray-200/80;
+}
+
+@utility surface-card {
+  /* ── Backward Compatibility ── */
+  @apply card;
+}
+
+@utility surface-card-elevated {
+  @apply card-elevated;
+}
+
+@utility field-input {
+  @apply input-field;
+}
+
+@utility field-label {
+  @apply input-label;
+}
+
+@utility amber-btn {
+  @apply btn-outline;
+}
+
+@utility amber-btn--solid {
+  @apply btn-primary;
+}
+
+@utility amber-btn--ghost {
+  @apply btn-ghost;
+}
+
+@utility neon-button {
+  @apply btn-outline;
+}
+
+@utility input-base {
+  @apply input-field;
+}
+
+@utility warm-divider {
+  @apply divider;
+}
 
 /* ── 自托管 Web 字体（OFL 许可，latin 子集，public/fonts/）──
-   取代原先 fonts.googleapis.com 的渲染阻塞外链：自托管服务常部署在
-   无法访问 Google 的网络，外链会拖住首屏渲染直到超时。 */
+ 取代原先 fonts.googleapis.com 的渲染阻塞外链：自托管服务常部署在
+ 无法访问 Google 的网络，外链会拖住首屏渲染直到超时。 */
 @font-face {
   font-family: 'Geist';
   font-style: normal;
   font-weight: 300;
   font-display: swap;
   src: url('/fonts/geist-300.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
   font-family: 'Geist';
@@ -19,7 +391,10 @@
   font-weight: 400;
   font-display: swap;
   src: url('/fonts/geist-400.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
   font-family: 'Geist';
@@ -27,7 +402,10 @@
   font-weight: 500;
   font-display: swap;
   src: url('/fonts/geist-500.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
   font-family: 'Geist';
@@ -35,7 +413,10 @@
   font-weight: 600;
   font-display: swap;
   src: url('/fonts/geist-600.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
   font-family: 'Geist';
@@ -43,7 +424,10 @@
   font-weight: 700;
   font-display: swap;
   src: url('/fonts/geist-700.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
   font-family: 'JetBrains Mono';
@@ -51,7 +435,10 @@
   font-weight: 400;
   font-display: swap;
   src: url('/fonts/jetbrainsmono-400.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
   font-family: 'JetBrains Mono';
@@ -59,7 +446,10 @@
   font-weight: 500;
   font-display: swap;
   src: url('/fonts/jetbrainsmono-500.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
   font-family: 'JetBrains Mono';
@@ -67,10 +457,17 @@
   font-weight: 600;
   font-display: swap;
   src: url('/fonts/jetbrainsmono-600.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-html, body, #root { height: 100%; }
+html,
+body,
+#root {
+  height: 100%;
+}
 
 :root {
   --app-bg: #fafafa;
@@ -142,7 +539,7 @@ body {
   background-color: var(--app-bg);
   color: var(--app-text);
   margin: 0;
-  font-family: Geist, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: Geist, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -161,12 +558,24 @@ body {
 }
 
 /* ─── Scrollbar ─── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: #c9954a; }
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #c9954a;
+}
 
-:root[data-theme='dark'] ::-webkit-scrollbar-thumb { background: #374151; }
+:root[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: #374151;
+}
 
 :root[data-theme='dark'] .bg-white,
 :root[data-theme='dark'] .bg-gray-50,
@@ -275,11 +684,13 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
 
 /* ── 播放器底部动作面板的高度上限 ──
-   手机上按视口高度算（86%），老浏览器不认识 dvh 时退回 vh，避免面板
-   在 flex 容器里被内容撑出屏幕。 */
+ 手机上按视口高度算（86%），老浏览器不认识 dvh 时退回 vh，避免面板
+ 在 flex 容器里被内容撑出屏幕。 */
 .player-sheet-height {
   max-height: 86vh;
   max-height: 86dvh;
@@ -287,156 +698,15 @@ body {
 
 /* ─── Reduced Motion ─── */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }
 
-@layer components {
-  .theme-hero-bg { background: var(--app-hero-bg); }
-  .theme-hero-overlay { background: var(--app-hero-overlay); }
-  .theme-hero-fade { background: var(--app-hero-fade); }
-
-  /* ── Shared flat panels ── */
-  .card {
-    @apply rounded-xl p-4 sm:p-6;
-    background: var(--app-panel);
-    color: var(--app-text);
-  }
-  .card-hover {
-    @apply card transition-colors duration-200 hover:bg-[var(--app-hover)];
-  }
-  .card-elevated {
-    @apply card;
-  }
-
-  /* ── Panel compatibility classes ── */
-  .glass-panel {
-    @apply card;
-  }
-  .glass-card {
-    @apply card;
-  }
-  .glass-card-elevated {
-    @apply card;
-  }
-
-  /* ── Input Fields Redesign ── */
-  .input-field {
-    @apply w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition-colors duration-150
-      focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15;
-    background: var(--app-control-bg);
-    border-color: var(--app-border);
-    color: var(--app-text);
-  }
-  .input-field::placeholder {
-    color: var(--app-muted);
-  }
-  .input-label {
-    @apply mb-2 block text-[13px] font-medium;
-    color: var(--app-muted);
-  }
-
-  /* ── Shared controls ── */
-  .btn-primary {
-    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-full px-5 py-2.5
-      text-sm font-medium transition-opacity duration-150 hover:opacity-85 active:opacity-75
-      disabled:cursor-not-allowed disabled:opacity-50;
-    background: var(--app-command-bg);
-    color: var(--app-command-text);
-  }
-  .btn-ghost {
-    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-full px-4 py-2.5
-      text-sm font-medium transition-colors duration-150 hover:bg-[var(--app-hover)];
-    color: var(--app-subtle);
-  }
-  .btn-outline {
-    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-full border
-      px-4 py-2.5 text-sm font-medium transition-colors duration-150 hover:bg-[var(--app-hover)];
-    background: transparent;
-    color: var(--app-subtle);
-    border-color: var(--app-border);
-  }
-
-  .media-management-panel {
-    @apply overflow-hidden rounded-2xl border;
-    border-color: var(--app-border);
-    background: var(--app-panel);
-    color: var(--app-text);
-  }
-  .media-management-header {
-    @apply flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3;
-    border-color: var(--app-border);
-  }
-  .media-management-actions { @apply flex flex-wrap items-center gap-2 p-4; }
-  .media-management-action {
-    @apply btn-outline min-h-10 gap-2 px-3.5 py-2 text-xs whitespace-nowrap
-      disabled:cursor-not-allowed disabled:opacity-50;
-  }
-  .media-management-action svg { @apply shrink-0; }
-  .media-management-delete { margin-left: auto; color: var(--app-danger-text); }
-  .media-management-delete:hover:not(:disabled) { background: var(--app-danger-soft); }
-  @media (pointer: coarse) { .media-management-action { min-height: 44px; } }
-
-  .library-toolbar-button {
-    @apply inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-full border px-3 text-xs font-medium transition-colors sm:text-sm;
-    color: var(--app-text);
-    background: var(--app-panel);
-    border-color: var(--app-border);
-  }
-  .library-toolbar-button svg { color: inherit; }
-  .library-toolbar-button:hover:not(:disabled), .library-toolbar-menu-item:hover:not(:disabled) { background: var(--app-panel-soft); }
-  .library-toolbar-button:active:not(:disabled) { background: var(--app-border); }
-  .library-toolbar-button:disabled { @apply cursor-not-allowed opacity-60; }
-  .library-toolbar-menu {
-    @apply fixed z-[90] w-[260px] max-w-[calc(100vw-24px)] rounded-xl border p-1.5 shadow-xl;
-    background: var(--app-panel);
-    border-color: var(--app-border);
-  }
-  .library-toolbar-menu-item {
-    @apply flex w-full items-start gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm disabled:cursor-not-allowed disabled:opacity-50;
-  }
-  .library-toolbar-menu-item svg { @apply mt-0.5 shrink-0; }
-  .library-toolbar-menu-item small { @apply mt-1 block text-xs; color: var(--app-muted); }
-  @media (pointer: coarse) { .library-toolbar-button, .library-toolbar-menu-item { min-height: 44px; } }
-
-  /* ── Badges Redesign ── */
-  .badge {
-    @apply inline-flex items-center rounded-full px-3 py-1 text-2xs font-bold uppercase tracking-wider;
-  }
-  .badge-brand { @apply badge bg-brand-50 text-brand-700 border border-brand-100/30; }
-  .badge-sage  { @apply badge bg-sage-50 text-sage-700 border border-sage-100/30; }
-  .badge-neutral { @apply badge bg-gray-100 text-gray-600 border border-gray-200/50; }
-
-  /* ── Page Headings ── */
-  .page-heading  { @apply font-display text-2xl font-semibold tracking-tight text-[var(--app-text)]; }
-  .page-subtitle { @apply mt-1 text-sm text-gray-500; }
-
-  /* ── Mobile Data Tables ── */
-  .table-scroll { @apply overflow-x-auto overscroll-x-contain; -webkit-overflow-scrolling: touch; }
-  .data-table { @apply w-full text-left text-sm border-collapse; }
-  .data-table thead { @apply border-b border-[var(--app-border)]; }
-  .data-table th { @apply px-5 py-3 text-xs font-medium text-[var(--app-muted)] whitespace-nowrap; }
-  .data-table td { @apply px-5 py-4 text-[var(--app-subtle)] border-b border-[var(--app-border)] max-w-xs truncate; }
-  .data-table tbody tr { @apply transition-colors hover:bg-[var(--app-hover)]; }
-
-  /* ── Dividers ── */
-  .divider { @apply border-t border-gray-200/80; }
-
-  /* ── Backward Compatibility ── */
-  .surface-card { @apply card; }
-  .surface-card-elevated { @apply card-elevated; }
-  .field-input { @apply input-field; }
-  .field-label  { @apply input-label; }
-  .amber-btn { @apply btn-outline; }
-  .amber-btn--solid { @apply btn-primary; }
-  .amber-btn--ghost { @apply btn-ghost; }
-  .neon-button { @apply btn-outline; }
-  .input-base { @apply input-field; }
-  .warm-divider { @apply divider; }
-}
 
 /* GitHub release notes, scoped to the About panel. */
 .release-notes > * + * { margin-top: 0.75rem; }

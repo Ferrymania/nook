@@ -28,7 +28,7 @@ export function MediaDetailPoster({ media }: MediaDetailArtworkProps) {
     <div className="nook-detail-poster w-56 shrink-0 mx-auto md:mx-0">
       <motion.div
         whileHover={{ scale: 1.02 }}
-        className="aspect-[2/3] w-full rounded-lg overflow-hidden bg-[var(--app-panel-soft)] relative group"
+        className="aspect-2/3 w-full rounded-lg overflow-hidden bg-(--app-panel-soft) relative group"
       >
         <ArtworkImage
           sources={artworkSources(media, 'poster').map(source => imageURL(source, media.updated_at, ARTWORK.posterDetail))}
@@ -46,7 +46,7 @@ export function MediaDetailPoster({ media }: MediaDetailArtworkProps) {
           state={{ from: `/media/${media.id}` }}
           className="absolute inset-0 bg-[#111827]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
         >
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--app-command-bg)] text-[var(--app-command-text)] transform scale-90 group-hover:scale-100 transition-transform">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-(--app-command-bg) text-(--app-command-text) transform scale-90 group-hover:scale-100 transition-transform">
             <Play size={24} fill="currentColor" />
           </div>
         </Link>

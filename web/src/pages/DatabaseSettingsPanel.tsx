@@ -200,7 +200,7 @@ export function DatabaseSettingsPanel() {
               className={
                 'rounded-md px-3 py-1 transition ' +
                 (mode === 'form'
-                  ? 'bg-brand-500 text-white font-medium shadow-sm'
+                  ? 'bg-brand-500 text-white font-medium shadow-xs'
                   : 'text-sand-500 hover:text-ink-600')
               }
             >
@@ -211,7 +211,7 @@ export function DatabaseSettingsPanel() {
               className={
                 'rounded-md px-3 py-1 transition ' +
                 (mode === 'dsn'
-                  ? 'bg-brand-500 text-white font-medium shadow-sm'
+                  ? 'bg-brand-500 text-white font-medium shadow-xs'
                   : 'text-sand-500 hover:text-ink-600')
               }
             >
@@ -229,7 +229,7 @@ export function DatabaseSettingsPanel() {
                 value={formData.host || ''}
                 onChange={(e) => setFormData({ ...formData, host: e.target.value })}
                 placeholder="例如 127.0.0.1 或 postgres"
-                className="w-full rounded-lg border border-gray-200 bg-sand-200/40 px-3 py-2 text-ink-600 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-200 bg-sand-200/40 px-3 py-2 text-ink-600 placeholder:text-gray-400 focus:border-brand-500 focus:outline-hidden"
               />
             </div>
             <div className="space-y-1.5">
@@ -239,7 +239,7 @@ export function DatabaseSettingsPanel() {
                 value={formData.port || 5432}
                 onChange={(e) => setFormData({ ...formData, port: Number(e.target.value) })}
                 placeholder="5432"
-                className="w-full rounded-lg border border-gray-200 bg-sand-200/40 px-3 py-2 text-ink-600 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-200 bg-sand-200/40 px-3 py-2 text-ink-600 placeholder:text-gray-400 focus:border-brand-500 focus:outline-hidden"
               />
             </div>
             <div className="space-y-1.5">
@@ -249,7 +249,7 @@ export function DatabaseSettingsPanel() {
                 value={formData.dbname || ''}
                 onChange={(e) => setFormData({ ...formData, dbname: e.target.value })}
                 placeholder="nook"
-                className="w-full rounded-lg border border-gray-200 bg-sand-200/40 px-3 py-2 text-ink-600 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-200 bg-sand-200/40 px-3 py-2 text-ink-600 placeholder:text-gray-400 focus:border-brand-500 focus:outline-hidden"
               />
             </div>
             <div className="space-y-1.5">
@@ -259,7 +259,7 @@ export function DatabaseSettingsPanel() {
                 value={formData.user || ''}
                 onChange={(e) => setFormData({ ...formData, user: e.target.value })}
                 placeholder="postgres"
-                className="w-full rounded-lg border border-gray-200 bg-sand-200/40 px-3 py-2 text-ink-600 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-200 bg-sand-200/40 px-3 py-2 text-ink-600 placeholder:text-gray-400 focus:border-brand-500 focus:outline-hidden"
               />
             </div>
             <div className="space-y-1.5">
@@ -269,7 +269,7 @@ export function DatabaseSettingsPanel() {
                 value={formData.password || ''}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 placeholder="••••••••"
-                className="w-full rounded-lg border border-gray-200 bg-sand-200/40 px-3 py-2 text-ink-600 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-200 bg-sand-200/40 px-3 py-2 text-ink-600 placeholder:text-gray-400 focus:border-brand-500 focus:outline-hidden"
               />
             </div>
             <div className="space-y-1.5">
@@ -277,7 +277,7 @@ export function DatabaseSettingsPanel() {
               <select
                 value={formData.sslmode || 'disable'}
                 onChange={(e) => setFormData({ ...formData, sslmode: e.target.value })}
-                className="w-full rounded-lg border border-gray-200 bg-sand-200/40 px-3 py-2 text-ink-600 focus:border-brand-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-200 bg-sand-200/40 px-3 py-2 text-ink-600 focus:border-brand-500 focus:outline-hidden"
               >
                 <option value="disable">disable (关闭 SSL)</option>
                 <option value="require">require (强制 SSL)</option>
@@ -296,7 +296,7 @@ export function DatabaseSettingsPanel() {
               value={formData.dsn || ''}
               onChange={(e) => setFormData({ ...formData, dsn: e.target.value })}
               placeholder="postgres://user:password@127.0.0.1:5432/nook?sslmode=disable"
-              className="w-full font-mono text-xs rounded-lg border border-gray-200 bg-sand-200/40 px-3 py-2 text-ink-600 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none"
+              className="w-full font-mono text-xs rounded-lg border border-gray-200 bg-sand-200/40 px-3 py-2 text-ink-600 placeholder:text-gray-400 focus:border-brand-500 focus:outline-hidden"
             />
           </div>
         )}

@@ -28,7 +28,7 @@ export function ConfirmDialog({
   const [checked, setChecked] = useState(Boolean(options.checkboxDefaultChecked))
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/35 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-100 flex items-center justify-center bg-black/35 p-4 backdrop-blur-xs"
       onClick={() => onClose({ confirmed: false, checked })}
     >
       <div
@@ -55,7 +55,7 @@ export function ConfirmDialog({
               <label className="mt-4 flex cursor-pointer items-start gap-2.5 text-sm text-ink-100">
                 <input
                   type="checkbox"
-                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-red-500 focus:ring-red-400"
+                  className="mt-0.5 h-4 w-4 rounded-sm border-gray-300 text-red-500 focus:ring-red-400"
                   checked={checked}
                   onChange={(event) => setChecked(event.target.checked)}
                 />
@@ -76,7 +76,7 @@ export function ConfirmDialog({
             type="button"
             onClick={() => onClose({ confirmed: true, checked })}
             className={
-              'rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-sm transition ' +
+              'rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-xs transition ' +
               (danger ? 'bg-red-500 hover:bg-red-600' : 'bg-brand-500 hover:bg-brand-600')
             }
           >

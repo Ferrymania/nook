@@ -38,7 +38,7 @@ export function FavouritesPage() {
       )}
 
       {error && (
-        <div className="glass-panel !border-red-400/30 p-4 text-sm text-red-400">
+        <div className="glass-panel border-red-400/30! p-4 text-sm text-red-400">
           {error}
           <button
             className="ml-3 underline hover:text-red-300"

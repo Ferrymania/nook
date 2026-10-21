@@ -103,7 +103,7 @@ export function MediaDetailPlaybackActions({
       <Link
         to={`/play/${targetId}`}
         state={{ from: `/media/${media.id}` }}
-        className="btn-primary h-11 px-6 shadow-sm"
+        className="btn-primary h-11 px-6 shadow-xs"
       >
         <Play size={16} fill="currentColor" />
         <span>立即播放</span>
@@ -127,7 +127,7 @@ export function MediaDetailPlaybackActions({
         className={
           'btn-outline h-11 gap-2 ' +
           (favourite
-            ? '!border-[var(--app-danger-text)] !bg-[var(--app-danger-soft)] !text-[var(--app-danger-text)] hover:opacity-80'
+            ? 'border-(--app-danger-text)! bg-(--app-danger-soft)! text-(--app-danger-text)! hover:opacity-80'
             : 'hover:border-red-200 hover:text-red-600 hover:bg-red-50/50')
         }
       >

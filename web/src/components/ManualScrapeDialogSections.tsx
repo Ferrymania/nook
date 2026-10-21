@@ -151,7 +151,7 @@ function ManualScrapeQueryBar({
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
           onKeyDown={(event) => { if (event.key === 'Enter') onSearch() }}
-          className="h-11 w-full rounded-xl border border-sand-200 bg-white pl-9 pr-3 text-sm font-semibold text-ink-600 outline-none transition focus:border-brand-300 focus:ring-2 focus:ring-brand-100"
+          className="h-11 w-full rounded-xl border border-sand-200 bg-white pl-9 pr-3 text-sm font-semibold text-ink-600 outline-hidden transition focus:border-brand-300 focus:ring-2 focus:ring-brand-100"
           placeholder="输入标题或 TMDb / 豆瓣 / Bangumi / TheTVDB ID"
         />
       </div>
@@ -210,7 +210,7 @@ function ManualScrapeCandidateRow({
   onApply: (item: ManualScrapeCandidate) => void
 }) {
   return (
-    <div className="flex min-w-0 max-w-full flex-col gap-4 overflow-hidden rounded-xl border border-sand-200 bg-white p-3 shadow-sm sm:flex-row">
+    <div className="flex min-w-0 max-w-full flex-col gap-4 overflow-hidden rounded-xl border border-sand-200 bg-white p-3 shadow-xs sm:flex-row">
       <div className="h-28 w-20 shrink-0 overflow-hidden rounded-lg bg-sand-100">
         {item.poster_url ? (
           <img src={imageURL(item.poster_url, undefined, ARTWORK.posterCard)} alt={item.title} loading="lazy" decoding="async" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
@@ -226,7 +226,7 @@ function ManualScrapeCandidateRow({
           {item.year ? <span className="shrink-0 text-xs text-sand-500">{item.year}</span> : null}
         </div>
         <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-ink-50">{item.overview || '暂无简介'}</p>
-        <p className="mt-2 break-words text-[11px] font-semibold text-sand-500">{candidateIDText(item)}</p>
+        <p className="mt-2 wrap-break-word text-[11px] font-semibold text-sand-500">{candidateIDText(item)}</p>
       </div>
       <button onClick={() => onApply(item)} disabled={disabled} className="btn-outline h-10 w-full shrink-0 justify-center px-3 text-xs sm:w-auto sm:self-center">
         {applying ? <LoaderCircle size={14} className="animate-spin" /> : <Check size={14} />}

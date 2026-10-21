@@ -863,7 +863,7 @@ export function PlayerControls({
     ? createPortal(
         <div className="pointer-events-none absolute inset-0 z-30">
           <div
-            className={`absolute top-1/2 flex w-32 -translate-y-1/2 flex-col items-center justify-center rounded-2xl bg-black/55 px-3 py-4 text-white shadow-lg backdrop-blur-sm ${
+            className={`absolute top-1/2 flex w-32 -translate-y-1/2 flex-col items-center justify-center rounded-2xl bg-black/55 px-3 py-4 text-white shadow-lg backdrop-blur-xs ${
               seekHint.dir === 'back' ? 'left-[8%] sm:left-[12%]' : 'right-[8%] sm:right-[12%]'
             }`}
           >
@@ -892,7 +892,7 @@ export function PlayerControls({
   const playbackRateOverlay = playbackRateHint && stageEl
     ? createPortal(
         <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
-          <div className="flex items-center gap-2 rounded-xl bg-black/65 px-4 py-2.5 text-white shadow-lg backdrop-blur-sm">
+          <div className="flex items-center gap-2 rounded-xl bg-black/65 px-4 py-2.5 text-white shadow-lg backdrop-blur-xs">
             <Timer size={20} />
             <span className="text-xs font-semibold tabular-nums">
               {formatPlaybackRate(playbackRateHint)} 倍速
@@ -1048,7 +1048,7 @@ export function PlayerControls({
       </div>
     ) : null}
     <div
-      className={`pointer-events-auto absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-2.5 pb-1.5 pt-12 transition-opacity duration-300 sm:px-3.5 sm:pb-2.5 ${
+      className={`pointer-events-auto absolute inset-x-0 bottom-0 z-20 bg-linear-to-t from-black/85 via-black/45 to-transparent px-2.5 pb-1.5 pt-12 transition-opacity duration-300 sm:px-3.5 sm:pb-2.5 ${
         uiVisible ? 'opacity-100' : 'pointer-events-none opacity-0'
       }`}
       onMouseEnter={() => {
@@ -1164,13 +1164,13 @@ export function PlayerControls({
                 setSettingsMenuOpen(false)
                 setQualityMenuOpen((v) => !v)
               }}
-              className={`${PLAYER_TEXT_BUTTON} max-w-[7rem] ${qualityMenuOpen ? 'bg-white/15 text-white' : ''}`}
+              className={`${PLAYER_TEXT_BUTTON} max-w-28 ${qualityMenuOpen ? 'bg-white/15 text-white' : ''}`}
               title="清晰度"
             >
               <span className="truncate">{qualityLabel}</span>
             </button>
             {qualityMenuOpen && (
-              <div className={`${PLAYER_POPOVER} absolute bottom-11 right-0 min-w-[11rem]`}>
+              <div className={`${PLAYER_POPOVER} absolute bottom-11 right-0 min-w-44`}>
                 <QualityItems
                   groups={qualityGroups}
                   selectedQuality={selectedQuality}
@@ -1199,7 +1199,7 @@ export function PlayerControls({
             {formatPlaybackRate(playbackRateProp)}
           </button>
           {speedMenuOpen && (
-            <div className={`${PLAYER_POPOVER} absolute bottom-11 right-0 min-w-[9rem]`}>
+            <div className={`${PLAYER_POPOVER} absolute bottom-11 right-0 min-w-36`}>
               <p className={PLAYER_MENU_LABEL}>播放速度</p>
               <SpeedItems
                 playbackRate={playbackRateProp}
@@ -1314,7 +1314,7 @@ export function PlayerControls({
               )}
             </button>
             {subtitleMenuOpen && (
-              <div className={`${PLAYER_POPOVER} absolute bottom-11 right-0 max-h-[70vh] min-w-[12rem] overflow-y-auto`}>
+              <div className={`${PLAYER_POPOVER} absolute bottom-11 right-0 max-h-[70vh] min-w-48 overflow-y-auto`}>
                 <SubtitleItems
                   subs={subs}
                   subtitleIndex={subtitleIndex}
@@ -1359,7 +1359,7 @@ export function PlayerControls({
             <span className="pointer-events-none absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-amber-300" />
           )}
           {settingsMenuOpen && !theater && (
-            <div className={`${PLAYER_POPOVER} absolute bottom-11 right-0 max-h-[70vh] w-[15rem] overflow-y-auto`}>
+            <div className={`${PLAYER_POPOVER} absolute bottom-11 right-0 max-h-[70vh] w-60 overflow-y-auto`}>
               {settingsPanel}
             </div>
           )}
@@ -1415,7 +1415,7 @@ function QualityItems({
               >
                 <span className="min-w-0 flex-1 truncate">{quality.label}</span>
                 {quality.requires_transcode && (
-                  <span className="flex shrink-0 items-center gap-1 rounded bg-white/10 px-1.5 py-0.5 text-[9px] text-amber-300">
+                  <span className="flex shrink-0 items-center gap-1 rounded-sm bg-white/10 px-1.5 py-0.5 text-[9px] text-amber-300">
                     <Loader2 size={10} />
                     转码
                   </span>

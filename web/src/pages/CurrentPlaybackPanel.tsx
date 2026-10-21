@@ -74,8 +74,8 @@ export function CurrentPlaybackPanel() {
             <li key={session.id} className="min-w-0 space-y-2 rounded-xl border border-sand-200 bg-white p-3">
               <div className="flex items-start justify-between gap-2 text-xs">
                 <div className="min-w-0">
-                  <p className="break-words font-semibold text-ink-600">{session.username || '未知用户'}</p>
-                  <p className="mt-1 break-words text-[11px] text-sand-500">
+                  <p className="wrap-break-word font-semibold text-ink-600">{session.username || '未知用户'}</p>
+                  <p className="mt-1 wrap-break-word text-[11px] text-sand-500">
                     {[session.device_name, session.client].filter((v, i, all) => v && all.indexOf(v) === i).join(' · ') || '未知设备'}
                   </p>
                 </div>
@@ -84,7 +84,7 @@ export function CurrentPlaybackPanel() {
                   {session.is_paused ? '已暂停' : '正在播放'}
                 </span>
               </div>
-              <p className="break-words text-xs font-medium text-ink-600">{session.series_name || session.title}</p>
+              <p className="wrap-break-word text-xs font-medium text-ink-600">{session.series_name || session.title}</p>
               {session.episode_num > 0 && (
                 <p className="text-[11px] text-sand-500">第 {session.season_num} 季 · 第 {session.episode_num} 集</p>
               )}

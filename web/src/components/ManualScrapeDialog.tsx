@@ -46,7 +46,7 @@ export function ManualScrapeDialog({
   if (!open || !media) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex min-w-0 items-center justify-center overflow-hidden bg-ink-900/40 px-4 py-8 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex min-w-0 items-center justify-center overflow-hidden bg-ink-900/40 px-4 py-8 backdrop-blur-xs">
       <div className="flex min-w-0 max-h-[86vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-sand-200 bg-white shadow-2xl">
         <ManualScrapeDialogHeader
           title={scopeLabel || media.title}

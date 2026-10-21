@@ -159,31 +159,31 @@ export function PlayerDanmakuPanel({
     switch (mode) {
       case 'hash':
         return (
-          <span className="inline-flex items-center gap-0.5 rounded border border-emerald-500/30 bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">
+          <span className="inline-flex items-center gap-0.5 rounded-sm border border-emerald-500/30 bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">
             <Hash size={10} /> 哈希精准匹配
           </span>
         )
       case 'filename':
         return (
-          <span className="inline-flex items-center gap-0.5 rounded border border-sky-500/30 bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-medium text-sky-300">
+          <span className="inline-flex items-center gap-0.5 rounded-sm border border-sky-500/30 bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-medium text-sky-300">
             <Tag size={10} /> 文件名匹配
           </span>
         )
       case 'metadata':
         return (
-          <span className="inline-flex items-center gap-0.5 rounded border border-cyan-500/30 bg-cyan-500/15 px-1.5 py-0.5 text-[10px] font-medium text-cyan-300">
+          <span className="inline-flex items-center gap-0.5 rounded-sm border border-cyan-500/30 bg-cyan-500/15 px-1.5 py-0.5 text-[10px] font-medium text-cyan-300">
             <Search size={10} /> 刮削信息匹配
           </span>
         )
       case 'search':
         return (
-          <span className="inline-flex items-center gap-0.5 rounded border border-violet-500/30 bg-violet-500/15 px-1.5 py-0.5 text-[10px] font-medium text-violet-300">
+          <span className="inline-flex items-center gap-0.5 rounded-sm border border-violet-500/30 bg-violet-500/15 px-1.5 py-0.5 text-[10px] font-medium text-violet-300">
             <Sparkles size={10} /> 标题搜索匹配
           </span>
         )
       case 'manual':
         return (
-          <span className="inline-flex items-center gap-0.5 rounded border border-amber-500/30 bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-300">
+          <span className="inline-flex items-center gap-0.5 rounded-sm border border-amber-500/30 bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-300">
             手动指定
           </span>
         )
@@ -266,7 +266,7 @@ export function PlayerDanmakuPanel({
                 {isCustomOrManual && (
                   <button
                     onClick={onResetAuto}
-                    className="flex shrink-0 items-center gap-1 rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-rose-300 transition hover:bg-white/15 hover:text-rose-200"
+                    className="flex shrink-0 items-center gap-1 rounded-sm bg-white/10 px-1.5 py-0.5 text-[10px] text-rose-300 transition hover:bg-white/15 hover:text-rose-200"
                     title="清除手动搜索与选择，恢复自动匹配"
                   >
                     <RefreshCw size={10} />
@@ -322,7 +322,7 @@ export function PlayerDanmakuPanel({
               if (e.key === 'Enter') onSearch(draft.trim())
             }}
             placeholder={autoMatchTitle ? `自动匹配：${autoMatchTitle}` : '输入番剧或电影名…'}
-            className="min-w-0 flex-1 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1.5 text-xs outline-none placeholder:text-white/40 focus:border-rose-400/60"
+            className="min-w-0 flex-1 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1.5 text-xs outline-hidden placeholder:text-white/40 focus:border-rose-400/60"
           />
           <button
             onClick={() => onSearch(draft.trim())}
@@ -516,7 +516,7 @@ export function PlayerDanmakuPanel({
                 value={sourceDraft}
                 onChange={(e) => setSourceDraft(e.target.value)}
                 placeholder="留空使用 https://api.dandanplay.net"
-                className="w-full rounded-lg border border-white/15 bg-white/5 px-2.5 py-2 text-xs outline-none placeholder:text-white/30 focus:border-rose-400/60"
+                className="w-full rounded-lg border border-white/15 bg-white/5 px-2.5 py-2 text-xs outline-hidden placeholder:text-white/30 focus:border-rose-400/60"
               />
             </label>
 
@@ -528,7 +528,7 @@ export function PlayerDanmakuPanel({
                 value={appIdDraft}
                 onChange={(e) => setAppIdDraft(e.target.value)}
                 placeholder="官方源可留空；第三方源按需填写"
-                className="w-full rounded-lg border border-white/15 bg-white/5 px-2.5 py-2 text-xs outline-none placeholder:text-white/30 focus:border-rose-400/60"
+                className="w-full rounded-lg border border-white/15 bg-white/5 px-2.5 py-2 text-xs outline-hidden placeholder:text-white/30 focus:border-rose-400/60"
               />
             </label>
 
@@ -548,13 +548,13 @@ export function PlayerDanmakuPanel({
                   disabled={clearAppKey}
                   onChange={(e) => setAppKeyDraft(e.target.value)}
                   placeholder={appKeyConfigured ? '留空保持不变' : '仅保存在服务端'}
-                  className="w-full rounded-lg border border-white/15 bg-white/5 px-2.5 py-2 pr-8 text-xs outline-none placeholder:text-white/30 focus:border-rose-400/60 disabled:opacity-40"
+                  className="w-full rounded-lg border border-white/15 bg-white/5 px-2.5 py-2 pr-8 text-xs outline-hidden placeholder:text-white/30 focus:border-rose-400/60 disabled:opacity-40"
                 />
                 <button
                   type="button"
                   onClick={() => setShowAppKey((value) => !value)}
                   disabled={clearAppKey}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-white/45 hover:text-white disabled:opacity-30"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-sm p-1 text-white/45 hover:text-white disabled:opacity-30"
                   title={showAppKey ? '隐藏密钥' : '显示密钥'}
                 >
                   {showAppKey ? <EyeOff size={12} /> : <Eye size={12} />}

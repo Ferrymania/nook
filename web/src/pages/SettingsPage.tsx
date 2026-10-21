@@ -156,7 +156,7 @@ export function SettingsPage() {
   const group = GROUPS.find((g) => g.key === activeGroup)!
   const saveControls = (
     <div className={group.key === 'general' ? 'settings-save' : 'flex items-center justify-between pt-2'}>
-      <span className="text-xs text-[var(--app-muted)]" role="status">
+      <span className="text-xs text-(--app-muted)" role="status">
         {dirty.size > 0 ? `有 ${visibleDirtyCount} 项未保存` : '所有更改已保存'}
       </span>
       <button type="submit" disabled={saving || toolsBusy || dirty.size === 0}
@@ -178,7 +178,7 @@ export function SettingsPage() {
         </div>
       </div>
 
-      <div className="nook-settings-tabs flex gap-2 overflow-x-auto border-b border-[var(--app-border)]">
+      <div className="nook-settings-tabs flex gap-2 overflow-x-auto border-b border-(--app-border)">
         {GROUPS.map((g) => (
           <button
             key={g.key}
@@ -186,8 +186,8 @@ export function SettingsPage() {
             className={
               'border-b-2 px-4 py-2 text-sm whitespace-nowrap transition ' +
               (activeGroup === g.key
-                ? 'border-[var(--app-text)] text-[var(--app-text)]'
-                : 'border-transparent text-[var(--app-muted)] hover:text-[var(--app-text)]')
+                ? 'border-(--app-text) text-(--app-text)'
+                : 'border-transparent text-(--app-muted) hover:text-(--app-text)')
             }
           >
             {g.label}

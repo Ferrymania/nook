@@ -49,9 +49,9 @@ export function MediaDetailMetadata({ media }: MediaDetailMetadataProps) {
       </div>
 
       {media.overview && (
-        <div className="nook-detail-overview rounded-xl bg-[var(--app-panel-soft)] p-5 space-y-2">
-          <h2 className="text-[13px] font-medium text-[var(--app-subtle)]">剧情简介</h2>
-          <p className="text-sm text-[var(--app-subtle)] leading-relaxed">
+        <div className="nook-detail-overview rounded-xl bg-(--app-panel-soft) p-5 space-y-2">
+          <h2 className="text-[13px] font-medium text-(--app-subtle)">剧情简介</h2>
+          <p className="text-sm text-(--app-subtle) leading-relaxed">
             {media.overview}
           </p>
         </div>

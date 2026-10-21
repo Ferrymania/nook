@@ -68,8 +68,8 @@ export function AdminLibraryTable({ libs, ...actions }: LibraryTableProps) {
 
   return (
     <>
-      <div className="glass-panel overflow-x-auto !p-3">
-        <p id="home-carousel-help" className="mb-3 px-1 text-xs leading-relaxed text-[var(--app-muted)]">
+      <div className="glass-panel overflow-x-auto p-3!">
+        <p id="home-carousel-help" className="mb-3 px-1 text-xs leading-relaxed text-(--app-muted)">
           首页轮播仅展示已开启媒体库的最近添加内容，多个媒体库交替展示，最多 10 条；全部关闭时隐藏。
         </p>
         <table className="w-full min-w-[960px] text-left text-sm">
@@ -165,7 +165,7 @@ function LibraryTableRow({ library, dragging, dragOver, onDragStart, onDragOver,
           type="button"
           draggable
           onDragStart={onDragStart}
-          className="inline-flex cursor-grab items-center justify-center rounded p-1 text-gray-400 transition hover:bg-gray-100 hover:text-brand-500 active:cursor-grabbing"
+          className="inline-flex cursor-grab items-center justify-center rounded-sm p-1 text-gray-400 transition hover:bg-gray-100 hover:text-brand-500 active:cursor-grabbing"
           title="拖动以调整媒体库显示顺序"
         >
           <GripVertical size={16} />
@@ -180,7 +180,7 @@ function LibraryTableRow({ library, dragging, dragOver, onDragStart, onDragOver,
               loading="lazy"
               decoding="async"
               referrerPolicy="no-referrer"
-              className="h-10 w-8 rounded object-cover"
+              className="h-10 w-8 rounded-sm object-cover"
               onError={(e) => {
                 e.currentTarget.style.visibility = 'hidden'
               }}
@@ -267,14 +267,14 @@ function EditableRootFields({ library, root, draft, onEditableRootChange, onBrow
   return (
     <>
       <input
-        className="h-9 w-full rounded-lg border border-gray-200 bg-white/80 px-3 text-xs text-gray-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100/60"
+        className="h-9 w-full rounded-lg border border-gray-200 bg-white/80 px-3 text-xs text-gray-900 outline-hidden transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100/60"
         placeholder="路径名称"
         value={draft.name ?? ''}
         onChange={(e) => onEditableRootChange(library.id, root, { name: e.target.value })}
       />
       <div className="flex items-center gap-1">
         <input
-          className="h-9 flex-1 min-w-0 rounded-lg border border-gray-200 bg-white/80 px-3 text-xs text-gray-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100/60"
+          className="h-9 flex-1 min-w-0 rounded-lg border border-gray-200 bg-white/80 px-3 text-xs text-gray-900 outline-hidden transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100/60"
           placeholder="真实路径"
           value={draft.path}
           onChange={(e) => onEditableRootChange(library.id, root, { path: e.target.value })}
@@ -444,7 +444,7 @@ function ActionMenu({ label, children }: { label: string; children: ReactNode })
               right: `${coords.right}px`,
               zIndex: 99999,
             }}
-            className="min-w-32 rounded-xl border border-gray-200/90 bg-white p-1.5 shadow-2xl backdrop-blur"
+            className="min-w-32 rounded-xl border border-gray-200/90 bg-white p-1.5 shadow-2xl backdrop-blur-sm"
             onClick={() => {
               setIsOpen(false)
               triggerRef.current?.focus()

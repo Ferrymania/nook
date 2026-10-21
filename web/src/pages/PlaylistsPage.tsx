@@ -95,7 +95,7 @@ export function PlaylistsPage() {
           {items.map((p) => (
             <div
               key={p.id}
-              className="glass-panel group flex items-center gap-3 !p-4 transition hover:border-primary-400/30"
+              className="glass-panel group flex items-center gap-3 p-4! transition hover:border-primary-400/30"
             >
               <Link
                 to={`/playlist/${p.id}`}

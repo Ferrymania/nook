@@ -73,7 +73,7 @@ export function MediaSortDropdown({
         onClick={() => setIsOpen((prev) => !prev)}
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        className={buttonClassName ?? "inline-flex h-9 items-center gap-1.5 rounded-xl border border-sand-200 bg-white/90 px-3 py-1.5 text-xs font-semibold text-ink-600 shadow-sm transition-all hover:border-brand-300 hover:bg-brand-50/50 hover:text-brand-700"}
+        className={buttonClassName ?? "inline-flex h-9 items-center gap-1.5 rounded-xl border border-sand-200 bg-white/90 px-3 py-1.5 text-xs font-semibold text-ink-600 shadow-xs transition-all hover:border-brand-300 hover:bg-brand-50/50 hover:text-brand-700"}
         title="更改排序方式"
       >
         <ArrowUpDown size={14} className="text-sand-500" />
@@ -85,7 +85,7 @@ export function MediaSortDropdown({
         ) : (
           <ArrowDown size={13} className="text-brand-600 font-bold" />
         )}
-        {buttonClassName && <ChevronDown size={14} className="text-[var(--app-muted)]" />}
+        {buttonClassName && <ChevronDown size={14} className="text-(--app-muted)" />}
       </button>
 
       {isOpen && (

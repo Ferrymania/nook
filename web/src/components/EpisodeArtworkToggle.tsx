@@ -32,9 +32,9 @@ export function EpisodeArtworkToggle({
       data-state={checked ? 'on' : 'off'}
       style={controlStyle}
       className={[
-        'episode-artwork-toggle group inline-flex h-11 shrink-0 items-center gap-2 rounded-xl border px-3 text-sm font-semibold shadow-sm transition-all duration-200',
+        'episode-artwork-toggle group inline-flex h-11 shrink-0 items-center gap-2 rounded-xl border px-3 text-sm font-semibold shadow-xs transition-all duration-200',
         checked ? 'episode-artwork-toggle--on' : '',
-        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500',
+        'focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500',
         'hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.98]',
         className,
       ].join(' ')}

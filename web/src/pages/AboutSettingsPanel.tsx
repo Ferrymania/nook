@@ -83,7 +83,7 @@ export function AboutSettingsPanel() {
               href={GITHUB_REPO_URL}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl bg-ink-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-ink-700 hover:shadow"
+              className="inline-flex items-center gap-2 rounded-xl bg-ink-600 px-4 py-2.5 text-sm font-medium text-white shadow-xs transition hover:bg-ink-700 hover:shadow-sm"
             >
               <Github size={16} />
               <span>访问 GitHub 仓库</span>

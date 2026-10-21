@@ -233,7 +233,7 @@ export function LibrariesPage() {
       {previews.length === 0 ? (
         <LibrariesEmptyState isAdmin={isAdmin} />
       ) : taggedPreviews.length === 0 ? (
-        <p className="rounded-3xl border border-dashed border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-16 text-center text-sm text-[var(--app-muted)]">
+        <p className="rounded-3xl border border-dashed border-(--app-border) bg-(--app-panel) px-4 py-16 text-center text-sm text-(--app-muted)">
           「{effectiveTagId}」标签下还没有媒体库，可在「管理标签」里把媒体库归入该标签。
         </p>
       ) : (

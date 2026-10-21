@@ -22,7 +22,7 @@ export function MediaProbeToggle({ checked, saving, onChange }: MediaProbeToggle
         borderColor: 'var(--app-brand-border)',
         color: 'var(--app-brand-text)',
       } : undefined}
-      className="btn-outline shrink-0 gap-2 !px-3 !py-1.5 text-xs sm:text-sm"
+      className="btn-outline shrink-0 gap-2 px-3! py-1.5! text-xs sm:text-sm"
     >
       {saving ? <Loader2 size={16} className="animate-spin" /> : <ScanLine size={16} />}
       <span className="whitespace-nowrap">刮削时自动探测媒体信息</span>

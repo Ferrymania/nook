@@ -98,12 +98,12 @@ export function LibraryFilterBar({
   }
 
   return (
-    <section className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-panel)]">
+    <section className="rounded-2xl border border-(--app-border) bg-(--app-panel)">
       <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5">
         <button
           type="button"
           onClick={() => setOpen((prev) => !prev)}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--app-text)]"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-(--app-text)"
         >
           <Filter size={15} className="text-brand-500" />
           筛选
@@ -114,7 +114,7 @@ export function LibraryFilterBar({
           )}
           <ChevronDown
             size={14}
-            className={`text-[var(--app-muted)] transition-transform ${open ? 'rotate-180' : ''}`}
+            className={`text-(--app-muted) transition-transform ${open ? 'rotate-180' : ''}`}
           />
         </button>
 
@@ -123,7 +123,7 @@ export function LibraryFilterBar({
             <button
               type="button"
               onClick={reset}
-              className="inline-flex items-center gap-1 rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-xs font-semibold text-[var(--app-muted)] transition-colors hover:text-[var(--app-text)]"
+              className="inline-flex items-center gap-1 rounded-xl border border-(--app-border) px-2.5 py-1.5 text-xs font-semibold text-(--app-muted) transition-colors hover:text-(--app-text)"
             >
               <X size={12} />
               清除筛选
@@ -133,7 +133,7 @@ export function LibraryFilterBar({
             type="button"
             onClick={handleRandom}
             disabled={randomBusy}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--app-brand-border)] bg-[var(--app-brand-soft)] px-3 py-1.5 text-xs font-bold text-[var(--app-brand-text)] transition-opacity disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-(--app-brand-border) bg-(--app-brand-soft) px-3 py-1.5 text-xs font-bold text-(--app-brand-text) transition-opacity disabled:opacity-50"
             title="按当前筛选条件随机播放一条"
           >
             {randomBusy ? <Loader2 size={13} className="animate-spin" /> : <Dices size={13} />}
@@ -143,16 +143,16 @@ export function LibraryFilterBar({
       </div>
 
       {open && (
-        <div className="space-y-4 border-t border-[var(--app-border)] px-3 py-3">
+        <div className="space-y-4 border-t border-(--app-border) px-3 py-3">
           <div className="space-y-2">
-            <div className="text-xs font-semibold text-[var(--app-muted)]">类型</div>
+            <div className="text-xs font-semibold text-(--app-muted)">类型</div>
             {loadingFacets ? (
-              <div className="flex items-center gap-2 py-2 text-xs text-[var(--app-muted)]">
+              <div className="flex items-center gap-2 py-2 text-xs text-(--app-muted)">
                 <Loader2 size={14} className="animate-spin" />
                 正在加载类型…
               </div>
             ) : !facets || facets.genres.length === 0 ? (
-              <div className="py-2 text-xs text-[var(--app-muted)]">
+              <div className="py-2 text-xs text-(--app-muted)">
                 这个媒体库还没有刮削出类型信息
               </div>
             ) : (
@@ -168,7 +168,7 @@ export function LibraryFilterBar({
                         'rounded-lg border px-2 py-1 text-xs transition-colors ' +
                         (selected
                           ? 'border-brand-500 bg-brand-500 text-white'
-                          : 'border-[var(--app-border)] text-[var(--app-subtle)] hover:bg-[var(--app-hover)]')
+                          : 'border-(--app-border) text-(--app-subtle) hover:bg-(--app-hover)')
                       }
                     >
                       {genre.name}
@@ -181,7 +181,7 @@ export function LibraryFilterBar({
           </div>
 
           <div className="flex flex-wrap items-end gap-3">
-            <label className="text-xs font-semibold text-[var(--app-muted)]">
+            <label className="text-xs font-semibold text-(--app-muted)">
               年份
               <div className="mt-1 flex items-center gap-1.5">
                 <input
@@ -191,7 +191,7 @@ export function LibraryFilterBar({
                   value={yearMin}
                   onChange={(e) => setYearMin(e.target.value)}
                 />
-                <span className="text-[var(--app-muted)]">–</span>
+                <span className="text-(--app-muted)">–</span>
                 <input
                   type="number"
                   className="input-base w-20"
@@ -202,7 +202,7 @@ export function LibraryFilterBar({
               </div>
             </label>
 
-            <label className="text-xs font-semibold text-[var(--app-muted)]">
+            <label className="text-xs font-semibold text-(--app-muted)">
               最低评分
               <input
                 type="number"
@@ -216,7 +216,7 @@ export function LibraryFilterBar({
               />
             </label>
 
-            <label className="flex items-center gap-2 pb-2 text-xs font-semibold text-[var(--app-muted)]">
+            <label className="flex items-center gap-2 pb-2 text-xs font-semibold text-(--app-muted)">
               <input
                 type="checkbox"
                 className="h-4 w-4 accent-brand-500"

@@ -53,7 +53,7 @@ export function LibraryPageHeader({
         </h1>
         {library && <p className="text-xs text-ink-50 sm:text-sm" title={library.path}>{library.type} · {displayPath}</p>}
         {loadingAllText && <p className="mt-1 text-xs text-sand-500">{loadingAllText}</p>}
-        {scanProgress && <p role="status" className="mt-1 text-xs text-[var(--app-muted)]">{scanProgress}</p>}
+        {scanProgress && <p role="status" className="mt-1 text-xs text-(--app-muted)">{scanProgress}</p>}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <MediaSortDropdown

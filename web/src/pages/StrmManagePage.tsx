@@ -316,7 +316,7 @@ function AccountSection({
             const testing = testState?.pending ?? false
             const testError = testState?.error
             return (
-              <div key={account.id} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <div key={account.id} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2.5">
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-500">
@@ -345,7 +345,7 @@ function AccountSection({
                       <span className="text-gray-400">未配置</span>
                     )}
                   </p>
-                  <div role="status" aria-live="polite" aria-atomic="true" className="[overflow-wrap:anywhere]">
+                  <div role="status" aria-live="polite" aria-atomic="true" className="wrap-anywhere">
                     {testing ? (
                       <p>正在测试连接，请稍候…</p>
                     ) : testError ? (
@@ -422,7 +422,7 @@ function SyncPathSection({
             const running = path.last_sync_status === 'running'
             const PathIcon = providerIcon(path.provider)
             return (
-              <div key={path.id} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <div key={path.id} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-2.5">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-500">
@@ -665,7 +665,7 @@ export function formatBytes(size: number): string {
 // 队列概览小组件（下载队列 / 上传队列页顶部统计）
 export function QueueStatPill({ icon: Icon, label, value }: { icon: typeof Download; label: string; value: number }) {
   return (
-    <div className="flex items-center gap-2 rounded-xl border border-gray-100 bg-white px-3 py-2 shadow-sm">
+    <div className="flex items-center gap-2 rounded-xl border border-gray-100 bg-white px-3 py-2 shadow-xs">
       <Icon size={16} className="text-brand-500" />
       <span className="text-xs text-sand-500">{label}</span>
       <span className="font-display text-lg font-bold text-ink-600">{value}</span>

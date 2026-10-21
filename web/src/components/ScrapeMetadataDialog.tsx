@@ -129,7 +129,7 @@ export function ScrapeMetadataDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 px-4 py-6 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 px-4 py-6 backdrop-blur-xs">
       <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
         {/* Header */}
         <div className="flex items-start justify-between gap-4 border-b border-gray-200 px-6 py-4">
@@ -260,7 +260,7 @@ export function ScrapeMetadataDialog({
                     value={destPath}
                     onChange={(e) => setDestPath(e.target.value)}
                     placeholder="如 /media/organized 或 D:\Media\Movies"
-                    className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-mono text-gray-800 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+                    className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-mono text-gray-800 outline-hidden focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
                   />
                 </div>
               </div>
@@ -293,7 +293,7 @@ export function ScrapeMetadataDialog({
                 <select
                   value={transferMode}
                   onChange={(e) => setTransferMode(e.target.value)}
-                  className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-700 outline-none focus:border-brand-300"
+                  className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-700 outline-hidden focus:border-brand-300"
                 >
                   <option value="hardlink">硬链接（Hardlink - 推荐，不占双份空间）</option>
                   <option value="move">移动（Move - 转移源文件）</option>
@@ -317,7 +317,7 @@ export function ScrapeMetadataDialog({
                     type="checkbox"
                     checked={refreshMatched}
                     onChange={(e) => setRefreshMatched(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                    className="h-4 w-4 rounded-sm border-gray-300 text-brand-600 focus:ring-brand-500"
                   />
                   <span>覆盖/刷新已有元数据</span>
                 </label>

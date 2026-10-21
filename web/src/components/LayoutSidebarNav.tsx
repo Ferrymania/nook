@@ -25,14 +25,14 @@ export function SidebarGroup({ id, icon, label, children, collapsed, open, activ
         className={clsx(
           'group relative flex w-full items-center gap-3.5 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-300',
           active
-            ? 'bg-[var(--app-active-bg)] text-[var(--app-active-text)] shadow-sm'
-            : 'text-[var(--app-muted)] hover:bg-[var(--app-hover)] hover:text-[var(--app-text)]',
+            ? 'bg-(--app-active-bg) text-(--app-active-text) shadow-xs'
+            : 'text-(--app-muted) hover:bg-(--app-hover) hover:text-(--app-text)',
           collapsed && 'justify-center px-0',
         )}
       >
         <span className={clsx(
           'flex h-5 w-5 shrink-0 items-center justify-center',
-          active ? 'text-[var(--app-active-icon)]' : 'text-[var(--app-muted)] group-hover:text-[var(--app-subtle)]',
+          active ? 'text-(--app-active-icon)' : 'text-(--app-muted) group-hover:text-(--app-subtle)',
         )}>
           {icon}
         </span>
@@ -46,7 +46,7 @@ export function SidebarGroup({ id, icon, label, children, collapsed, open, activ
           </>
         )}
         {collapsed && (
-          <div className="absolute left-full z-50 ml-3 rounded-xl bg-[var(--app-tooltip-bg)] px-2.5 py-1.5 text-xs font-semibold text-[var(--app-tooltip-text)] opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+          <div className="absolute left-full z-50 ml-3 rounded-xl bg-(--app-tooltip-bg) px-2.5 py-1.5 text-xs font-semibold text-(--app-tooltip-text) opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
             {label}
           </div>
         )}
@@ -83,13 +83,13 @@ export function SidebarLink({ to, icon, label, end, collapsed, child }: SidebarL
         'relative flex items-center gap-3.5 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-300 group',
         child && 'py-2.5 text-[13px]',
         isActive
-          ? 'bg-[var(--app-active-bg)] text-[var(--app-active-text)] shadow-sm'
-          : 'text-[var(--app-muted)] hover:bg-[var(--app-hover)] hover:text-[var(--app-text)]',
+          ? 'bg-(--app-active-bg) text-(--app-active-text) shadow-xs'
+          : 'text-(--app-muted) hover:bg-(--app-hover) hover:text-(--app-text)',
       )}
     >
       <span className={clsx(
         'flex h-5 w-5 shrink-0 items-center justify-center transition-transform duration-300 group-hover:scale-110',
-        isActive ? 'text-[var(--app-active-icon)]' : 'text-[var(--app-muted)] group-hover:text-[var(--app-subtle)]',
+        isActive ? 'text-(--app-active-icon)' : 'text-(--app-muted) group-hover:text-(--app-subtle)',
       )}>
         {icon}
       </span>
@@ -99,7 +99,7 @@ export function SidebarLink({ to, icon, label, end, collapsed, child }: SidebarL
         </span>
       )}
       {collapsed && (
-        <div className="pointer-events-none absolute left-full z-50 ml-3 whitespace-nowrap rounded-xl bg-[var(--app-tooltip-bg)] px-2.5 py-1.5 text-xs font-semibold text-[var(--app-tooltip-text)] opacity-0 shadow-lg transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
+        <div className="pointer-events-none absolute left-full z-50 ml-3 whitespace-nowrap rounded-xl bg-(--app-tooltip-bg) px-2.5 py-1.5 text-xs font-semibold text-(--app-tooltip-text) opacity-0 shadow-lg transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
           {label}
         </div>
       )}

@@ -25,7 +25,7 @@ export function PinDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/35 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-110 flex items-center justify-center bg-black/35 p-4 backdrop-blur-xs"
       onClick={() => onClose(null)}
     >
       <form
@@ -54,7 +54,7 @@ export function PinDialog({
               maxLength={8}
               value={pin}
               onChange={(event) => setPin(event.target.value)}
-              className="mt-4 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-center text-lg font-bold tracking-[0.35em] text-ink-600 outline-none transition focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-100/40"
+              className="mt-4 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-center text-lg font-bold tracking-[0.35em] text-ink-600 outline-hidden transition focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-100/40"
               placeholder="••••"
             />
           </div>
@@ -70,7 +70,7 @@ export function PinDialog({
           <button
             type="submit"
             disabled={!pin.trim()}
-            className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
           >
             验证并切换
           </button>

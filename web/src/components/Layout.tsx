@@ -64,7 +64,7 @@ export function Layout() {
   const showMobileBottomNav = shouldShowMobileBottomNav(location.pathname)
 
   return (
-    <div data-screen={isPlayPage ? 'player' : 'app'} className="nook-app flex h-[100dvh] min-h-0 w-full overflow-hidden bg-[var(--app-bg)] text-[var(--app-text)] font-body select-none">
+    <div data-screen={isPlayPage ? 'player' : 'app'} className="nook-app flex h-dvh min-h-0 w-full overflow-hidden bg-(--app-bg) text-(--app-text) font-body select-none">
       <LayoutSidebars
         sidebar={sidebar}
         isAdmin={permissions.isAdmin}

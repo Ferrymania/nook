@@ -15,7 +15,7 @@ export function FileManagerToolbar({
 }: FileManagerToolbarProps) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <button className="neon-button !px-3 !py-1 !text-xs" onClick={onRefresh}>
+      <button className="neon-button px-3! py-1! text-xs!" onClick={onRefresh}>
         <RefreshCw size={14} /> 刷新
       </button>
       <label className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-ink-100">

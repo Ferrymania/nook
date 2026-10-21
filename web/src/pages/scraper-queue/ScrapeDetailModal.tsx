@@ -25,7 +25,7 @@ export function ScrapeDetailModal({
 
   return (
     <div
-      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-110 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs"
       onClick={onClose}
     >
       <div
@@ -59,11 +59,11 @@ export function ScrapeDetailModal({
               )}
               <div className="space-y-1.5 min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="rounded bg-brand-500 px-2 py-0.5 text-[10px] font-bold text-white uppercase">
+                  <span className="rounded-sm bg-brand-500 px-2 py-0.5 text-[10px] font-bold text-white uppercase">
                     已匹配
                   </span>
                   {task.provider && (
-                    <span className="rounded border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-ink-600">
+                    <span className="rounded-sm border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-ink-600">
                       {PROVIDER_LABELS[task.provider] ?? task.provider}
                     </span>
                   )}
@@ -199,7 +199,7 @@ export function ScrapeDetailModal({
             <button
               type="button"
               onClick={() => onRetry(task)}
-              className="neon-button !py-2 !px-4 text-xs font-semibold"
+              className="neon-button py-2! px-4! text-xs font-semibold"
             >
               <RefreshCw size={13} />
               重新刮削

@@ -57,10 +57,10 @@ export function HomeLoadingState() {
     <div className="flex items-center justify-center py-48">
       <div className="flex flex-col items-center gap-4 animate-pulse-soft">
         <div className="relative flex items-center justify-center">
-          <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--app-border)] border-t-[var(--app-active-bg)]" />
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-(--app-border) border-t-(--app-active-bg)" />
           <Film className="absolute h-4 w-4 text-brand-500" />
         </div>
-        <span className="text-sm font-semibold uppercase tracking-widest text-[var(--app-muted)]">
+        <span className="text-sm font-semibold uppercase tracking-widest text-(--app-muted)">
           首页内容准备中…
         </span>
       </div>
@@ -71,11 +71,11 @@ export function HomeLoadingState() {
 export function HomeEmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-32 text-center max-w-md mx-auto">
-      <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-3xl border border-[var(--app-border)] bg-[var(--app-panel-soft)] shadow-sm">
-        <Film className="h-10 w-10 text-[var(--app-muted)]" />
+      <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-3xl border border-(--app-border) bg-(--app-panel-soft) shadow-xs">
+        <Film className="h-10 w-10 text-(--app-muted)" />
       </div>
-      <h1 className="text-xl font-semibold text-[var(--app-text)]">您的家庭影视站暂无内容</h1>
-      <p className="mt-2 text-sm leading-relaxed text-[var(--app-muted)]">
+      <h1 className="text-xl font-semibold text-(--app-text)">您的家庭影视站暂无内容</h1>
+      <p className="mt-2 text-sm leading-relaxed text-(--app-muted)">
         前往媒体库添加媒体目录，扫描后首页将展示海报轮播、媒体库和最新入库。
       </p>
       <Link to="/libraries" className="mt-8 btn-primary">
@@ -97,8 +97,8 @@ export function ContinueWatchingSkeleton() {
         {[0, 1, 2].map((i) => (
           <div key={i} className="nook-continue-item shrink-0" aria-hidden="true">
             <div className="nook-continue-artwork animate-pulse" />
-            <div className="mt-3 h-4 w-2/3 animate-pulse rounded bg-[var(--app-panel-soft)]" />
-            <div className="mt-2 h-3 w-1/2 animate-pulse rounded bg-[var(--app-panel-soft)]" />
+            <div className="mt-3 h-4 w-2/3 animate-pulse rounded-sm bg-(--app-panel-soft)" />
+            <div className="mt-2 h-3 w-1/2 animate-pulse rounded-sm bg-(--app-panel-soft)" />
           </div>
         ))}
       </div>
@@ -250,16 +250,16 @@ export function HomeLibrariesSection({
           </span>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="font-display text-xl font-extrabold tracking-tight text-[var(--app-text)]">
+              <h2 className="font-display text-xl font-extrabold tracking-tight text-(--app-text)">
                 {title}
               </h2>
               {libraries.length > PAGE_SIZE && (
-                <span className="rounded-md border border-[var(--app-border)] bg-[var(--app-panel-soft)] px-1.5 py-0.5 text-[11px] font-semibold text-[var(--app-muted)]">
+                <span className="rounded-md border border-(--app-border) bg-(--app-panel-soft) px-1.5 py-0.5 text-[11px] font-semibold text-(--app-muted)">
                   共 {libraries.length} 个 · 每页 {PAGE_SIZE} 个
                 </span>
               )}
             </div>
-            <p className="text-xs text-[var(--app-muted)]">
+            <p className="text-xs text-(--app-muted)">
               点击卡片浏览对应媒体库
             </p>
           </div>
@@ -268,24 +268,24 @@ export function HomeLibrariesSection({
         {(totalPages > 1 || showAllLink) && (
           <div className="flex items-center gap-3">
             {totalPages > 1 && (
-              <div className="flex items-center gap-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-panel-soft)] px-2 py-1 text-xs">
+              <div className="flex items-center gap-2 rounded-xl border border-(--app-border) bg-(--app-panel-soft) px-2 py-1 text-xs">
                 <button
                   type="button"
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={effectivePage <= 1}
-                  className="rounded-lg p-1 text-[var(--app-muted)] hover:bg-[var(--app-hover)] hover:text-[var(--app-text)] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-[var(--app-muted)] transition-colors"
+                  className="rounded-lg p-1 text-(--app-muted) hover:bg-(--app-hover) hover:text-(--app-text) disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-(--app-muted) transition-colors"
                   title="上一页"
                 >
                   <ChevronLeft size={14} />
                 </button>
-                <span className="text-xs font-medium tabular-nums text-[var(--app-subtle)]">
+                <span className="text-xs font-medium tabular-nums text-(--app-subtle)">
                   {effectivePage} / {totalPages}
                 </span>
                 <button
                   type="button"
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={effectivePage >= totalPages}
-                  className="rounded-lg p-1 text-[var(--app-muted)] hover:bg-[var(--app-hover)] hover:text-[var(--app-text)] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-[var(--app-muted)] transition-colors"
+                  className="rounded-lg p-1 text-(--app-muted) hover:bg-(--app-hover) hover:text-(--app-text) disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-(--app-muted) transition-colors"
                   title="下一页"
                 >
                   <ChevronRight size={14} />
@@ -296,7 +296,7 @@ export function HomeLibrariesSection({
             {showAllLink && (
               <Link
                 to="/libraries"
-                className="group inline-flex items-center gap-1 text-xs font-bold text-[var(--app-subtle)] transition-colors hover:text-brand-500"
+                className="group inline-flex items-center gap-1 text-xs font-bold text-(--app-subtle) transition-colors hover:text-brand-500"
               >
                 <span>全部媒体库</span>
                 <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
@@ -348,8 +348,8 @@ export function HomeLibraryCard({
   return (
     <div
       ref={ref}
-      className={`nook-library-card group relative h-full overflow-hidden rounded-lg border bg-[var(--app-panel)] transition-colors hover:bg-[var(--app-hover)] ${
-        pinned ? 'border-brand-500/60 ring-1 ring-brand-500/20' : 'border-[var(--app-border)]'
+      className={`nook-library-card group relative h-full overflow-hidden rounded-lg border bg-(--app-panel) transition-colors hover:bg-(--app-hover) ${
+        pinned ? 'border-brand-500/60 ring-1 ring-brand-500/20' : 'border-(--app-border)'
       }`}
     >
       <Link
@@ -358,7 +358,7 @@ export function HomeLibraryCard({
         title={library.name}
       >
         <div
-          className={`nook-library-artwork relative h-28 w-full overflow-hidden rounded-lg bg-[var(--app-panel-soft)] ${
+          className={`nook-library-artwork relative h-28 w-full overflow-hidden rounded-lg bg-(--app-panel-soft) ${
             artwork.length > 1 ? 'grid grid-cols-2 gap-0.5' : ''
           }`}
         >
@@ -393,12 +393,12 @@ export function HomeLibraryCard({
 
         <div className="nook-library-info mt-3 flex flex-col justify-between">
           <h3
-            className="line-clamp-2 break-words font-display text-sm font-bold text-[var(--app-text)] group-hover:text-brand-500"
+            className="line-clamp-2 wrap-break-word font-display text-sm font-bold text-(--app-text) group-hover:text-brand-500"
             title={library.name}
           >
             {library.name}
           </h3>
-          <p className="mt-0.5 text-xs text-[var(--app-muted)]">
+          <p className="mt-0.5 text-xs text-(--app-muted)">
             {count > 0 ? `${count} 部媒体` : '暂无条目'}
           </p>
         </div>
@@ -455,10 +455,10 @@ export function HomeLibraryRowSection({
             {TYPE_ICONS[library.type] || <FolderOpen size={18} />}
           </span>
           <div>
-            <h2 className="font-display text-xl font-extrabold tracking-tight text-[var(--app-text)]" title={library.name}>
+            <h2 className="font-display text-xl font-extrabold tracking-tight text-(--app-text)" title={library.name}>
               {library.name}
             </h2>
-            <span className="text-xs text-[var(--app-muted)]">
+            <span className="text-xs text-(--app-muted)">
               最近添加 · {cards.length} 部
             </span>
           </div>
@@ -467,7 +467,7 @@ export function HomeLibraryRowSection({
         <div className="flex items-center gap-3">
           <Link
             to={`/library/${library.id}`}
-            className="group inline-flex items-center gap-1 text-xs font-bold text-[var(--app-subtle)] transition-colors hover:text-brand-500"
+            className="group inline-flex items-center gap-1 text-xs font-bold text-(--app-subtle) transition-colors hover:text-brand-500"
           >
             <span>查看全部</span>
             <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
@@ -478,7 +478,7 @@ export function HomeLibraryRowSection({
             <button
               type="button"
               onClick={() => scroll('left')}
-              className="rounded-xl border border-[var(--app-border)] p-1.5 text-[var(--app-muted)] hover:bg-[var(--app-hover)] hover:text-[var(--app-text)] transition-colors"
+              className="rounded-xl border border-(--app-border) p-1.5 text-(--app-muted) hover:bg-(--app-hover) hover:text-(--app-text) transition-colors"
               title="向左滚动"
             >
               <ChevronLeft size={16} />
@@ -486,7 +486,7 @@ export function HomeLibraryRowSection({
             <button
               type="button"
               onClick={() => scroll('right')}
-              className="rounded-xl border border-[var(--app-border)] p-1.5 text-[var(--app-muted)] hover:bg-[var(--app-hover)] hover:text-[var(--app-text)] transition-colors"
+              className="rounded-xl border border-(--app-border) p-1.5 text-(--app-muted) hover:bg-(--app-hover) hover:text-(--app-text) transition-colors"
               title="向右滚动"
             >
               <ChevronRight size={16} />
@@ -541,10 +541,10 @@ export function ContinueWatchingSection({ history }: { history: HistoryItem[] })
             <Clock size={18} />
           </span>
           <div>
-            <h2 className="font-display text-xl font-extrabold tracking-tight text-[var(--app-text)]">
+            <h2 className="font-display text-xl font-extrabold tracking-tight text-(--app-text)">
               继续观看
             </h2>
-            <span className="text-xs text-[var(--app-muted)]">
+            <span className="text-xs text-(--app-muted)">
               {history.length} 条播放记录
             </span>
           </div>
@@ -554,7 +554,7 @@ export function ContinueWatchingSection({ history }: { history: HistoryItem[] })
           <button
             type="button"
             onClick={() => scroll('left')}
-            className="rounded-xl border border-[var(--app-border)] p-1.5 text-[var(--app-muted)] hover:bg-[var(--app-hover)] hover:text-[var(--app-text)] transition-colors"
+            className="rounded-xl border border-(--app-border) p-1.5 text-(--app-muted) hover:bg-(--app-hover) hover:text-(--app-text) transition-colors"
             title="向左滚动"
           >
             <ChevronLeft size={16} />
@@ -562,7 +562,7 @@ export function ContinueWatchingSection({ history }: { history: HistoryItem[] })
           <button
             type="button"
             onClick={() => scroll('right')}
-            className="rounded-xl border border-[var(--app-border)] p-1.5 text-[var(--app-muted)] hover:bg-[var(--app-hover)] hover:text-[var(--app-text)] transition-colors"
+            className="rounded-xl border border-(--app-border) p-1.5 text-(--app-muted) hover:bg-(--app-hover) hover:text-(--app-text) transition-colors"
             title="向右滚动"
           >
             <ChevronRight size={16} />

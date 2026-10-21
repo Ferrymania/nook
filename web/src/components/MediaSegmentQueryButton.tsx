@@ -79,10 +79,10 @@ export function MediaSegmentQueryDialog({ media, episodes, onClose }: MediaSegme
   }, [query])
 
   return createPortal(
-      <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/35 p-4 backdrop-blur-sm" onClick={close}>
+      <div className="fixed inset-0 z-110 flex items-center justify-center bg-black/35 p-4 backdrop-blur-xs" onClick={close}>
         <div
           ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId}
-          className="flex max-h-[90dvh] w-full max-w-lg flex-col overflow-hidden rounded-3xl border border-[var(--app-border)] bg-[var(--app-panel)] text-[var(--app-text)] shadow-2xl"
+          className="flex max-h-[90dvh] w-full max-w-lg flex-col overflow-hidden rounded-3xl border border-(--app-border) bg-(--app-panel) text-(--app-text) shadow-2xl"
           onClick={event => event.stopPropagation()}
           onKeyDown={event => {
             if (event.key === 'Escape') { event.preventDefault(); close() }
@@ -93,43 +93,43 @@ export function MediaSegmentQueryDialog({ media, episodes, onClose }: MediaSegme
             if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
           }}
         >
-          <header className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--app-border)] p-5">
-            <div><h2 id={titleId} className="font-display text-lg font-semibold">{title}</h2><p className="mt-1 break-words text-xs text-[var(--app-muted)]">{media.title}{isBatch ? ` · ${targets.length} 个媒体` : media.episode_num > 0 ? ` · S${media.season_num}E${formatEpisodeNumber(media)}` : ''}</p></div>
-            <button type="button" ref={closeRef} aria-label="关闭" onClick={close} className="rounded-lg p-1.5 text-[var(--app-muted)] hover:bg-[var(--app-panel-soft)]"><X size={18} /></button>
+          <header className="flex shrink-0 items-start justify-between gap-3 border-b border-(--app-border) p-5">
+            <div><h2 id={titleId} className="font-display text-lg font-semibold">{title}</h2><p className="mt-1 wrap-break-word text-xs text-(--app-muted)">{media.title}{isBatch ? ` · ${targets.length} 个媒体` : media.episode_num > 0 ? ` · S${media.season_num}E${formatEpisodeNumber(media)}` : ''}</p></div>
+            <button type="button" ref={closeRef} aria-label="关闭" onClick={close} className="rounded-lg p-1.5 text-(--app-muted) hover:bg-(--app-panel-soft)"><X size={18} /></button>
           </header>
           <div className="min-h-0 space-y-4 overflow-y-auto p-5">
-            <p className="text-xs leading-relaxed text-[var(--app-muted)]">向 TheIntroDB 查询时间点，不读取视频文件，无需 API Key。</p>
+            <p className="text-xs leading-relaxed text-(--app-muted)">向 TheIntroDB 查询时间点，不读取视频文件，无需 API Key。</p>
             {isBatch && <div className="space-y-3">
               <div role="status" aria-live="polite" className="space-y-2 text-sm">
                 <p className="flex items-center gap-2">{loading && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}{loading ? '正在逐集查询' : batchResults.length === targets.length ? '查询完成' : '查询已停止'} · {batchResults.length} / {targets.length}</p>
-                <p className="text-xs text-[var(--app-muted)]">已找到 {found} · 未找到 {missing} · 失败 {failed}</p>
+                <p className="text-xs text-(--app-muted)">已找到 {found} · 未找到 {missing} · 失败 {failed}</p>
               </div>
-              <p className="text-xs leading-relaxed text-[var(--app-muted)]">查询记录可在片头片尾队列查看。关闭窗口会停止后续查询，当前查询的结果仍会保存。</p>
-              {batchResults.length > 0 && <ul className="divide-y divide-[var(--app-border)] rounded-xl border border-[var(--app-border)] px-3">
+              <p className="text-xs leading-relaxed text-(--app-muted)">查询记录可在片头片尾队列查看。关闭窗口会停止后续查询，当前查询的结果仍会保存。</p>
+              {batchResults.length > 0 && <ul className="divide-y divide-(--app-border) rounded-xl border border-(--app-border) px-3">
                 {batchResults.map(row => <li key={row.media.id} className="py-3 text-xs">
-                  <div className="flex items-start justify-between gap-3"><span className="min-w-0 break-words">S{row.media.season_num}E{formatEpisodeNumber(row.media) || '—'} · {row.media.title}</span><span className={`shrink-0 ${row.status === 'failed' ? 'text-[var(--app-danger-text)]' : 'text-[var(--app-muted)]'}`}>{row.status === 'found' ? '已找到' : row.status === 'missing' ? '未找到' : '失败'}</span></div>
-                  {row.error && <p className="mt-1.5 break-words text-[var(--app-danger-text)]">{row.error}</p>}
+                  <div className="flex items-start justify-between gap-3"><span className="min-w-0 wrap-break-word">S{row.media.season_num}E{formatEpisodeNumber(row.media) || '—'} · {row.media.title}</span><span className={`shrink-0 ${row.status === 'failed' ? 'text-(--app-danger-text)' : 'text-(--app-muted)'}`}>{row.status === 'found' ? '已找到' : row.status === 'missing' ? '未找到' : '失败'}</span></div>
+                  {row.error && <p className="mt-1.5 wrap-break-word text-(--app-danger-text)">{row.error}</p>}
                 </li>)}
               </ul>}
             </div>}
-            {loading && !isBatch && <div role="status" className="flex items-center justify-center gap-2 py-8 text-sm text-[var(--app-muted)]"><Loader2 size={20} className="animate-spin" />正在查询…</div>}
+            {loading && !isBatch && <div role="status" className="flex items-center justify-center gap-2 py-8 text-sm text-(--app-muted)"><Loader2 size={20} className="animate-spin" />正在查询…</div>}
             {error && <p role="alert" className="rounded-xl bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
             {!isBatch && !loading && result && <div className="space-y-3" aria-live="polite">
               {result.found ? <>
                 <p className="flex items-center gap-2 text-sm font-medium"><CircleCheck size={17} className="text-emerald-600" />{error ? '上次保存的时间点' : '已查到时间点'}</p>
-                <div className="overflow-hidden rounded-xl border border-[var(--app-border)]">
-                  <table className="w-full text-left text-sm"><caption className="sr-only">影片片头片尾时间点</caption><thead className="bg-[var(--app-panel-soft)] text-xs text-[var(--app-muted)]"><tr><th className="px-3 py-2 font-normal">类型</th><th className="px-3 py-2 font-normal">开始</th><th className="px-3 py-2 font-normal">结束</th></tr></thead><tbody>
-                    {result.segments.map((segment, index) => <tr key={`${segment.kind}-${index}`} className="border-t border-[var(--app-border)]"><td className="px-3 py-2.5">{KIND_LABELS[segment.kind] || segment.kind}</td><td className="px-3 py-2.5 tabular-nums">{formatTime(segment.start_ms)}</td><td className="px-3 py-2.5 tabular-nums">{segment.end_ms > 0 ? formatTime(segment.end_ms) : '至片尾'}</td></tr>)}
+                <div className="overflow-hidden rounded-xl border border-(--app-border)">
+                  <table className="w-full text-left text-sm"><caption className="sr-only">影片片头片尾时间点</caption><thead className="bg-(--app-panel-soft) text-xs text-(--app-muted)"><tr><th className="px-3 py-2 font-normal">类型</th><th className="px-3 py-2 font-normal">开始</th><th className="px-3 py-2 font-normal">结束</th></tr></thead><tbody>
+                    {result.segments.map((segment, index) => <tr key={`${segment.kind}-${index}`} className="border-t border-(--app-border)"><td className="px-3 py-2.5">{KIND_LABELS[segment.kind] || segment.kind}</td><td className="px-3 py-2.5 tabular-nums">{formatTime(segment.start_ms)}</td><td className="px-3 py-2.5 tabular-nums">{segment.end_ms > 0 ? formatTime(segment.end_ms) : '至片尾'}</td></tr>)}
                   </tbody></table>
                 </div>
-              </> : <p className="rounded-xl bg-[var(--app-panel-soft)] p-4 text-sm leading-relaxed">TheIntroDB 暂无这部影片的时间点，已记录查询结果。可以稍后重新查询。</p>}
-              <p className="flex items-start gap-1.5 text-xs text-[var(--app-muted)]"><Database size={13} className="mt-0.5 shrink-0" /><span>已保存到数据库 · {new Date(result.fetched_at).toLocaleString('zh-CN', { hour12: false })}</span></p>
+              </> : <p className="rounded-xl bg-(--app-panel-soft) p-4 text-sm leading-relaxed">TheIntroDB 暂无这部影片的时间点，已记录查询结果。可以稍后重新查询。</p>}
+              <p className="flex items-start gap-1.5 text-xs text-(--app-muted)"><Database size={13} className="mt-0.5 shrink-0" /><span>已保存到数据库 · {new Date(result.fetched_at).toLocaleString('zh-CN', { hour12: false })}</span></p>
             </div>}
           </div>
-          <footer className="flex shrink-0 flex-wrap justify-end gap-2 border-t border-[var(--app-border)] bg-[var(--app-panel-soft)] px-5 py-4">
+          <footer className="flex shrink-0 flex-wrap justify-end gap-2 border-t border-(--app-border) bg-(--app-panel-soft) px-5 py-4">
             <Link to="/queue?type=segments" onClick={close} className="mr-auto self-center text-xs text-brand-600 hover:underline">查看查询队列</Link>
-            <button type="button" disabled={loading} onClick={() => { void query() }} className="btn-outline !px-3 !py-2 text-xs"><RefreshCw size={13} />重新查询</button>
-            <button type="button" onClick={close} className="btn-primary !px-4 !py-2 text-xs">{isBatch && loading ? '停止并关闭' : '关闭'}</button>
+            <button type="button" disabled={loading} onClick={() => { void query() }} className="btn-outline px-3! py-2! text-xs"><RefreshCw size={13} />重新查询</button>
+            <button type="button" onClick={close} className="btn-primary px-4! py-2! text-xs">{isBatch && loading ? '停止并关闭' : '关闭'}</button>
           </footer>
         </div>
       </div>, document.body,

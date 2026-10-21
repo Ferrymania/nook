@@ -85,7 +85,7 @@ export function DlnaPage() {
         <button
           onClick={() => scan(true)}
           disabled={scanning}
-          className="neon-button !px-3 !py-1 !text-xs"
+          className="neon-button px-3! py-1! text-xs!"
         >
           <RefreshCw size={12} className={scanning ? 'animate-spin' : ''} /> 重新扫描
         </button>
@@ -102,7 +102,7 @@ export function DlnaPage() {
 
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {devices.map((dev) => (
-          <div key={dev.udn} className="glass-panel space-y-2 !p-4">
+          <div key={dev.udn} className="glass-panel space-y-2 p-4!">
             <div className="flex items-center gap-2">
               <Tv size={18} className="text-brand-500" />
               <p className="font-medium text-ink-600">{dev.friendly_name || dev.model_name}</p>
@@ -113,7 +113,7 @@ export function DlnaPage() {
             <button
               onClick={() => cast(dev)}
               disabled={!dev.control_url}
-              className="neon-button w-full !text-xs"
+              className="neon-button w-full text-xs!"
             >
               <Cast size={12} /> 投屏
             </button>

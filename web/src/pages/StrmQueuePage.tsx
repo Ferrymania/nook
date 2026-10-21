@@ -233,7 +233,7 @@ export function StrmQueuePanel({
       {!embedded && (
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-400/30 bg-primary-400/10 text-brand-500 shadow-sm">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-400/30 bg-primary-400/10 text-brand-500 shadow-xs">
             <Icon size={22} />
           </div>
           <div>
@@ -282,7 +282,7 @@ export function StrmQueuePanel({
             type="button"
             disabled={isRefreshing}
             onClick={() => refresh(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-ink-100 shadow-sm transition hover:border-gray-300 hover:bg-gray-50"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-ink-100 shadow-xs transition hover:border-gray-300 hover:bg-gray-50"
             title="手动刷新"
           >
             <RefreshCw size={13} className={isRefreshing ? 'animate-spin text-brand-500' : ''} />
@@ -291,11 +291,11 @@ export function StrmQueuePanel({
 
           {/* Quick Clean Actions */}
           <details className="relative inline-block">
-            <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-ink-100 shadow-sm transition hover:border-gray-300 hover:bg-gray-50 [&::-webkit-details-marker]:hidden">
+            <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-ink-100 shadow-xs transition hover:border-gray-300 hover:bg-gray-50 [&::-webkit-details-marker]:hidden">
               <Trash2 size={13} className="text-sand-500" />
               <span>清理与重试</span>
             </summary>
-            <div className="absolute right-0 top-10 z-30 min-w-44 rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl backdrop-blur">
+            <div className="absolute right-0 top-10 z-30 min-w-44 rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl backdrop-blur-sm">
               {failedCount > 0 && (
                 <button
                   type="button"
@@ -423,7 +423,7 @@ export function StrmQueuePanel({
               }}
               className={`flex flex-col justify-between rounded-2xl border p-3.5 text-left transition-all duration-200 select-none ${
                 isActive
-                  ? 'border-brand-500 bg-primary-400/10 shadow-sm ring-2 ring-brand-500/20'
+                  ? 'border-brand-500 bg-primary-400/10 shadow-xs ring-2 ring-brand-500/20'
                   : 'border-gray-200 bg-white/80 hover:border-gray-300 hover:bg-white'
               }`}
             >
@@ -450,13 +450,13 @@ export function StrmQueuePanel({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="搜索文件名、本地/远端路径或错误信息…"
-            className="h-9 w-full rounded-xl border border-gray-200 bg-white pl-9 pr-8 text-xs text-ink-600 placeholder:text-gray-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100/60"
+            className="h-9 w-full rounded-xl border border-gray-200 bg-white pl-9 pr-8 text-xs text-ink-600 placeholder:text-gray-400 outline-hidden transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100/60"
           />
           {search && (
             <button
               type="button"
               onClick={() => setSearch('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-400 hover:text-ink-600"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-gray-400 hover:text-ink-600"
             >
               <X size={13} />
             </button>
@@ -646,11 +646,11 @@ export function StrmQueuePanel({
 
             {/* 下拉批量操作菜单：随时可做任意全局操作 */}
             <details className="relative inline-block">
-              <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-100 shadow-sm transition hover:border-gray-300 hover:bg-gray-50 [&::-webkit-details-marker]:hidden">
+              <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-100 shadow-xs transition hover:border-gray-300 hover:bg-gray-50 [&::-webkit-details-marker]:hidden">
                 <Trash2 size={12} className="text-sand-500" />
                 <span>批量清理</span>
               </summary>
-              <div className="absolute right-0 top-9 z-30 min-w-44 rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl backdrop-blur">
+              <div className="absolute right-0 top-9 z-30 min-w-44 rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl backdrop-blur-sm">
                 {failedCount > 0 && (
                   <button
                     type="button"
@@ -753,7 +753,7 @@ export function StrmQueuePanel({
       </div>
 
       {/* 4. Task Table */}
-      <div className="glass-panel overflow-hidden !p-0 shadow-sm">
+      <div className="glass-panel overflow-hidden p-0! shadow-xs">
         {loading ? (
           <div className="flex justify-center py-16 text-ink-50">
             <Loader2 className="animate-spin text-brand-500" size={28} />
@@ -778,7 +778,7 @@ export function StrmQueuePanel({
                       type="checkbox"
                       checked={allCurrentChecked}
                       onChange={toggleSelectAll}
-                      className="h-3.5 w-3.5 rounded border-gray-300 text-brand-500 focus:ring-brand-400 cursor-pointer"
+                      className="h-3.5 w-3.5 rounded-sm border-gray-300 text-brand-500 focus:ring-brand-400 cursor-pointer"
                       title="全选 / 反选本页"
                     />
                   </th>
@@ -808,7 +808,7 @@ export function StrmQueuePanel({
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => toggleSelectRow(task.id)}
-                          className="h-3.5 w-3.5 rounded border-gray-300 text-brand-500 focus:ring-brand-400 cursor-pointer"
+                          className="h-3.5 w-3.5 rounded-sm border-gray-300 text-brand-500 focus:ring-brand-400 cursor-pointer"
                         />
                       </td>
                       <td className="max-w-[240px] px-3 py-2.5">
@@ -825,11 +825,11 @@ export function StrmQueuePanel({
                       </td>
                       <td className="px-3 py-2.5 text-xs text-ink-100">
                         <div className="flex items-center gap-1.5">
-                          <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-ink-50">
+                          <span className="rounded-sm bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-ink-50">
                             {STRM_PROVIDER_LABELS[task.provider] ?? task.provider}
                           </span>
                           {task.retry_count > 0 && (
-                            <span className="rounded bg-amber-50 px-1 py-0.5 text-[9px] font-bold text-amber-600 border border-amber-200">
+                            <span className="rounded-sm bg-amber-50 px-1 py-0.5 text-[9px] font-bold text-amber-600 border border-amber-200">
                               重试 {task.retry_count}
                             </span>
                           )}
@@ -846,7 +846,7 @@ export function StrmQueuePanel({
                           <button
                             type="button"
                             onClick={() => copyText(task.local_path, '本地路径')}
-                            className="opacity-0 group-hover:opacity-100 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-ink-600 transition-opacity"
+                            className="opacity-0 group-hover:opacity-100 rounded-sm p-1 text-gray-400 hover:bg-gray-100 hover:text-ink-600 transition-opacity"
                             title="复制路径"
                           >
                             <Copy size={11} />

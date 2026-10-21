@@ -335,7 +335,7 @@ export function HomePage() {
             />
           )}
           {taggedLibraries.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-12 text-center text-sm text-[var(--app-muted)]">
+            <p className="rounded-2xl border border-dashed border-(--app-border) bg-(--app-panel) px-4 py-12 text-center text-sm text-(--app-muted)">
               「{effectiveTagId}」标签下还没有媒体库，可在「管理标签」里把媒体库归入该标签。
             </p>
           ) : (
@@ -369,7 +369,7 @@ export function HomePage() {
               onClick={revealMoreLibraries}
               className="flex h-10 w-full items-center justify-center py-2 opacity-60 transition-opacity hover:opacity-100"
             >
-              <div className="flex items-center gap-2 text-xs text-[var(--app-muted)]">
+              <div className="flex items-center gap-2 text-xs text-(--app-muted)">
                 <div className="h-1.5 w-1.5 animate-ping rounded-full bg-brand-500" />
                 <span>加载更多媒体库…</span>
               </div>

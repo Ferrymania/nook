@@ -186,7 +186,7 @@ export function PlayerPlaylistPanel({
 
       {/* 某一集的版本列表：从宫格角标展开，选完即收起 */}
       {expandedEpisode && versionsForEpisode.length > 0 && (
-        <div className="shrink-0 border-b border-white/10 bg-white/[0.03] px-3 py-2.5">
+        <div className="shrink-0 border-b border-white/10 bg-white/3 px-3 py-2.5">
           <div className="mb-1.5 flex items-center justify-between gap-2">
             <div className="flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-amber-200">
               <Layers size={12} className="shrink-0" />
@@ -198,7 +198,7 @@ export function PlayerPlaylistPanel({
             </div>
             <button
               onClick={() => setVersionsForEpisodeId(null)}
-              className="shrink-0 rounded p-0.5 text-white/45 transition hover:bg-white/10 hover:text-white"
+              className="shrink-0 rounded-sm p-0.5 text-white/45 transition hover:bg-white/10 hover:text-white"
               title="收起版本列表"
             >
               <X size={13} />
@@ -261,7 +261,7 @@ export function PlayerPlaylistPanel({
               value={filterText}
               onChange={(e) => setFilterText(e.target.value)}
               placeholder="搜索集数或标题…"
-              className="w-full bg-transparent text-xs text-white outline-none placeholder:text-white/30"
+              className="w-full bg-transparent text-xs text-white outline-hidden placeholder:text-white/30"
             />
             {filterText && (
               <button onClick={() => setFilterText('')} className="text-white/40 hover:text-white">
@@ -311,7 +311,7 @@ export function PlayerPlaylistPanel({
                       className={`flex ${inline ? 'h-10' : 'h-9'} w-full items-center justify-center rounded-md text-xs font-medium tabular-nums transition ${
                         isPlaying
                           ? 'bg-rose-500 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.2)_inset]'
-                          : 'bg-white/[0.06] text-white/80 hover:bg-white/15 hover:text-white'
+                          : 'bg-white/6 text-white/80 hover:bg-white/15 hover:text-white'
                       }`}
                     >
                       {isPlaying ? (

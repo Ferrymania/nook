@@ -206,7 +206,7 @@ function EditingRow({
             />
             全局启用
           </label>
-          <button type="submit" disabled={saving} className="neon-button !px-3 !py-1.5 !text-xs">
+          <button type="submit" disabled={saving} className="neon-button px-3! py-1.5! text-xs!">
             <Save size={12} /> 保存
           </button>
           <button

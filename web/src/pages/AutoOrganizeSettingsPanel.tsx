@@ -51,7 +51,7 @@ export function AutoOrganizeSettingsPanel({
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            className="neon-button !border-primary-400/30 !bg-white !text-brand-500"
+            className="neon-button border-primary-400/30! bg-white! text-brand-500!"
             disabled={loading || saving || !dirty}
             onClick={onSave}
           >
@@ -75,7 +75,7 @@ export function AutoOrganizeSettingsPanel({
             type="button"
             className={
               activeTab === key
-                ? 'rounded-xl bg-white px-3 py-1.5 text-xs font-semibold text-brand-500 shadow-sm'
+                ? 'rounded-xl bg-white px-3 py-1.5 text-xs font-semibold text-brand-500 shadow-xs'
                 : 'rounded-xl px-3 py-1.5 text-xs text-ink-100 hover:bg-white/70'
             }
             onClick={() => onTabChange(key)}

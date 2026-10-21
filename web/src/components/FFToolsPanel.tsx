@@ -171,7 +171,7 @@ export function FFToolsPanel({ values, savedValues, dirty, saving, statusRevisio
       <details className="settings-disclosure mt-2">
         <summary>路径说明与工具版本</summary>
         <p className="settings-help-text">可手动填写或自动检测；Docker 部署请使用容器内可见的路径。检测或安装后，点击下方保存生效。</p>
-        {TOOLS.map((tool) => status?.[tool]?.version && <p key={tool} className="settings-help-text break-words font-mono">{status[tool]!.version!.split(' Copyright')[0]}</p>)}
+        {TOOLS.map((tool) => status?.[tool]?.version && <p key={tool} className="settings-help-text wrap-break-word font-mono">{status[tool]!.version!.split(' Copyright')[0]}</p>)}
       </details>
       {statusError && <div role="alert" className="flex flex-wrap items-center gap-2 text-xs text-red-600">
         当前工具状态获取失败，路径修改已保留。
@@ -179,7 +179,7 @@ export function FFToolsPanel({ values, savedValues, dirty, saving, statusRevisio
       </div>}
       {(installing || feedback || downloadedUnused) && <div
         role={feedback?.error ? 'alert' : 'status'}
-        className={`rounded-xl px-3 py-2 text-xs ${feedback?.error ? 'bg-red-50 text-red-600' : 'bg-[var(--app-panel-soft)] text-[var(--app-muted)]'}`}
+        className={`rounded-xl px-3 py-2 text-xs ${feedback?.error ? 'bg-red-50 text-red-600' : 'bg-(--app-panel-soft) text-(--app-muted)'}`}
       >
         {feedback?.text ?? (installing
           ? `${status?.message || '正在下载安装…'} 当前配置继续使用；安装完成只填入路径，保存后才生效。`
@@ -201,7 +201,7 @@ function ToolPath({ tool, value, active, candidate, pending, checking, statusErr
   return <div className="min-w-0 space-y-2">
     <div className="flex items-center justify-between gap-3">
       <label htmlFor={id} className="text-sm font-medium text-ink-600">{name} 程序路径</label>
-      <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${pending ? 'bg-[var(--app-brand-soft)] text-[var(--app-brand-text)]' : 'bg-[var(--app-panel-soft)] text-[var(--app-muted)]'}`}>
+      <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${pending ? 'bg-(--app-brand-soft) text-(--app-brand-text)' : 'bg-(--app-panel-soft) text-(--app-muted)'}`}>
         {pending ? '待保存' : checking ? '检测中' : statusError ? '状态未知' : active?.installed ? '可用' : '未检测到'}
       </span>
     </div>
@@ -209,7 +209,7 @@ function ToolPath({ tool, value, active, candidate, pending, checking, statusErr
       placeholder={confirmed && active?.path ? active.path : `输入 ${name} 程序路径，或点击自动检测`}
       onChange={(event) => onChange(event.target.value)} disabled={disabled} spellCheck={false}
       aria-describedby={showDetail ? `${id}-detail` : undefined} />
-    {showDetail && <p id={`${id}-detail`} className="break-all text-xs text-[var(--app-muted)]">
+    {showDetail && <p id={`${id}-detail`} className="break-all text-xs text-(--app-muted)">
       {info?.version && (pending || confirmed) ? `${info.version.split(' Copyright')[0]}${pending ? ' · 保存后使用' : ''}`
         : pending ? '路径尚未保存，当前配置继续使用。'
           : confirmed && active?.installed ? '当前工具可用。' : '填写完整程序路径；Docker 部署请使用容器内可见的路径。'}

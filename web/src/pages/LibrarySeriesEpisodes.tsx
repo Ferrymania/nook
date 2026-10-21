@@ -99,7 +99,7 @@ export function LibrarySeriesEpisodes({
                       referrerPolicy="no-referrer"
                     />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                      <Play size={15} className="fill-white text-white drop-shadow-sm" />
+                      <Play size={15} className="fill-white text-white drop-shadow-xs" />
                     </div>
                     {ep.episode_num > 0 && (
                       <span className="absolute bottom-0 right-0 rounded-tl bg-black/75 px-1 py-0.5 text-[9px] font-bold leading-none text-white backdrop-blur-[2px]">
@@ -124,7 +124,7 @@ export function LibrarySeriesEpisodes({
                     <button
                       type="button"
                       onClick={() => onManualScrape(ep)}
-                      className="btn-outline !px-2 !py-1.5 text-[11px]"
+                      className="btn-outline px-2! py-1.5! text-[11px]"
                       title="手动匹配剧场版"
                     >
                       <Search size={12} />

@@ -43,7 +43,7 @@ export function WatchStatsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-32 text-[var(--app-muted)]">
+      <div className="flex items-center justify-center py-32 text-(--app-muted)">
         <Loader2 className="animate-spin" />
       </div>
     )
@@ -53,7 +53,7 @@ export function WatchStatsPage() {
     return (
       <div className="space-y-6">
         <PageHeader title="观看统计" description="你的观看时长、类型分布与最近记录" />
-        <p className="glass-panel p-6 text-center text-sm text-[var(--app-muted)]">
+        <p className="glass-panel p-6 text-center text-sm text-(--app-muted)">
           统计加载失败，请稍后重试。
         </p>
       </div>
@@ -70,7 +70,7 @@ export function WatchStatsPage() {
       <PageHeader title="观看统计" description="你的观看时长、类型分布与最近记录" />
 
       {!hasAnyHistory ? (
-        <p className="glass-panel p-8 text-center text-sm text-[var(--app-muted)]">
+        <p className="glass-panel p-8 text-center text-sm text-(--app-muted)">
           还没有观看记录。播放任意内容后，这里会展示观看时长与类型分布。
         </p>
       ) : (
@@ -102,15 +102,15 @@ export function WatchStatsPage() {
 
           <section className="glass-panel space-y-4">
             <div className="flex items-baseline justify-between">
-              <h2 className="font-display text-lg font-semibold text-[var(--app-text)]">
+              <h2 className="font-display text-lg font-semibold text-(--app-text)">
                 近 30 天观看时长
               </h2>
-              <span className="text-xs text-[var(--app-muted)]">
+              <span className="text-xs text-(--app-muted)">
                 {daily.length > 0 ? `${daily.length} 天有记录` : '暂无记录'}
               </span>
             </div>
             {daily.length === 0 ? (
-              <p className="py-6 text-center text-sm text-[var(--app-muted)]">
+              <p className="py-6 text-center text-sm text-(--app-muted)">
                 近 30 天没有观看记录
               </p>
             ) : (
@@ -119,11 +119,11 @@ export function WatchStatsPage() {
           </section>
 
           <section className="glass-panel space-y-3">
-            <h2 className="font-display text-lg font-semibold text-[var(--app-text)]">
+            <h2 className="font-display text-lg font-semibold text-(--app-text)">
               类型分布
             </h2>
             {byType.length === 0 ? (
-              <p className="py-4 text-center text-sm text-[var(--app-muted)]">暂无数据</p>
+              <p className="py-4 text-center text-sm text-(--app-muted)">暂无数据</p>
             ) : (
               <ul className="space-y-2">
                 {byType.map((row) => {
@@ -131,17 +131,17 @@ export function WatchStatsPage() {
                   const ratio = Math.max(2, Math.round((row.watch_ms / max) * 100))
                   return (
                     <li key={row.type} className="flex items-center gap-3">
-                      <span className="flex w-20 shrink-0 items-center gap-1.5 text-xs font-semibold text-[var(--app-subtle)]">
+                      <span className="flex w-20 shrink-0 items-center gap-1.5 text-xs font-semibold text-(--app-subtle)">
                         {typeIcon(row.type)}
                         {typeLabel(row.type)}
                       </span>
-                      <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-[var(--app-hover)]">
+                      <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-(--app-hover)">
                         <span
                           className="block h-full rounded-full bg-brand-500"
                           style={{ width: `${ratio}%` }}
                         />
                       </span>
-                      <span className="w-24 shrink-0 text-right font-mono text-xs text-[var(--app-muted)]">
+                      <span className="w-24 shrink-0 text-right font-mono text-xs text-(--app-muted)">
                         {formatHours(row.watch_ms / 1000 / 3600)} · {row.count} 条
                       </span>
                     </li>
@@ -153,7 +153,7 @@ export function WatchStatsPage() {
 
           {recent.length > 0 && (
             <section className="glass-panel space-y-3">
-              <h2 className="font-display text-lg font-semibold text-[var(--app-text)]">
+              <h2 className="font-display text-lg font-semibold text-(--app-text)">
                 最近看过
               </h2>
               <ul className="grid gap-2 sm:grid-cols-2">
@@ -161,9 +161,9 @@ export function WatchStatsPage() {
                   <li key={row.history.id}>
                     <Link
                       to={`/media/${row.history.media_id}`}
-                      className="flex items-center gap-3 rounded-2xl border border-[var(--app-border)] bg-[var(--app-panel)] p-2.5 transition-colors hover:bg-[var(--app-hover)]"
+                      className="flex items-center gap-3 rounded-2xl border border-(--app-border) bg-(--app-panel) p-2.5 transition-colors hover:bg-(--app-hover)"
                     >
-                      <span className="h-14 w-10 shrink-0 overflow-hidden rounded-lg bg-[var(--app-panel-soft)]">
+                      <span className="h-14 w-10 shrink-0 overflow-hidden rounded-lg bg-(--app-panel-soft)">
                         {row.media?.poster_url && (
                           <img
                             src={imageURL(
@@ -178,10 +178,10 @@ export function WatchStatsPage() {
                         )}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-xs font-semibold text-[var(--app-text)]">
+                        <span className="block truncate text-xs font-semibold text-(--app-text)">
                           {row.media?.title ?? '未知媒体'}
                         </span>
-                        <span className="mt-0.5 block text-[11px] text-[var(--app-muted)]">
+                        <span className="mt-0.5 block text-[11px] text-(--app-muted)">
                           {formatDate(row.history.watched_at)}
                           {row.history.completed ? ' · 已看完' : ' · 在看'}
                         </span>
@@ -211,12 +211,12 @@ function StatCard({
 }) {
   return (
     <div className="glass-panel space-y-1">
-      <div className="flex items-center gap-2 text-xs font-semibold text-[var(--app-muted)]">
+      <div className="flex items-center gap-2 text-xs font-semibold text-(--app-muted)">
         {icon}
         {label}
       </div>
-      <div className="font-display text-2xl font-black text-[var(--app-text)]">{value}</div>
-      <div className="text-[11px] text-[var(--app-muted)]">{hint}</div>
+      <div className="font-display text-2xl font-black text-(--app-text)">{value}</div>
+      <div className="text-[11px] text-(--app-muted)">{hint}</div>
     </div>
   )
 }

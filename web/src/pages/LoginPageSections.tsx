@@ -44,7 +44,7 @@ function LoginBackground() {
     <div className="pointer-events-none absolute inset-0 z-0">
       <div className="absolute -right-20 -top-20 h-[600px] w-[600px] rounded-full bg-brand-100/30 blur-[130px]" />
       <div className="absolute -bottom-40 -left-20 h-[500px] w-[500px] rounded-full bg-sage-100/30 blur-[110px]" />
-      <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:20px_20px] opacity-40" />
+      <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] bg-size-[20px_20px] opacity-40" />
     </div>
   )
 }
@@ -74,7 +74,7 @@ function LoginBrandHeader() {
         transition={{ delay: 0.15, type: 'spring', stiffness: 200 }}
         src="/brand/logo-192.png?v=2"
         alt="Nook"
-        className="mb-4 h-14 w-14 rounded-2xl object-contain shadow-sm"
+        className="mb-4 h-14 w-14 rounded-2xl object-contain shadow-xs"
       />
 
       <motion.h1
@@ -156,7 +156,7 @@ function LoginInput({
         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">{icon}</span>
         <input
           type={type}
-          className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-11 py-3.5 pr-12 text-sm text-gray-900 placeholder-gray-500 outline-none transition-all duration-300 focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-100/50"
+          className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-11 py-3.5 pr-12 text-sm text-gray-900 placeholder-gray-500 outline-hidden transition-all duration-300 focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-100/50"
           value={value}
           onChange={(event) => onChange(event.target.value)}
           autoComplete={autoComplete}

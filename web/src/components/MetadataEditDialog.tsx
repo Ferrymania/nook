@@ -140,7 +140,7 @@ export function MetadataEditDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 px-4 py-8 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 px-4 py-8 backdrop-blur-xs">
       <div className="flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
         <div className="flex items-start justify-between gap-4 border-b border-gray-200 px-5 py-4">
           <div>
@@ -175,7 +175,7 @@ export function MetadataEditDialog({
               type="checkbox"
               checked={form.nsfw}
               onChange={(event) => set('nsfw', event.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-brand-600"
+              className="h-4 w-4 rounded-sm border-gray-300 text-brand-600"
             />
             成人内容
           </label>
@@ -185,7 +185,7 @@ export function MetadataEditDialog({
               value={form.overview}
               onChange={(event) => set('overview', event.target.value)}
               rows={5}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 outline-none focus:border-brand-300"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 outline-hidden focus:border-brand-300"
             />
           </label>
         </div>
@@ -225,7 +225,7 @@ function Field({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         inputMode={inputMode}
-        className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 outline-none focus:border-brand-300"
+        className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-700 outline-hidden focus:border-brand-300"
       />
     </label>
   )

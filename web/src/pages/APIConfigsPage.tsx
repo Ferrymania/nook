@@ -143,14 +143,14 @@ function ProviderCard({ item, onUpdated }: { item: APIConfig; onUpdated: () => v
           启用
         </label>
         <div className="flex flex-wrap gap-2">
-          <button type="submit" disabled={saving} className="neon-button !text-xs">
+          <button type="submit" disabled={saving} className="neon-button text-xs!">
             <Save size={12} /> 保存
           </button>
           <button
             type="button"
             disabled={testing}
             onClick={testKey}
-            className="neon-button !text-xs !border-sand-400/40 !text-ink-100"
+            className="neon-button text-xs! border-sand-400/40! text-ink-100!"
           >
             <Eye size={12} /> {testing ? '测试中…' : '测试连接'}
           </button>
@@ -158,7 +158,7 @@ function ProviderCard({ item, onUpdated }: { item: APIConfig; onUpdated: () => v
             <button
               type="button"
               onClick={removeKey}
-              className="neon-button !text-xs !border-red-400/40 !text-red-400"
+              className="neon-button text-xs! border-red-400/40! text-red-400!"
             >
               <Trash2 size={12} /> 清除
             </button>

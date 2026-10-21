@@ -61,7 +61,7 @@ export function SettingRow({ def, value, onChange, libraries = [], disabled = fa
             onChange={(event) => onChange(event.target.value)}
           />
         )}
-        {unit && <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-[var(--app-muted)]">{unit}</span>}
+        {unit && <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-(--app-muted)">{unit}</span>}
         {def.type === 'textarea' && (
           <textarea
             id={controlID}

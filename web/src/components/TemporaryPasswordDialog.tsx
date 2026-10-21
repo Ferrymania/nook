@@ -75,26 +75,26 @@ export function TemporaryPasswordDialog({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[999] flex items-center justify-center bg-black/65 p-3 sm:p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-999 flex items-center justify-center bg-black/65 p-3 sm:p-4 backdrop-blur-xs"
       onClick={onClose}
     >
       <div
         role="dialog"
         aria-modal="true"
-        className="w-full max-w-[calc(100vw-2rem)] sm:max-w-md max-h-[90dvh] flex flex-col overflow-hidden rounded-3xl border border-[var(--app-border)] bg-[var(--app-panel)] p-4 sm:p-6 shadow-2xl transition-all"
+        className="w-full max-w-[calc(100vw-2rem)] sm:max-w-md max-h-[90dvh] flex flex-col overflow-hidden rounded-3xl border border-(--app-border) bg-(--app-panel) p-4 sm:p-6 shadow-2xl transition-all"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--app-border)] pb-3 sm:pb-4 shrink-0">
+        <div className="flex items-center justify-between border-b border-(--app-border) pb-3 sm:pb-4 shrink-0">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-500">
               <Tv size={20} className="sm:w-[22px] sm:h-[22px]" />
             </div>
             <div className="min-w-0">
-              <h3 className="font-display text-base sm:text-lg font-bold text-[var(--app-text)] truncate">
+              <h3 className="font-display text-base sm:text-lg font-bold text-(--app-text) truncate">
                 电视端临时登录码 (OTP)
               </h3>
-              <p className="text-[11px] sm:text-xs text-[var(--app-muted)] truncate">
+              <p className="text-[11px] sm:text-xs text-(--app-muted) truncate">
                 适用于 Emby / Jellyfin / Infuse 客户端快速免密登录
               </p>
             </div>
@@ -102,7 +102,7 @@ export function TemporaryPasswordDialog({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl p-1.5 text-[var(--app-muted)] transition-colors hover:bg-[var(--app-hover)] hover:text-[var(--app-text)] shrink-0 ml-2"
+            className="rounded-xl p-1.5 text-(--app-muted) transition-colors hover:bg-(--app-hover) hover:text-(--app-text) shrink-0 ml-2"
           >
             <X size={18} />
           </button>
@@ -110,10 +110,10 @@ export function TemporaryPasswordDialog({
 
         {/* Content */}
         <div className="my-4 space-y-3.5 sm:space-y-4 overflow-y-auto flex-1 pr-0.5">
-          <div className="flex items-center justify-between text-[11px] sm:text-xs text-[var(--app-muted)]">
+          <div className="flex items-center justify-between text-[11px] sm:text-xs text-(--app-muted)">
             <div>
               <span>登录账号：</span>
-              <span className="font-mono font-bold text-[var(--app-text)]">{user?.username}</span>
+              <span className="font-mono font-bold text-(--app-text)">{user?.username}</span>
             </div>
             {expiresIn > 0 ? (
               <div>
@@ -125,9 +125,9 @@ export function TemporaryPasswordDialog({
             ) : null}
           </div>
 
-          <div className="flex items-center justify-between rounded-2xl border border-[var(--app-border)] bg-[var(--app-bg)] p-3 sm:p-4">
+          <div className="flex items-center justify-between rounded-2xl border border-(--app-border) bg-(--app-bg) p-3 sm:p-4">
             {loading ? (
-              <div className="flex h-10 w-full items-center justify-center text-[var(--app-muted)]">
+              <div className="flex h-10 w-full items-center justify-center text-(--app-muted)">
                 <Loader2 size={24} className="animate-spin text-brand-500" />
               </div>
             ) : code && expiresIn > 0 ? (
@@ -145,7 +145,7 @@ export function TemporaryPasswordDialog({
                 </button>
               </>
             ) : (
-              <div className="flex w-full items-center justify-between text-xs sm:text-sm text-[var(--app-muted)]">
+              <div className="flex w-full items-center justify-between text-xs sm:text-sm text-(--app-muted)">
                 <span>登录码已失效或未生成</span>
                 <button
                   type="button"
@@ -159,19 +159,19 @@ export function TemporaryPasswordDialog({
             )}
           </div>
 
-          <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-panel-elevated)] p-3 text-[11px] sm:text-xs leading-relaxed text-[var(--app-muted)]">
-            <span className="font-semibold text-[var(--app-text)]">使用方法：</span>
+          <div className="rounded-2xl border border-(--app-border) bg-(--app-panel-elevated) p-3 text-[11px] sm:text-xs leading-relaxed text-(--app-muted)">
+            <span className="font-semibold text-(--app-text)">使用方法：</span>
             在电视端或外部设备的 Emby 登录界面输入用户名 <code className="font-bold text-brand-500">{user?.username}</code> 和上方 6 位临时码。登录后临时码立即作废（一次性阅后即焚），客户端将自动获取长期持久令牌。
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-[var(--app-border)] pt-3 sm:pt-4 shrink-0">
+        <div className="flex items-center justify-between border-t border-(--app-border) pt-3 sm:pt-4 shrink-0">
           <button
             type="button"
             onClick={fetchCode}
             disabled={loading}
-            className="flex items-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs font-medium text-[var(--app-muted)] transition-colors hover:bg-[var(--app-hover)] hover:text-[var(--app-text)] disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs font-medium text-(--app-muted) transition-colors hover:bg-(--app-hover) hover:text-(--app-text) disabled:opacity-50"
           >
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
             重新生成
@@ -179,7 +179,7 @@ export function TemporaryPasswordDialog({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-[var(--app-border)] bg-[var(--app-panel-elevated)] px-3.5 sm:px-4 py-1.5 sm:py-2 text-xs font-semibold text-[var(--app-text)] transition-colors hover:bg-[var(--app-hover)]"
+            className="rounded-xl border border-(--app-border) bg-(--app-panel-elevated) px-3.5 sm:px-4 py-1.5 sm:py-2 text-xs font-semibold text-(--app-text) transition-colors hover:bg-(--app-hover)"
           >
             完成并关闭
           </button>

@@ -121,7 +121,7 @@ export function AdminUserLibrariesDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm animate-in fade-in-0"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs animate-in fade-in-0"
       onClick={onClose}
     >
       <div
@@ -165,7 +165,7 @@ export function AdminUserLibrariesDialog({
               onClick={() => setMode('all')}
               className={`flex items-center gap-3 rounded-2xl border p-3.5 text-left transition-all ${
                 mode === 'all'
-                  ? 'border-brand-400 bg-brand-50/70 text-brand-800 shadow-sm ring-1 ring-brand-400'
+                  ? 'border-brand-400 bg-brand-50/70 text-brand-800 shadow-xs ring-1 ring-brand-400'
                   : 'border-sand-200 bg-white text-ink-600 hover:border-sand-300 hover:bg-sand-50/50'
               }`}
             >
@@ -192,7 +192,7 @@ export function AdminUserLibrariesDialog({
               }}
               className={`flex items-center gap-3 rounded-2xl border p-3.5 text-left transition-all ${
                 mode === 'custom'
-                  ? 'border-brand-400 bg-brand-50/70 text-brand-800 shadow-sm ring-1 ring-brand-400'
+                  ? 'border-brand-400 bg-brand-50/70 text-brand-800 shadow-xs ring-1 ring-brand-400'
                   : 'border-sand-200 bg-white text-ink-600 hover:border-sand-300 hover:bg-sand-50/50'
               }`}
             >
@@ -261,7 +261,7 @@ export function AdminUserLibrariesDialog({
                         onClick={() => toggleLibrary(lib.id)}
                         className={`group flex cursor-pointer items-center justify-between rounded-xl border p-3 transition-all ${
                           isChecked
-                            ? 'border-brand-300 bg-brand-50/40 shadow-xs'
+                            ? 'border-brand-300 bg-brand-50/40 shadow-2xs'
                             : 'border-sand-200 bg-white hover:border-sand-300 hover:bg-sand-50/40'
                         }`}
                       >
@@ -279,7 +279,7 @@ export function AdminUserLibrariesDialog({
                             <p className="truncate text-xs font-semibold text-ink-600">
                               {lib.name}
                               {lib.is_remote_emby ? (
-                                <span className="ml-1.5 rounded bg-sky-50 px-1.5 py-0.5 text-[10px] font-bold text-sky-700">
+                                <span className="ml-1.5 rounded-sm bg-sky-50 px-1.5 py-0.5 text-[10px] font-bold text-sky-700">
                                   Emby 挂载
                                 </span>
                               ) : null}
@@ -301,7 +301,7 @@ export function AdminUserLibrariesDialog({
                               : 'border-sand-300 bg-white group-hover:border-sand-400'
                           }`}
                         >
-                          {isChecked && <Check size={12} className="stroke-[3]" />}
+                          {isChecked && <Check size={12} className="stroke-3" />}
                         </div>
                       </div>
                     )
