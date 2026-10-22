@@ -596,6 +596,7 @@ export function ContinueWatchingSection({ history }: { history: HistoryItem[] })
 
 function ContinueCard({ media, progress }: { media: Media; progress: number }) {
   const visual = media.backdrop_url || media.poster_url
+  const episodeNumber = formatEpisodeNumber(media)
 
   return (
     <Link to={`/play/${media.id}`} className="nook-continue-card group">
@@ -613,8 +614,8 @@ function ContinueCard({ media, progress }: { media: Media; progress: number }) {
         <p title={media.title}>{media.title}</p>
         <div className="nook-continue-meta">
           {media.year > 0 && <span>{media.year}</span>}
-          {media.season_num !== undefined && media.episode_num !== undefined && (
-            <span>S{media.season_num}E{formatEpisodeNumber(media)}</span>
+          {media.season_num >= 0 && episodeNumber !== '' && (
+            <span>S{media.season_num}E{episodeNumber}</span>
           )}
           {progress > 0 && progress < 1 && <span className="ml-auto">已观看 {Math.round(progress * 100)}%</span>}
         </div>
