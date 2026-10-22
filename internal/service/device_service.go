@@ -25,18 +25,13 @@ import (
 //	   accounts only when none of the enabled keep rules match.
 //
 // Safeguards: admin / protected accounts are never auto disabled or deleted;
-// a Telegram notification is sent before a destructive action; every policy
-// defaults to OFF.
+// policy actions are logged and every policy defaults to OFF.
 type DeviceService struct {
 	log      *zap.Logger
 	repo     *repository.Container
 	sessions *SessionTrackerService
 
-	// notifyUser sends a Telegram message to the local user (resolved to their
-	// Telegram binding). Wired by the bot service; nil disables notifications.
-	notifyUser func(ctx context.Context, userID, text string)
-
-	// notifyAdmin sends a Telegram message to all admin accounts.
+	// notifyAdmin sends a Telegram message to the configured administrator chat.
 	// Wired by the bot service; nil disables notifications.
 	notifyAdmin func(ctx context.Context, text string)
 }
@@ -46,12 +41,7 @@ func NewDeviceService(log *zap.Logger, repo *repository.Container) *DeviceServic
 	return &DeviceService{log: log, repo: repo}
 }
 
-// SetNotifier wires the per-user Telegram notification callback.
-func (s *DeviceService) SetNotifier(fn func(ctx context.Context, userID, text string)) {
-	s.notifyUser = fn
-}
-
-// SetAdminNotifier wires the admin-broadcast Telegram notification callback.
+// SetAdminNotifier wires the administrator Telegram notification callback.
 func (s *DeviceService) SetAdminNotifier(fn func(ctx context.Context, text string)) {
 	s.notifyAdmin = fn
 }
@@ -112,8 +102,6 @@ func (s *DeviceService) RecordLogin(ctx context.Context, userID, deviceID, devic
 			FirstSeenAt: now,
 			LastSeenAt:  now,
 		})
-		// 新终端首次登录才通知：已知设备重复登录不刷屏。
-		s.notify(ctx, userID, fmt.Sprintf("🔔 新设备登录：<b>%s</b>\n如果这不是你本人，请到「个人资料 → 我的设备」踢下线并修改密码。", deviceLabel(deviceName, client)))
 	} else {
 		if existing.Fingerprint != "" && existing.Fingerprint != fp {
 			mismatch = true
@@ -243,9 +231,8 @@ func (s *DeviceService) registerFingerprintWarning(ctx context.Context, userID, 
 		"last_share_warn_at": &now,
 	})
 	left := cfg.WarnThreshold + 1 - warnings
-	warnText := fmt.Sprintf("⚠️ 账号 <b>%s</b> 触发设备指纹警告：%s\n这是第 <b>%d</b> 次警告，再异常 <b>%d</b> 次将禁用账号。请到「个人资料 → 我的设备」踢下线异常设备。",
+	warnText := fmt.Sprintf("⚠️ 账号 <b>%s</b> 触发设备指纹警告：%s\n这是第 <b>%d</b> 次警告，再异常 <b>%d</b> 次将禁用账号。请在用户管理中检查该账号的设备。",
 		html.EscapeString(u.Username), html.EscapeString(reason), warnings, left)
-	s.notify(ctx, userID, warnText)
 	s.notifyAdminMsg(ctx, warnText)
 	s.log.Info("anti-share: warning issued", zap.String("user", u.Username), zap.Int("warnings", warnings), zap.String("reason", reason))
 }
@@ -265,9 +252,8 @@ func (s *DeviceService) disableForPolicy(ctx context.Context, userID, reason str
 		"last_share_warn_at": &now,
 	})
 	_ = s.repo.UserDevice.SetKickedByUser(ctx, userID, true)
-	disableText := fmt.Sprintf("⛔️ 账号 <b>%s</b> 因触发设备规则已被禁用：%s\n请联系管理员解除禁用，或通过「个人资料 → 我的设备」踢下线多余设备后再申请恢复。",
+	disableText := fmt.Sprintf("⛔️ 账号 <b>%s</b> 因触发设备规则已被禁用：%s\n请在用户管理中检查设备并处理账号状态。",
 		html.EscapeString(u.Username), html.EscapeString(reason))
-	s.notify(ctx, userID, disableText)
 	s.notifyAdminMsg(ctx, disableText)
 	s.log.Warn("device policy: disabled account", zap.String("user", u.Username), zap.String("reason", reason))
 }
@@ -281,12 +267,6 @@ func (s *DeviceService) now() time.Time {
 		return s.sessions.now()
 	}
 	return time.Now()
-}
-
-func (s *DeviceService) notify(ctx context.Context, userID, text string) {
-	if s.notifyUser != nil {
-		s.notifyUser(ctx, userID, text)
-	}
 }
 
 func (s *DeviceService) notifyAdminMsg(ctx context.Context, text string) {

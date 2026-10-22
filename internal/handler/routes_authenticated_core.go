@@ -24,11 +24,6 @@ func registerAuthedUserAndLicenseRoutes(authed *gin.RouterGroup, svc *service.Co
 	authed.POST("/me/devices/kick-all", myKickAllDevicesHandler(svc))
 	authed.POST("/me/devices/:deviceID/kick", myKickDeviceHandler(svc))
 
-	// Telegram 通知绑定：一次性码 + Bot /bind <code>。
-	authed.GET("/me/telegram", getTelegramStatusHandler(svc))
-	authed.POST("/me/telegram/bind-code", startTelegramBindHandler(svc))
-	authed.DELETE("/me/telegram", unbindTelegramHandler(svc))
-
 	authed.GET("/auth/permissions", getMyPermissionsHandler(svc))
 }
 

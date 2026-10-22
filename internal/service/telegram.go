@@ -3,14 +3,12 @@ package service
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -29,12 +27,7 @@ const (
 	SettingTelegramAdminChatID = "telegram.admin_chat_id" // 管理员接收运维通知的会话 ID
 )
 
-// telegramBindAlphabet 去掉容易看错的 0/O/1/I，降低手抄绑定码时的出错率。
-const telegramBindAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-
 const (
-	// telegramBindTTL 是绑定码的有效期。到期后必须重新生成。
-	telegramBindTTL = 5 * time.Minute
 	// telegramAPITimeout 覆盖单次 sendMessage 请求。
 	telegramAPITimeout = 10 * time.Second
 	// telegramPollClientTimeout 是长轮询专用 HTTP 客户端的超时，必须 > telegramPollTimeout。
@@ -47,30 +40,13 @@ const (
 	telegramDisabledCheckInterval = 10 * time.Second
 )
 
-var (
-	// ErrTelegramBindInvalid 表示绑定码不存在（不存在、已被使用，或已被新码取代）。
-	ErrTelegramBindInvalid = errors.New("telegram bind code not found")
-	// ErrTelegramBindExpired 表示绑定码已过期。
-	ErrTelegramBindExpired = errors.New("telegram bind code expired")
-)
-
-// telegramBindPending 记录一个待消费的绑定码。
-type telegramBindPending struct {
-	UserID    string
-	ExpiresAt time.Time
-}
-
-// TelegramService 负责把通知发到 Telegram，并提供账号绑定。
-//
-// 用户通知绑定使用一次性码；同步控制仅接受系统设置里的管理员私聊 ID，
-// 不要求个人资料绑定，也不向其他用户开放管理命令。
+// TelegramService 提供管理员运维通知与同步控制。
+// 管理命令仅接受系统设置里的管理员私聊 ID。
 type TelegramService struct {
 	log  *zap.Logger
 	repo *repository.Container
 
-	mu      sync.Mutex
-	pending map[string]telegramBindPending // code -> pending
-	byUser  map[string]string              // userID -> code（同一用户只保留最新码）
+	mu sync.Mutex
 
 	// apiBase 允许测试指向本地假服务；生产固定为 Telegram 官方地址。
 	apiBase string
@@ -89,8 +65,6 @@ func NewTelegramService(log *zap.Logger, repo *repository.Container) *TelegramSe
 	return &TelegramService{
 		log:        log,
 		repo:       repo,
-		pending:    make(map[string]telegramBindPending),
-		byUser:     make(map[string]string),
 		apiBase:    "https://api.telegram.org",
 		client:     &http.Client{Timeout: telegramAPITimeout},
 		pollClient: &http.Client{Timeout: telegramPollClientTimeout},
@@ -136,25 +110,6 @@ func (s *TelegramService) setting(ctx context.Context, key string) string {
 
 func (s *TelegramService) enabled(ctx context.Context) bool {
 	return parseBoolSetting(s.setting(ctx, SettingTelegramEnabled), false)
-}
-
-// SendToUser 把消息发给用户绑定的 Telegram 会话。未绑定、未启用或发送失败
-// 都只记日志并返回：通知永远不能影响触发它的业务流程。
-func (s *TelegramService) SendToUser(ctx context.Context, userID, htmlText string) {
-	if s == nil || s.repo == nil || userID == "" || strings.TrimSpace(htmlText) == "" {
-		return
-	}
-	u, err := s.repo.User.FindByID(ctx, userID)
-	if err != nil || u == nil {
-		return
-	}
-	chatID := strings.TrimSpace(u.TelegramChatID)
-	if chatID == "" {
-		return
-	}
-	if err := s.sendMessage(ctx, chatID, htmlText); err != nil {
-		s.warn("telegram send to user failed", userID, err)
-	}
 }
 
 // SendToAdmin 把消息发给管理员会话，用于运维类事件（任务失败等）。
@@ -276,97 +231,6 @@ func (s *TelegramService) callWithClient(ctx context.Context, client *http.Clien
 	return nil
 }
 
-// StartBind 生成一次性绑定码。同一用户重复调用时旧码立即失效。
-func (s *TelegramService) StartBind(ctx context.Context, userID string) (string, error) {
-	if s == nil || strings.TrimSpace(userID) == "" {
-		return "", errors.New("telegram bind: empty user id")
-	}
-	code, err := randomBindCode()
-	if err != nil {
-		return "", err
-	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if prev, ok := s.byUser[userID]; ok {
-		delete(s.pending, prev)
-	}
-	s.pending[code] = telegramBindPending{UserID: userID, ExpiresAt: time.Now().Add(telegramBindTTL)}
-	s.byUser[userID] = code
-	return code, nil
-}
-
-// CompleteBind 消费绑定码并写入用户的 TelegramChatID。
-// 只在数据库写入成功后才删除 pending 中的绑定码；失败时码保留以便重试。
-func (s *TelegramService) CompleteBind(ctx context.Context, code, chatID string) error {
-	if s == nil || s.repo == nil {
-		return ErrTelegramBindInvalid
-	}
-	code = strings.ToUpper(strings.TrimSpace(code))
-	chatID = strings.TrimSpace(chatID)
-	if code == "" || chatID == "" {
-		return ErrTelegramBindInvalid
-	}
-
-	// 先读取，不删除——只有在操作成功后才消费绑定码。
-	s.mu.Lock()
-	pending, ok := s.pending[code]
-	s.mu.Unlock()
-	if !ok {
-		return ErrTelegramBindInvalid
-	}
-
-	if time.Now().After(pending.ExpiresAt) {
-		// 过期码：删除并返回，不再保留。
-		s.mu.Lock()
-		delete(s.pending, code)
-		if s.byUser[pending.UserID] == code {
-			delete(s.byUser, pending.UserID)
-		}
-		s.mu.Unlock()
-		return ErrTelegramBindExpired
-	}
-
-	if err := s.repo.User.UpdateFields(ctx, pending.UserID, map[string]any{"telegram_chat_id": chatID}); err != nil {
-		// DB 失败时保留 pending，调用方可重试。
-		return err
-	}
-
-	// 写入成功后再消费绑定码。
-	s.mu.Lock()
-	delete(s.pending, code)
-	if s.byUser[pending.UserID] == code {
-		delete(s.byUser, pending.UserID)
-	}
-	s.mu.Unlock()
-	return nil
-}
-
-// Unbind 清空用户的 Telegram 绑定。
-func (s *TelegramService) Unbind(ctx context.Context, userID string) error {
-	if s == nil || s.repo == nil {
-		return nil
-	}
-	s.mu.Lock()
-	if code, ok := s.byUser[userID]; ok {
-		delete(s.pending, code)
-		delete(s.byUser, userID)
-	}
-	s.mu.Unlock()
-	return s.repo.User.UpdateFields(ctx, userID, map[string]any{"telegram_chat_id": ""})
-}
-
-// Status 返回绑定状态与脱敏后的会话 ID，供个人资料页展示。
-func (s *TelegramService) Status(ctx context.Context, userID string) (bool, string) {
-	if s == nil || s.repo == nil || userID == "" {
-		return false, ""
-	}
-	u, err := s.repo.User.FindByID(ctx, userID)
-	if err != nil || u == nil || strings.TrimSpace(u.TelegramChatID) == "" {
-		return false, ""
-	}
-	return true, MaskSecret(u.TelegramChatID)
-}
-
 // MaskSecret 保留首尾各两个字符，中间以 *** 取代。用于 Token 与会话 ID
 // 这类「界面需要辨识、但不应完整下发」的凭据。
 func MaskSecret(value string) string {
@@ -380,20 +244,6 @@ func MaskSecret(value string) string {
 	}
 	return string(r[:2]) + "***" + string(r[len(r)-2:])
 }
-
-func randomBindCode() (string, error) {
-	buf := make([]byte, 6)
-	if _, err := rand.Read(buf); err != nil {
-		return "", err
-	}
-	out := make([]byte, 6)
-	for i, b := range buf {
-		out[i] = telegramBindAlphabet[int(b)%len(telegramBindAlphabet)]
-	}
-	return string(out), nil
-}
-
-var telegramBindCommandPattern = regexp.MustCompile(`(?i)^/bind(?:@\w+)?\s+(\S+)\s*$`)
 
 // pollLoop 长轮询 Bot 更新，并按配置自动注册管理员命令菜单。
 // 当 Telegram 未启用或 Token 未配置时，休眠后继续循环以便配置变更后自动激活。
@@ -546,10 +396,6 @@ func (s *TelegramService) handleUpdate(ctx context.Context, token string, u tele
 		return
 	}
 
-	if match := telegramBindCommandPattern.FindStringSubmatch(text); match != nil {
-		s.replyBind(ctx, token, chatID, match[1])
-		return
-	}
 	command := telegramCommand(text)
 	if isTelegramControlCommand(text) || command == "/start" {
 		if s.adminControlAllowed(ctx, token, u.Message.Chat, u.Message.From.ID) {
@@ -558,7 +404,7 @@ func (s *TelegramService) handleUpdate(ctx context.Context, token string, u tele
 		}
 	}
 	if command == "/start" {
-		message := "Nook 通知绑定：在网页「个人资料 → Telegram 通知」生成 6 位绑定码，然后发送 <code>/bind 绑定码</code>。"
+		message := "Nook Bot 提供管理员运维通知与同步控制。"
 		if u.Message.Chat.Type == "private" {
 			message += "\n\n当前私聊 Chat ID：<code>" + chatID + "</code>。管理员可将此 ID 填入系统设置，使用同步控制命令。"
 		}
@@ -569,26 +415,6 @@ func (s *TelegramService) handleUpdate(ctx context.Context, token string, u tele
 		}, nil); err != nil {
 			s.warn("telegram /start reply failed", chatID, err)
 		}
-	}
-}
-
-func (s *TelegramService) replyBind(ctx context.Context, token, chatID, code string) {
-	message := ""
-	switch err := s.CompleteBind(ctx, code, chatID); {
-	case err == nil:
-		message = "✅ 绑定成功，之后 Nook 的账号与设备通知会发到这里。"
-	case errors.Is(err, ErrTelegramBindExpired):
-		message = "⌛️ 绑定码已过期，请在网页重新生成。"
-	case errors.Is(err, ErrTelegramBindInvalid):
-		message = "❌ 绑定码无效，请在网页重新生成后再试。"
-	default:
-		message = "⚠️ 绑定失败，请稍后重试或查看服务日志。"
-	}
-	if err := s.call(ctx, token, "sendMessage", map[string]any{
-		"chat_id": chatID,
-		"text":    message,
-	}, nil); err != nil {
-		s.warn("telegram bind reply failed", chatID, err)
 	}
 }
 
