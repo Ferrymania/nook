@@ -63,7 +63,6 @@ type Container struct {
 	ApiConfig        *ApiConfigService
 	Device           *DeviceService
 	Telegram         *TelegramService
-	TelegramExpiry   *TelegramExpiryWatcher
 	Discovery        *MediaDiscoveryService
 	Cache            *RuntimeCacheService
 	Sessions         *SessionTrackerService

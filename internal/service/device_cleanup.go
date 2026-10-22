@@ -31,7 +31,6 @@ func (s *DeviceService) SweepAccountCleanup(ctx context.Context) (int, error) {
 	}
 	removed := 0
 	for _, candidate := range candidates {
-		s.notify(ctx, candidate.UserID, fmt.Sprintf("⛔️ 账号 <b>%s</b> 未满足保号规则，已被清理。\n规则结果：%s\n如需恢复请联系管理员。", candidate.Username, candidate.Details))
 		s.log.Warn("account cleanup: deleting account", zap.String("user", candidate.Username), zap.String("details", candidate.Details))
 		_ = s.repo.UserDevice.DeleteByUser(ctx, candidate.UserID)
 		if err := s.repo.User.Delete(ctx, candidate.UserID); err == nil {

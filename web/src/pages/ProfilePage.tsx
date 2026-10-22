@@ -5,7 +5,6 @@ import { Check, Copy, EyeOff, KeyRound, Loader2, Save, Tv } from 'lucide-react'
 import { authAPI } from '../api/auth'
 import { profileAPI } from '../api/profile'
 import { MyDevicesPanel } from '../components/MyDevicesPanel'
-import { TelegramBindPanel } from '../components/TelegramBindPanel'
 import { requestPassword } from '../components/requestPassword'
 import { useAuthStore } from '../stores/auth'
 
@@ -292,8 +291,6 @@ export function ProfilePage() {
       </section>
 
       <MyDevicesPanel />
-
-      <TelegramBindPanel />
     </div>
   )
 }

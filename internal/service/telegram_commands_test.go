@@ -123,6 +123,38 @@ func telegramLocalSyncPath(t *testing.T, f *telegramControlFixture, name string)
 	return p
 }
 
+func TestTelegramLegacyBindCommandsIgnored(t *testing.T) {
+	f := newTelegramControlFixture(t)
+	for _, command := range []string{"/bind ABCDEF", "/bind@NookBot ABCDEF"} {
+		for _, chatID := range []int64{9, testTelegramAdminID} {
+			update := telegramAdminMessage(command)
+			update.Message.Chat.ID, update.Message.From.ID = chatID, chatID
+			f.bot.handleUpdate(t.Context(), "test-token", update)
+		}
+	}
+	if calls := f.snapshot(); len(calls) != 0 {
+		t.Fatalf("removed bind command made Telegram API calls: %+v", calls)
+	}
+}
+
+func TestTelegramStartOnlyExplainsAdminSetup(t *testing.T) {
+	f := newTelegramControlFixture(t)
+	update := telegramAdminMessage("/start")
+	update.Message.Chat.ID, update.Message.From.ID = 9, 9
+	f.bot.handleUpdate(t.Context(), "test-token", update)
+	calls := f.snapshot()
+	if len(calls) != 1 || calls[0].Method != "sendMessage" {
+		t.Fatalf("start calls = %+v, want one setup reply", calls)
+	}
+	text, _ := calls[0].Payload["text"].(string)
+	if strings.Contains(text, "/bind") || strings.Contains(text, "绑定码") || strings.Contains(text, "个人资料") {
+		t.Fatalf("start still advertises personal binding: %s", text)
+	}
+	if !strings.Contains(text, "管理员") || !strings.Contains(text, "Chat ID：<code>9</code>") {
+		t.Fatalf("start lost administrator setup guidance: %s", text)
+	}
+}
+
 func TestTelegramControlRejectsUntrustedChatsAndRevokedConfig(t *testing.T) {
 	for _, test := range []string{"other-user", "forged-sender", "group", "disabled", "new-token", "group-admin-id"} {
 		t.Run(test, func(t *testing.T) {

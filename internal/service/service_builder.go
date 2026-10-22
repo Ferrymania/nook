@@ -223,16 +223,10 @@ func (b *serviceContainerBuilder) initIdentityServices() {
 	b.c.Sessions = NewSessionTrackerService(b.log)
 	b.c.Device = NewDeviceService(b.log, b.repos)
 	b.c.Device.SetSessionTracker(b.c.Sessions)
-	// Telegram 通知：未启用时 Start 不会占用 goroutine，SendToUser 静默跳过。
+	// Telegram 仅供管理员接收运维通知和控制同步。
 	b.c.Telegram = NewTelegramService(b.log, b.repos)
 	b.c.Telegram.SetStrmService(b.c.Strm)
-	b.c.Device.SetNotifier(b.c.Telegram.SendToUser)
 	b.c.Device.SetAdminNotifier(b.c.Telegram.SendToAdmin)
-	// 账号到期巡检：只负责发现与去重，发送复用同一个 Telegram 通道。
-	b.c.TelegramExpiry = NewTelegramExpiryWatcher(b.log, b.repos)
-	b.c.TelegramExpiry.SetUserNotifier(b.c.Telegram.SendToUser)
-	// SetExpiryWatcher must run AFTER TelegramExpiry is constructed.
-	b.c.Scheduler.SetExpiryWatcher(b.c.TelegramExpiry)
 	b.c.ApiConfig = NewApiConfigService(b.cfg, b.log, b.repos, b.c.Crypto)
 }
 

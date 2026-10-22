@@ -19,7 +19,7 @@ import (
 	"github.com/Ferrymania/nook/internal/service"
 )
 
-// newDeviceTestEnv 搭一个只挂设备/Telegram 路由的最小环境，并预置两个用户，
+// newDeviceTestEnv 搭一个挂载用户与设备路由的最小环境，并预置两个用户，
 // 用于验证「只能操作自己的设备」这条边界。
 func newDeviceTestEnv(t *testing.T) (*gin.Engine, *service.Container) {
 	t.Helper()
@@ -48,12 +48,7 @@ func newDeviceTestEnv(t *testing.T) (*gin.Engine, *service.Container) {
 		}
 		c.Next()
 	})
-	authed.GET("/me/devices", myDevicesHandler(svc))
-	authed.POST("/me/devices/kick-all", myKickAllDevicesHandler(svc))
-	authed.POST("/me/devices/:deviceID/kick", myKickDeviceHandler(svc))
-	authed.GET("/me/telegram", getTelegramStatusHandler(svc))
-	authed.POST("/me/telegram/bind-code", startTelegramBindHandler(svc))
-	authed.DELETE("/me/telegram", unbindTelegramHandler(svc))
+	registerAuthedUserAndLicenseRoutes(authed, svc)
 	authed.GET("/admin/users/:id/devices", adminUserDevicesHandler(svc))
 	authed.POST("/admin/users/:id/devices/:deviceID/kick", adminKickUserDeviceHandler(svc))
 	_ = secret
@@ -149,34 +144,17 @@ func TestAdminDevicesUnknownUserReturns404(t *testing.T) {
 	}
 }
 
-func TestTelegramStatusAndBindCode(t *testing.T) {
-	router, svc := newDeviceTestEnv(t)
-	seedDeviceUsers(t, svc)
-
-	w := doJSON(t, router, http.MethodGet, "/api/me/telegram", "user-a", "user")
-	if w.Code != http.StatusOK {
-		t.Fatalf("status = %d", w.Code)
-	}
-	if !strings.Contains(w.Body.String(), `"bound":false`) {
-		t.Fatalf("body = %s, want bound=false", w.Body.String())
-	}
-
-	w = doJSON(t, router, http.MethodPost, "/api/me/telegram/bind-code", "user-a", "user")
-	if w.Code != http.StatusOK {
-		t.Fatalf("status = %d body=%s", w.Code, w.Body.String())
-	}
-	var code struct {
-		Code      string `json:"code"`
-		ExpiresIn int    `json:"expires_in_seconds"`
-	}
-	if err := json.Unmarshal(w.Body.Bytes(), &code); err != nil {
-		t.Fatal(err)
-	}
-	if len(code.Code) != 6 {
-		t.Fatalf("code = %q, want 6 chars", code.Code)
-	}
-	if code.ExpiresIn <= 0 {
-		t.Fatalf("expires_in_seconds = %d, want > 0", code.ExpiresIn)
+func TestPersonalTelegramRoutesRemoved(t *testing.T) {
+	router, _ := newDeviceTestEnv(t)
+	for _, route := range []struct{ method, path string }{
+		{http.MethodGet, "/api/me/telegram"},
+		{http.MethodPost, "/api/me/telegram/bind-code"},
+		{http.MethodDelete, "/api/me/telegram"},
+	} {
+		w := doJSON(t, router, route.method, route.path, "user-a", "user")
+		if w.Code != http.StatusNotFound {
+			t.Errorf("%s %s status = %d, want 404", route.method, route.path, w.Code)
+		}
 	}
 }
 

@@ -7,11 +7,11 @@ import type { SettingGroup } from './settingsGroupTypes'
 export const deviceNotifySettingsGroup: SettingGroup = {
   key: 'device-notify',
   label: '设备与通知',
-  description: '登录设备管控、防共享策略与 Telegram 通知通道',
+  description: '登录设备管控、防共享策略与管理员 Telegram 通知通道',
   items: [
     {
       key: 'telegram.enabled',
-      label: '启用 Telegram 通知',
+      label: '启用管理员 Telegram 通知',
       type: 'toggle',
       defaultValue: 'false',
       hint: '通知与同步控制的总开关。关闭后不再发送通知或接收管理命令，已有同步任务按原流程结束。',
@@ -56,7 +56,7 @@ export const deviceNotifySettingsGroup: SettingGroup = {
       label: '设备指纹警告阈值',
       type: 'number',
       defaultValue: '2',
-      hint: '设备指纹异常累计超过该次数后禁用账号。警告会同步通知用户本人。',
+      hint: '设备指纹异常累计超过该次数后禁用账号。启用管理员 Telegram 通知后会发送警告。',
     },
     {
       key: 'device.play_window_seconds',
