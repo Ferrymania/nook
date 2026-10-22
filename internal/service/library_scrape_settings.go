@@ -145,6 +145,14 @@ func (s *ScraperService) GetLibraryScrapeSettings(ctx context.Context, id string
 	if lib == nil {
 		return nil, errors.New("媒体库不存在")
 	}
+	return s.libraryScrapeSettingsView(ctx, lib)
+}
+
+func (s *ScraperService) DefaultLibraryScrapeSettings(ctx context.Context) (*LibraryScrapeSettingsView, error) {
+	return s.libraryScrapeSettingsView(ctx, &model.Library{})
+}
+
+func (s *ScraperService) libraryScrapeSettingsView(ctx context.Context, lib *model.Library) (*LibraryScrapeSettingsView, error) {
 	episodeImages, err := s.repo.Setting.Get(ctx, "scrape.episode_images")
 	if err != nil {
 		return nil, err

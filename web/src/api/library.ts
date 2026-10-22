@@ -28,6 +28,11 @@ export interface LibraryScrapeSettingsView {
   auto_probe: boolean
   providers: Array<{ id: string; name: string; available: boolean; status: string }>
 }
+export interface LibraryCreateOptions {
+  create_only?: boolean
+  scrape_settings?: LibraryScrapeSettings
+  auto_probe?: boolean
+}
 import {
   EMPTY_LIBRARY_FILTERS,
   toFilterQuery,
@@ -179,11 +184,11 @@ export const libraryAPI = {
   create: (name: string, path: string, type: string) =>
     api.post<Library>('/libraries', { name, path, type }).then((r) => r.data),
 
-  createWithRoots: (name: string, type: string, roots: LibraryRootInput[], coverURL = '') =>
-    api.post<Library>('/libraries', { name, type, roots, cover_url: coverURL }).then((r) => r.data),
+  createWithRoots: (name: string, type: string, roots: LibraryRootInput[], coverURL = '', options: LibraryCreateOptions = {}) =>
+    api.post<Library>('/libraries', { name, type, roots, cover_url: coverURL, ...options }).then((r) => r.data),
 
-  createPerSubfolder: (parentPath: string, type: string, coverURL = '') =>
-    api.post<{ libraries: Library[] }>('/libraries', { path: parentPath, type, cover_url: coverURL, create_per_subfolder: true }).then((r) => r.data),
+  createPerSubfolder: (parentPath: string, type: string, coverURL = '', options: LibraryCreateOptions = {}) =>
+    api.post<{ libraries: Library[] }>('/libraries', { path: parentPath, type, cover_url: coverURL, create_per_subfolder: true, ...options }).then((r) => r.data),
 
   update: (
     id: string,
@@ -196,6 +201,7 @@ export const libraryAPI = {
   ) => api.patch<Library>(`/libraries/${id}`, payload).then((r) => r.data),
 
   scrapeSettings: (id: string) => api.get<LibraryScrapeSettingsView>(`/libraries/${id}/scrape-settings`).then(r => r.data),
+  scrapeDefaults: () => api.get<LibraryScrapeSettingsView>('/libraries/scrape-defaults').then(r => r.data),
   saveScrapeSettings: (id: string, payload: Pick<LibraryScrapeSettingsView, 'settings' | 'auto_probe'> & { episode_images?: boolean }) =>
     api.put<LibraryScrapeSettingsView>(`/libraries/${id}/scrape-settings`, payload).then(r => r.data),
 

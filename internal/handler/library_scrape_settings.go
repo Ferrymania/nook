@@ -7,6 +7,17 @@ import (
 	"net/http"
 )
 
+func defaultLibraryScrapeSettingsHandler(svc *service.Container) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		view, err := svc.Scraper.DefaultLibraryScrapeSettings(c.Request.Context())
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, view)
+	}
+}
+
 func libraryScrapeSettingsHandler(svc *service.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		view, err := svc.Scraper.GetLibraryScrapeSettings(c.Request.Context(), c.Param("id"))

@@ -1,0 +1,87 @@
+.nook-library-manager-admin { color: var(--app-text); }
+.nook-library-manager-admin button { cursor: pointer; }
+.nook-library-manager-admin button:disabled { cursor: default; opacity: .45; }
+.nook-library-manager-admin :is(button,input,select):focus-visible { outline: 2px solid var(--app-brand-text); outline-offset: 3px; }
+.nook-library-manager-admin-toolbar, .nook-library-manager-section-title, .nook-library-manager-form-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.nook-library-manager-admin-toolbar { margin-bottom: 24px; }
+.nook-library-manager-admin-toolbar p, .nook-library-manager-muted { color: var(--app-muted); font-size: 12px; }
+.nook-library-manager-button, .nook-library-manager-icon, .nook-library-manager-text-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex-shrink: 0; min-height: 38px; padding: 8px 12px; border: 1px solid var(--app-border); border-radius: 8px; background: var(--app-panel); color: var(--app-text); font-size: 13px; }
+.nook-library-manager-button:hover, .nook-library-manager-icon:hover { background: var(--app-panel-soft); }
+.nook-library-manager-primary { border-radius: 999px; border-color: var(--app-text); background: var(--app-text); color: var(--app-panel); padding-inline: 18px; }
+.nook-library-manager-primary:hover { background: var(--app-text); opacity: .85; }
+.nook-library-manager-icon { width: 36px; padding: 8px; }
+.nook-library-manager-text-button { min-height: 34px; padding: 4px 0; border: 0; background: transparent; }
+.nook-library-manager-text-button:hover { color: var(--app-brand-text); }
+.nook-library-manager-danger { color: var(--app-danger, #b91c1c); }
+.nook-library-manager-form { margin-bottom: 26px; padding: 22px; border-radius: 12px; background: var(--app-panel-soft); }
+.nook-library-manager-form fieldset { display: grid; gap: 18px; min-width: 0; border: 0; padding: 0; }
+.nook-library-manager-form-heading h3, .nook-library-manager-section-title h3 { font-size: 16px; font-weight: 600; }
+.nook-library-manager-form :is(.nook-library-manager-two-fields,.nook-library-manager-path-fields,.nook-library-manager-more-options) > label, .nook-library-manager-root-edit label { display: grid; gap: 7px; min-width: 0; font-size: 13px; }
+.nook-library-manager-form input:not([type=checkbox]), .nook-library-manager-form select { width: 100%; min-width: 0; }
+.nook-library-manager-two-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+.nook-library-manager-path-fields { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,2fr); gap: 12px; }
+.nook-library-manager-path-input { display: flex; align-items: center; gap: 8px; }
+.nook-library-manager-path-input input { flex: 1; min-width: 0; }
+.nook-library-manager-new-roots { display: grid; gap: 12px; }
+.nook-library-manager-new-roots > .nook-library-manager-text-button { justify-self: start; }
+.nook-library-manager-new-root + .nook-library-manager-new-root { padding-top: 14px; border-top: 1px solid var(--app-border); }
+.nook-library-manager-form-footer { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; }
+.nook-library-manager-form-footer button { min-height: 44px; }
+.nook-library-manager-form-target { border-bottom: 1px solid var(--app-border); padding-bottom: 14px; }
+.nook-library-manager-form-target span { margin-left: 10px; color: var(--app-muted); font-size: 12px; }
+.nook-library-manager-form-target p { overflow-wrap: anywhere; margin-top: 4px; font-size: 12px; color: var(--app-muted); }
+.nook-library-manager-scrape-entry { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.nook-library-manager-scrape-entry > span { font-size: 12px; color: var(--app-muted); }
+.nook-library-manager-more-options summary { width: fit-content; cursor: pointer; font-size: 13px; color: var(--app-muted); }
+.nook-library-manager-more-options label { margin-top: 12px; }
+.nook-library-manager-admin .nook-library-manager-checkbox { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+.nook-library-manager-checkbox input { width: 16px; height: 16px; margin: 0; accent-color: var(--app-brand-text); }
+.nook-library-manager-section-title > span { font-size: 12px; color: var(--app-muted); }
+.nook-library-manager-carousel-note { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 8px 0 18px; font-size: 12px; color: var(--app-muted); }
+.nook-library-manager-carousel-note summary { cursor: pointer; color: var(--app-text); }
+.nook-library-manager-carousel-note details p { max-width: 60ch; padding: 8px 0; }
+/* 20 + flexible name + 105 + 110 + 100 + 36, with five 12px gaps. */
+.nook-library-manager-grid-heading, .nook-library-manager-row { display: grid; grid-template-columns: 20px minmax(120px,1fr) 105px 110px 100px 36px; gap: 12px; align-items: center; }
+.nook-library-manager-grid-heading { padding-bottom: 10px; font-size: 12px; color: var(--app-muted); }
+.nook-library-manager-item { border-top: 1px solid var(--app-border); }
+.nook-library-manager-row { padding: 13px 0; }
+.nook-library-manager-item[data-dragging=true] { opacity: .5; }
+.nook-library-manager-item[data-drag-over=true] { background: var(--app-panel-soft); }
+.nook-library-manager-info { min-width: 0; }
+.nook-library-manager-info h4 { overflow-wrap: anywhere; font-size: 14px; font-weight: 500; }
+.nook-library-manager-info p { margin-top: 3px; font-size: 12px; color: var(--app-muted); }
+.nook-library-manager-grip { display: flex; color: var(--app-muted); cursor: grab !important; }
+.nook-library-manager-directory-toggle { justify-self: start; }
+.nook-library-manager-count { font-size: 12px; color: var(--app-muted); }
+.nook-library-manager-roots { margin: 0 0 14px 32px; padding: 4px 16px; border-radius: 10px; background: var(--app-panel-soft); }
+.nook-library-manager-root { padding: 14px 0; }
+.nook-library-manager-root + .nook-library-manager-root { border-top: 1px solid var(--app-border); }
+.nook-library-manager-root-heading, .nook-library-manager-root-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.nook-library-manager-root-heading strong { font-size: 13px; font-weight: 500; }
+.nook-library-manager-root-path { overflow-wrap: anywhere; margin-top: 5px; font-size: 13px; color: var(--app-muted); }
+.nook-library-manager-root-footer { margin-top: 8px; }
+.nook-library-manager-root-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 18px; }
+.nook-library-manager-root-edit { display: grid; gap: 12px; }
+.nook-library-manager-empty { padding: 26px 0; color: var(--app-muted); font-size: 13px; text-align: center; }
+@media(max-width: 760px) {
+  .nook-library-manager-grid-heading { display: none; }
+  .nook-library-manager-row { grid-template-columns: 16px minmax(100px,1fr) 105px 100px 36px; gap: 10px; }
+  .nook-library-manager-row .nook-library-manager-checkbox { grid-column: 2; grid-row: 2; }
+  .nook-library-manager-row .nook-library-manager-directory-toggle { grid-column: 3; grid-row: 1; }
+  .nook-library-manager-add-directory { grid-column: 4; grid-row: 1; }
+  .nook-library-manager-row .nook-library-manager-menu { grid-column: 5; grid-row: 1; }
+}
+@media(max-width: 520px) {
+  .nook-library-manager-row { grid-template-columns: 14px minmax(0,1fr) 94px 34px; gap: 7px 8px; padding: 15px 0; }
+  .nook-library-manager-row .nook-library-manager-info { grid-column: 2; grid-row: 1; }
+  .nook-library-manager-row .nook-library-manager-directory-toggle { grid-column: 2; grid-row: 2; }
+  .nook-library-manager-row .nook-library-manager-checkbox { grid-column: 3 / 5; grid-row: 2; min-height: 40px; justify-content: flex-end; }
+  .nook-library-manager-add-directory { grid-column: 3; grid-row: 1; padding-inline: 8px; }
+  .nook-library-manager-row .nook-library-manager-menu { grid-column: 4; grid-row: 1; }
+  .nook-library-manager-icon { width: 34px; }
+  .nook-library-manager-button, .nook-library-manager-icon, .nook-library-manager-text-button { min-height: 44px; }
+  .nook-library-manager-roots { margin-left: 0; padding-inline: 12px; }
+  .nook-library-manager-form { padding: 16px 12px; }
+  .nook-library-manager-two-fields, .nook-library-manager-path-fields { grid-template-columns: minmax(0,1fr); gap: 12px; }
+  .nook-library-manager-form input:not([type=checkbox]), .nook-library-manager-form select { font-size: 16px; }
+}

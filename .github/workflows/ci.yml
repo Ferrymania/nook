@@ -100,6 +100,7 @@ jobs:
           node "$frontend_test_dir/utils/homeCarousel.test.js"
           node "$frontend_test_dir/utils/mediaStatistics.test.js"
           node "$frontend_test_dir/utils/subtitleDisplay.test.js"
+          node src/pages/adminLibraryPanelModel.test.ts
 
   smoke:
     name: Deployment smoke test
