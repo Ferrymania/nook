@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
+	"gorm.io/gorm"
 )
 
 type LibraryRootInput struct {
@@ -31,6 +33,24 @@ func (s *MediaService) CreateLibraryWithRoots(ctx context.Context, name, kind st
 }
 
 func (s *MediaService) CreateLibraryWithRootsAndCover(ctx context.Context, name, kind, coverURL string, inputs []LibraryRootInput) (*model.Library, error) {
+	return s.CreateLibraryWithOptions(ctx, name, kind, coverURL, inputs, LibraryCreateOptions{})
+}
+
+var ErrLibraryAlreadyExists = errors.New("同名同类型媒体库已存在，请使用添加目录")
+
+// Settings are persisted with the library and roots, before its initial scan.
+type LibraryCreateOptions struct {
+	CreateOnly     bool                         `json:"create_only"`
+	ScrapeSettings *model.LibraryScrapeSettings `json:"scrape_settings"`
+	AutoProbe      bool                         `json:"auto_probe"`
+}
+
+func (s *MediaService) CreateLibraryWithOptions(ctx context.Context, name, kind, coverURL string, inputs []LibraryRootInput, options LibraryCreateOptions) (*model.Library, error) {
+	if options.ScrapeSettings != nil {
+		if err := validateLibraryScrapeSettings(*options.ScrapeSettings); err != nil {
+			return nil, err
+		}
+	}
 	if strings.TrimSpace(name) == "" {
 		return nil, errors.New("name required")
 	}
@@ -42,6 +62,10 @@ func (s *MediaService) CreateLibraryWithRootsAndCover(ctx context.Context, name,
 	if existing, err := s.findLogicalLibrary(ctx, name, kind); err != nil {
 		return nil, err
 	} else if existing != nil {
+		// Requests with creation settings must never rewrite an existing library.
+		if options.CreateOnly || options.ScrapeSettings != nil {
+			return nil, ErrLibraryAlreadyExists
+		}
 		if strings.TrimSpace(coverURL) != "" {
 			if err := s.UpdateLibraryCover(ctx, existing.ID, coverURL); err != nil {
 				return nil, err
@@ -61,6 +85,8 @@ func (s *MediaService) CreateLibraryWithRootsAndCover(ctx context.Context, name,
 		CoverURL:        strings.TrimSpace(coverURL),
 		Enabled:         true,
 		CarouselEnabled: false,
+		AutoProbe:       options.AutoProbe,
+		ScrapeSettings:  options.ScrapeSettings,
 	}
 	if err := s.repo.Library.CreateWithRoots(ctx, lib, roots); err != nil {
 		return nil, err
@@ -72,6 +98,10 @@ func (s *MediaService) CreateLibraryWithRootsAndCover(ctx context.Context, name,
 // CreateLibrariesPerSubfolder 为 parent 目录下的每个直接子目录各建一个媒体库，
 // 媒体库名取子目录名，路径指向该子目录。kind 为空时按子目录名推断类型。
 func (s *MediaService) CreateLibrariesPerSubfolder(ctx context.Context, parent, kind, coverURL string) ([]model.Library, error) {
+	return s.CreateLibrariesPerSubfolderWithOptions(ctx, parent, kind, coverURL, LibraryCreateOptions{})
+}
+
+func (s *MediaService) CreateLibrariesPerSubfolderWithOptions(ctx context.Context, parent, kind, coverURL string, options LibraryCreateOptions) ([]model.Library, error) {
 	parent = strings.TrimSpace(parent)
 	if parent == "" {
 		return nil, errors.New("parent path required")
@@ -98,14 +128,23 @@ func (s *MediaService) CreateLibrariesPerSubfolder(ctx context.Context, parent, 
 		return nil, errors.New("no subfolders found")
 	}
 	created := make([]model.Library, 0, len(subdirs))
-	for _, subdir := range subdirs {
-		name := filepath.Base(subdir)
-		lib, err := s.CreateLibraryWithRootsAndCover(ctx, name, kind, coverURL, []LibraryRootInput{{Path: subdir}})
-		if err != nil {
-			return nil, fmt.Errorf("create library for %s: %w", subdir, err)
+	// A conflict or invalid child must not leave a half-created batch behind.
+	err = s.repo.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		transactional := NewMediaService(s.cfg, s.log, repository.New(tx))
+		for _, subdir := range subdirs {
+			name := filepath.Base(subdir)
+			lib, err := transactional.CreateLibraryWithOptions(ctx, name, kind, coverURL, []LibraryRootInput{{Path: subdir}}, options)
+			if err != nil {
+				return fmt.Errorf("create library for %s: %w", subdir, err)
+			}
+			created = append(created, *lib)
 		}
-		created = append(created, *lib)
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
+	s.invalidateMediaCache(ctx)
 	return created, nil
 }
 

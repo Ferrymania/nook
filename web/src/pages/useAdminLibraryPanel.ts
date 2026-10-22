@@ -1,11 +1,11 @@
 import { FormEvent, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
-import { libraryAPI, type LibraryRootInput, type LibraryPathPreview } from '../api/library'
+import { libraryAPI, type LibraryRootInput, type LibraryPathPreview, type LibraryScrapeSettingsView } from '../api/library'
 import type { Library, LibraryRoot } from '../types'
 import { invalidateLibraries } from '../utils/libraryCache'
 import { confirmAction } from '../components/confirmAction'
-import { apiErrorMessage, createRootPayload, displayLibraryRootName, displayLibraryRootPath, emptyRootDraft, rootDraftKey, type RootDraft } from './adminLibraryPanelModel'
+import { apiErrorMessage, createRootPayload, duplicateLibrary, rootDraftError, scrapeSettingsError, displayLibraryRootName, displayLibraryRootPath, emptyRootDraft, rootDraftKey, type RootDraft } from './adminLibraryPanelModel'
 
 export function useAdminLibraryPanel() {
   const { libs, refresh } = useAdminLibraryList()
@@ -36,67 +36,96 @@ function useAdminLibraryList() {
 }
 
 function useCreateLibraryForm(refresh: () => Promise<void>, libs: Library[]) {
+  const [mode, setMode] = useState<'create' | 'append' | null>(null)
+  const [targetLibrary, setTargetLibrary] = useState<Library | null>(null)
   const [name, setName] = useState('')
   const [roots, setRoots] = useState<RootDraft[]>([emptyRootDraft()])
   const [type, setType] = useState('movie')
   const [coverURL, setCoverURL] = useState('')
   const [createPerSubfolder, setCreatePerSubfolder] = useState(false)
-  // 提交中标记：防止重复点击创建出多个媒体库
   const [creating, setCreating] = useState(false)
+  const [error, setError] = useState('')
+  const [scrape, setScrape] = useState<LibraryScrapeSettingsView | null>(null)
+  const [loadingScrape, setLoadingScrape] = useState(false)
+  const [scrapeError, setScrapeError] = useState('')
+
+  const loadScrapeDefaults = async () => {
+    setLoadingScrape(true)
+    setScrapeError('')
+    try { setScrape(await libraryAPI.scrapeDefaults()) }
+    catch { setScrapeError('无法加载刮削默认设置，请重试') }
+    finally { setLoadingScrape(false) }
+  }
+
+  const open = (library?: Library) => {
+    if (creating) return
+    setMode(library ? 'append' : 'create')
+    setTargetLibrary(library ?? null)
+    setName('')
+    setRoots([emptyRootDraft()])
+    setType('movie')
+    setCoverURL('')
+    setCreatePerSubfolder(false)
+    setError('')
+    if (!library) { setScrape(null); void loadScrapeDefaults() }
+  }
 
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault()
-    if (creating) return
+    if (creating || !mode) return
+    const existingRoots = mode === 'append' ? (libs.find(l => l.id === targetLibrary?.id)?.roots ?? []) : []
+    const validation = rootDraftError(roots, existingRoots)
+    if (validation) { setError(validation); return }
+    if (mode === 'create') {
+      if (!createPerSubfolder && !name.trim()) { setError('请填写媒体库名称'); return }
+      if (!createPerSubfolder && duplicateLibrary(libs, name, type)) { setError('同名同类型媒体库已存在，请使用该库的“添加目录”'); return }
+      if (!scrape) { setError('请先加载刮削设置'); return }
+      const scrapeValidation = scrapeSettingsError(scrape)
+      if (scrapeValidation) { setError(scrapeValidation); return }
+    }
     setCreating(true)
+    setError('')
+    let added = 0
     try {
-      if (createPerSubfolder) {
-        const parentPath = roots[0]?.path?.trim()
-        if (!parentPath) {
-          toast.error('请先选择或填写父级目录')
-          return
+      if (mode === 'append' && targetLibrary) {
+        for (const root of createRootPayload(roots)) {
+          await libraryAPI.addRoot(targetLibrary.id, root)
+          added++
         }
-        const { libraries } = await libraryAPI.createPerSubfolder(parentPath, type, coverURL.trim())
-        toast.success(`已按目录创建 ${libraries.length} 个媒体库`)
+        toast.success(`已向「${targetLibrary.name}」添加 ${added} 个目录`)
       } else {
-        const payload = createRootPayload(roots)
-        if (payload.length === 0) {
-          toast.error('请至少填写一个路径')
-          return
+        const options = { create_only: true, scrape_settings: scrape!.settings, auto_probe: scrape!.auto_probe }
+        if (createPerSubfolder) {
+          const { libraries } = await libraryAPI.createPerSubfolder(roots[0].path.trim(), type, coverURL.trim(), options)
+          toast.success(`已按目录创建 ${libraries.length} 个媒体库`)
+        } else {
+          const saved = await libraryAPI.createWithRoots(name.trim(), type, createRootPayload(roots), coverURL.trim(), options)
+          toast.success(`已创建媒体库「${saved.name}」`)
         }
-        const saved = await libraryAPI.createWithRoots(name, type, payload, coverURL.trim())
-        const appended = libs.some((lib) => lib.id === saved.id)
-        toast.success(appended ? `已向「${saved.name}」保存来源路径` : `已创建媒体库「${saved.name}」`)
       }
-      setName('')
+      setMode(null)
       setRoots([emptyRootDraft()])
-      setCoverURL('')
-      setCreatePerSubfolder(false)
     } catch (err: unknown) {
-      toast.error(apiErrorMessage(err, '创建失败'))
+      if (added) setRoots(previous => previous.slice(added))
+      setError(`${added ? `已添加 ${added} 个目录，其余目录保存失败：` : ''}${apiErrorMessage(err, mode === 'append' ? '添加目录失败' : '创建失败')}`)
     } finally {
       setCreating(false)
+      await refresh().catch(() => toast.error('媒体库列表刷新失败，请重试'))
     }
-    await refresh().catch(() => undefined)
   }
 
   const updateRoot = (index: number, patch: Partial<RootDraft>) => {
-    setRoots((prev) => prev.map((root, i) => (i === index ? { ...root, ...patch } : root)))
+    setRoots(previous => previous.map((root, i) => i === index ? { ...root, ...patch } : root))
   }
 
   return {
-    name,
-    type,
-    coverURL,
-    roots,
-    createPerSubfolder,
-    creating,
-    setName,
-    setType,
-    setCoverURL,
-    setCreatePerSubfolder,
-    updateRoot,
-    addRoot: () => setRoots((prev) => [...prev, emptyRootDraft()]),
-    removeRoot: (index: number) => setRoots((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index))),
+    mode, targetLibrary, name, type, coverURL, roots, createPerSubfolder, creating, error,
+    scrape, setScrape, loadingScrape, scrapeError, loadScrapeDefaults,
+    setName, setType, setCoverURL, setCreatePerSubfolder, updateRoot,
+    openCreate: () => open(), openAppend: (library: Library) => open(library),
+    close: () => { if (!creating) setMode(null) },
+    addRoot: () => setRoots(previous => [...previous, emptyRootDraft()]),
+    removeRoot: (index: number) => setRoots(previous => previous.length <= 1 ? previous : previous.filter((_, i) => i !== index)),
     handleCreate,
   }
 }
@@ -138,7 +167,7 @@ function useEditableLibraryRootActions(refresh: () => Promise<void>, drafts: Edi
     const draft = drafts.editableRootDraft(libraryID, root)
     if (!draft.path?.trim()) {
       toast.error('请填写路径')
-      return
+      return false
     }
     const payload = {
       name: draft.name?.trim(),
@@ -148,15 +177,17 @@ function useEditableLibraryRootActions(refresh: () => Promise<void>, drafts: Edi
     }
     if (payload.path !== root.path) {
       setPathChange({ libraryID, root, draft: payload })
-      return
+      return false
     }
     try {
       await libraryAPI.updateRoot(libraryID, root.id, payload)
       drafts.clearEditableRootDraft(libraryID, root.id)
-      toast.success('路径已保存')
+      toast.success('目录已保存')
       await refresh()
+      return true
     } catch (err: unknown) {
-      toast.error(apiErrorMessage(err, '保存路径失败'))
+      toast.error(apiErrorMessage(err, '保存目录失败'))
+      return false
     }
   }
 
@@ -181,9 +212,9 @@ function useEditableLibraryRootActions(refresh: () => Promise<void>, drafts: Edi
   }
 
   const toggleLibraryRoot = async (libraryID: string, root: LibraryRoot) => {
-    const enabled = !drafts.editableRootDraft(libraryID, root).enabled
-    drafts.setEditableRootDraft(libraryID, root, { enabled })
+    const enabled = !root.enabled
     await libraryAPI.updateRoot(libraryID, root.id, { enabled })
+    drafts.clearEditableRootDraft(libraryID, root.id)
     await refresh()
   }
 
@@ -194,7 +225,7 @@ function useEditableLibraryRootActions(refresh: () => Promise<void>, drafts: Edi
     await refresh()
   }
 
-  return { saveLibraryRoot, scanLibraryRoot, toggleLibraryRoot, removeLibraryRoot, pathChange, confirmPathChange, closePathChange: () => setPathChange(null) }
+  return { cancelRootEdit: drafts.clearEditableRootDraft, saveLibraryRoot, scanLibraryRoot, toggleLibraryRoot, removeLibraryRoot, pathChange, confirmPathChange, closePathChange: () => setPathChange(null) }
 }
 
 function useLibraryActions(refresh: () => Promise<void>) {
@@ -225,17 +256,6 @@ function useLibraryActions(refresh: () => Promise<void>) {
     await refresh()
   }
 
-  const addLibraryRoot = async (library: Library, path?: string, name?: string) => {
-    if (!path) {
-      const p = window.prompt(`为「${library.name}」添加来源目录：`)
-      if (!p?.trim()) return
-      path = p.trim()
-      name = (window.prompt('来源名称（可选）：') ?? '').trim()
-    }
-    await libraryAPI.addRoot(library.id, { path: path.trim(), name: (name ?? '').trim(), enabled: true })
-    toast.success('来源目录已添加')
-    await refresh()
-  }
 
   const saveLibraryCover = async (library: Library, coverURL: string) => {
     const value = coverURL.trim()
@@ -246,7 +266,7 @@ function useLibraryActions(refresh: () => Promise<void>) {
   }
 
   return {
-    scanLibrary, removeLibrary, addLibraryRoot, toggleCarouselLibrary, reorderLibraries,
+    scanLibrary, removeLibrary, toggleCarouselLibrary, reorderLibraries,
     coverLibrary, editLibraryCover: setCoverLibrary, closeLibraryCover: () => setCoverLibrary(null), saveLibraryCover,
   }
 }

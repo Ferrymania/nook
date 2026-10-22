@@ -21,6 +21,7 @@ import (
 )
 
 type createLibraryReq struct {
+	service.LibraryCreateOptions
 	Name               string                     `json:"name"`
 	Path               string                     `json:"path"`
 	Paths              []string                   `json:"paths"`
@@ -290,9 +291,9 @@ func createLibraryHandler(svc *service.Container) gin.HandlerFunc {
 			} else if strings.TrimSpace(req.Path) != "" {
 				parent = req.Path
 			}
-			created, err := svc.Media.CreateLibrariesPerSubfolder(c.Request.Context(), parent, req.Type, req.CoverURL)
+			created, err := svc.Media.CreateLibrariesPerSubfolderWithOptions(c.Request.Context(), parent, req.Type, req.CoverURL, req.LibraryCreateOptions)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				writeLibraryCreateError(c, err)
 				return
 			}
 			uid, _ := c.Get("ctx_user_id")
@@ -311,9 +312,9 @@ func createLibraryHandler(svc *service.Container) gin.HandlerFunc {
 			c.JSON(http.StatusCreated, gin.H{"libraries": created})
 			return
 		}
-		l, err := svc.Media.CreateLibraryWithRootsAndCover(c.Request.Context(), req.Name, req.Type, req.CoverURL, roots)
+		l, err := svc.Media.CreateLibraryWithOptions(c.Request.Context(), req.Name, req.Type, req.CoverURL, roots, req.LibraryCreateOptions)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			writeLibraryCreateError(c, err)
 			return
 		}
 		uid, _ := c.Get("ctx_user_id")
@@ -335,6 +336,14 @@ func createLibraryHandler(svc *service.Container) gin.HandlerFunc {
 		}
 		c.JSON(http.StatusCreated, l)
 	}
+}
+
+func writeLibraryCreateError(c *gin.Context, err error) {
+	status := http.StatusBadRequest
+	if errors.Is(err, service.ErrLibraryAlreadyExists) {
+		status = http.StatusConflict
+	}
+	c.JSON(status, gin.H{"error": err.Error()})
 }
 
 type updateLibraryReq struct {

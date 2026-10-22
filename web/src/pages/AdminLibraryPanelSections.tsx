@@ -1,181 +1,66 @@
-import { FormEvent, useState } from 'react'
-import { Folder, Loader2, Plus, Trash2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { ChevronDown, ChevronUp, Folder, Loader2, Plus, Settings2, Trash2, X } from 'lucide-react'
 
 import { LocalDirBrowserDialog } from '../components/LocalDirBrowserDialog'
-import type { RootDraft } from './adminLibraryPanelModel'
+import { LibraryScrapeSettingsFields } from './LibraryScrapeSettingsFields'
+import { libraryTypeLabels, type RootDraft } from './adminLibraryPanelModel'
+import type { useAdminLibraryPanel } from './useAdminLibraryPanel'
 
-type CreateFormProps = {
-  name: string
-  type: string
-  coverURL: string
-  roots: RootDraft[]
-  createPerSubfolder: boolean
-  creating: boolean
-  onNameChange: (value: string) => void
-  onTypeChange: (value: string) => void
-  onCoverURLChange: (value: string) => void
-  onCreatePerSubfolderChange: (value: boolean) => void
-  onRootChange: (index: number, patch: Partial<RootDraft>) => void
-  onAddRoot: () => void
-  onRemoveRoot: (index: number) => void
-  onSubmit: (e: FormEvent) => void
-}
+type CreateFormProps = { form: ReturnType<typeof useAdminLibraryPanel>['createForm'] }
 
-export function AdminLibraryCreateForm({
-  name,
-  type,
-  coverURL,
-  roots,
-  createPerSubfolder,
-  creating,
-  onNameChange,
-  onTypeChange,
-  onCoverURLChange,
-  onCreatePerSubfolderChange,
-  onRootChange,
-  onAddRoot,
-  onRemoveRoot,
-  onSubmit,
-}: CreateFormProps) {
+export function AdminLibraryCreateForm({ form }: CreateFormProps) {
   const [browsingIndex, setBrowsingIndex] = useState<number | null>(null)
+  const [scrapeOpen, setScrapeOpen] = useState(false)
+  const formRef = useRef<HTMLFormElement>(null)
+  const appending = form.mode === 'append'
+  const title = appending ? `为「${form.targetLibrary?.name}」添加目录` : '新建媒体库'
 
-  const handleSelectDir = (selectedPath: string) => {
+  useEffect(() => {
+    formRef.current?.scrollIntoView({ block: 'start' })
+    formRef.current?.querySelector<HTMLInputElement>('input:not(:disabled)')?.focus({ preventScroll: true })
+  }, [])
+
+  const handleSelectDir = (path: string) => {
     if (browsingIndex === null) return
-    const currentRoot = roots[browsingIndex]
-    const segments = selectedPath.split(/[/\\]/).filter(Boolean)
-    const baseName = segments.length > 0 ? segments[segments.length - 1] : ''
-    const patch: Partial<RootDraft> = { path: selectedPath }
-    if (!currentRoot?.name?.trim() && baseName) {
-      patch.name = baseName
-    }
-    onRootChange(browsingIndex, patch)
+    const baseName = path.split(/[/\\]/).filter(Boolean).pop() ?? ''
+    form.updateRoot(browsingIndex, { path, ...(!form.roots[browsingIndex]?.name?.trim() ? { name: baseName } : {}) })
     setBrowsingIndex(null)
   }
 
-  return (
-    <>
-      <form onSubmit={onSubmit} className="glass-panel grid gap-3 md:grid-cols-4">
-        <div className="md:col-span-4">
-          <h3 className="font-semibold text-ink-900">新建媒体库 / 追加来源路径</h3>
-          <p className="mt-1 text-sm text-sand-500">① 填写名称和类型 ② 选择目录 ③ 点击下方主按钮保存</p>
+  return <>
+    <form ref={formRef} className="nook-library-manager-form" onSubmit={form.handleCreate} aria-label={title} aria-busy={form.creating}>
+      <fieldset disabled={form.creating}>
+        <div className="nook-library-manager-form-heading"><h3>{title}</h3><button type="button" className="nook-library-manager-icon" aria-label="收起表单" onClick={form.close}><X size={17} /></button></div>
+        {appending ? <div className="nook-library-manager-form-target"><strong>{form.targetLibrary?.name}</strong><span>{libraryTypeLabels[form.targetLibrary?.type ?? ''] ?? form.targetLibrary?.type}</span><p>已有目录：{form.targetLibrary?.roots?.map(root => root.path).join('、') || form.targetLibrary?.path}</p></div> : <div className="nook-library-manager-two-fields">
+          <label>媒体库名称<input required={!form.createPerSubfolder} disabled={form.createPerSubfolder} className="input-base" value={form.name} placeholder="例如：经典电影" onChange={event => form.setName(event.target.value)} /></label>
+          <label>类型<select className="input-base" value={form.type} onChange={event => form.setType(event.target.value)}>{Object.entries(libraryTypeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+        </div>}
+        <div className="nook-library-manager-new-roots">{form.roots.map((root, index) => <div className="nook-library-manager-new-root" key={index}>
+          <div className="nook-library-manager-path-fields">
+            <label>目录名称（选填）<input className="input-base" value={root.name ?? ''} placeholder="例如：硬盘 2" onChange={event => form.updateRoot(index, { name: event.target.value })} /></label>
+            <label>{form.createPerSubfolder ? '父目录' : '目录路径'}<div className="nook-library-manager-path-input"><input required className="input-base" aria-label={`新增目录路径 ${index + 1}`} value={root.path} placeholder={appending ? `/disk2/${form.targetLibrary?.name}` : '/media/经典电影'} onChange={event => form.updateRoot(index, { path: event.target.value })} /><button type="button" className="nook-library-manager-button" aria-label={`浏览目录 ${index + 1}`} onClick={() => setBrowsingIndex(index)}><Folder size={16} />浏览</button></div></label>
+          </div>
+          {form.roots.length > 1 && <button type="button" className="nook-library-manager-text-button nook-library-manager-danger" onClick={() => form.removeRoot(index)}><Trash2 size={14} />移除此目录</button>}
+        </div>)}
+          {!form.createPerSubfolder && <button type="button" className="nook-library-manager-text-button" onClick={form.addRoot}><Plus size={16} />再添加一个目录</button>}
         </div>
-        <input
-          required={!createPerSubfolder}
-          className="input-base"
-          placeholder={createPerSubfolder ? '父级媒体库名（批量模式忽略）' : '名称'}
-          value={name}
-          onChange={(e) => onNameChange(e.target.value)}
-        />
-        <select className="input-base" value={type} onChange={(e) => onTypeChange(e.target.value)}>
-          <option value="movie">电影</option>
-          <option value="tv">电视剧</option>
-          <option value="variety">综艺</option>
-          <option value="anime">动漫</option>
-          <option value="music">音乐</option>
-        </select>
-        <input
-          className="input-base md:col-span-2"
-          placeholder="自定义封面 URL（可选）"
-          value={coverURL}
-          onChange={(e) => onCoverURLChange(e.target.value)}
-        />
-        <div className="md:col-span-4 space-y-2">
-          {roots.map((root, index) => (
-            <CreateRootRow
-              key={index}
-              root={root}
-              index={index}
-              canRemove={roots.length > 1}
-              onChange={onRootChange}
-              onBrowse={() => setBrowsingIndex(index)}
-              onRemove={onRemoveRoot}
-            />
-          ))}
-          {!createPerSubfolder && (
-            <button type="button" className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm" onClick={onAddRoot}>
-              <Plus size={16} /> 添加另一条路径
-            </button>
-          )}
-        </div>
-        <p className="md:col-span-4 -mt-2 text-xs text-sand-500">
-          “添加另一条路径”只增加输入行，填写完成后需点击下方按钮保存。名称和类型与现有媒体库一致时，会追加路径到该媒体库。
-        </p>
-        <label className="md:col-span-4 flex items-center gap-2 text-sm text-ink-100">
-          <input
-            type="checkbox"
-            className="h-4 w-4 accent-brand-400"
-            checked={createPerSubfolder}
-            onChange={(e) => onCreatePerSubfolderChange(e.target.checked)}
-          />
-          <span>按目录下每个子文件夹各建一个媒体库（媒体库名取子文件夹名）</span>
-        </label>
-        {createPerSubfolder && (
-          <p className="md:col-span-4 -mt-2 text-xs text-sand-500">
-            批处理模式：仅取上方第一个路径作为父级目录，会为其中每个子文件夹分别创建媒体库，可自选类型用于整体推断。
-          </p>
-        )}
-        <button type="submit" className="btn-primary md:col-span-4 min-h-12 gap-2 disabled:opacity-50" disabled={creating}>
-          {creating ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
-          {creating ? '保存中…' : createPerSubfolder ? '按子文件夹批量创建媒体库' : '保存：新建媒体库 / 追加路径'}
-        </button>
-      </form>
-
-      {browsingIndex !== null && (
-        <LocalDirBrowserDialog
-          initialDir={roots[browsingIndex]?.path || undefined}
-          title="选择媒体库目录"
-          onSelect={handleSelectDir}
-          onClose={() => setBrowsingIndex(null)}
-        />
-      )}
-    </>
-  )
+        {!appending && <>
+          <div className="nook-library-manager-scrape-entry"><button type="button" className="nook-library-manager-button" aria-expanded={scrapeOpen} aria-controls="create-library-scrape-settings" onClick={() => setScrapeOpen(!scrapeOpen)}><Settings2 size={16} />刮削设置{scrapeOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</button><span>创建时一并保存</span></div>
+          {form.loadingScrape && <p role="status" className="nook-library-manager-muted">正在加载刮削默认设置…</p>}
+          {form.scrapeError && <p role="alert" className="nook-library-manager-danger">{form.scrapeError} <button type="button" className="nook-library-manager-text-button" onClick={() => void form.loadScrapeDefaults()}>重试</button></p>}
+          {scrapeOpen && form.scrape && <section id="create-library-scrape-settings" aria-label="新媒体库刮削设置"><LibraryScrapeSettingsFields data={form.scrape} onChange={form.setScrape} /></section>}
+          <details className="nook-library-manager-more-options"><summary>更多选项</summary>
+            <label>封面图片链接（选填）<input type="url" className="input-base" value={form.coverURL} placeholder="粘贴封面图片直链" onChange={event => form.setCoverURL(event.target.value)} /></label>
+            <label className="nook-library-manager-checkbox"><input type="checkbox" checked={form.createPerSubfolder} onChange={event => { form.setCreatePerSubfolder(event.target.checked); if (event.target.checked) form.roots.slice(1).forEach(() => form.removeRoot(1)) }} />按每个子文件夹分别创建媒体库</label>
+            {form.createPerSubfolder && <p className="nook-library-manager-muted">将为第一个目录中的每个直接子文件夹创建媒体库，名称取自文件夹，并使用相同的刮削设置。</p>}
+          </details>
+        </>}
+        {form.error && <p role="alert" className="nook-library-manager-danger">{form.error}</p>}
+        <div className="nook-library-manager-form-footer"><button type="button" className="nook-library-manager-button" onClick={form.close}>取消</button><button type="submit" className="nook-library-manager-button nook-library-manager-primary" disabled={!appending && (!form.scrape || form.loadingScrape)}>{form.creating && <Loader2 size={16} className="animate-spin" />}{form.creating ? '保存中…' : appending ? '添加到此媒体库' : form.createPerSubfolder ? '按子文件夹创建媒体库' : '新建媒体库'}</button></div>
+      </fieldset>
+    </form>
+    {browsingIndex !== null && <LocalDirBrowserDialog initialDir={form.roots[browsingIndex]?.path || undefined} title="选择媒体库目录" onSelect={handleSelectDir} onClose={() => setBrowsingIndex(null)} />}
+  </>
 }
 
-type CreateRootRowProps = {
-  root: RootDraft
-  index: number
-  canRemove: boolean
-  onChange: (index: number, patch: Partial<RootDraft>) => void
-  onBrowse: () => void
-  onRemove: (index: number) => void
-}
-
-function CreateRootRow({ root, index, canRemove, onChange, onBrowse, onRemove }: CreateRootRowProps) {
-  return (
-    <div className="grid gap-2 rounded-xl border border-gray-200/80 bg-white/60 p-2 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto_auto]">
-      <input
-        className="input-base"
-        placeholder="路径名称（如 国产剧）"
-        value={root.name ?? ''}
-        onChange={(e) => onChange(index, { name: e.target.value })}
-      />
-      <input
-        required={index === 0}
-        className="input-base"
-        placeholder="本地或容器目录，如 /media/电视剧/国产剧"
-        value={root.path}
-        onChange={(e) => onChange(index, { path: e.target.value })}
-      />
-      <button
-        type="button"
-        onClick={onBrowse}
-        className="inline-flex items-center justify-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-ink-100 transition hover:bg-gray-50"
-        title="点选浏览本地目录"
-      >
-        <Folder size={14} className="text-brand-400" />
-        浏览
-      </button>
-      <button
-        type="button"
-        className="rounded-lg border border-red-400/40 px-3 text-red-400 hover:bg-red-400/10 disabled:opacity-40"
-        disabled={!canRemove}
-        onClick={() => onRemove(index)}
-        title="删除路径"
-      >
-        <Trash2 size={16} />
-      </button>
-    </div>
-  )
-}
-
+export type { RootDraft }
