@@ -2,7 +2,9 @@ package handler
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 
@@ -41,7 +43,7 @@ func toDevicePayload(d model.UserDevice) devicePayload {
 	out := devicePayload{
 		ID:         d.ID,
 		DeviceID:   d.DeviceID,
-		DeviceName: d.DeviceName,
+		DeviceName: deviceDisplayName(d.DeviceName),
 		Client:     d.Client,
 		LastIP:     d.LastIP,
 		Kicked:     d.Kicked,
@@ -56,6 +58,16 @@ func toDevicePayload(d model.UserDevice) devicePayload {
 		out.LastPlayAt = d.LastPlayAt.Format("2006-01-02T15:04:05Z07:00")
 	}
 	return out
+}
+
+// Decode names only for display; stored names still participate in device
+// fingerprints. PathUnescape preserves literal plus signs and decodes once.
+func deviceDisplayName(name string) string {
+	decoded, err := url.PathUnescape(name)
+	if err != nil || !utf8.ValidString(decoded) {
+		return name
+	}
+	return decoded
 }
 
 func deviceListResponse(devices []model.UserDevice) deviceListPayload {
