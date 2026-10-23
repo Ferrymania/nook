@@ -110,6 +110,7 @@ export function PlayerPage() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
+  const customPlaylistId = new URLSearchParams(location.search).get('playlist') || ''
 
   const ref = useRef<HTMLVideoElement>(null)
   const hlsRef = useRef<Hls | null>(null)
@@ -1743,6 +1744,13 @@ export function PlayerPage() {
   useEffect(() => {
     if (!id) return
     let canceled = false
+    if (customPlaylistId) {
+      setPlaylistEpisodes([])
+      playbackAPI.getPlaylist(customPlaylistId)
+        .then(detail => { if (!canceled) setPlaylistEpisodes([...new Map(detail.items.map(item => [item.id, item])).values()]) })
+        .catch(() => { if (!canceled) { setPlaylistEpisodes([]); toast.error('播放列表加载失败，请返回列表重试') } })
+      return () => { canceled = true }
+    }
     mediaAPI
       .getEpisodes(id)
       .then((res) => {
@@ -1771,7 +1779,7 @@ export function PlayerPage() {
     return () => {
       canceled = true
     }
-  }, [id, media])
+  }, [id, media, customPlaylistId])
 
   // 选集列表按版本组折叠，行的 id 是组内最优版本；用户切到同一条目的其它
   // 版本后 media.id 与行 id 不再相等，这里必须按版本组比对，否则上一集/下一集
@@ -1935,14 +1943,14 @@ export function PlayerPage() {
     if (!autoplayNext || !ref.current || !nextEpisode) return
     const video = ref.current
     const onEnded = () => {
-      toast.success(`正在播放下一集：${nextEpisodeTitle || '下一集'}`)
+      toast.success(`正在播放下一${customPlaylistId ? '项' : '集'}：${nextEpisodeTitle || '下一项'}`)
       playEpisode(nextEpisode)
     }
     video.addEventListener('ended', onEnded)
     return () => {
       video.removeEventListener('ended', onEnded)
     }
-  }, [autoplayNext, nextEpisode, nextEpisodeTitle, playEpisode])
+  }, [autoplayNext, customPlaylistId, nextEpisode, nextEpisodeTitle, playEpisode])
 
   // ESC = back 或关闭浮层，[ / ] 或 Shift+P / Shift+N 切换上一集/下一集。
   // 左右方向键的回退/快进在播放器控制栏里处理。
@@ -2023,7 +2031,7 @@ export function PlayerPage() {
     if (prevEpisode || nextEpisode) {
       const total = playlistEpisodes.length
       const index = currentEpisodeIndex + 1
-      parts.push(total > 0 ? `第 ${index} / ${total} 集` : `第 ${index} 集`)
+      parts.push(total > 0 ? `第 ${index} / ${total} ${customPlaylistId ? '项' : '集'}` : `第 ${index} ${customPlaylistId ? '项' : '集'}`)
     }
     if (currentVersions.length > 1) parts.push(`${currentVersions.length} 个版本`)
     return parts.join(' · ')
@@ -2031,6 +2039,7 @@ export function PlayerPage() {
     media,
     currentEpisodeIndex,
     currentVersions.length,
+    customPlaylistId,
     nextEpisode,
     playlistEpisodes.length,
     prevEpisode,
@@ -2212,13 +2221,13 @@ export function PlayerPage() {
       activeSkipKeyRef.current = ''
       const isOutro = prompt.kind === 'credits' || prompt.kind === 'preview'
       if (isOutro && nextEpisode) {
-        toast.success(`正在播放下一集：${nextEpisodeTitle || '下一集'}`)
+        toast.success(`正在播放下一${customPlaylistId ? '项' : '集'}：${nextEpisodeTitle || '下一项'}`)
         playEpisode(nextEpisode)
         return
       }
       seekPlaybackTo(prompt.endSec)
     },
-    [nextEpisode, nextEpisodeTitle, playEpisode, seekPlaybackTo],
+    [customPlaylistId, nextEpisode, nextEpisodeTitle, playEpisode, seekPlaybackTo],
   )
 
   const handleSkipClick = useCallback(() => {
@@ -2474,7 +2483,8 @@ export function PlayerPage() {
         prevEpisodeTitle={prevEpisodeTitle}
         nextEpisodeTitle={nextEpisodeTitle}
         playlistOpen={playlistOpen}
-        hasPlaylist={playlistEpisodes.length > 1 || currentVersions.length > 1}
+        hasPlaylist={playlistEpisodes.length > (customPlaylistId ? 0 : 1) || currentVersions.length > 1}
+        orderedPlaylist={Boolean(customPlaylistId)}
         hasVersions={currentVersions.length > 1}
         onTogglePlaylist={isMobileTheater ? openPlaylistEntry : togglePlaylistOpen}
         knownDuration={media?.duration_sec || 0}
@@ -2513,6 +2523,7 @@ export function PlayerPage() {
                 currentMediaId={media?.id ?? ''}
                 currentVersions={currentVersions}
                 episodes={playlistEpisodes}
+                ordered={Boolean(customPlaylistId)}
                 onSelectEpisode={playEpisode}
                 onSelectVersion={switchVersion}
               />
@@ -2564,6 +2575,7 @@ export function PlayerPage() {
           episodes={playlistEpisodes}
           currentMediaId={media?.id ?? ''}
           currentEpisodeIndex={currentEpisodeIndex}
+          orderedPlaylist={Boolean(customPlaylistId)}
           currentVersions={currentVersions}
           onSelectEpisode={playEpisode}
           onSelectVersion={switchVersion}
@@ -2578,6 +2590,7 @@ export function PlayerPage() {
               currentMediaId={media?.id ?? ''}
               currentVersions={currentVersions}
               episodes={playlistEpisodes}
+              ordered={Boolean(customPlaylistId)}
               onSelectEpisode={playEpisode}
               onSelectVersion={switchVersion}
             />

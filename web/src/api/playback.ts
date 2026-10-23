@@ -26,6 +26,8 @@ export interface HistoryItem {
 export interface PlaylistDetail {
   playlist: Playlist
   items: Media[]
+  can_edit: boolean
+  entries: { id: string; media_id: string; position: number; media: Media }[]
 }
 
 export interface ExternalPlayer {
@@ -88,19 +90,23 @@ export const playbackAPI = {
       .get<{ favourite: boolean }>(`/media/${encodeURIComponent(mediaId)}/favorite/status`)
       .then((r) => r.data.favourite),
 
-  listPlaylists: () =>
-    api.get<{ items: Playlist[] }>('/playlists').then((r) => r.data.items),
+  listPlaylists: (mediaId?: string) =>
+    api.get<{ items: Playlist[] }>('/playlists', { params: { media_id: mediaId } }).then((r) => r.data.items),
 
-  createPlaylist: (name: string, isPublic = false) =>
+  createPlaylist: (name: string, isPublic = false, mediaIds: string[] = []) =>
     api
-      .post<Playlist>('/playlists', { name, is_public: isPublic })
+      .post<Playlist>('/playlists', { name, is_public: isPublic, media_ids: mediaIds })
       .then((r) => r.data),
 
   getPlaylist: (id: string) =>
     api.get<PlaylistDetail>(`/playlists/${id}`).then((r) => r.data),
 
-  addToPlaylist: (id: string, mediaId: string) =>
-    api.post(`/playlists/${id}/items`, { media_id: mediaId }).then((r) => r.data),
+  addToPlaylist: (id: string, mediaIds: string | string[]) =>
+    api.post<{ added: number }>(`/playlists/${id}/items`, { media_ids: Array.isArray(mediaIds) ? mediaIds : [mediaIds] }).then((r) => r.data),
+
+  renamePlaylist: (id: string, name: string) => api.put(`/playlists/${id}`, { name }),
+  reorderPlaylist: (id: string, order: string[]) => api.post(`/playlists/${id}/reorder`, { order }),
+  removePlaylistEntry: (id: string, entryId: string) => api.delete(`/playlists/${id}/items/by-id/${entryId}`),
 
   removeFromPlaylist: (id: string, mediaId: string) =>
     api.delete(`/playlists/${id}/items/${mediaId}`).then((r) => r.data),

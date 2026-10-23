@@ -1,6 +1,8 @@
 import { ArrowLeft, Heart, Play, RefreshCw } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
+import { AddToPlaylistButton } from '../components/AddToPlaylistButton'
+
 import { PageBackButton } from '../components/PageBackButton'
 
 import { ExternalPlayerButton } from '../components/ExternalPlayerButton'
@@ -19,6 +21,8 @@ interface MediaDetailPlaybackActionsProps {
   media: Media
   favourite: boolean
   onToggleFavourite: () => void
+  playlistEpisodes?: Media[]
+  playlistLoading?: boolean
   playTargetId?: string
 }
 
@@ -96,6 +100,8 @@ export function MediaDetailPlaybackActions({
   favourite,
   onToggleFavourite,
   playTargetId,
+  playlistEpisodes,
+  playlistLoading,
 }: MediaDetailPlaybackActionsProps) {
   const targetId = media.id || playTargetId || ''
   return (
@@ -134,6 +140,7 @@ export function MediaDetailPlaybackActions({
         <Heart size={14} fill={favourite ? 'currentColor' : 'none'} />
         <span>{favourite ? '取消收藏' : '加入收藏'}</span>
       </button>
+      <AddToPlaylistButton media={media} episodes={playlistEpisodes} disabled={playlistLoading} />
     </div>
   )
 }
@@ -143,6 +150,8 @@ export function MediaDetailMainContent({
   isAdmin,
   favourite,
   playTargetId,
+  playlistEpisodes,
+  playlistLoading,
   scrapeEpisodeArtwork,
   onToggleFavourite,
   onScrapeEpisodeArtworkChange,
@@ -167,6 +176,8 @@ export function MediaDetailMainContent({
             favourite={favourite}
             onToggleFavourite={onToggleFavourite}
             playTargetId={playTargetId}
+            playlistEpisodes={playlistEpisodes}
+            playlistLoading={playlistLoading}
           />
           <MediaVersionSwitcher media={media} />
         </div>

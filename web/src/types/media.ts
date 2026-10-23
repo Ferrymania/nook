@@ -51,6 +51,8 @@ export interface Media {
 }
 
 export interface Playlist {
+  item_count?: number
+  contains_media?: boolean
   id: string
   user_id: string
   name: string

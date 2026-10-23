@@ -33,6 +33,12 @@ func (e *EmbyService) item(ctx context.Context, mediaID, userID string) (map[str
 	if e == nil {
 		return nil, nil
 	}
+	if mediaID == EmbyPlaylistsFolderID {
+		return e.playlistsFolder(ctx, userID)
+	}
+	if id, ok := DecodeEmbyPlaylistID(mediaID); ok {
+		return e.playlistItem(ctx, id, userID)
+	}
 	// 远程 Emby 条目：不查本地库，直接向远程转发（保持远程最新元数据）。
 	if e.remote != nil && IsEmbyRemoteID(mediaID) {
 		mountID, remoteID, _ := DecodeEmbyRemoteID(mediaID)

@@ -106,6 +106,7 @@ func registerAuthedCollectionRoutes(authed *gin.RouterGroup, svc *service.Contai
 	authed.GET("/playlists", listPlaylistsHandler(svc))
 	authed.POST("/playlists", createPlaylistHandler(svc))
 	authed.GET("/playlists/:id", getPlaylistHandler(svc))
+	authed.PUT("/playlists/:id", renamePlaylistHandler(svc))
 	authed.POST("/playlists/:id/items", addPlaylistItemHandler(svc))
 	authed.DELETE("/playlists/:id/items/:media_id", removePlaylistItemHandler(svc))
 	authed.DELETE("/playlists/:id", deletePlaylistHandler(svc))

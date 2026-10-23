@@ -70,7 +70,7 @@ func TestEmbyUnsupportedItemTypesDoNotLeakAllMedia(t *testing.T) {
 		t.Fatalf("create media: %v", err)
 	}
 
-	for _, includeType := range []string{"BoxSet", "Game", "Book", "Audio", "MusicAlbum", "Playlist", "TvChannel"} {
+	for _, includeType := range []string{"BoxSet", "Game", "Book", "Audio", "MusicAlbum", "TvChannel"} {
 		out, err := svc.Items(t.Context(), ItemsParams{
 			IncludeItemTypes: []string{includeType},
 			Recursive:        true,

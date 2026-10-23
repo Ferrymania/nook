@@ -162,6 +162,7 @@ func registerEmbyPostRoutes(grp *gin.RouterGroup, svc *service.Container, paths 
 }
 
 func registerEmbyAuthenticatedRoutes(auth *gin.RouterGroup, prefix string, svc *service.Container) {
+	registerEmbyPlaylistRoutes(auth, svc)
 	registerEmbyAuthenticatedUserRoutes(auth, svc)
 	registerEmbyAuthenticatedItemRoutes(auth, svc)
 	registerEmbyAuthenticatedPlaybackRoutes(auth, prefix, svc)
