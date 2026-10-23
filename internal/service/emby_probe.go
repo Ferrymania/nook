@@ -7,14 +7,22 @@ import (
 	"strings"
 
 	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/repository"
 )
 
 // Read saved probe data only; serving an Emby response must not start a probe.
 func (e *EmbyService) cachedMediaProbe(ctx context.Context, m *model.Media) *mediaProbePayload {
-	if e == nil || e.repo == nil || e.repo.MediaProbe == nil {
+	if e == nil {
 		return nil
 	}
-	row, err := e.repo.MediaProbe.Get(ctx, m.ID)
+	return cachedMediaProbe(ctx, e.repo, m)
+}
+
+func cachedMediaProbe(ctx context.Context, repo *repository.Container, m *model.Media) *mediaProbePayload {
+	if repo == nil || repo.MediaProbe == nil || m == nil {
+		return nil
+	}
+	row, err := repo.MediaProbe.Get(ctx, m.ID)
 	if err != nil || row == nil || row.Payload == "" {
 		return nil
 	}

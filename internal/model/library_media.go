@@ -81,6 +81,8 @@ type Media struct {
 	// Used to expose WebDAV / Alist / S3 / HTTP direct links as media items.
 	STRMURL string `gorm:"size:2048" json:"strm_url,omitempty"`
 
+	VideoMetadata *MediaVideoMetadata `gorm:"-" json:"video_metadata,omitempty"`
+
 	LibraryName string `gorm:"-" json:"library_name,omitempty"`
 	LibraryPath string `gorm:"-" json:"library_path,omitempty"`
 
@@ -101,6 +103,13 @@ type Media struct {
 	// IsDuplicate flags this media as a duplicate of another media row.
 	IsDuplicate bool   `gorm:"default:false" json:"is_duplicate"`
 	DuplicateOf string `gorm:"size:128" json:"duplicate_of,omitempty"`
+}
+
+// MediaVideoMetadata is a read-only detail summary using the Emby video type enums.
+type MediaVideoMetadata struct {
+	FrameRate            float64 `json:"frame_rate,omitempty"`
+	ExtendedVideoType    string  `json:"extended_video_type,omitempty"`
+	ExtendedVideoSubType string  `json:"extended_video_sub_type,omitempty"`
 }
 
 // Series 将属于同一节目的剧集分组。
