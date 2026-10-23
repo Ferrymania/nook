@@ -44,7 +44,6 @@ export function ActiveUsersStrip({ users }: { users: User[] }) {
           <Activity size={14} className="text-brand-500" />
           活跃用户 Top {top.length}
         </span>
-        <span className="text-xs text-sand-500">按观看记录数排序</span>
       </div>
       <div className="flex flex-wrap gap-2">
         {top.map((entry) => {

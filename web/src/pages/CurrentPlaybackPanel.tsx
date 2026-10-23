@@ -54,7 +54,6 @@ export function CurrentPlaybackPanel() {
           <MonitorPlay size={14} className="text-brand-500" />
           当前播放{!failed && sessions !== null && `（${sessions.length}）`}
         </h2>
-        <span className="text-[11px] text-sand-500">页面可见时每 10 秒刷新</span>
       </div>
       {failed ? (
         <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-5 text-xs text-amber-700">

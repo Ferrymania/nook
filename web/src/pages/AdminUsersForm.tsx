@@ -44,9 +44,6 @@ export function AdminUsersForm({
             已创建 {usersCount}/{maxUsers} 个用户；新增用户默认只有媒体库浏览、播放、外部播放器与第三方客户端观看权限。
           </p>
         </div>
-        <span className="rounded-full border border-primary-400/30 px-3 py-1 text-xs text-brand-500">
-          默认管理员不可删除 · 最高权限
-        </span>
       </div>
 
       <div className="md:col-span-3 flex flex-wrap items-end gap-3 rounded-2xl border border-sand-200/80 bg-white/60 p-4">

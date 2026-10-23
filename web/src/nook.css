@@ -32,7 +32,6 @@
 .nook-bottom-nav a, .nook-bottom-nav button { font-size: 12px; font-weight: 400; min-height: 44px; }
 
 .nook-home-heading h1 { font-size: 24px; font-weight: 600; letter-spacing: -.02em; }
-.nook-home-heading p { margin-top: 5px; font-size: 14px; color: var(--app-muted); }
 .nook-home > * + * { margin-top: 32px; }
 .nook-home > .nook-spotlight { margin-top: 24px; }
 .nook-spotlight { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); overflow: hidden; border-radius: 20px; background: var(--app-panel); }
@@ -179,7 +178,6 @@
   .nook-app[data-screen='app'] .nook-workspace { padding-top: 20px; padding-inline: 18px; }
   .nook-app[data-screen='app'] .nook-canvas :is(h1.font-display, .page-heading),
   .nook-page-header h1, .nook-home-heading h1 { font-size: 22px; }
-  .nook-home-heading p { font-size: 13px; }
   .nook-spotlight { display: flex; flex-direction: column; border-radius: 16px; }
   .nook-spotlight-artwork { order: -1; min-height: 0; width: 100%; aspect-ratio: 1.95; }
   .nook-spotlight-copy { padding: 20px 22px 12px; }

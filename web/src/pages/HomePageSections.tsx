@@ -259,9 +259,6 @@ export function HomeLibrariesSection({
                 </span>
               )}
             </div>
-            <p className="text-xs text-(--app-muted)">
-              点击卡片浏览对应媒体库
-            </p>
           </div>
         </div>
 

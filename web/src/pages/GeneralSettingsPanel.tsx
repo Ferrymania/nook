@@ -33,7 +33,7 @@ export function GeneralSettingsPanel(props: Props) {
           onChange={(value) => onChange(concurrency.key, value)} disabled={saving}
           showKey={false} showHint={false} layout="stacked" />
       </FFToolsPanel>
-      <SettingsSection title="缓存管理" description="控制内存与图片缓存的占用" icon={Database}>
+      <SettingsSection title="缓存管理" icon={Database}>
         <div className="settings-fields">
           {cacheSettings.map((setting) => (
             <SettingRow key={setting.key} def={{ ...setting, label: setting.label.replace(/ \((MB|小时)\)$/, '') }}
@@ -60,7 +60,7 @@ function HTTPSSettingsPanel({ values, saving, onChange }: Pick<Props, 'values' |
   const hasPaths = certificatePaths.some((setting) => values[setting.key]?.trim())
   const hasContents = certificateContents.some((setting) => values[setting.key]?.trim())
   return (
-    <SettingsSection title="HTTPS" description="为访问连接启用加密" icon={LockKeyhole}
+    <SettingsSection title="HTTPS" icon={LockKeyhole}
       actions={<SettingsSwitch label="启用 HTTPS" checked={enabled} disabled={saving} describedBy={enabled ? descriptionID : undefined} onChange={(checked) => onChange('https.enabled', String(checked))} />}>
       {enabled && (
         <div className="settings-https-fields">

@@ -67,9 +67,8 @@ export function VersionUpdatePanel() {
   return (
     <section className="glass-panel space-y-5 p-6 sm:p-8" aria-labelledby="version-update-heading">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-1">
+        <div>
           <h3 id="version-update-heading" className="font-display text-lg font-bold text-ink-600">版本更新</h3>
-          <p className="text-sm text-sand-500">进入此页自动检查 GitHub 最新正式版本</p>
         </div>
         <button type="button" onClick={check} disabled={checking} className="library-toolbar-button">
           <RefreshCw size={16} className={checking ? 'animate-spin' : ''} aria-hidden="true" />
@@ -118,11 +117,10 @@ export function VersionUpdatePanel() {
           </button>
         </div>
         <pre className="overflow-x-auto rounded-xl border border-(--app-border) bg-(--app-panel-soft) p-4 text-xs leading-7 text-ink-600 sm:text-sm"><code>{UPDATE_COMMAND}</code></pre>
-        <p className="text-xs leading-relaxed text-sand-500">在服务器的 Compose 文件所在目录执行。通过容器管理面板部署时，可在面板中更新；二进制部署请前往发布页下载。</p>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-(--app-border) pt-4 text-xs text-sand-500">
-        <p>{result ? `检查于 ${formatDate(result.checked_at)} · 手动检查间隔至少 1 分钟` : error ? '可稍后重试或前往发布页查看' : '检查结果缓存 30 分钟'}</p>
+        <p>{result ? `检查于 ${formatDate(result.checked_at)}` : error ? '可稍后重试或前往发布页查看' : '检查结果缓存 30 分钟'}</p>
         <a href={result?.release_url || RELEASES_URL} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 font-medium text-brand-600 hover:underline">
           查看 GitHub 发布页 <ExternalLink size={13} aria-hidden="true" />
         </a>
