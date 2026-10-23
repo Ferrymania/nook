@@ -128,10 +128,10 @@ function LayoutSidebarHomeBack({ sidebarExpanded }: { sidebarExpanded: boolean }
             ? 'justify-start text-(--app-muted) hover:bg-(--app-hover) hover:text-(--app-text)'
             : 'justify-center text-(--app-muted) hover:text-(--app-text)',
         )}
-        title="返回系统首页"
+        title="返回首页"
       >
         <ArrowLeft size={18} className="transition-transform group-hover:-translate-x-0.5" />
-        {sidebarExpanded && <span>返回系统首页</span>}
+        {sidebarExpanded && <span>返回首页</span>}
       </Link>
     </div>
   )
