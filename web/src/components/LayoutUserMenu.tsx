@@ -100,8 +100,8 @@ export function LayoutUserMenu({
           <div
             key="layout-user-menu-panel"
             role="menu"
-            style={{ top: menuPosition.top, right: menuPosition.right }}
-            className="nook-user-menu fixed z-121 w-56 origin-top-right rounded-2xl border border-(--app-border) bg-(--app-panel) p-2 shadow-xl animate-menu-in"
+            style={{ top: menuPosition.top, right: menuPosition.right, maxHeight: `calc(100dvh - ${menuPosition.top + 8}px)` }}
+            className="nook-user-menu fixed z-121 w-56 origin-top-right overflow-y-auto rounded-2xl border border-(--app-border) bg-(--app-panel) p-2 shadow-xl animate-menu-in"
             onPointerDown={(event) => event.stopPropagation()}
           >
 	            <UserMenuLink to="/profile" icon={<Settings size={16} />} label="个人资料" onNavigate={onClose} />
@@ -129,7 +129,12 @@ export function LayoutUserMenu({
                 <LayoutThemeToggle mode={themeMode} onChange={onThemeChange} />
               </div>
             ) : null}
-            <div className="my-1.5 border-t border-(--app-border)" />
+            {user?.role === 'admin' && (
+              <>
+                <div className="my-1.5 border-t border-(--app-border)" />
+                <UserMenuLink to="/settings" icon={<Settings size={16} />} label="系统设置" onNavigate={onClose} />
+              </>
+            )}
             <div className="my-1.5 border-t border-(--app-border)" />
             <button
               onClick={() => {
