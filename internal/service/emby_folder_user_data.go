@@ -27,6 +27,10 @@ func (e *EmbyService) withFolderUserDataEnvelope(ctx context.Context, userID str
 // changes must be visible even while list-cache invalidation is throttled. Read
 // complete series, since Latest's candidate window may contain only some episodes.
 func (e *EmbyService) withFolderUserData(ctx context.Context, userID string, items []map[string]any) ([]map[string]any, error) {
+	items, err := e.withMediaGenres(ctx, userID, items)
+	if err != nil {
+		return nil, err
+	}
 	seriesIDs := []string{}
 	wanted := map[string]bool{}
 	virtualLibraries := map[string]bool{}
@@ -75,7 +79,7 @@ func (e *EmbyService) withFolderUserData(ctx context.Context, userID string, ite
 		scope = scope.Or("(series_id IS NULL OR series_id = '') AND library_id IN ?", libraries)
 	}
 	q = e.applyUserMediaVisibility(ctx, q.Where(scope).Where("season_num > 0 OR episode_num > 0"), userID)
-	columns := "media.id, media.library_id, media.series_id, media.title, media.original_name, media.path, media.scrape_status, media.season_num, media.episode_num, media.episode_fraction"
+	columns := "media.id, media.library_id, media.series_id, media.title, media.original_name, media.path, media.scrape_status, media.season_num, media.episode_num, media.episode_fraction, media.genres"
 	if strings.TrimSpace(userID) != "" {
 		q = q.Joins("LEFT JOIN playback_histories AS watched ON watched.media_id = media.id AND watched.user_id = ? AND watched.deleted_at IS NULL AND watched.completed = ?", userID, true)
 		columns += ", COALESCE(watched.completed, false) AS episode_played"
@@ -86,7 +90,7 @@ func (e *EmbyService) withFolderUserData(ctx context.Context, userID string, ite
 		model.Media
 		EpisodePlayed bool
 	}
-	if err := q.Select(columns).Find(&rows).Error; err != nil {
+	if err := q.Select(columns).Order("media.season_num, media.episode_num, media.id").Find(&rows).Error; err != nil {
 		return nil, err
 	}
 
@@ -95,6 +99,7 @@ func (e *EmbyService) withFolderUserData(ctx context.Context, userID string, ite
 	// numbers stay independent rather than merging unrelated specials.
 	episodes := map[string]map[string]bool{}
 	seasons := map[string]map[string]bool{}
+	genres := map[string][]string{}
 	for _, row := range rows {
 		seriesID := e.seriesIDForMedia(ctx, &row.Media)
 		if !wanted[seriesID] {
@@ -107,6 +112,7 @@ func (e *EmbyService) withFolderUserData(ctx context.Context, userID string, ite
 			key = fmt.Sprintf("s:%d|e:%d%s", seasonNum, row.EpisodeNum, episodeFractionSuffix(row.EpisodeFraction))
 		}
 		for _, id := range []string{seriesID, seasonID} {
+			genres[id] = append(genres[id], row.Genres)
 			if episodes[id] == nil {
 				episodes[id] = map[string]bool{}
 			}
@@ -151,6 +157,11 @@ func (e *EmbyService) withFolderUserData(ctx context.Context, userID string, ite
 		out[i] = maps.Clone(item)
 		out[i]["UserData"] = data
 		out[i]["RecursiveItemCount"] = total
+		names := normalizedEmbyGenres(genres[id])
+		if len(names) == 0 && kind == "Season" {
+			names = normalizedEmbyGenres(genres[seriesID])
+		}
+		setEmbyGenres(out[i], names)
 		if kind == "Season" {
 			out[i]["ChildCount"] = total
 		} else {
