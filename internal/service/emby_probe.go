@@ -55,6 +55,7 @@ func probedMediaStreams(probe *mediaProbePayload) []map[string]any {
 		case "video":
 			stream["Width"], stream["Height"] = s.Width, s.Height
 			stream["PixelFormat"] = s.PixFmt
+			appendEmbyVideoMetadata(stream, s)
 			if rate, err := strconv.ParseFloat(s.FrameRate, 64); err == nil && rate > 0 {
 				stream["AverageFrameRate"] = rate
 			}

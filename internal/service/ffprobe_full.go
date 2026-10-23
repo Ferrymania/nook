@@ -25,22 +25,29 @@ type ProbeInput struct {
 
 // ProbeStream 是一路轨道的关键字段，供详情页展示。
 type ProbeStream struct {
-	Index         int    `json:"index"`
-	Type          string `json:"type"`
-	Codec         string `json:"codec,omitempty"`
-	Profile       string `json:"profile,omitempty"`
-	Language      string `json:"language,omitempty"`
-	Title         string `json:"title,omitempty"`
-	Width         int    `json:"width,omitempty"`
-	Height        int    `json:"height,omitempty"`
-	PixFmt        string `json:"pix_fmt,omitempty"`
-	FrameRate     string `json:"frame_rate,omitempty"`
-	Channels      int    `json:"channels,omitempty"`
-	ChannelLayout string `json:"channel_layout,omitempty"`
-	SampleRate    int    `json:"sample_rate,omitempty"`
-	BitRate       int64  `json:"bit_rate,omitempty"`
-	Default       bool   `json:"default,omitempty"`
-	Forced        bool   `json:"forced,omitempty"`
+	Index          int                  `json:"index"`
+	Type           string               `json:"type"`
+	Codec          string               `json:"codec,omitempty"`
+	Profile        string               `json:"profile,omitempty"`
+	Language       string               `json:"language,omitempty"`
+	Title          string               `json:"title,omitempty"`
+	Width          int                  `json:"width,omitempty"`
+	Height         int                  `json:"height,omitempty"`
+	PixFmt         string               `json:"pix_fmt,omitempty"`
+	FrameRate      string               `json:"frame_rate,omitempty"`
+	CodecTag       string               `json:"codec_tag,omitempty"`
+	BitDepth       int                  `json:"bit_depth,omitempty"`
+	ColorRange     string               `json:"color_range,omitempty"`
+	ColorSpace     string               `json:"color_space,omitempty"`
+	ColorTransfer  string               `json:"color_transfer,omitempty"`
+	ColorPrimaries string               `json:"color_primaries,omitempty"`
+	SideDataList   []ProbeVideoSideData `json:"side_data_list,omitempty"`
+	Channels       int                  `json:"channels,omitempty"`
+	ChannelLayout  string               `json:"channel_layout,omitempty"`
+	SampleRate     int                  `json:"sample_rate,omitempty"`
+	BitRate        int64                `json:"bit_rate,omitempty"`
+	Default        bool                 `json:"default,omitempty"`
+	Forced         bool                 `json:"forced,omitempty"`
 }
 
 // ProbeChapter 是一个内嵌章节区间。
@@ -65,6 +72,7 @@ type FullProbeResult struct {
 // ffprobe 的原始 JSON，因为其中的 format.filename 是播放直链（含签名与
 // pickcode），原样保存会外泄。
 type mediaProbePayload struct {
+	Version     int            `json:"version,omitempty"`
 	Container   string         `json:"container,omitempty"`
 	DurationSec int            `json:"duration_sec"`
 	BitRate     int64          `json:"bit_rate,omitempty"`
@@ -97,6 +105,7 @@ func (r *FullProbeResult) PayloadJSON() (string, error) {
 		streams = []ProbeStream{}
 	}
 	body, err := json.Marshal(mediaProbePayload{
+		Version:     2,
 		Container:   r.Container,
 		DurationSec: r.DurationSec,
 		BitRate:     r.BitRate,
@@ -185,19 +194,27 @@ type rawFullProbe struct {
 		Size       probeNumber `json:"size"`
 	} `json:"format"`
 	Streams []struct {
-		Index         int         `json:"index"`
-		CodecType     string      `json:"codec_type"`
-		CodecName     string      `json:"codec_name"`
-		Profile       string      `json:"profile"`
-		Width         int         `json:"width"`
-		Height        int         `json:"height"`
-		PixFmt        string      `json:"pix_fmt"`
-		AvgFrameRate  string      `json:"avg_frame_rate"`
-		Channels      int         `json:"channels"`
-		ChannelLayout string      `json:"channel_layout"`
-		SampleRate    probeNumber `json:"sample_rate"`
-		BitRate       probeNumber `json:"bit_rate"`
-		Tags          struct {
+		Index            int                  `json:"index"`
+		CodecType        string               `json:"codec_type"`
+		CodecName        string               `json:"codec_name"`
+		Profile          string               `json:"profile"`
+		Width            int                  `json:"width"`
+		Height           int                  `json:"height"`
+		PixFmt           string               `json:"pix_fmt"`
+		AvgFrameRate     string               `json:"avg_frame_rate"`
+		CodecTag         string               `json:"codec_tag_string"`
+		BitsPerRawSample probeNumber          `json:"bits_per_raw_sample"`
+		BitsPerSample    probeNumber          `json:"bits_per_sample"`
+		ColorRange       string               `json:"color_range"`
+		ColorSpace       string               `json:"color_space"`
+		ColorTransfer    string               `json:"color_transfer"`
+		ColorPrimaries   string               `json:"color_primaries"`
+		SideDataList     []ProbeVideoSideData `json:"side_data_list"`
+		Channels         int                  `json:"channels"`
+		ChannelLayout    string               `json:"channel_layout"`
+		SampleRate       probeNumber          `json:"sample_rate"`
+		BitRate          probeNumber          `json:"bit_rate"`
+		Tags             struct {
 			Language string `json:"language"`
 			Title    string `json:"title"`
 		} `json:"tags"`
@@ -230,22 +247,29 @@ func parseFullProbeJSON(data []byte) (*FullProbeResult, error) {
 	}
 	for _, s := range raw.Streams {
 		stream := ProbeStream{
-			Index:         s.Index,
-			Type:          s.CodecType,
-			Codec:         s.CodecName,
-			Profile:       s.Profile,
-			Language:      strings.TrimSpace(s.Tags.Language),
-			Title:         strings.TrimSpace(s.Tags.Title),
-			Width:         s.Width,
-			Height:        s.Height,
-			PixFmt:        s.PixFmt,
-			FrameRate:     normalizeFrameRate(s.AvgFrameRate),
-			Channels:      s.Channels,
-			ChannelLayout: s.ChannelLayout,
-			SampleRate:    s.SampleRate.int(),
-			BitRate:       s.BitRate.int64(),
-			Default:       s.Disposition.Default != 0,
-			Forced:        s.Disposition.Forced != 0,
+			Index:          s.Index,
+			Type:           s.CodecType,
+			Codec:          s.CodecName,
+			Profile:        s.Profile,
+			Language:       strings.TrimSpace(s.Tags.Language),
+			Title:          strings.TrimSpace(s.Tags.Title),
+			Width:          s.Width,
+			Height:         s.Height,
+			PixFmt:         s.PixFmt,
+			FrameRate:      normalizeFrameRate(s.AvgFrameRate),
+			CodecTag:       strings.TrimSpace(s.CodecTag),
+			BitDepth:       probeBitDepth(s.BitsPerRawSample.int(), s.BitsPerSample.int(), s.CodecType, s.PixFmt),
+			ColorRange:     strings.TrimSpace(s.ColorRange),
+			ColorSpace:     strings.TrimSpace(s.ColorSpace),
+			ColorTransfer:  strings.TrimSpace(s.ColorTransfer),
+			ColorPrimaries: strings.TrimSpace(s.ColorPrimaries),
+			SideDataList:   retainedProbeVideoSideData(s.SideDataList),
+			Channels:       s.Channels,
+			ChannelLayout:  s.ChannelLayout,
+			SampleRate:     s.SampleRate.int(),
+			BitRate:        s.BitRate.int64(),
+			Default:        s.Disposition.Default != 0,
+			Forced:         s.Disposition.Forced != 0,
 		}
 		result.Streams = append(result.Streams, stream)
 	}

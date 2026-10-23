@@ -61080,6 +61080,17 @@
           "VideoRange": {
             "type": "string"
           },
+          "ExtendedVideoType": {
+            "type": "string",
+            "enum": ["None", "Hdr10", "Hdr10Plus", "HyperLogGamma", "DolbyVision"]
+          },
+          "ExtendedVideoSubType": {
+            "type": "string",
+            "enum": ["None", "Hdr10", "HyperLogGamma", "Hdr10Plus0", "DoviProfile02", "DoviProfile10", "DoviProfile22", "DoviProfile30", "DoviProfile42", "DoviProfile50", "DoviProfile61", "DoviProfile76", "DoviProfile81", "DoviProfile82", "DoviProfile83", "DoviProfile84", "DoviProfile85", "DoviProfile92"]
+          },
+          "ExtendedVideoSubTypeDescription": {
+            "type": "string"
+          },
           "DisplayTitle": {
             "type": "string"
           },
