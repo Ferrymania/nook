@@ -107,6 +107,10 @@ func TestPlaylistAtomicCreationVisibilityAndOrder(t *testing.T) {
 	if len(entries) != 1 || page["TotalRecordCount"] != int64(3) || entries[0]["PlaylistItemId"] == nil {
 		t.Fatalf("bad page: %#v", page)
 	}
+	oversized, err := e.PlaylistItems(ctx, pl.ID, ItemsParams{UserID: "viewer", StartIndex: 1, Limit: int(^uint(0) >> 1)})
+	if err != nil || len(oversized["Items"].([]map[string]any)) != 2 {
+		t.Fatal(oversized, err)
+	}
 	// Permissions are re-evaluated when opening an existing list.
 	if err = p.repo.User.UpdateFields(ctx, "viewer", map[string]any{"allowed_library_ids": `["denied"]`}); err != nil {
 		t.Fatal(err)

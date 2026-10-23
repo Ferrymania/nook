@@ -77,6 +77,12 @@ func (e *EmbyService) playlistItem(ctx context.Context, id, uid string) (map[str
 	return embyPlaylistPayload(detail.Playlist, len(detail.Items), detail.CanEdit), nil
 }
 func (e *EmbyService) PlaylistItems(ctx context.Context, id string, p ItemsParams) (map[string]any, error) {
+	if p.Limit <= 0 || p.Limit > 500 {
+		p.Limit = 50
+	}
+	if p.StartIndex < 0 {
+		p.StartIndex = 0
+	}
 	if decoded, ok := DecodeEmbyPlaylistID(id); ok {
 		id = decoded
 	}
@@ -96,7 +102,8 @@ func (e *EmbyService) PlaylistItems(ctx context.Context, id string, p ItemsParam
 		if item == nil {
 			continue
 		}
-		if len(p.IncludeItemTypes) > 0 && !containsItemType(p.IncludeItemTypes, item["Type"].(string)) {
+		kind, _ := item["Type"].(string)
+		if len(p.IncludeItemTypes) > 0 && !containsItemType(p.IncludeItemTypes, kind) {
 			continue
 		}
 		item["PlaylistItemId"] = entry.ID
