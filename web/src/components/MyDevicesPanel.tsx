@@ -61,15 +61,15 @@ export function MyDevicesPanel() {
   }
 
   return (
-    <section className="glass-panel space-y-4">
+    <section className="space-y-3 rounded-xl bg-(--app-panel) p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-ink-600">
-            <MonitorSmartphone size={20} className="text-brand-500" />
+          <h2 className="flex items-center gap-2 text-base font-semibold text-(--app-text)">
+            <MonitorSmartphone size={18} />
             我的设备
           </h2>
-          <p className="mt-1 text-sm text-ink-50">
-            网页、手机与电视端登录过的终端都会出现在这里。发现陌生设备时请踢下线并修改密码。
+          <p className="mt-1 text-xs leading-5 text-(--app-muted)">
+            管理登录过的网页与客户端。发现陌生设备时请踢下线并修改密码。
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -78,6 +78,7 @@ export function MyDevicesPanel() {
             onClick={() => void load()}
             className="rounded-xl border border-(--app-border) p-2 text-(--app-muted) transition-colors hover:bg-(--app-hover) hover:text-(--app-text)"
             title="刷新"
+            aria-label="刷新设备列表"
           >
             <RefreshCw size={16} />
           </button>
@@ -94,11 +95,11 @@ export function MyDevicesPanel() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-8 text-ink-50">
+        <div role="status" aria-label="正在加载设备" className="flex justify-center py-6 text-(--app-muted)">
           <Loader2 className="animate-spin" />
         </div>
       ) : devices.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-(--app-border) p-6 text-center text-sm text-(--app-muted)">
+        <p className="py-6 text-center text-sm text-(--app-muted)">
           暂无设备记录。使用 Emby / Infuse 等客户端登录后会自动出现在这里。
         </p>
       ) : (
@@ -106,7 +107,7 @@ export function MyDevicesPanel() {
           {devices.map((device) => (
             <li
               key={device.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-(--app-border) bg-(--app-panel) p-3"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-(--app-border) p-3"
             >
               <div className="min-w-0">
                 <div className="flex items-center gap-2 text-sm font-semibold text-(--app-text)">

@@ -98,35 +98,21 @@ function LayoutSidebarNav({
   items: LayoutNavItem[]
   sidebarExpanded: boolean
 }) {
-  const groups = [
-    { label: '常用功能', items: items.filter((item) => !item.adminOnly) },
-    { label: '平台管理', items: items.filter((item) => item.adminOnly) },
-  ].filter((group) => group.items.length > 0)
-
   return (
-    <nav className="px-4 py-5" aria-label="功能导航">
-      {groups.map((group, index) => (
-        <section key={group.label} aria-label={group.label} className={index > 0 ? 'mt-4 border-t border-(--app-border) pt-4' : undefined}>
-          <h2 className={sidebarExpanded ? 'mb-2 px-4 text-xs font-medium text-(--app-muted)' : 'sr-only'}>
-            {group.label}
-          </h2>
-          <div className="space-y-1">
-            {group.items.map((item) => {
-              const ItemIcon = item.icon
-              return (
-                <SidebarLink
-                  key={item.to}
-                  to={item.to}
-                  icon={<ItemIcon size={18} />}
-                  label={item.label}
-                  end={item.end}
-                  collapsed={!sidebarExpanded}
-                />
-              )
-            })}
-          </div>
-        </section>
-      ))}
+    <nav className="space-y-1 px-4 py-5" aria-label="功能导航">
+      {items.map((item) => {
+        const ItemIcon = item.icon
+        return (
+          <SidebarLink
+            key={item.to}
+            to={item.to}
+            icon={<ItemIcon size={18} />}
+            label={item.label}
+            end={item.end}
+            collapsed={!sidebarExpanded}
+          />
+        )
+      })}
     </nav>
   )
 }

@@ -34,9 +34,6 @@ const FileManagerPage = lazy(() =>
 const WatchHistoryPage = lazy(WatchHistoryPageLoader)
 const WatchStatsPage = lazy(WatchStatsPageLoader)
 const PosterWallPage = lazy(() => import('./pages/PosterWallPage').then((m) => ({ default: m.PosterWallPage })))
-const PlaybackSettingsPage = lazy(() =>
-  import('./pages/PlaybackSettingsPage').then((m) => ({ default: m.PlaybackSettingsPage })),
-)
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const EmbyMountPage = lazy(() => import('./pages/EmbyMountPage').then((m) => ({ default: m.EmbyMountPage })))
 const StrmManagePage = lazy(() => import('./pages/StrmManagePage').then((m) => ({ default: m.StrmManagePage })))
@@ -110,8 +107,8 @@ export const appRoutes: AppRoute[] = [
   { path: 'history', element: <WatchHistoryPage /> },
   { path: 'history/stats', element: <WatchStatsPage /> },
   { path: 'poster-wall', element: <PosterWallPage /> },
-  { path: 'playback-settings', element: <PlaybackSettingsPage /> },
-  { path: 'play-profiles', element: <Navigate to="/playback-settings" replace /> },
+  { path: 'playback-settings', element: <Navigate to="/profile?tab=playback" replace /> },
+  { path: 'play-profiles', element: <Navigate to="/profile?tab=playback" replace /> },
   { path: 'api-configs', element: <Navigate to="/settings?group=api-configs" replace /> },
   { path: 'tools', element: <Navigate to="/files" replace /> },
   { path: 'files', element: <FileManagerPage />, adminOnly: true },

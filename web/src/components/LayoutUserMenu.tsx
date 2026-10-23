@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useLocation } from 'react-router-dom'
-import { Cast, ChevronDown, Clock, Heart, ListMusic, LogOut, Settings, Tv, SlidersHorizontal } from 'lucide-react'
+import { Cast, ChevronDown, Clock, Heart, ListMusic, LogOut, Settings, Tv } from 'lucide-react'
 
 import { LayoutThemeToggle } from './LayoutThemeToggle'
 import { TemporaryPasswordDialog } from './TemporaryPasswordDialog'
@@ -105,7 +105,6 @@ export function LayoutUserMenu({
             onPointerDown={(event) => event.stopPropagation()}
           >
 	            <UserMenuLink to="/profile" icon={<Settings size={16} />} label="个人资料" onNavigate={onClose} />
-	            <UserMenuLink to="/playback-settings" icon={<SlidersHorizontal size={16} />} label="播放设置" onNavigate={onClose} />
 	            <UserMenuLink to="/favourites" icon={<Heart size={16} />} label="我的收藏" onNavigate={onClose} />
 	            <UserMenuLink to="/playlists" icon={<ListMusic size={16} />} label="播放列表" onNavigate={onClose} />
 	            <UserMenuLink to="/history" icon={<Clock size={16} />} label="观看历史" onNavigate={onClose} />
