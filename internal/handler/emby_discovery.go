@@ -35,6 +35,13 @@ func embyNextUpHandler(svc *service.Container) gin.HandlerFunc {
 				}
 			}
 		}
+		// The homepage now gets a merged Continue Watching row from Resume.
+		// Clients that ignore DisplayPreferences must not render a duplicate rail.
+		// Scoped NextUp requests still power episode/detail continue buttons.
+		if seriesID == "" {
+			c.JSON(http.StatusOK, embyEmptyItemsPayload())
+			return
+		}
 		out, err := svc.Emby.NextUp(c.Request.Context(), userID, seriesID, limit)
 		if err != nil {
 			c.JSON(http.StatusOK, embyEmptyItemsPayload())

@@ -22,8 +22,8 @@ const (
 	embySimilarMaxLimit     = 50
 )
 
-// NextUp 返回「每部在看的剧的下一集」，即 Emby 客户端首页「接下来播放」的数据源。
-// seriesID 非空时只返回该剧的下一集（剧集详情页「继续播放」）；空则返回全站列表。
+// NextUp selects a current/next episode per series. Scoped calls power detail
+// continue buttons; global candidates are now merged into the Resume home feed.
 func (e *EmbyService) NextUp(ctx context.Context, userID, seriesID string, limit int) (map[string]any, error) {
 	if limit <= 0 {
 		limit = embyNextUpDefaultLimit
@@ -123,7 +123,7 @@ func (e *EmbyService) nextUpForRemoteSeries(ctx context.Context, userID, seriesI
 	prefix := EmbyRemoteIDPrefix + mountID + "~"
 	var hist []model.PlaybackHistory
 	if err := e.repo.DB.WithContext(ctx).
-		Where("user_id = ? AND position_ms > 0 AND media_id LIKE ?", userID, prefix+"%").
+		Where("user_id = ? AND (position_ms > 0 OR completed = ?) AND media_id LIKE ?", userID, true, prefix+"%").
 		Order("watched_at desc").
 		Limit(nextUpHistoryScanLimit).
 		Find(&hist).Error; err != nil {
@@ -133,6 +133,12 @@ func (e *EmbyService) nextUpForRemoteSeries(ctx context.Context, userID, seriesI
 		return emptyItemsEnvelope(0), nil
 	}
 
+	return e.remoteNextUpFromHistories(ctx, userID, mount, acct, remoteSeriesID, hist, limit)
+}
+
+// A merged home feed already knows the latest history anchoring this series.
+// Reuse selection without rescanning a smaller global remote-history window.
+func (e *EmbyService) remoteNextUpFromHistories(ctx context.Context, userID string, mount *model.EmbyMount, acct *model.StrmAccount, remoteSeriesID string, hist []model.PlaybackHistory, limit int) (map[string]any, error) {
 	episodes, err := e.remote.RemoteEpisodes(ctx, mount, acct, remoteSeriesID)
 	if err != nil || len(episodes) == 0 {
 		return emptyItemsEnvelope(0), nil
