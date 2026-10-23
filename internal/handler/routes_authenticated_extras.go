@@ -23,11 +23,6 @@ func registerAuthedUISurfaceRoutes(authed *gin.RouterGroup, svc *service.Contain
 	authed.GET("/system/info", systemInfoHandler(svc))
 	authed.GET("/system/status", systemStatusHandler(svc))
 
-	authed.GET("/play-profiles", listPlayProfilesHandler(svc))
-	authed.POST("/play-profiles", createPlayProfileHandler(svc))
-	authed.PUT("/play-profiles/:id", updatePlayProfileHandler(svc))
-	authed.POST("/play-profiles/:id/verify-pin", verifyPlayProfilePINHandler(svc))
-	authed.DELETE("/play-profiles/:id", deletePlayProfileHandler(svc))
 }
 
 func registerAuthedSearchRoutes(authed *gin.RouterGroup, svc *service.Container) {

@@ -36,6 +36,9 @@ type User struct {
 	// SubtitleChineseMode 是网页播放器外挂字幕的简繁转换偏好：
 	// original / simplified / traditional。
 	SubtitleChineseMode string `gorm:"size:16;not null;default:original" json:"subtitle_chinese_mode"`
+	// PlaybackSettings stores this account's playback preferences, separate from
+	// administrator-assigned library access. Empty means the built-in defaults.
+	PlaybackSettings string `gorm:"type:text" json:"-"`
 	// 网页播放器偏好按用户存储，切换媒体对象后继续沿用。
 	// 播放倍速不在此列：它只作用于当前视频，不进数据库。
 	PlayerVolume float64 `gorm:"not null;default:1" json:"player_volume"`

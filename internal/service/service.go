@@ -52,7 +52,6 @@ type Container struct {
 	Emby             *EmbyService
 	EmbyRemote       *EmbyRemoteService
 	Backup           *BackupService
-	PlayProfiles     *PlayProfileService
 	Permissions      *PermissionService
 	SystemUpdate     *SystemUpdateService
 	ReleaseCheck     *ReleaseCheckService

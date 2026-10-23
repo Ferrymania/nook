@@ -42,14 +42,9 @@ func TestPlaybackSegmentsReturnsProviderDataAndAutoSkip(t *testing.T) {
 	svc.Segments = service.NewMediaSegmentService(zap.NewNop(), svc.Repo).
 		SetIntroDB(service.NewIntroDBService(zap.NewNop()).SetBaseURL(provider.URL))
 
-	// 默认档案打开「自动跳过片头」，接口应把开关原样带出来。
-	if err := svc.Repo.DB.Create(&model.PlayProfile{
-		Base:      model.Base{ID: "profile-1"},
-		UserID:    "user-1",
-		Name:      "主档案",
-		IsDefault: true,
-		SkipIntro: true,
-	}).Error; err != nil {
+	// The switch now belongs to the authenticated account.
+	if err := svc.Repo.DB.Model(&model.User{}).Where("id = ?", "user-1").
+		Update("playback_settings", `{"skip_intro":true}`).Error; err != nil {
 		t.Fatal(err)
 	}
 
@@ -72,7 +67,7 @@ func TestPlaybackSegmentsReturnsProviderDataAndAutoSkip(t *testing.T) {
 
 	first := fetch()
 	if !first.AutoSkip {
-		t.Fatal("auto_skip should reflect the active profile's skip_intro switch")
+		t.Fatal("auto_skip should reflect the user's skip_intro switch")
 	}
 	if len(first.Segments) != 2 {
 		t.Fatalf("segments = %#v, want 2", first.Segments)
@@ -94,7 +89,7 @@ func TestPlaybackSegmentsReturnsProviderDataAndAutoSkip(t *testing.T) {
 	}
 }
 
-func TestPlaybackSegmentsAutoSkipIsFalseWithoutProfile(t *testing.T) {
+func TestPlaybackSegmentsAutoSkipDefaultsToFalse(t *testing.T) {
 	router, svc, secret := newPlaybackScopeTestRouter(t)
 	svc.Segments = service.NewMediaSegmentService(zap.NewNop(), svc.Repo)
 

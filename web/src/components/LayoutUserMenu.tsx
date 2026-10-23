@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useLocation } from 'react-router-dom'
-import { Cast, ChevronDown, Clock, Heart, ListMusic, LogOut, Settings, Tv, UserCog } from 'lucide-react'
-import clsx from 'clsx'
+import { Cast, ChevronDown, Clock, Heart, ListMusic, LogOut, Settings, Tv, SlidersHorizontal } from 'lucide-react'
 
-import type { PlayProfile } from '../types'
 import { LayoutThemeToggle } from './LayoutThemeToggle'
 import { TemporaryPasswordDialog } from './TemporaryPasswordDialog'
 import type { ThemeMode } from './useThemeMode'
@@ -22,13 +20,8 @@ type LayoutUser = {
 type LayoutUserMenuProps = {
   user: LayoutUser | null | undefined
   isOpen: boolean
-  profiles: PlayProfile[]
-  activeProfileId: string | null
-  activeProfile: PlayProfile | null
   onToggle: () => void
   onClose: () => void
-  onUseDefaultProfile: () => void
-  onSwitchProfile: (profile: PlayProfile) => void
   onLogout: () => void
   themeMode?: ThemeMode
   onThemeChange?: (mode: ThemeMode) => void
@@ -37,13 +30,8 @@ type LayoutUserMenuProps = {
 export function LayoutUserMenu({
   user,
   isOpen,
-  profiles,
-  activeProfileId,
-  activeProfile,
   onToggle,
   onClose,
-  onUseDefaultProfile,
-  onSwitchProfile,
   onLogout,
   themeMode,
   onThemeChange,
@@ -116,7 +104,8 @@ export function LayoutUserMenu({
             className="nook-user-menu fixed z-121 w-56 origin-top-right rounded-2xl border border-(--app-border) bg-(--app-panel) p-2 shadow-xl animate-menu-in"
             onPointerDown={(event) => event.stopPropagation()}
           >
-	            <UserMenuLink to="/profile" icon={<Settings size={16} />} label="设置" onNavigate={onClose} />
+	            <UserMenuLink to="/profile" icon={<Settings size={16} />} label="个人资料" onNavigate={onClose} />
+	            <UserMenuLink to="/playback-settings" icon={<SlidersHorizontal size={16} />} label="播放设置" onNavigate={onClose} />
 	            <UserMenuLink to="/favourites" icon={<Heart size={16} />} label="我的收藏" onNavigate={onClose} />
 	            <UserMenuLink to="/playlists" icon={<ListMusic size={16} />} label="播放列表" onNavigate={onClose} />
 	            <UserMenuLink to="/history" icon={<Clock size={16} />} label="观看历史" onNavigate={onClose} />
@@ -141,36 +130,6 @@ export function LayoutUserMenu({
               </div>
             ) : null}
             <div className="my-1.5 border-t border-(--app-border)" />
-            <div className="px-3 py-2">
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-(--app-muted)">
-                当前观影 Profile
-              </p>
-              <div className="space-y-1">
-                <button
-                  onClick={onUseDefaultProfile}
-                  className={profileButtonClass(!activeProfileId)}
-                >
-                  <span>账号默认</span>
-                  <span>{!activeProfileId ? '使用中' : ''}</span>
-                </button>
-                {profiles.map((profile) => (
-                  <button
-                    key={profile.id}
-                    onClick={() => onSwitchProfile(profile)}
-                    className={profileButtonClass(activeProfileId === profile.id)}
-                  >
-                    <span className="truncate">{profile.name}</span>
-                    <span className="ml-2 shrink-0">{profile.allow_adult ? '成人' : '安全'}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <UserMenuLink
-              to="/play-profiles"
-              icon={<UserCog size={16} />}
-              label="管理观影 Profile"
-              onNavigate={onClose}
-            />
             <div className="my-1.5 border-t border-(--app-border)" />
             <button
               onClick={() => {
@@ -203,7 +162,7 @@ export function LayoutUserMenu({
         <div className="hidden text-left md:block">
           <p className="text-[13px] font-medium leading-none text-(--app-text)">{user?.username}</p>
           <p className="mt-1 text-[11px] leading-none text-(--app-muted)">
-            {activeProfile ? `Profile: ${activeProfile.name}` : user?.role}
+            {user?.role}
           </p>
         </div>
         <ChevronDown size={14} className="text-(--app-muted)" />
@@ -234,14 +193,5 @@ function UserMenuLink({
       {icon}
       <span>{label}</span>
     </Link>
-  )
-}
-
-function profileButtonClass(active: boolean): string {
-  return clsx(
-    'flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-left text-xs transition-colors',
-    active
-      ? 'bg-(--app-active-bg) text-(--app-active-text)'
-      : 'text-(--app-subtle) hover:bg-(--app-hover)',
   )
 }

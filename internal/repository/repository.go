@@ -32,7 +32,6 @@ type Container struct {
 	Permission     *PermissionRepository
 	RefreshToken   *RefreshTokenRepository
 	ApiConfig      *ApiConfigRepository
-	PlayProfile    *PlayProfileRepository
 	RegCode        *RegistrationCodeRepository
 	SignIn         *SignInRepository
 	UserDevice     *UserDeviceRepository
@@ -65,7 +64,6 @@ func New(db *gorm.DB) *Container {
 		Permission:     &PermissionRepository{db: db},
 		RefreshToken:   &RefreshTokenRepository{db: db},
 		ApiConfig:      &ApiConfigRepository{db: db},
-		PlayProfile:    &PlayProfileRepository{db: db},
 		RegCode:        &RegistrationCodeRepository{db: db},
 		SignIn:         &SignInRepository{db: db},
 		UserDevice:     &UserDeviceRepository{db: db},

@@ -45,15 +45,14 @@ func playbackInfoHandler(svc *service.Container) gin.HandlerFunc {
 			return
 		}
 		token := externalPlaybackToken(c, svc, m.ID, m.DurationSec)
-		profileQuery := externalProfileQuery(c)
-		hlsURL := "/api/hls/" + m.ID + "/index.m3u8?token=" + url.QueryEscape(token) + profileQuery
+		hlsURL := "/api/hls/" + m.ID + "/index.m3u8?token=" + url.QueryEscape(token)
 		if service.IsEmbyRemoteID(m.ID) {
 			// 远程 Emby 挂载没有本地文件，不能提供转码地址。STRM 默认直连，直连失败时可走 HLS。
 			hlsURL = ""
 		}
 		c.JSON(http.StatusOK, gin.H{
 			"media":      m,
-			"stream_url": "/api/stream/" + m.ID + "?token=" + url.QueryEscape(token) + profileQuery,
+			"stream_url": "/api/stream/" + m.ID + "?token=" + url.QueryEscape(token),
 			"hls_url":    hlsURL,
 		})
 	}
@@ -120,7 +119,7 @@ func externalPlayersHandler(svc *service.Container) gin.HandlerFunc {
 			return
 		}
 		token := externalPlaybackToken(c, svc, m.ID, m.DurationSec)
-		streamURL := externalPlaybackURL(c, svc, "/api/stream/"+m.ID+"?token="+url.QueryEscape(token)+externalProfileQuery(c))
+		streamURL := externalPlaybackURL(c, svc, "/api/stream/"+m.ID+"?token="+url.QueryEscape(token))
 		escapedStream := url.QueryEscape(streamURL)
 		c.JSON(http.StatusOK, gin.H{
 			"url": streamURL,
@@ -147,28 +146,9 @@ func externalURLHandler(svc *service.Container) gin.HandlerFunc {
 		}
 		token := externalPlaybackToken(c, svc, m.ID, m.DurationSec)
 		c.JSON(http.StatusOK, gin.H{
-			"url": externalPlaybackURL(c, svc, "/api/stream/"+m.ID+"?token="+url.QueryEscape(token)+externalProfileQuery(c)),
+			"url": externalPlaybackURL(c, svc, "/api/stream/"+m.ID+"?token="+url.QueryEscape(token)),
 		})
 	}
-}
-
-func externalProfileQuery(c *gin.Context) string {
-	profileID := strings.TrimSpace(c.GetHeader("X-Play-Profile-ID"))
-	if profileID == "" {
-		profileID = strings.TrimSpace(c.Query("profile_id"))
-	}
-	if profileID == "" {
-		return ""
-	}
-	query := "&profile_id=" + url.QueryEscape(profileID)
-	pinToken := strings.TrimSpace(c.GetHeader("X-Play-Profile-PIN-Token"))
-	if pinToken == "" {
-		pinToken = strings.TrimSpace(c.Query("profile_pin_token"))
-	}
-	if pinToken != "" {
-		query += "&profile_pin_token=" + url.QueryEscape(pinToken)
-	}
-	return query
 }
 
 func externalPlaybackToken(c *gin.Context, svc *service.Container, mediaID string, durationSec int) string {

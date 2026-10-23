@@ -42,14 +42,8 @@ func playbackSegmentsHandler(svc *service.Container) gin.HandlerFunc {
 	}
 }
 
-// resolveAutoSkipFlag reads the「自动跳过片头」switch off whichever profile is
-// currently in effect. It reuses selectedPlayProfile so the server agrees with
-// the UI about which profile is active (explicit header first, then the user's
-// default profile), and a PIN-locked profile never silently skips for the user.
+// resolveAutoSkipFlag reads the authenticated user's playback preferences.
 func resolveAutoSkipFlag(c *gin.Context, svc *service.Container) bool {
-	profile, locked := selectedPlayProfile(c, svc)
-	if locked || profile == nil {
-		return false
-	}
-	return profile.SkipIntro
+	user, err := svc.Repo.User.FindByID(c.Request.Context(), currentUserID(c))
+	return err == nil && user != nil && user.DecodePlaybackSettings().SkipIntro
 }

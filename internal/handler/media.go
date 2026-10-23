@@ -54,6 +54,16 @@ func remoteLibraryItemTypes(collectionType string) string {
 }
 
 func listLibrariesHandler(svc *service.Container) gin.HandlerFunc {
+	return listLibrariesWithVisibilityHandler(svc, mediaVisibilityForRequest)
+}
+
+func playbackSettingsLibrariesHandler(svc *service.Container) gin.HandlerFunc {
+	return listLibrariesWithVisibilityHandler(svc, func(c *gin.Context, svc *service.Container) service.MediaVisibility {
+		return service.UserAccountMediaVisibility(c.Request.Context(), svc.Repo, currentUserID(c))
+	})
+}
+
+func listLibrariesWithVisibilityHandler(svc *service.Container, visibilityForRequest func(*gin.Context, *service.Container) service.MediaVisibility) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
 		libs, err := svc.Media.ListLibraries(ctx)
@@ -65,7 +75,7 @@ func listLibrariesHandler(svc *service.Container) gin.HandlerFunc {
 		includeHidden := role == "admin" && (c.Query("include_hidden") == "1" || c.Query("include_hidden") == "true" || c.Query("all") == "1")
 		if !includeHidden {
 			libs = service.FilterDisplayCloudLibraries(ctx, svc.Repo, libs)
-			visibility := mediaVisibilityForRequest(c, svc)
+			visibility := visibilityForRequest(c, svc)
 			filtered := libs[:0]
 			for _, lib := range libs {
 				if service.LibraryVisibleForUser(ctx, svc.Repo, lib, visibility) {
@@ -108,9 +118,9 @@ func listLibrariesHandler(svc *service.Container) gin.HandlerFunc {
 		if withPreview {
 			var previews []service.LibraryPreviewItem
 			if c.Query("include_total") == "0" {
-				previews, err = svc.Media.ListLibraryPreviews(ctx, libs, mediaVisibilityForRequest(c, svc), limit)
+				previews, err = svc.Media.ListLibraryPreviews(ctx, libs, visibilityForRequest(c, svc), limit)
 			} else {
-				previews, err = svc.Media.ListLibrariesWithPreview(ctx, libs, mediaVisibilityForRequest(c, svc), limit)
+				previews, err = svc.Media.ListLibrariesWithPreview(ctx, libs, visibilityForRequest(c, svc), limit)
 			}
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -124,7 +134,7 @@ func listLibrariesHandler(svc *service.Container) gin.HandlerFunc {
 				})
 			}
 		} else {
-			visibility := mediaVisibilityForRequest(c, svc)
+			visibility := visibilityForRequest(c, svc)
 			libIDs := make([]string, len(libs))
 			for i, l := range libs {
 				libIDs[i] = l.ID
@@ -159,7 +169,7 @@ func listLibrariesHandler(svc *service.Container) gin.HandlerFunc {
 		// 远程 Emby 挂载库追加在本地库之后（非管理员视图仍受 allowed_library_ids 约束）。
 		if includeRemote && svc.EmbyRemote != nil {
 			if views, err := svc.EmbyRemote.RemoteLibraries(ctx); err == nil {
-				visibility := mediaVisibilityForRequest(c, svc)
+				visibility := visibilityForRequest(c, svc)
 				allowedViews := make([]service.RemoteLibraryView, 0, len(views))
 				for _, v := range views {
 					if !includeHidden && !service.LibraryVisibleForUser(ctx, svc.Repo, v.Library, visibility) {
