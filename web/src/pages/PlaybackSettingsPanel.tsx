@@ -30,7 +30,7 @@ export function PlaybackSettingsPanel({ values, saving = false, onChange }: Prop
   }
 
   return (
-    <SettingsSection title="播放方式" description="选择由客户端解码，或允许服务器按需转码" icon={MonitorPlay}>
+    <SettingsSection title="播放方式" icon={MonitorPlay}>
       <div className="settings-mode-row">
         <div>
           <p className="font-medium">客户端直连解码</p>

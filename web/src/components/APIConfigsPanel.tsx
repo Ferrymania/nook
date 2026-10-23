@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import { Eye, KeyRound, Pencil, Save, Trash2, X } from 'lucide-react'
+import { Eye, Pencil, Save, Trash2, X } from 'lucide-react'
 
 import { apiConfigsAPI, type APIConfig } from '../api/api_configs'
 import { confirmAction } from './confirmAction'
@@ -23,17 +23,6 @@ export function APIConfigsPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <KeyRound className="h-5 w-5 text-brand-500" />
-        <div>
-          <p className="font-display text-lg font-semibold text-ink-600">外部 API 配置</p>
-          <p className="text-xs text-ink-50">
-            TMDb / Bangumi / TheTVDB / Fanart / OpenAI / Douban 密钥与源管理
-            · AES-GCM 加密存储
-          </p>
-        </div>
-      </div>
-
       {loading && (
         <p className="py-6 text-center text-sm text-sand-500">加载中…</p>
       )}

@@ -82,7 +82,6 @@ export function TaskQueuePage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl font-bold text-ink-600">任务队列</h1>
-          <p className="mt-0.5 text-sm text-ink-50">刮削 / 下载 / 上传 / 片头片尾任务统一管理，按类型切换查看</p>
         </div>
       </div>
 

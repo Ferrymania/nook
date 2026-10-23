@@ -79,9 +79,6 @@ export function FileManagerPage() {
     <div className="space-y-6">
       <header>
         <h1 className="font-display text-3xl font-bold text-ink-600">文件管理</h1>
-        <p className="text-sm text-ink-50">
-          在下载目录中选择文件夹或视频，直接设置目标并整理入库。
-        </p>
       </header>
 
       <FileManagerToolbar

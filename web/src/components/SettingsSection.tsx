@@ -3,7 +3,7 @@ import type { LucideIcon } from 'lucide-react'
 
 export function SettingsSection({ title, description, icon: Icon, actions, children }: {
   title: string
-  description: string
+  description?: string
   icon: LucideIcon
   actions?: ReactNode
   children?: ReactNode
@@ -13,7 +13,7 @@ export function SettingsSection({ title, description, icon: Icon, actions, child
       <header className="settings-section-header">
         <div className="min-w-0">
           <h2 className="settings-section-heading"><Icon size={17} aria-hidden="true" />{title}</h2>
-          <p className="settings-section-description">{description}</p>
+          {description && <p className="settings-section-description">{description}</p>}
         </div>
         {actions}
       </header>

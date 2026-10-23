@@ -142,7 +142,7 @@ export function FFToolsPanel({ values, savedValues, dirty, saving, statusRevisio
     (status.downloaded.ffmpeg.path !== status.ffmpeg?.path || status.downloaded.ffprobe.path !== status.ffprobe?.path)
 
   return (
-    <SettingsSection title="媒体工具" description="配置 FFmpeg 转码与 FFprobe 信息探测" icon={Wrench} actions={
+    <SettingsSection title="媒体工具" icon={Wrench} actions={
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => start('detect')} disabled={busy || saving} className="library-toolbar-button">
             {operation === 'detect' ? <Loader2 size={16} className="animate-spin" /> : <ScanSearch size={16} />}
