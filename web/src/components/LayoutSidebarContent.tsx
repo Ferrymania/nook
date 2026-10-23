@@ -28,7 +28,7 @@ export function LayoutSidebarContent({
   variant = 'admin',
 }: LayoutSidebarContentProps) {
   const sidebarExpanded = isSidebarOpen || isMobileDrawerOpen
-  const adminItems = visibleSidebarItems({ isAdmin, can, items: LAYOUT_NAV_ITEMS })
+  const visibleItems = visibleSidebarItems({ isAdmin, can, items: LAYOUT_NAV_ITEMS })
 
   return (
     <div className="nook-sidebar flex h-full min-h-0 flex-col border-r border-(--app-border) bg-(--app-bg)">
@@ -39,8 +39,8 @@ export function LayoutSidebarContent({
       />
       <div className="min-h-0 flex-1 overflow-y-auto scrollbar-hide">
         {/* 窄屏媒体浏览抽屉不展示 MEDIA_NAV_ITEMS：底部导航与用户菜单已覆盖 */}
-        {variant !== 'media' || adminItems.length > 0 ? (
-          <LayoutSidebarNav items={adminItems} sidebarExpanded={sidebarExpanded} />
+        {variant !== 'media' || visibleItems.length > 0 ? (
+          <LayoutSidebarNav items={visibleItems} sidebarExpanded={sidebarExpanded} />
         ) : null}
       </div>
       <LayoutSidebarHomeBack sidebarExpanded={sidebarExpanded} />
@@ -99,7 +99,7 @@ function LayoutSidebarNav({
   sidebarExpanded: boolean
 }) {
   return (
-    <nav className="px-4 py-5 space-y-1">
+    <nav className="space-y-1 px-4 py-5" aria-label="功能导航">
       {items.map((item) => {
         const ItemIcon = item.icon
         return (
