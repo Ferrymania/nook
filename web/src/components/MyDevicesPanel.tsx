@@ -69,7 +69,7 @@ export function MyDevicesPanel() {
             我的设备
           </h2>
           <p className="mt-1 text-xs leading-5 text-(--app-muted)">
-            管理登录过的网页与客户端。发现陌生设备时请踢下线并修改密码。
+            发现陌生设备时请踢下线并修改密码。
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -100,7 +100,7 @@ export function MyDevicesPanel() {
         </div>
       ) : devices.length === 0 ? (
         <p className="py-6 text-center text-sm text-(--app-muted)">
-          暂无设备记录。使用 Emby / Infuse 等客户端登录后会自动出现在这里。
+          暂无设备记录。
         </p>
       ) : (
         <ul className="space-y-2">
