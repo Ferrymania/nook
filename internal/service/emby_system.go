@@ -191,6 +191,13 @@ func (e *EmbyService) Views(ctx context.Context, userID string) (map[string]any,
 		}
 		items = append(items, remote)
 	}
+	folder, err := e.playlistsFolder(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if folder["ChildCount"].(int) > 0 {
+		items = append(items, folder)
+	}
 	items = sortViewItemsByPinnedIDs(items, e.pinnedLibraryIDsForUser(ctx, userID))
 	return map[string]any{"Items": items, "TotalRecordCount": len(items), "StartIndex": 0}, nil
 }

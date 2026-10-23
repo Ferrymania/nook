@@ -32,6 +32,8 @@ export function MediaDetailPage() {
         media={media}
         isAdmin={role === 'admin'}
         favourite={detail.favourite}
+        playlistEpisodes={detail.hasEpisodes ? detail.seasonGroups.flatMap(group => group.episodes) : undefined}
+        playlistLoading={detail.loadingEpisodes}
         playTargetId={media.id || detail.firstPlayableEpisode?.id}
         scrapeEpisodeArtwork={detail.scrapeEpisodeArtwork}
         onToggleFavourite={detail.toggleFavourite}

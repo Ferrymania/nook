@@ -209,6 +209,7 @@ type PlayerVideoStageProps = {
   nextEpisodeTitle?: string
   playlistOpen?: boolean
   hasPlaylist?: boolean
+  orderedPlaylist?: boolean
   /** 当前条目存在多个版本（选集面板里提供版本切换，按钮提示随之变化）。 */
   hasVersions?: boolean
   onTogglePlaylist?: () => void
@@ -289,6 +290,7 @@ export function PlayerVideoStage({
   nextEpisodeTitle,
   playlistOpen,
   hasPlaylist,
+  orderedPlaylist = false,
   hasVersions = false,
   onTogglePlaylist,
   knownDuration,
@@ -914,6 +916,7 @@ export function PlayerVideoStage({
             nextEpisodeTitle={nextEpisodeTitle}
             playlistOpen={playlistOpen}
             hasPlaylist={hasPlaylist}
+            orderedPlaylist={orderedPlaylist}
             hasVersions={hasVersions}
             onTogglePlaylist={onTogglePlaylist}
             knownDuration={knownDuration}

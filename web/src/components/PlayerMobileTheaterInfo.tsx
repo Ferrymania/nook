@@ -29,6 +29,7 @@ type PlayerMobileTheaterInfoProps = {
   onSelectVersion?: (media: Media) => void
   /** 选集列表是否展开（展开后由 playlistPanel 接管，提供季/搜索/版本）。 */
   playlistOpen: boolean
+  orderedPlaylist?: boolean
   onTogglePlaylist: () => void
   /** 展开状态下的选集内容（复用播放器的选集面板，内嵌渲染）。 */
   playlistPanel?: ReactNode
@@ -67,12 +68,13 @@ export function PlayerMobileTheaterInfo({
   onSelectEpisode,
   onSelectVersion,
   playlistOpen,
+  orderedPlaylist = false,
   onTogglePlaylist,
   playlistPanel,
   revealToken = 0,
 }: PlayerMobileTheaterInfoProps) {
   const episodeSectionRef = useRef<HTMLElement | null>(null)
-  const hasEpisodeList = episodes.length > 1
+  const hasEpisodeList = orderedPlaylist ? episodes.length > 0 : episodes.length > 1
   const versionsToSwitch = currentVersions.length > 1 ? currentVersions : []
   const overview = media?.overview?.trim() || ''
 
@@ -106,11 +108,11 @@ export function PlayerMobileTheaterInfo({
           <div className="mb-2 flex items-center justify-between">
             <h2 className="flex items-center gap-1.5 text-[13px] font-semibold text-white/90">
               <ListVideo size={14} className="text-rose-400" />
-              选集
+              {orderedPlaylist ? '播放列表' : '选集'}
               <span className="font-mono text-[11px] font-normal text-white/45">
                 {currentEpisodeIndex >= 0
                   ? `${currentEpisodeIndex + 1}/${episodes.length}`
-                  : `${episodes.length} 集`}
+                  : `${episodes.length} ${orderedPlaylist ? '项' : '集'}`}
               </span>
             </h2>
             <button

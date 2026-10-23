@@ -221,6 +221,12 @@ func (e *EmbyService) items(ctx context.Context, p ItemsParams) (map[string]any,
 	if p.StartIndex < 0 {
 		p.StartIndex = 0
 	}
+	if id, ok := DecodeEmbyPlaylistID(p.ParentID); ok {
+		return e.PlaylistItems(ctx, id, p)
+	}
+	if p.ParentID == EmbyPlaylistsFolderID || (containsItemType(p.IncludeItemTypes, "Playlist") && !containsSupportedEmbyItemType(p.IncludeItemTypes)) {
+		return e.playlistList(ctx, p)
+	}
 	if len(p.IncludeItemTypes) > 0 && !containsSupportedEmbyItemType(p.IncludeItemTypes) {
 		return emptyItemsEnvelope(p.StartIndex), nil
 	}

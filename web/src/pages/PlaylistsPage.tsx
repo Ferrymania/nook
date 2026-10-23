@@ -1,149 +1,69 @@
-import { FormEvent, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, ListMusic, ListPlus, Trash2 } from 'lucide-react'
+import { ChevronRight, ListMusic, Loader2, Plus, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
-
 import { playbackAPI } from '../api/playback'
 import { confirmAction } from '../components/confirmAction'
 import { PageHeader } from '../components/PageHeader'
+import { playlistErrorMessage } from '../utils/playlists'
 import type { Playlist } from '../types'
 
 export function PlaylistsPage() {
   const [items, setItems] = useState<Playlist[]>([])
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(true)
-  const [creating, setCreating] = useState(false)
-
-  const refresh = () =>
-    playbackAPI
-      .listPlaylists()
-      .then(setItems)
-      .finally(() => setLoading(false))
-
-  useEffect(() => {
-    refresh().catch(() => undefined)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState('')
+  const refresh = useCallback(async () => {
+    const next = await playbackAPI.listPlaylists()
+    setItems(next); setError('')
   }, [])
-
-  const onCreate = async (e: FormEvent) => {
-    e.preventDefault()
-    const trimmed = name.trim()
-    if (!trimmed) return
-
-    setCreating(true)
-    try {
-      await playbackAPI.createPlaylist(trimmed)
-      toast.success('已创建')
-      setName('')
-      await refresh()
-    } catch {
-      toast.error('创建失败')
-    } finally {
-      setCreating(false)
-    }
+  useEffect(() => {
+    let canceled = false
+    playbackAPI.listPlaylists().then(data => { if (!canceled) setItems(data) })
+      .catch(err => { if (!canceled) setError(playlistErrorMessage(err)) })
+      .finally(() => { if (!canceled) setLoading(false) })
+    return () => { canceled = true }
+  }, [])
+  const create = async (event: FormEvent) => {
+    event.preventDefault()
+    if (busy || !name.trim()) return
+    setBusy('create')
+    try { await playbackAPI.createPlaylist(name.trim()); setName(''); await refresh(); toast.success('已创建播放列表') }
+    catch (err) { toast.error(playlistErrorMessage(err)) } finally { setBusy('') }
   }
-
-  const isEmpty = !loading && items.length === 0
-
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title="播放列表"
-        description="整理你想稍后观看的影片，随时继续播放"
-      />
-
-      <form
-        onSubmit={onCreate}
-        className="glass-panel flex flex-col gap-3 sm:flex-row sm:items-center"
-      >
-        <input
-          required
-          className="input-base min-w-0 flex-1"
-          placeholder="新播放列表名称"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          disabled={creating}
-        />
-        <button type="submit" className="neon-button shrink-0" disabled={creating}>
-          <ListPlus size={16} />
-          {creating ? '创建中…' : '新建'}
-        </button>
-      </form>
-
-      {loading && (
-        <div className="flex items-center gap-2 py-8 text-ink-50">
-          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-primary-400 border-t-transparent" />
-          加载中…
-        </div>
-      )}
-
-      {isEmpty && (
-        <div className="glass-panel flex flex-col items-center gap-4 p-10 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-400/10 text-brand-500">
-            <ListMusic size={28} />
-          </div>
-          <div className="space-y-1">
-            <p className="text-lg font-medium text-ink-100">还没有任何播放列表</p>
-            <p className="text-sm text-sand-500">
-              在上方输入名称创建列表，或在媒体详情页点击「加入播放列表」
-            </p>
-          </div>
-        </div>
-      )}
-
-      {items.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((p) => (
-            <div
-              key={p.id}
-              className="glass-panel group flex items-center gap-3 p-4! transition hover:border-primary-400/30"
-            >
-              <Link
-                to={`/playlist/${p.id}`}
-                className="flex min-w-0 flex-1 items-center gap-3"
-              >
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-400/10 text-brand-500 transition group-hover:bg-primary-400/20">
-                  <ListMusic size={20} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-ink-600 transition group-hover:text-brand-500">
-                    {p.name}
-                  </p>
-                  {p.is_public && (
-                    <span className="mt-0.5 inline-block rounded-md border border-primary-400/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-brand-500">
-                      公开
-                    </span>
-                  )}
-                </div>
-                <ChevronRight
-                  size={18}
-                  className="shrink-0 text-sand-500 transition group-hover:text-brand-500"
-                />
-              </Link>
-              <button
-                type="button"
-                onClick={async () => {
-                  if (
-                    !(await confirmAction({
-                      title: '删除播放列表',
-                      message: `删除「${p.name}」?`,
-                      confirmText: '删除',
-                    }))
-                  ) {
-                    return
-                  }
-                  await playbackAPI.deletePlaylist(p.id)
-                  toast.success('已删除')
-                  await refresh()
-                }}
-                className="shrink-0 rounded-lg border border-red-400/40 p-2 text-red-400 transition hover:bg-red-400/10"
-                title="删除播放列表"
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
+  const remove = async (playlist: Playlist) => {
+    if (busy || !await confirmAction({ title: '删除播放列表', message: `删除「${playlist.name}」及其列表记录？影片文件和观看进度会保留。`, confirmText: '删除' })) return
+    setBusy(playlist.id)
+    try { await playbackAPI.deletePlaylist(playlist.id); await refresh(); toast.success('已删除播放列表') }
+    catch (err) { toast.error(playlistErrorMessage(err)) } finally { setBusy('') }
+  }
+  return <div className="space-y-6">
+    <PageHeader title="播放列表" description="把电影与单集放在一起，按你安排的顺序观看。" />
+    <form onSubmit={create} className="space-y-2 rounded-2xl border border-(--app-border) bg-(--app-panel) p-4 sm:p-5">
+      <label htmlFor="playlist-name" className="block text-sm font-medium">新播放列表名称</label>
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <input id="playlist-name" required maxLength={128} className="input-base min-w-0 flex-1" placeholder="例如：周末电影" value={name} onChange={event => setName(event.target.value)} disabled={Boolean(busy)} />
+        <button type="submit" className="btn-primary min-h-11 shrink-0" disabled={Boolean(busy) || !name.trim()}>{busy === 'create' ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}新建列表</button>
+      </div>
+    </form>
+    {loading ? <p role="status" className="flex items-center gap-2 py-8 text-sm text-(--app-muted)"><Loader2 size={16} className="animate-spin" />正在加载播放列表…</p>
+      : error ? <div role="alert" className="space-y-3 rounded-2xl border border-(--app-border) p-5"><p>{error}</p><button className="btn-outline min-h-11" onClick={() => void refresh().catch(err => setError(playlistErrorMessage(err)))}>重新加载</button></div>
+      : items.length === 0 ? <section className="space-y-3 rounded-2xl border border-(--app-border) p-6 sm:p-8">
+        <ListMusic size={26} className="text-(--app-muted)" aria-hidden="true" />
+        <h2 className="text-lg font-medium">还没有播放列表</h2>
+        <p className="text-sm text-(--app-muted)">在上方新建，或打开媒体详情页，点击「加入播放列表」选择影片。</p>
+        <Link to="/libraries" className="btn-outline min-h-11">浏览媒体库<ChevronRight size={16} /></Link>
+      </section> : <section aria-label="我的播放列表">
+        <p className="mb-3 text-sm text-(--app-muted)">我的列表 · {items.length} 个</p>
+        <ul className="divide-y divide-(--app-border) rounded-2xl border border-(--app-border) bg-(--app-panel) px-4 sm:px-5">
+          {items.map(item => <li key={item.id} className="flex items-center gap-3 py-4">
+            <ListMusic size={20} className="shrink-0 text-(--app-muted)" aria-hidden="true" />
+            <Link to={`/playlist/${item.id}`} className="min-w-0 flex-1 space-y-1"><span className="block break-words font-medium">{item.name}</span><span className="block text-sm text-(--app-muted)">{item.item_count ?? 0} 部影片{item.is_public ? ' · 公开列表' : ''}</span></Link>
+            <button type="button" aria-label={`删除播放列表「${item.name}」`} title="删除播放列表" disabled={Boolean(busy)} onClick={() => void remove(item)} className="btn-ghost min-h-11 min-w-11 p-2 text-(--app-muted)">{busy === item.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}</button>
+            <Link to={`/playlist/${item.id}`} aria-label={`打开播放列表「${item.name}」`} className="btn-ghost min-h-11 min-w-11 p-2"><ChevronRight size={18} /></Link>
+          </li>)}
+        </ul>
+      </section>}
+  </div>
 }

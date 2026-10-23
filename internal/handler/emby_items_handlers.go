@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 
 	"github.com/Ferrymania/nook/internal/service"
 )
@@ -75,7 +77,11 @@ func embyItemsHandler(svc *service.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		out, err := svc.Emby.Items(c.Request.Context(), parseEmbyItemsParams(c))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			if errors.Is(err, service.ErrPlaylistForbidden) || errors.Is(err, service.ErrPlaylistInvalid) || errors.Is(err, gorm.ErrRecordNotFound) {
+				embyPlaylistError(c, err)
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			}
 			return
 		}
 		embyAttachRequestTokenToMediaSources(c, out)

@@ -32,6 +32,7 @@ type PlayerPlaylistPanelProps = {
    * 竖屏剧场模式：不再以浮层形式盖住播放画面，而是内嵌在视频下方的
    * 内容区里（外层负责标题与「收起」按钮），选集不再遮挡播放器。
    */
+  ordered?: boolean
   inline?: boolean
 }
 
@@ -57,6 +58,7 @@ export function PlayerPlaylistPanel({
   onSelectEpisode,
   onSelectVersion,
   inline = false,
+  ordered = false,
 }: PlayerPlaylistPanelProps) {
   const [filterText, setFilterText] = useState('')
   /** 正在挑选版本的剧集 id；null = 宫格直接播放。 */
@@ -113,7 +115,7 @@ export function PlayerPlaylistPanel({
   if (!open) return null
 
   const currentGroup = seasonGroups.find((g) => g.season === selectedSeason) ?? seasonGroups[0]
-  const listToDisplay = currentGroup ? currentGroup.episodes : episodes
+  const listToDisplay = ordered ? episodes : currentGroup ? currentGroup.episodes : episodes
 
   const filteredEpisodes = filterText.trim()
     ? listToDisplay.filter((ep) => {
@@ -126,7 +128,7 @@ export function PlayerPlaylistPanel({
 
   const versionsToSwitch = currentVersions.length > 1 ? currentVersions : []
   // 只有一集（电影/单条媒体）时，面板就是版本选择器，不再重复列出一行「剧集」。
-  const hasEpisodeList = episodes.length > 1
+  const hasEpisodeList = ordered ? episodes.length > 0 : episodes.length > 1
   const versionsForEpisode = versionsForEpisodeId
     ? (listToDisplay.find((ep) => ep.id === versionsForEpisodeId)?.versions ?? [])
     : []
@@ -151,9 +153,9 @@ export function PlayerPlaylistPanel({
       {inline ? null : (
         <div className={PLAYER_PANEL_HEADER}>
           <div className="flex min-w-0 items-center gap-2 text-sm font-semibold">
-            <span className="truncate">{hasEpisodeList ? '选集' : '版本'}</span>
+            <span className="truncate">{ordered ? '播放列表' : hasEpisodeList ? '选集' : '版本'}</span>
             <span className="shrink-0 font-mono text-[11px] font-normal text-white/45">
-              {hasEpisodeList ? `${episodes.length} 集` : `${versionsToSwitch.length} 个版本`}
+              {hasEpisodeList ? `${episodes.length} ${ordered ? '部' : '集'}` : `${versionsToSwitch.length} 个版本`}
             </span>
           </div>
           <button onClick={onClose} className={PLAYER_ICON_BUTTON} title="关闭 (Esc)">
@@ -222,7 +224,7 @@ export function PlayerPlaylistPanel({
       )}
 
       {/* 季选择 Tabs（若有多季） */}
-      {hasEpisodeList && seasonGroups.length > 1 && (
+      {!ordered && hasEpisodeList && seasonGroups.length > 1 && (
         <div className="scrollbar-hide flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-white/10 px-3 py-2">
           {seasonGroups.map(({ season, episodes: sesEps }) => {
             const isSelected = selectedSeason === season
@@ -260,7 +262,7 @@ export function PlayerPlaylistPanel({
               type="text"
               value={filterText}
               onChange={(e) => setFilterText(e.target.value)}
-              placeholder="搜索集数或标题…"
+              placeholder={ordered ? '搜索影片标题…' : '搜索集数或标题…'}
               className="w-full bg-transparent text-xs text-white outline-hidden placeholder:text-white/30"
             />
             {filterText && (
@@ -282,12 +284,12 @@ export function PlayerPlaylistPanel({
           ) : (
             <div
               className={
-                inline
+                ordered ? 'space-y-1' : inline
                   ? 'grid grid-cols-6 gap-1.5'
                   : 'grid grid-cols-5 gap-1.5 sm:grid-cols-6'
               }
             >
-              {filteredEpisodes.map((ep) => {
+              {filteredEpisodes.map((ep, index) => {
                 const isPlaying = mediaVersionMatches(ep, currentMediaId)
                 const versions = ep.versions && ep.versions.length > 1 ? ep.versions : []
                 const displayTitle = getEpisodeTitle(ep, listToDisplay)
@@ -308,13 +310,13 @@ export function PlayerPlaylistPanel({
                       ref={isPlaying ? activeItemRef : null}
                       onClick={() => onSelectEpisode(ep)}
                       title={cellTitle}
-                      className={`flex ${inline ? 'h-10' : 'h-9'} w-full items-center justify-center rounded-md text-xs font-medium tabular-nums transition ${
+                      className={`flex ${ordered ? 'min-h-11 px-3 py-2 text-left' : inline ? 'h-10' : 'h-9'} w-full items-center ${ordered ? 'justify-start' : 'justify-center'} rounded-md text-xs font-medium tabular-nums transition ${
                         isPlaying
                           ? 'bg-rose-500 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.2)_inset]'
                           : 'bg-white/6 text-white/80 hover:bg-white/15 hover:text-white'
                       }`}
                     >
-                      {isPlaying ? (
+                      {ordered ? <span className="leading-5">{index + 1}. {ep.title}{ep.episode_num > 0 ? ` · ${formatEpisodeLabel(ep)}` : ''}</span> : isPlaying ? (
                         <Play size={12} className="fill-current" />
                       ) : ep.episode_num > 0 ? (
                         formatEpisodeNumber(ep)

@@ -172,6 +172,7 @@ type PlayerControlsProps = {
   nextEpisodeTitle?: string
   playlistOpen?: boolean
   hasPlaylist?: boolean
+  orderedPlaylist?: boolean
   /** 当前条目有多个版本：选集面板里可切换版本。 */
   hasVersions?: boolean
   onTogglePlaylist?: () => void
@@ -236,6 +237,7 @@ export function PlayerControls({
   nextEpisodeTitle,
   playlistOpen = false,
   hasPlaylist = false,
+  orderedPlaylist = false,
   hasVersions = false,
   onTogglePlaylist,
   qualities = [],
@@ -925,7 +927,7 @@ export function PlayerControls({
       </div>
       {onTogglePlaylist && (
         <div className={theater ? undefined : 'sm:hidden'}>
-          <p className={PLAYER_MENU_LABEL}>选集</p>
+          <p className={PLAYER_MENU_LABEL}>{orderedPlaylist ? '播放列表' : '选集'}</p>
           <button
             type="button"
             disabled={!hasPlaylist}
@@ -937,7 +939,7 @@ export function PlayerControls({
           >
             <ListVideo size={14} className="shrink-0 text-white/50" />
             <span className="min-w-0 flex-1 truncate">
-              {hasPlaylist ? '打开选集列表' : '当前无更多剧集'}
+              {hasPlaylist ? orderedPlaylist ? '打开播放列表' : '打开选集列表' : '当前无更多条目'}
             </span>
             {hasPlaylist && hasVersions && <Layers size={12} className="shrink-0 text-white/40" />}
           </button>
@@ -1124,9 +1126,9 @@ export function PlayerControls({
               title={
                 hasPrevEpisode
                   ? prevEpisodeTitle
-                    ? `上一集：${prevEpisodeTitle} ([)`
-                    : '上一集 ([)'
-                  : '没有上一集'
+                    ? `上一${orderedPlaylist ? '项' : '集'}：${prevEpisodeTitle} ([)`
+                    : `上一${orderedPlaylist ? '项' : '集'} ([)`
+                  : `没有上一${orderedPlaylist ? '项' : '集'}`
               }
             >
               <SkipBack size={16} />
@@ -1138,9 +1140,9 @@ export function PlayerControls({
               title={
                 hasNextEpisode
                   ? nextEpisodeTitle
-                    ? `下一集：${nextEpisodeTitle} (])`
-                    : '下一集 (])'
-                  : '没有下一集'
+                    ? `下一${orderedPlaylist ? '项' : '集'}：${nextEpisodeTitle} (])`
+                    : `下一${orderedPlaylist ? '项' : '集'} (])`
+                  : `没有下一${orderedPlaylist ? '项' : '集'}`
               }
             >
               <SkipForward size={16} />
@@ -1221,11 +1223,11 @@ export function PlayerControls({
               playlistOpen ? 'bg-rose-500/90 text-white hover:bg-rose-500' : ''
             }`}
             title={
-              !hasPlaylist ? '当前无更多剧集' : hasVersions ? '选集与版本切换' : '选集列表'
+              !hasPlaylist ? '当前无更多条目' : orderedPlaylist ? '播放列表' : hasVersions ? '选集与版本切换' : '选集列表'
             }
           >
             <ListVideo size={15} />
-            <span>选集</span>
+            <span>{orderedPlaylist ? '列表' : '选集'}</span>
             {hasPlaylist && hasVersions && (
               <span className="flex items-center gap-0.5 rounded-full bg-black/25 px-1 py-px text-[9px] leading-none">
                 <Layers size={9} />
