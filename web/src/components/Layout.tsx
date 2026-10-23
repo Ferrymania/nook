@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom'
 
 import { prefetchCommonRouteChunks } from '../appRoutes'
 import { useAuthStore } from '../stores/auth'
-import { usePlayProfileStore } from '../stores/playProfile'
 import {
   LayoutHeader,
   LayoutSidebars,
@@ -12,7 +11,6 @@ import {
 import { MobileBottomNav } from './MobileBottomNav'
 import { isAdminEntrySearch, isPlayerRoute, shouldShowMobileBottomNav } from './layoutNavigation'
 import { useLayoutPermissions } from './useLayoutPermissions'
-import { useLayoutProfiles } from './useLayoutProfiles'
 import { useLayoutSidebar } from './useLayoutSidebar'
 import { useThemeMode } from './useThemeMode'
 
@@ -48,15 +46,11 @@ export function Layout() {
 
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
-  const activeProfileId = usePlayProfileStore((s) => s.activeProfileId)
-  const setActiveProfile = usePlayProfileStore((s) => s.setActiveProfile)
   const theme = useThemeMode()
   const permissions = useLayoutPermissions(user)
   const sidebar = useLayoutSidebar(location.pathname)
-  const profile = useLayoutProfiles({ activeProfileId, setActiveProfile, user })
 
   const handleLogout = () => { logout(); navigate('/login') }
-  const closeProfileAndLogout = () => { profile.setIsProfileOpen(false); handleLogout() }
 
   const showSidebar = !isMediaView(location.pathname, location.search)
   const hideSearch = location.pathname.startsWith('/settings')
@@ -79,9 +73,7 @@ export function Layout() {
             theme={theme}
             onOpenMobileDrawer={() => sidebar.setIsMobileDrawerOpen(true)}
             user={user}
-            activeProfileId={activeProfileId}
-            profile={profile}
-            onLogout={closeProfileAndLogout}
+            onLogout={handleLogout}
             showSidebar={showSidebar}
             hideSearch={hideSearch}
             pathname={location.pathname}

@@ -48,9 +48,9 @@ type postgresBackupHeader struct {
 //
 // 刻意逐列反射序列化，而不是直接 json.Marshal 模型结构体：模型里有大量带
 // json:"-" 的列（Base.DeletedAt、User.AllowedLibraryIDs、APIConfig.APIKey、
-// StrmAccount.Config、PlayProfile.PINHash…），走结构体
+// StrmAccount.Config、User.PlaybackSettings…），走结构体
 // 自带的序列化会把这些列整列丢掉——软删除行会在恢复后「复活」，加密后的第三方
-// 密钥与 PIN 会全部丢失。
+// 密钥与播放偏好会全部丢失。
 type postgresBackupRow map[string]json.RawMessage
 
 type postgresBackupChunk struct {

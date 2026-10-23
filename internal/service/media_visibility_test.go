@@ -83,7 +83,7 @@ func TestMediaVisibilityFiltersNSFWAndLibraries(t *testing.T) {
 }
 
 func TestConfiguredAdultLibrariesDoNotHideSafeLibraryWithNSFWItems(t *testing.T) {
-	db := newServiceTestDB(t, &model.User{}, &model.Library{}, &model.Media{}, &model.Setting{}, &model.PlayProfile{})
+	db := newServiceTestDB(t, &model.User{}, &model.Library{}, &model.Media{}, &model.Setting{})
 	repos := repository.New(db)
 
 	safe := model.Library{Name: "电影", Path: "/media/movie", Type: "movie", Enabled: true}

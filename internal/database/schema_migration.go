@@ -29,6 +29,9 @@ func AutoMigrateWithConfig(db *gorm.DB, cfg *config.Config, log *zap.Logger) err
 	if err := db.AutoMigrate(model.AllModels()...); err != nil {
 		return err
 	}
+	if err := migratePlaybackSettings(db); err != nil {
+		return err
+	}
 	if err := backfillSegmentTasks(db); err != nil {
 		return err
 	}
@@ -273,7 +276,6 @@ func ensurePerformanceIndexes(db *gorm.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_favorites_user_media_active ON favorites(user_id, media_id) WHERE deleted_at IS NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_playback_histories_user_media_active ON playback_histories(user_id, media_id, watched_at DESC) WHERE deleted_at IS NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_playback_histories_resume_active ON playback_histories(user_id, completed, watched_at DESC) WHERE deleted_at IS NULL`,
-		`CREATE INDEX IF NOT EXISTS idx_play_profiles_user_created_active ON play_profiles(user_id, created_at DESC) WHERE deleted_at IS NULL`,
 	}
 
 	statements = append(statements,

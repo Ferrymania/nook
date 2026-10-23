@@ -15,7 +15,7 @@ import (
 //
 // The full model set is always migrated, on top of any explicitly requested
 // models. Service code probes tables that a given test may not care about
-// (settings for adult visibility, play_profiles for playback, media for library
+// (settings for adult visibility, users for playback preferences, media for library
 // counts); with a partial schema those probes fail with "no such table" and the
 // default GORM logger floods the test output, burying real failures. Migrating
 // everything keeps fixtures faithful to production and the output quiet.

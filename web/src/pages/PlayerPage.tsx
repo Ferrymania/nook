@@ -13,6 +13,7 @@ import {
   type DanmakuSettingsPatch,
 } from '../api/danmaku'
 import { playbackAPI } from '../api/playback'
+import { playbackSettingsAPI } from '../api/playbackSettings'
 import { subtitlesAPI, type SubtitleTrack } from '../api/subtitles'
 import { systemAPI } from '../api/system'
 import { profileAPI } from '../api/profile'
@@ -938,6 +939,14 @@ export function PlayerPage() {
   // 原始片段（服务端单位）与当前生效档案的「自动跳过片头」开关。
   const [rawSkipSegments, setRawSkipSegments] = useState<PlaybackSegment[]>([])
   const [autoSkipIntro, setAutoSkipIntro] = useState(false)
+  const [autoplayNext, setAutoplayNext] = useState(true)
+  useEffect(() => {
+    let active = true
+    playbackSettingsAPI.get().then((settings) => {
+      if (active) setAutoplayNext(settings.autoplay_next)
+    }).catch(() => undefined)
+    return () => { active = false }
+  }, [])
   // 当前落进的跳过提示；不在任何区间时为 null。
   const [activeSkip, setActiveSkip] = useState<SkipPrompt | null>(null)
   // 自动跳过后的撤销提示。
@@ -1923,7 +1932,7 @@ export function PlayerPage() {
 
   // 视频播放结束时自动播放下一集
   useEffect(() => {
-    if (!ref.current || !nextEpisode) return
+    if (!autoplayNext || !ref.current || !nextEpisode) return
     const video = ref.current
     const onEnded = () => {
       toast.success(`正在播放下一集：${nextEpisodeTitle || '下一集'}`)
@@ -1933,7 +1942,7 @@ export function PlayerPage() {
     return () => {
       video.removeEventListener('ended', onEnded)
     }
-  }, [nextEpisode, nextEpisodeTitle, playEpisode])
+  }, [autoplayNext, nextEpisode, nextEpisodeTitle, playEpisode])
 
   // ESC = back 或关闭浮层，[ / ] 或 Shift+P / Shift+N 切换上一集/下一集。
   // 左右方向键的回退/快进在播放器控制栏里处理。
@@ -2231,7 +2240,7 @@ export function PlayerPage() {
     seekPlaybackTo(notice.startSec)
   }, [seekPlaybackTo, skipNotice])
 
-  // 自动跳过只针对片头（含回顾）：档案里的开关本身就叫「自动跳过片头」，而且自动
+  // 自动跳过只针对片头（含回顾）：播放设置里的开关本身就叫「自动跳过片头」，而且自动
   // 跳到结尾会让没开自动连播的用户莫名其妙。片尾始终只提供按钮。
   useEffect(() => {
     if (!autoSkipIntro || !activeSkip) return

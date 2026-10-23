@@ -137,7 +137,6 @@ func (r *UserRepository) Delete(ctx context.Context, id string) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		_ = tx.Unscoped().Where("user_id = ?", id).Delete(&model.RefreshToken{})
 		_ = tx.Unscoped().Where("user_id = ?", id).Delete(&model.UserPermission{})
-		_ = tx.Unscoped().Where("user_id = ?", id).Delete(&model.PlayProfile{})
 		_ = tx.Unscoped().Where("user_id = ?", id).Delete(&model.PlaybackHistory{})
 		_ = tx.Unscoped().Where("user_id = ?", id).Delete(&model.Favorite{})
 		_ = tx.Unscoped().Where("user_id = ?", id).Delete(&model.UserDevice{})

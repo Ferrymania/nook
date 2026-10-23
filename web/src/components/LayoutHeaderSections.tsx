@@ -5,15 +5,13 @@ import { ArrowLeft, Film, LoaderCircle, Menu, Search, Star, X } from 'lucide-rea
 
 import { ARTWORK, imageURL } from '../api/client'
 import { mediaAPI } from '../api/library'
-import type { Media, PlayProfile, User } from '../types'
+import type { Media, User } from '../types'
 import { favouriteMediaLink } from '../utils/mediaNavigation'
 import { MEDIA_NAV_ITEMS, resolveHeaderBack, isSidebarLinkActive } from './layoutNavigation'
 import { LayoutThemeToggle } from './LayoutThemeToggle'
 import { LayoutUserMenu } from './LayoutUserMenu'
-import type { useLayoutProfiles } from './useLayoutProfiles'
 import type { ThemeMode, useThemeMode } from './useThemeMode'
 
-type LayoutProfileState = ReturnType<typeof useLayoutProfiles>
 type LayoutThemeState = ReturnType<typeof useThemeMode>
 
 type LayoutPermissionState = {
@@ -26,8 +24,6 @@ type LayoutHeaderProps = {
   theme: LayoutThemeState
   onOpenMobileDrawer: () => void
   user: User | null | undefined
-  activeProfileId: string | null
-  profile: LayoutProfileState
   onLogout: () => void
   showSidebar?: boolean
   hideSearch?: boolean
@@ -39,14 +35,13 @@ export function LayoutHeader({
   theme,
   onOpenMobileDrawer,
   user,
-  activeProfileId,
-  profile,
   onLogout,
   showSidebar,
   hideSearch,
   pathname = '',
 }: LayoutHeaderProps) {
   const navigate = useNavigate()
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
   const headerBack = resolveHeaderBack(pathname)
 
   return (
@@ -96,14 +91,9 @@ export function LayoutHeader({
         themeMode={theme.mode}
         onThemeChange={theme.setMode}
         user={user}
-        isProfileOpen={profile.isProfileOpen}
-        profiles={profile.profiles}
-        activeProfileId={activeProfileId}
-        activeProfile={profile.activeProfile}
-        onToggleProfile={() => profile.setIsProfileOpen((open) => !open)}
-        onCloseProfile={() => profile.setIsProfileOpen(false)}
-        onUseDefaultProfile={profile.useDefaultProfile}
-        onSwitchProfile={profile.switchProfile}
+        isProfileOpen={isProfileOpen}
+        onToggleProfile={() => setIsProfileOpen((open) => !open)}
+        onCloseProfile={() => setIsProfileOpen(false)}
         onLogout={onLogout}
       />
     </header>
@@ -452,13 +442,8 @@ type LayoutHeaderActionsProps = {
   onThemeChange: (mode: ThemeMode) => void
   user: User | null | undefined
   isProfileOpen: boolean
-  profiles: PlayProfile[]
-  activeProfileId: string | null
-  activeProfile: PlayProfile | null
   onToggleProfile: () => void
   onCloseProfile: () => void
-  onUseDefaultProfile: () => void
-  onSwitchProfile: (profile: PlayProfile) => void
   onLogout: () => void
 }
 
@@ -467,13 +452,8 @@ function LayoutHeaderActions({
   onThemeChange,
   user,
   isProfileOpen,
-  profiles,
-  activeProfileId,
-  activeProfile,
   onToggleProfile,
   onCloseProfile,
-  onUseDefaultProfile,
-  onSwitchProfile,
   onLogout,
 }: LayoutHeaderActionsProps) {
   return (
@@ -485,13 +465,8 @@ function LayoutHeaderActions({
       <LayoutUserMenu
         user={user}
         isOpen={isProfileOpen}
-        profiles={profiles}
-        activeProfileId={activeProfileId}
-        activeProfile={activeProfile}
         onToggle={onToggleProfile}
         onClose={onCloseProfile}
-        onUseDefaultProfile={onUseDefaultProfile}
-        onSwitchProfile={onSwitchProfile}
         onLogout={onLogout}
         themeMode={themeMode}
         onThemeChange={onThemeChange}

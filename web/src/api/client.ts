@@ -1,7 +1,6 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 
 import { useAuthStore } from '../stores/auth'
-import { getActivePlayProfileId, getActivePlayProfilePinToken } from '../stores/playProfile'
 import type { RefreshOutcome } from '../utils/authRefresh'
 
 // Single axios instance used by every API helper. Adds the JWT to outgoing
@@ -53,15 +52,6 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers = config.headers ?? {}
     config.headers.Authorization = `Bearer ${token}`
-  }
-  const activeProfileId = getActivePlayProfileId()
-  if (activeProfileId) {
-    config.headers = config.headers ?? {}
-    config.headers['X-Play-Profile-ID'] = activeProfileId
-    const pinToken = getActivePlayProfilePinToken()
-    if (pinToken) {
-      config.headers['X-Play-Profile-PIN-Token'] = pinToken
-    }
   }
   return config
 })
@@ -132,15 +122,6 @@ const tokenQuery = () => {
   return `token=${encodeURIComponent(t)}`
 }
 
-const profileQuery = () => {
-  const id = getActivePlayProfileId()
-  if (!id) return ''
-  const pinToken = getActivePlayProfilePinToken()
-  return `&profile_id=${encodeURIComponent(id)}${
-    pinToken ? `&profile_pin_token=${encodeURIComponent(pinToken)}` : ''
-  }`
-}
-
 // streamURL returns a direct-play URL for <video src>. The JWT is added as
 // a query parameter because <video> elements cannot send Authorization
 // headers.
@@ -150,7 +131,7 @@ const profileQuery = () => {
 // 判定为污染资源而禁止读取，因此只有这种场景才需要开启。
 export function streamURL(mediaId: string, options: { proxy?: boolean } = {}): string {
   const proxy = options.proxy ? '&proxy=1' : ''
-  return `/api/stream/${encodeURIComponent(mediaId)}?${tokenQuery()}${profileQuery()}${proxy}`
+  return `/api/stream/${encodeURIComponent(mediaId)}?${tokenQuery()}${proxy}`
 }
 
 // hlsURL returns the m3u8 playlist URL fed into hls.js.
@@ -168,7 +149,7 @@ export function hlsURL(mediaId: string, startSec = 0, subtitleStream?: number, q
       ? `&subtitle=${encodeURIComponent(String(subtitleStream))}`
       : ''
   const qualityQuery = quality ? `&quality=${encodeURIComponent(quality)}` : ''
-  return `/api/hls/${encodeURIComponent(mediaId)}/index.m3u8?${tokenQuery()}${profileQuery()}${start}${subtitle}${qualityQuery}${bust}`
+  return `/api/hls/${encodeURIComponent(mediaId)}/index.m3u8?${tokenQuery()}${start}${subtitle}${qualityQuery}${bust}`
 }
 
 // cloudHlsURL returns the Nook-proxied 115 cloud HLS master playlist URL.
@@ -177,13 +158,13 @@ export function hlsURL(mediaId: string, startSec = 0, subtitleStream?: number, q
 // same-origin proxy.
 export function cloudHlsURL(mediaId: string, definition: string): string {
   const quality = definition ? `&definition=${encodeURIComponent(definition)}` : ''
-  return `/api/cloud115/media/${encodeURIComponent(mediaId)}/master.m3u8?${tokenQuery()}${profileQuery()}${quality}&media_id=${encodeURIComponent(mediaId)}`
+  return `/api/cloud115/media/${encodeURIComponent(mediaId)}/master.m3u8?${tokenQuery()}${quality}&media_id=${encodeURIComponent(mediaId)}`
 }
 
 // Stop an on-demand HLS job. keepalive makes the request survive page
 // navigation/tab close, where an axios promise can be discarded by browsers.
 export function stopHLSJob(mediaId: string): void {
-  const url = `/api/hls/${encodeURIComponent(mediaId)}?${tokenQuery()}${profileQuery()}`
+  const url = `/api/hls/${encodeURIComponent(mediaId)}?${tokenQuery()}`
   void fetch(url, {
     method: 'DELETE',
     credentials: 'same-origin',
@@ -207,12 +188,6 @@ export function postPlaybackProgressKeepalive(payload: {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   const token = useAuthStore.getState().token
   if (token) headers.Authorization = `Bearer ${token}`
-  const activeProfileId = getActivePlayProfileId()
-  if (activeProfileId) {
-    headers['X-Play-Profile-ID'] = activeProfileId
-    const pinToken = getActivePlayProfilePinToken()
-    if (pinToken) headers['X-Play-Profile-PIN-Token'] = pinToken
-  }
   void fetch('/api/history', {
     method: 'POST',
     credentials: 'same-origin',

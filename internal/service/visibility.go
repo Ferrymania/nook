@@ -39,9 +39,8 @@ func UserHidesAdult(ctx context.Context, repo *repository.Container, userID stri
 	return err == nil && user != nil && user.HideAdult
 }
 
-// UserDefaultMediaVisibility is the visibility policy used by clients that
-// cannot pass a web play-profile token, notably Emby/Jellyfin-compatible apps.
-func UserDefaultMediaVisibility(ctx context.Context, repo *repository.Container, userID string) MediaVisibility {
+// UserAccountMediaVisibility applies administrator-assigned access and account locks.
+func UserAccountMediaVisibility(ctx context.Context, repo *repository.Container, userID string) MediaVisibility {
 	visibility := MediaVisibility{IncludeNSFW: AdultContentEnabled(ctx, repo)}
 	if repo == nil {
 		return visibility
@@ -63,28 +62,24 @@ func UserDefaultMediaVisibility(ctx context.Context, repo *repository.Container,
 		}
 	}
 
-	if repo.PlayProfile == nil {
+	return visibility
+}
+
+// UserDefaultMediaVisibility applies the same account preferences to web and
+// Emby-compatible clients. A user's selection can only narrow administrator access.
+func UserDefaultMediaVisibility(ctx context.Context, repo *repository.Container, userID string) MediaVisibility {
+	visibility := UserAccountMediaVisibility(ctx, repo, userID)
+	if repo == nil || repo.User == nil || userID == "" {
 		return visibility
 	}
-	rows, err := repo.PlayProfile.ListByUser(ctx, userID)
-	if err != nil {
-		return visibility
-	}
-	for _, row := range rows {
-		if !row.IsDefault {
-			continue
-		}
-		visibility.IncludeNSFW = visibility.IncludeNSFW && row.AllowAdult
-		profileAllowed := DecodeAllowedLibraryIDs(row.AllowedLibraryIDs)
-		if len(profileAllowed) > 0 {
+	if user, err := repo.User.FindByID(ctx, userID); err == nil && user != nil {
+		if allowed := user.DecodePlaybackSettings().AllowedLibraryIDs; len(allowed) > 0 {
 			if len(visibility.AllowedLibraryIDs) > 0 {
-				visibility.AllowedLibraryIDs = IntersectStrings(visibility.AllowedLibraryIDs, profileAllowed)
+				visibility.AllowedLibraryIDs = IntersectStrings(visibility.AllowedLibraryIDs, allowed)
 			} else {
-				visibility.AllowedLibraryIDs = profileAllowed
+				visibility.AllowedLibraryIDs = allowed
 			}
 		}
-		visibility.HiddenLibraryIDs = hiddenAdultLibraryIDs(ctx, repo, visibility.IncludeNSFW)
-		break
 	}
 	return visibility
 }
@@ -113,7 +108,7 @@ func IntersectStrings(a, b []string) []string {
 	return out
 }
 
-// DecodeAllowedLibraryIDs normalises a PlayProfile allowed-library JSON string.
+// DecodeAllowedLibraryIDs normalises an allowed-library JSON string.
 func DecodeAllowedLibraryIDs(raw string) []string {
 	if strings.TrimSpace(raw) == "" {
 		return nil

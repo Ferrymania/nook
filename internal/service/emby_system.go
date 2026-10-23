@@ -90,6 +90,7 @@ func (e *EmbyService) FindUser(ctx context.Context, id string) (map[string]any, 
 
 func (e *EmbyService) userPayload(u *model.User) map[string]any {
 	canDownload := u.Role == "admin"
+	settings := u.DecodePlaybackSettings()
 	return map[string]any{
 		"Id":                        u.ID,
 		"Name":                      u.Username,
@@ -107,9 +108,9 @@ func (e *EmbyService) userPayload(u *model.User) map[string]any {
 			"DisplayCollectionsView":     true,
 			"DisplayMissingEpisodes":     false,
 			"SubtitleMode":               "Default",
-			"EnableNextEpisodeAutoPlay":  true,
-			"AudioLanguagePreference":    "",
-			"SubtitleLanguagePreference": "",
+			"EnableNextEpisodeAutoPlay":  settings.AutoplayNext,
+			"AudioLanguagePreference":    settings.PreferredAudioLang,
+			"SubtitleLanguagePreference": settings.PreferredSubtitleLang,
 			"OrderedViews":               []string{},
 			"LatestItemsExcludes":        []string{},
 			"MyMediaExcludes":            []string{},

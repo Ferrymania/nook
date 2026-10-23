@@ -17,7 +17,7 @@ A self-hosted media center for NAS and home theaters, bringing local media, clou
 | Playback | Web player, HLS transcoding, subtitles, danmaku, continue watching, and favorites |
 | Third-party clients | Emby/Jellyfin client compatibility using your Nook account |
 | Cloud and remote media | OpenList, CloudDrive2, 115, WebDAV, STRM sync, and remote Emby mounts |
-| Administration | User permissions, playback profiles, task queues, logs, and settings |
+| Administration | User permissions, per-user playback settings, task queues, logs, and settings |
 
 ## Quick Start
 

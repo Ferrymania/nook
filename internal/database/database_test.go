@@ -29,7 +29,7 @@ func TestEnsurePerformanceIndexesCreatesHotPathIndexes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := db.AutoMigrate(&model.Media{}, &model.Favorite{}, &model.PlaybackHistory{}, &model.PlayProfile{}); err != nil {
+	if err := db.AutoMigrate(&model.Media{}, &model.Favorite{}, &model.PlaybackHistory{}); err != nil {
 		t.Fatal(err)
 	}
 	if err := ensurePerformanceIndexes(db); err != nil {
@@ -40,7 +40,6 @@ func TestEnsurePerformanceIndexesCreatesHotPathIndexes(t *testing.T) {
 		"idx_media_library_episode_active",
 		"idx_favorites_user_media_active",
 		"idx_playback_histories_user_media_active",
-		"idx_play_profiles_user_created_active",
 	} {
 		var count int
 		if err := db.Raw(`SELECT COUNT(1) FROM pg_indexes WHERE schemaname = current_schema() AND indexname = ?`, name).Scan(&count).Error; err != nil {

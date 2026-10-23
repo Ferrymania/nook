@@ -9,6 +9,7 @@ import {
   ListChecks,
   ListMusic,
   Settings,
+  SlidersHorizontal,
   Tv,
   User,
   Users,
@@ -39,6 +40,7 @@ export type MobileBottomNavItem = {
 /** Desktop admin sidebar and admin mobile drawer. */
 export const LAYOUT_NAV_ITEMS: LayoutNavItem[] = [
   { to: '/profile', label: '个人资料', icon: User },
+  { to: '/playback-settings', label: '播放设置', icon: SlidersHorizontal },
   { to: '/libraries?from=admin', label: '媒体库', icon: Library },
   { to: '/queue', label: '任务队列', icon: ListChecks, adminOnly: true },
   { to: '/admin', label: '用户管理', icon: Users, adminOnly: true },
@@ -149,7 +151,7 @@ export function resolveHeaderBack(pathname: string): HeaderBackTarget | null {
   if (
     pathname === '/profile' ||
     pathname === '/dlna' ||
-    pathname === '/play-profiles' ||
+    pathname === '/playback-settings' ||
     pathname === '/poster-wall'
   ) {
     return { to: '/', label: '首页' }
