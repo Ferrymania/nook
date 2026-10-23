@@ -20,6 +20,11 @@ export interface Media {
   video_codec?: string
   audio_codec?: string
   container?: string
+  video_metadata?: {
+    frame_rate?: number
+    extended_video_type?: string
+    extended_video_sub_type?: string
+  }
   poster_url?: string
   backdrop_url?: string
   episode_still_url?: string

@@ -1,6 +1,7 @@
-import { Calendar } from 'lucide-react'
+import { Star } from 'lucide-react'
 
 import type { Media } from '../types'
+import { mediaTechnicalSummary } from '../utils/mediaTechnicalSummary'
 
 type MediaDetailMetadataProps = {
   media: Media
@@ -13,6 +14,7 @@ export function MediaDetailMetadata({ media }: MediaDetailMetadataProps) {
   const languages = parseCSV(media.languages)
   const countries = parseCSV(media.countries)
   const hasTaxonomy = genres.length > 0 || languages.length > 0 || countries.length > 0
+  const technicalSummary = mediaTechnicalSummary(media)
 
   return (
     <>
@@ -25,27 +27,22 @@ export function MediaDetailMetadata({ media }: MediaDetailMetadataProps) {
             {media.title}
           </p>
         )}
-        <div className="flex flex-wrap items-center gap-2">
-          {media.year > 0 && (
-            <span className="inline-flex min-h-7 items-center rounded-lg border border-gray-200/60 bg-gray-100 px-2.5 text-[13px] font-medium gap-1.5 text-gray-700">
-              <Calendar size={13} className="text-brand-500" />
-              <span>{media.year} 年</span>
-            </span>
-          )}
-          {media.width > 0 && media.height > 0 && (
-            <span className="inline-flex min-h-7 items-center rounded-lg border border-brand-100/50 bg-brand-50 px-2.5 text-[13px] font-medium text-brand-700">
-              <span>{media.width} × {media.height}</span>
-            </span>
-          )}
-          {media.duration_sec > 0 && (
-            <span className="inline-flex min-h-7 items-center rounded-lg border border-gray-200/60 bg-gray-100 px-2.5 text-[13px] font-medium text-gray-700">{fmtDuration(media.duration_sec)}</span>
-          )}
-          {media.container && (
-            <span className="inline-flex min-h-7 items-center rounded-lg border border-gray-200/60 bg-gray-100 px-2.5 text-[13px] font-medium text-gray-700">
-              {media.container}
-            </span>
-          )}
-        </div>
+        {(media.rating > 0 || media.year > 0) && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium text-(--app-subtle) tabular-nums">
+            {Number.isFinite(media.rating) && media.rating > 0 && (
+              <span className="inline-flex items-center gap-1.5" aria-label={`评分 ${media.rating.toFixed(1)}`}>
+                <Star size={15} fill="currentColor" className="text-(--app-danger-text)" aria-hidden="true" />
+                {media.rating.toFixed(1)}
+              </span>
+            )}
+            {media.year > 0 && <span>{media.year} 年</span>}
+          </div>
+        )}
+        {technicalSummary.length > 0 && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-medium text-(--app-subtle) tabular-nums" aria-label="媒体信息">
+            {technicalSummary.map((value, index) => <span key={index} className="whitespace-nowrap">{value}</span>)}
+          </div>
+        )}
       </div>
 
       {media.overview && (
@@ -103,13 +100,6 @@ function MetadataRow({
       </div>
     </div>
   )
-}
-
-function fmtDuration(sec: number): string {
-  if (!sec || sec <= 0) return '—'
-  const h = Math.floor(sec / 3600)
-  const m = Math.floor((sec % 3600) / 60)
-  return h > 0 ? `${h}h ${m}m` : `${m}m`
 }
 
 function parseCSV(s?: string): string[] {

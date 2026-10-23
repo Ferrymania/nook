@@ -219,6 +219,7 @@ func (s *MediaService) GetMediaItem(ctx context.Context, id string) (*MediaItem,
 		return nil, err
 	}
 	item := &MediaItem{Media: *media}
+	s.attachVideoMetadata(ctx, &item.Media)
 	if len(versions) > 1 {
 		item.Versions = versions
 	}

@@ -9,6 +9,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"sort"
 	"strconv"
@@ -258,6 +259,17 @@ func (r *EmbyRemoteService) MapRemoteItemToMedia(ctx context.Context, mount *mod
 			}
 			typ := remoteItemString(sm, "Type")
 			if strings.EqualFold(typ, "Video") {
+				if media.VideoMetadata == nil {
+					rate := positiveFrameRate(fmt.Sprint(sm["AverageFrameRate"]))
+					if rate == 0 {
+						rate = positiveFrameRate(fmt.Sprint(sm["RealFrameRate"]))
+					}
+					media.VideoMetadata = &model.MediaVideoMetadata{
+						FrameRate:            rate,
+						ExtendedVideoType:    remoteItemString(sm, "ExtendedVideoType"),
+						ExtendedVideoSubType: remoteItemString(sm, "ExtendedVideoSubType"),
+					}
+				}
 				if media.VideoCodec == "" {
 					media.VideoCodec = remoteItemString(sm, "Codec")
 				}
@@ -293,7 +305,7 @@ func (r *EmbyRemoteService) MapRemoteItemToMedia(ctx context.Context, mount *mod
 			if media.SizeBytes == 0 {
 				media.SizeBytes = remoteItemInt64(sourceMap, "Size")
 			}
-			if streams, ok := sourceMap["MediaStreams"].([]any); ok && (media.VideoCodec == "" || media.AudioCodec == "") {
+			if streams, ok := sourceMap["MediaStreams"].([]any); ok && (media.VideoCodec == "" || media.AudioCodec == "" || media.VideoMetadata == nil) {
 				extractStreamInfo(streams)
 			}
 		}
