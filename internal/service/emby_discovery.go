@@ -2,8 +2,6 @@ package service
 
 import (
 	"context"
-	"crypto/sha1"
-	"encoding/hex"
 	"strings"
 	"time"
 
@@ -41,7 +39,11 @@ func (e *EmbyService) NextUp(ctx context.Context, userID, seriesID string, limit
 	}
 
 	if seriesID != "" {
-		return e.nextUpForSeries(ctx, userID, seriesID, limit)
+		out, err := e.nextUpForSeries(ctx, userID, seriesID, limit)
+		if err != nil {
+			return nil, err
+		}
+		return e.withFolderUserDataEnvelope(ctx, userID, out)
 	}
 
 	rows, err := discovery.NextUpCandidates(ctx, userID, limit, e.mediaVisibility(ctx, userID))
@@ -54,10 +56,10 @@ func (e *EmbyService) NextUp(ctx context.Context, userID, seriesID string, limit
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{
+	return e.withFolderUserDataEnvelope(ctx, userID, map[string]any{
 		"Items":            items,
 		"TotalRecordCount": int64(len(items)),
-	}, nil
+	})
 }
 
 // nextUpForSeries 只解析指定剧的下一集。远程挂载剧集按本机播放历史 + 远程
@@ -350,13 +352,4 @@ func (e *EmbyService) libraryExists(ctx context.Context, id string) bool {
 		return false
 	}
 	return lib != nil
-}
-
-// embyGenreID 为类型生成稳定的虚拟 ID。
-//
-// 客户端会把 Id 当作条目去请求图片/详情，直接用类型名会带上空格与非 ASCII
-// 字符，因此用固定前缀 + 名称哈希；同一个名称永远得到同一个 ID。
-func embyGenreID(name string) string {
-	sum := sha1.Sum([]byte(strings.ToLower(strings.TrimSpace(name))))
-	return "msgo-genre-" + hex.EncodeToString(sum[:])[:16]
 }

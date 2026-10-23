@@ -38,6 +38,7 @@ func (e *EmbyService) seriesPayload(group embySeriesGroup) map[string]any {
 		},
 		"UserData": emptyUserData(),
 	}
+	setEmbyGenres(item, embyMediaGenres(group.Episodes))
 	if group.PosterURL != "" {
 		item["PrimaryImageTag"] = imageTags["Primary"]
 	}
@@ -74,6 +75,11 @@ func (e *EmbyService) seasonPayload(season embySeasonGroup) map[string]any {
 		"People":            []map[string]any{},
 		"UserData":          emptyUserData(),
 	}
+	genres := embyMediaGenres(season.Episodes)
+	if len(genres) == 0 {
+		genres = embyMediaGenres(season.Series.Episodes)
+	}
+	setEmbyGenres(item, genres)
 	if season.Series.PosterURL != "" {
 		item["PrimaryImageTag"] = imageTags["Primary"]
 		item["SeriesPrimaryImageTag"] = embySeriesArtworkTag(season.Series.ID, embyVirtualPrimaryTagSuffix, season.Series.PosterURL)

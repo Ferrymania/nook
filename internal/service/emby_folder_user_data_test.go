@@ -264,6 +264,9 @@ func TestEmbyFolderCountsDoNotMutateSharedPayloadsOrRemoteItems(t *testing.T) {
 		{"Id": "movie", "Type": "Movie", "UserData": emptyUserData()},
 		{"Id": "shared-ep", "Type": "Episode", "UserData": emptyUserData()},
 	}
+	for _, item := range shared[2:] {
+		setEmbyGenres(item, nil)
+	}
 	before, _ := json.Marshal(shared)
 	var wg sync.WaitGroup
 	users := []string{"alice", "bob", "alice", "bob"}

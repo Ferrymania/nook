@@ -328,12 +328,16 @@ func embyLatestSeriesRowLimit(limit int) int {
 // ResumeItems merges in-progress movies with one current/next episode per show.
 // parentID 非空时收窄到该库 / 该剧（含虚拟 msgo-series-* ID）。
 func (e *EmbyService) ResumeItems(ctx context.Context, userID, parentID string, limit, startIndex int) (map[string]any, error) {
-	return e.continueWatchingItems(ctx, ItemsParams{
+	out, err := e.continueWatchingItems(ctx, ItemsParams{
 		UserID:     userID,
 		ParentID:   strings.TrimSpace(parentID),
 		Limit:      limit,
 		StartIndex: startIndex,
 	})
+	if err != nil {
+		return nil, err
+	}
+	return e.withFolderUserDataEnvelope(ctx, userID, out)
 }
 
 // favoriteItems returns favourited media for Emby clients, including mounted
@@ -786,7 +790,6 @@ func (e *EmbyService) itemPayload(ctx context.Context, m *model.Media, fav bool,
 		"SeriesName":        seriesName,
 		"ImageTags":         imageTags,
 		"BackdropImageTags": backdropTags,
-		"Genres":            splitCSV(m.Genres),
 		"People":            []map[string]any{},
 		"ProviderIds": map[string]string{
 			"Tmdb":    intToStr(m.TMDbID),
@@ -802,6 +805,7 @@ func (e *EmbyService) itemPayload(ctx context.Context, m *model.Media, fav bool,
 		"MediaSources": mediaSources,
 		"MediaStreams": primarySource["MediaStreams"],
 	}
+	setEmbyGenres(item, []string{m.Genres})
 	if primaryArtwork != "" {
 		item["PrimaryImageTag"] = primaryTag
 	}

@@ -1166,7 +1166,7 @@ func remoteSeriesPayloadFromEpisode(mount *model.EmbyMount, episode map[string]a
 	if year > 0 {
 		out["ProductionYear"] = year
 	}
-	for _, key := range []string{"Genres", "ProviderIds", "DateLastMediaAdded", "CommunityRating", "CriticRating", "OfficialRating"} {
+	for _, key := range []string{"Genres", "GenreItems", "ProviderIds", "DateLastMediaAdded", "CommunityRating", "CriticRating", "OfficialRating"} {
 		if value, ok := episode[key]; ok {
 			out[key] = value
 		}
