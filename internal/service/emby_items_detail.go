@@ -325,10 +325,10 @@ func embyLatestSeriesRowLimit(limit int) int {
 	return n
 }
 
-// ResumeItems 列出有未完成播放进度的媒体。
+// ResumeItems merges in-progress movies with one current/next episode per show.
 // parentID 非空时收窄到该库 / 该剧（含虚拟 msgo-series-* ID）。
 func (e *EmbyService) ResumeItems(ctx context.Context, userID, parentID string, limit, startIndex int) (map[string]any, error) {
-	return e.resumableItems(ctx, ItemsParams{
+	return e.continueWatchingItems(ctx, ItemsParams{
 		UserID:     userID,
 		ParentID:   strings.TrimSpace(parentID),
 		Limit:      limit,

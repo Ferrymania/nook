@@ -146,7 +146,7 @@ func TestEmbyDisplayPreferencesAllowsAnonymousCompatibility(t *testing.T) {
 	if !ok {
 		t.Fatalf("missing CustomPrefs: %#v", body)
 	}
-	if customPrefs["homesection0"] != "smalllibrarytiles" || customPrefs["homesection2"] != "none" || customPrefs["latestItems"] != "false" {
+	if customPrefs["homesection0"] != "smalllibrarytiles" || customPrefs["homesection1"] != "resume" || customPrefs["homesection2"] != "none" || customPrefs["homesection3"] != "none" || customPrefs["latestItems"] != "false" {
 		t.Fatalf("homepage sections should expose library tiles without duplicate latest rails: %#v", customPrefs)
 	}
 	if body["ScrollDirection"] != "Vertical" {

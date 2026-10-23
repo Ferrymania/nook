@@ -186,12 +186,18 @@ func (s *MediaDiscoveryService) NextUpCandidates(ctx context.Context, userID str
 	// still anchors its series and the next unwatched episode is picked.
 	var histories []model.PlaybackHistory
 	if err := s.repo.DB.WithContext(ctx).
-		Where("user_id = ? AND position_ms > 0", userID).
+		Where("user_id = ? AND (position_ms > 0 OR completed = ?)", userID, true).
 		Order("watched_at desc").
 		Limit(nextUpHistoryScanLimit).
 		Find(&histories).Error; err != nil {
 		return nil, err
 	}
+	return s.nextUpFromHistories(ctx, userID, limit, visibility, histories)
+}
+
+// nextUpFromHistories lets Continue Watching use the same episode selection
+// rules and history window without another history query.
+func (s *MediaDiscoveryService) nextUpFromHistories(ctx context.Context, userID string, limit int, visibility MediaVisibility, histories []model.PlaybackHistory) ([]model.Media, error) {
 	if len(histories) == 0 {
 		return nil, nil
 	}

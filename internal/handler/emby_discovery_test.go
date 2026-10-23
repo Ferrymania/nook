@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -31,7 +32,7 @@ func newEmbyDiscoveryEnv(t *testing.T) (*gin.Engine, *service.Container, string)
 	}
 	if err := db.AutoMigrate(
 		&model.User{}, &model.Library{}, &model.Media{}, &model.PlaybackHistory{},
-		&model.Setting{}, &model.Favorite{}, &model.UserDevice{},
+		&model.Setting{}, &model.Favorite{}, &model.UserDevice{}, &model.Series{}, &model.MediaProbe{},
 	); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
@@ -88,7 +89,7 @@ func decodeItemsEnvelope(t *testing.T, body []byte) []map[string]any {
 	return payload.Items
 }
 
-// NextUp 必须真的返回下一集，而不是空数组。
+// Homepage candidates are merged into Resume; scoped NextUp still returns the next episode.
 func TestEmbyNextUpReturnsNextEpisode(t *testing.T) {
 	router, svc, userID := newEmbyDiscoveryEnv(t)
 	libID := seedEmbyLibrary(t, svc, "tv")
@@ -114,7 +115,16 @@ func TestEmbyNextUpReturnsNextEpisode(t *testing.T) {
 		}
 	}
 
-	w := embyGet(t, router, "/emby/Shows/NextUp", signedTestToken(t, "test-secret"))
+	home := embyGet(t, router, "/emby/Shows/NextUp", signedTestToken(t, "test-secret"))
+	if home.Code != http.StatusOK || len(decodeItemsEnvelope(t, home.Body.Bytes())) != 0 {
+		t.Fatalf("standalone home NextUp should be empty: %d %s", home.Code, home.Body.String())
+	}
+	merged := embyGet(t, router, "/emby/Users/user-1/Items/Resume", signedTestToken(t, "test-secret"))
+	mergedItems := decodeItemsEnvelope(t, merged.Body.Bytes())
+	if merged.Code != http.StatusOK || len(mergedItems) != 1 || mergedItems[0]["IndexNumber"] != float64(2) {
+		t.Fatalf("Resume should include unstarted next episode: %d %s", merged.Code, merged.Body.String())
+	}
+	w := embyGet(t, router, "/emby/Shows/NextUp?SeriesId=series-1", signedTestToken(t, "test-secret"))
 	if w.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", w.Code, w.Body.String())
 	}
@@ -330,7 +340,7 @@ func TestEmbyNextUpFiltersBySeriesID(t *testing.T) {
 	_, wantNext := seedSeries("series-cold", "目标剧", older)
 
 	token := signedTestToken(t, "test-secret")
-	global := embyGet(t, router, "/emby/Shows/NextUp?Limit=10", token)
+	global := embyGet(t, router, "/emby/Users/user-1/Items/Resume?Limit=10", token)
 	if global.Code != http.StatusOK {
 		t.Fatalf("global status = %d body=%s", global.Code, global.Body.String())
 	}
@@ -371,5 +381,61 @@ func TestEmbyNextUpFiltersBySeriesID(t *testing.T) {
 	}
 	if id, _ := pathItems[0]["Id"].(string); id != wantNext {
 		t.Fatalf("path scoped Id = %q, want %q", id, wantNext)
+	}
+}
+
+// Exercise the protocol sequence used by a client: report an unfinished
+// episode, reload Home, finish it, then see the unstarted next episode.
+func TestEmbyContinueWatchingProgressPipeline(t *testing.T) {
+	router, svc, userID := newEmbyDiscoveryEnv(t)
+	libID := seedEmbyLibrary(t, svc, "tv")
+	for i, id := range []string{"continue-e1", "continue-e2"} {
+		if err := svc.Repo.DB.Create(&model.Media{Base: model.Base{ID: id}, LibraryID: libID, SeriesID: "continue-show", Title: "Continue show", Path: "/media/Continue/S01E0" + strconv.Itoa(i+1) + ".mp4", SeasonNum: 1, EpisodeNum: i + 1, DurationSec: 600}).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	token := signedTestToken(t, "test-secret")
+	postProgress := func(position int64) {
+		t.Helper()
+		body := `{"ItemId":"continue-e1","PositionTicks":` + strconv.FormatInt(position, 10) + `,"RunTimeTicks":6000000000}`
+		req := httptest.NewRequest(http.MethodPost, "/emby/Sessions/Playing/Progress", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Emby-Token", token)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+		if w.Code != http.StatusNoContent {
+			t.Fatalf("progress response: %d %s", w.Code, w.Body.String())
+		}
+	}
+	postProgress(140000000)
+	for _, path := range []string{"/emby/Users/" + userID + "/Items/Resume", "/emby/Items/Resume", "/emby/users/" + userID + "/items/resume"} {
+		w := embyGet(t, router, path, token)
+		items := decodeItemsEnvelope(t, w.Body.Bytes())
+		if w.Code != http.StatusOK || len(items) != 1 || items[0]["Id"] != "continue-e1" || items[0]["UserData"].(map[string]any)["PlaybackPositionTicks"] != float64(140000000) {
+			t.Fatalf("partial Resume: %d %s", w.Code, w.Body.String())
+		}
+	}
+	postProgress(6000000000)
+	w := embyGet(t, router, "/emby/Users/"+userID+"/Items/Resume", token)
+	items := decodeItemsEnvelope(t, w.Body.Bytes())
+	if w.Code != http.StatusOK || len(items) != 1 || items[0]["Id"] != "continue-e2" || items[0]["UserData"].(map[string]any)["PlaybackPositionTicks"] != float64(0) {
+		t.Fatalf("completed Resume: %d %s", w.Code, w.Body.String())
+	}
+	raw := embyGet(t, router, "/emby/Items?Filters=IsResumable", token)
+	if raw.Code != http.StatusOK || len(decodeItemsEnvelope(t, raw.Body.Bytes())) != 0 {
+		t.Fatalf("raw resume filter gained an unstarted episode: %d %s", raw.Code, raw.Body.String())
+	}
+	for _, path := range []string{"/emby/Shows/NextUp", "/emby/shows/nextup", "/emby/Users/" + userID + "/Shows/NextUp"} {
+		w := embyGet(t, router, path, token)
+		if w.Code != http.StatusOK || len(decodeItemsEnvelope(t, w.Body.Bytes())) != 0 {
+			t.Fatalf("duplicate home rail returned content: %d %s", w.Code, w.Body.String())
+		}
+	}
+	for _, path := range []string{"/emby/Shows/NextUp?SeriesId=continue-show", "/emby/Shows/continue-show/NextUp", "/emby/Users/" + userID + "/Shows/continue-show/NextUp"} {
+		w := embyGet(t, router, path, token)
+		items := decodeItemsEnvelope(t, w.Body.Bytes())
+		if w.Code != http.StatusOK || len(items) != 1 || items[0]["Id"] != "continue-e2" {
+			t.Fatalf("detail NextUp stopped working: %d %s", w.Code, w.Body.String())
+		}
 	}
 }
