@@ -167,15 +167,8 @@ export function ProfilePage() {
 
   return (
     <div className="space-y-4 text-(--app-text)">
-      <header className="flex flex-wrap items-center justify-between gap-3">
+      <header>
         <h1 className="font-display text-2xl font-semibold">个人资料</h1>
-        <div className="flex min-w-0 items-center gap-2.5 text-sm">
-          <span aria-hidden="true" className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-full bg-(--app-hover) text-xs sm:inline-flex">
-            {user?.username.slice(0, 2).toUpperCase()}
-          </span>
-          <span className="min-w-0 break-all font-medium">{user?.username}</span>
-          <span className="shrink-0 text-xs text-(--app-muted)">{user?.role === 'admin' ? '管理员' : '观看用户'}</span>
-        </div>
       </header>
 
       <div role="tablist" aria-label="个人资料分类" className="flex gap-5 border-b border-(--app-border)">

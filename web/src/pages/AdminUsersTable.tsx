@@ -46,14 +46,13 @@ export function AdminUsersTable({
 }: AdminUsersTableProps) {
   return (
     <div className="glass-panel table-scroll">
-      <table className="min-w-[900px] w-full text-left text-sm">
-        <thead className="text-xs uppercase tracking-wider text-sand-500">
+      <table className="min-w-[760px] w-full text-left text-sm">
+        <thead className="text-xs text-sand-500">
           <tr>
             <th className="py-2 whitespace-nowrap">用户名</th>
             <th className="whitespace-nowrap">角色</th>
-            <th className="whitespace-nowrap">媒体库权限</th>
+            <th className="whitespace-nowrap">媒体库</th>
             <th className="whitespace-nowrap">状态</th>
-            <th>权限说明</th>
             <th className="whitespace-nowrap">最近登录</th>
             <th className="whitespace-nowrap text-right">操作</th>
           </tr>
@@ -79,11 +78,11 @@ export function AdminUsersTable({
               <td className="whitespace-nowrap">
                 {u.role === 'admin' ? (
                   <span className="inline-flex items-center rounded-full bg-sand-100 px-2.5 py-0.5 text-xs text-sand-600 font-medium">
-                    全库 (管理员)
+                    全部
                   </span>
                 ) : !u.allowed_library_ids || u.allowed_library_ids.length === 0 ? (
                   <span className="inline-flex items-center rounded-full bg-green-50 border border-green-200/80 px-2.5 py-0.5 text-xs font-medium text-green-700">
-                    全部媒体库 (默认)
+                    全部
                   </span>
                 ) : (
                   <button
@@ -93,15 +92,12 @@ export function AdminUsersTable({
                     title="点击修改媒体库访问权限"
                   >
                     <FolderLock size={12} />
-                    <span>已指定 {u.allowed_library_ids.length} 个库</span>
+                    <span>指定 {u.allowed_library_ids.length} 个</span>
                   </button>
                 )}
               </td>
               <td className={`whitespace-nowrap ${u.is_active ? 'text-green-500' : 'text-red-400'}`}>
                 {u.is_active ? '正常' : '已禁用'}
-              </td>
-              <td className="text-ink-50 max-w-88">
-                {u.role === 'admin' ? '全部管理权限' : '仅浏览/播放/外部播放器，无下载与文件操作'}
               </td>
               <td className="text-ink-50 whitespace-nowrap">
                 <span className="inline-flex flex-wrap items-center gap-2">

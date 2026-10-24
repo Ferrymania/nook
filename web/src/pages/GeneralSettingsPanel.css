@@ -5,6 +5,13 @@
 .general-settings .settings-section-heading svg { flex-shrink: 0; color: var(--app-muted); }
 .general-settings .settings-section-description { margin-top: 4px; color: var(--app-muted); font-size: 13px; line-height: 1.6; }
 .general-settings .settings-mode-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-width: 0; }
+.general-settings .settings-playback-modes { display: flex; flex-wrap: wrap; gap: 8px; }
+.general-settings .settings-playback-mode { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px; border: 1px solid var(--app-border); border-radius: 8px; cursor: pointer; }
+.general-settings .settings-playback-mode-selected { border-color: var(--app-text); background: var(--app-panel-soft); }
+.general-settings .settings-playback-mode input { accent-color: var(--app-text); }
+.general-settings .settings-playback-modes:disabled .settings-playback-mode { cursor: not-allowed; opacity: .6; }
+.general-settings .settings-tool-status { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 20px; }
+.general-settings .settings-tool-status > div { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; min-height: 32px; }
 .general-settings .settings-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px 22px; }
 .general-settings .settings-fields > .settings-mode-row { align-self: end; min-height: 40px; }
 .general-settings .settings-switch { position: relative; flex-shrink: 0; width: 38px; height: 23px; border-radius: 999px; background: var(--app-border); transition: background-color .15s; }

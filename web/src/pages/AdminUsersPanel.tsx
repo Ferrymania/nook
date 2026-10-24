@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 
 import { adminAPI } from '../api/admin'
@@ -18,6 +18,7 @@ export function AdminUsersPanel() {
   const [users, setUsers] = useState<User[]>([])
   const [maxUsers, setMaxUsers] = useState(DEFAULT_MAX_USERS)
   const [maxUsersDraft, setMaxUsersDraft] = useState(String(DEFAULT_MAX_USERS))
+  const savedMaxUsers = useRef(DEFAULT_MAX_USERS)
   const [savingLimit, setSavingLimit] = useState(false)
   const [creating, setCreating] = useState(false)
   const [username, setUsername] = useState('')
@@ -30,9 +31,11 @@ export function AdminUsersPanel() {
 
   const refresh = async () => {
     const data = await adminAPI.listUsers()
+    const previousLimit = savedMaxUsers.current
+    savedMaxUsers.current = data.max_users
     setUsers(data.users)
     setMaxUsers(data.max_users)
-    setMaxUsersDraft(String(data.max_users))
+    setMaxUsersDraft((draft) => draft === String(previousLimit) ? String(data.max_users) : draft)
   }
   useEffect(() => {
     refresh().catch(() => undefined)
@@ -59,6 +62,7 @@ export function AdminUsersPanel() {
     setSavingLimit(true)
     try {
       const data = await adminAPI.updateUserLimit(next)
+      savedMaxUsers.current = data.max_users
       setMaxUsers(data.max_users)
       setMaxUsersDraft(String(data.max_users))
       toast.success(`用户上限已更新为 ${data.max_users} 人`)

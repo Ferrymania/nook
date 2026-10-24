@@ -1,4 +1,3 @@
-import { useId } from 'react'
 import { MonitorPlay } from 'lucide-react'
 
 import { SettingsSection, SettingsSwitch } from '../components/SettingsSection'
@@ -18,10 +17,9 @@ type Props = {
 }
 
 export function PlaybackSettingsPanel({ values, saving = false, onChange }: Props) {
-  const descriptionID = useId()
   const valueOf = (key: string) => values[key] ?? generalSettingsGroup.items.find((item) => item.key === key)?.defaultValue ?? ''
   const isOn = (key: string) => ['true', '1', 'on'].includes(valueOf(key))
-  // Preserve the legacy restriction and synchronize both keys with the visible switch.
+  // Preserve the legacy restriction and synchronize both keys with the selected mode.
   const transcodeEnabled = ['true', '1', 'on'].includes(values['transcode.enabled'] ?? 'true')
   const directOnly = isOn(directOnlySetting.key) || !transcodeEnabled
   const setDirectOnly = (enabled: boolean) => {
@@ -31,17 +29,17 @@ export function PlaybackSettingsPanel({ values, saving = false, onChange }: Prop
 
   return (
     <SettingsSection title="播放方式" icon={MonitorPlay}>
-      <div className="settings-mode-row">
-        <div>
-          <p className="font-medium">客户端直连解码</p>
-          <p id={descriptionID} className="settings-section-description">
-            {directOnly ? '由客户端解码，服务器不转码' : '优先直放，允许服务器按需转码'}
-          </p>
-        </div>
-        <SettingsSwitch label="客户端直连解码" checked={directOnly} disabled={saving} describedBy={descriptionID} onChange={setDirectOnly} />
-      </div>
-      <details className="settings-disclosure settings-disclosure-divided" open={!directOnly || undefined}>
-        <summary>转码参数<span className="settings-state">{directOnly ? '暂不生效' : '按需使用'}</span></summary>
+      <fieldset className="settings-playback-modes" disabled={saving}>
+        <legend className="sr-only">播放方式</legend>
+        {[{ value: true, label: '仅直放' }, { value: false, label: '允许转码' }].map((mode) => (
+          <label key={mode.label} className={`settings-playback-mode ${directOnly === mode.value ? 'settings-playback-mode-selected' : ''}`}>
+            <input type="radio" name="playback-mode" checked={directOnly === mode.value} onChange={() => setDirectOnly(mode.value)} />
+            {mode.label}
+          </label>
+        ))}
+      </fieldset>
+      {!directOnly && <details className="settings-disclosure settings-disclosure-divided" open>
+        <summary>转码参数</summary>
         <div className="settings-fields mt-4">
           {parameterKeys.map((key) => {
             const setting = generalSettingsGroup.items.find((item) => item.key === key)!
@@ -60,8 +58,7 @@ export function PlaybackSettingsPanel({ values, saving = false, onChange }: Prop
           })}
         </div>
         <p className="settings-help-text">NAS 建议并发 1、软件线程 1–2；硬件编码器需先开启硬件加速。按播放速度转码可降低 CPU 峰值，空闲超时后自动结束转码。</p>
-        <p className="settings-help-text">{directOnlySetting.hint}</p>
-      </details>
+      </details>}
     </SettingsSection>
   )
 }

@@ -39,23 +39,17 @@ export function PlaylistsPage() {
     catch (err) { toast.error(playlistErrorMessage(err)) } finally { setBusy('') }
   }
   return <div className="space-y-6">
-    <PageHeader title="播放列表" description="把电影与单集放在一起，按你安排的顺序观看。" />
-    <form onSubmit={create} className="space-y-2 rounded-2xl border border-(--app-border) bg-(--app-panel) p-4 sm:p-5">
-      <label htmlFor="playlist-name" className="block text-sm font-medium">新播放列表名称</label>
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <input id="playlist-name" required maxLength={128} className="input-base min-w-0 flex-1" placeholder="例如：周末电影" value={name} onChange={event => setName(event.target.value)} disabled={Boolean(busy)} />
-        <button type="submit" className="btn-primary min-h-11 shrink-0" disabled={Boolean(busy) || !name.trim()}>{busy === 'create' ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}新建列表</button>
-      </div>
-    </form>
+    <PageHeader title="播放列表" actions={
+      <form onSubmit={create} className="flex w-full min-w-0 items-center gap-2">
+        <label htmlFor="playlist-name" className="shrink-0 text-sm">名称</label>
+        <input id="playlist-name" required maxLength={128} className="input-base min-w-0 flex-1 sm:w-56" placeholder="新播放列表" value={name} onChange={event => setName(event.target.value)} disabled={Boolean(busy)} />
+        <button type="submit" className="btn-primary min-h-11 shrink-0" disabled={Boolean(busy) || !name.trim()}>{busy === 'create' ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}新建</button>
+      </form>
+    } />
     {loading ? <p role="status" className="flex items-center gap-2 py-8 text-sm text-(--app-muted)"><Loader2 size={16} className="animate-spin" />正在加载播放列表…</p>
       : error ? <div role="alert" className="space-y-3 rounded-2xl border border-(--app-border) p-5"><p>{error}</p><button className="btn-outline min-h-11" onClick={() => void refresh().catch(err => setError(playlistErrorMessage(err)))}>重新加载</button></div>
-      : items.length === 0 ? <section className="space-y-3 rounded-2xl border border-(--app-border) p-6 sm:p-8">
-        <ListMusic size={26} className="text-(--app-muted)" aria-hidden="true" />
-        <h2 className="text-lg font-medium">还没有播放列表</h2>
-        <p className="text-sm text-(--app-muted)">在上方新建，或打开媒体详情页，点击「加入播放列表」选择影片。</p>
-        <Link to="/libraries" className="btn-outline min-h-11">浏览媒体库<ChevronRight size={16} /></Link>
-      </section> : <section aria-label="我的播放列表">
-        <p className="mb-3 text-sm text-(--app-muted)">我的列表 · {items.length} 个</p>
+      : items.length === 0 ? <p role="status" className="rounded-xl border border-(--app-border) px-5 py-8 text-center text-sm text-(--app-muted)">暂无播放列表</p> : <section aria-label="我的播放列表">
+        <p className="mb-3 text-sm text-(--app-muted)">{items.length} 个列表</p>
         <ul className="divide-y divide-(--app-border) rounded-2xl border border-(--app-border) bg-(--app-panel) px-4 sm:px-5">
           {items.map(item => <li key={item.id} className="flex items-center gap-3 py-4">
             <ListMusic size={20} className="shrink-0 text-(--app-muted)" aria-hidden="true" />
