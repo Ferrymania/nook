@@ -34,10 +34,10 @@ export function LibrariesHeader({
   onManageLibraries: () => void
 }) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
       <div>
-        <h1 className="font-display text-2xl font-bold text-ink-600 sm:text-3xl">媒体库</h1>
-        <p className="mt-1 text-xs text-ink-50 sm:text-sm">
+        <h1 className="sr-only">媒体库</h1>
+        <p className="text-xs text-ink-50 sm:text-sm">
           共 {previewCount} 个目录 · {total.toLocaleString()} 个条目
         </p>
       </div>
