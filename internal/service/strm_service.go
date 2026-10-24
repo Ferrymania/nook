@@ -1,7 +1,7 @@
 // STRM 管理服务：网盘账号、同步目录、STRM 生成与元数据下载/上传队列。
 //
-// 设计参考 QMediaSync 的 STRM 同步：同步目录扫描网盘（115 / CloudDrive2 /
-// OpenList，驱动复用 internal/service/cloud 包）或本地目录，视频文件生成
+// 设计参考 QMediaSync 的 STRM 同步：同步目录扫描网盘（115 / OpenList，
+// 驱动复用 internal/service/cloud 包）或本地目录，视频文件生成
 // 指向本服务播放端点的一行 URL 的 .strm 文件；元数据文件（nfo/图片/字幕）
 // 经下载/上传队列与远端双向同步。
 package service
@@ -72,7 +72,7 @@ var StrmSettingDefs = map[string]struct {
 	StrmSettingUploadMeta:      {Default: "false", Label: "上传元数据", Kind: "bool", Help: "同步时把本地元数据上传到远端；本地与网盘元数据不同时以本地为准覆盖（需网盘支持写入）"},
 	StrmSettingDeleteDir:       {Default: "false", Label: "清理空目录", Kind: "bool", Help: "清理远端已删除的多余 .strm/元数据后，删除空目录"},
 	StrmSettingKeepExt:         {Default: "false", Label: "保留视频扩展名（多版本）", Kind: "bool", Help: "关闭（默认）：同名不同扩展（如 竞女01.mkv / 竞女01.mp4）按体积→mtime→扩展名优先级择优生成一条 name.strm；开启：分别生成 name.mkv.strm / name.mp4.strm，保留全部版本供播放切换"},
-	StrmSettingDownloadThreads: {Default: "6", Label: "下载队列线程数", Kind: "number", Help: "OpenList/CloudDrive2 元数据下载并发数（115 独立限速为 3）"},
+	StrmSettingDownloadThreads: {Default: "6", Label: "下载队列线程数", Kind: "number", Help: "OpenList 元数据下载并发数（115 独立限速为 3）"},
 	StrmSettingUploadThreads:   {Default: "2", Label: "上传队列线程数", Kind: "number", Help: "元数据上传并发数"},
 }
 
@@ -100,7 +100,7 @@ type StrmService struct {
 	provider115Cache map[string]cloud.Provider // account ID -> shared provider/OpenClient
 
 	downloadSem115  chan struct{} // 115 换直链+下载并发上限（风控兜底）
-	downloadSemDAV  chan struct{} // WebDAV/OpenList/CloudDrive2 元数据下载并发上限
+	downloadSemDAV  chan struct{} // WebDAV/OpenList 元数据下载并发上限
 	downloadSemOnce sync.Once
 }
 
@@ -111,7 +111,7 @@ const strmWAFCooldown = 3 * time.Minute
 //
 // 115 对换直链接口（/open/ufile/downurl）风控极严：过去把全局 QPS 提到 8 或让多
 // worker 高并发换链，会瞬时撞上 WAF 返回 405 阻断页并触发 180 秒冷却，反而更慢。
-// 因此把 115 换直链并发压到 3，与令牌桶限速共同兜底；OpenList/CloudDrive2 元数据
+// 因此把 115 换直链并发压到 3，与令牌桶限速共同兜底；OpenList 元数据
 // 走 WebDAV，不受此限制，并发由 strm.download_threads 控制。
 const strm115DownloadSemCap = 3
 
@@ -384,6 +384,9 @@ func (s *StrmService) CreateStrmAccount(ctx context.Context, name, provider stri
 	provider = strings.TrimSpace(provider)
 	if provider == "" || provider == model.StrmProviderLocal {
 		return nil, errors.New("请选择网盘类型")
+	}
+	if !cloud.IsCloudType(provider) {
+		return nil, errors.New("不支持的网盘类型")
 	}
 	if strings.TrimSpace(name) == "" {
 		name = providerLabel(provider)
@@ -770,6 +773,9 @@ func (s *StrmService) validateSyncPath(ctx context.Context, p *model.StrmSyncPat
 	if p.Provider == "" {
 		return errors.New("请选择同步类型")
 	}
+	if p.Provider != model.StrmProviderLocal && !cloud.IsCloudType(p.Provider) {
+		return errors.New("不支持的同步类型")
+	}
 	if p.Provider == model.StrmProviderLocal {
 		p.AccountID = ""
 		if strings.TrimSpace(p.RemotePath) == "" {
@@ -867,8 +873,6 @@ func providerLabel(provider string) string {
 	switch provider {
 	case model.StrmProvider115:
 		return "115 网盘"
-	case model.StrmProviderCloudDrive:
-		return "CloudDrive2"
 	case model.StrmProviderOpenList:
 		return "OpenList"
 	case model.StrmProviderLocal:
@@ -883,7 +887,6 @@ func providerLabel(provider string) string {
 // StrmProviderLabels 提供给方的展示标签。
 var StrmProviderLabels = map[string]string{
 	model.StrmProvider115:        "115 网盘",
-	model.StrmProviderCloudDrive: "CloudDrive2",
 	model.StrmProviderOpenList:   "OpenList",
 	model.StrmProviderLocal:      "本地目录",
 	model.StrmProviderEmbyRemote: "Emby 远程挂载",

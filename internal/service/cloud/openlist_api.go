@@ -23,7 +23,7 @@ const openListAPITokenCacheTTL = 30 * time.Minute
 
 // doWithOpenListAPIToken 获取 OpenList API token 后执行 fn；若请求命中 401
 // （登录 token 失效）则清缓存重登一次并重试，避免一次 token 轮换导致整批请求失败。
-func doWithOpenListAPIToken[T any](ctx context.Context, p *cloudDrive2Provider, fn func(token string) (T, error)) (T, error) {
+func doWithOpenListAPIToken[T any](ctx context.Context, p *openListProvider, fn func(token string) (T, error)) (T, error) {
 	var zero T
 	token, err := p.openListAPIToken(ctx)
 	if err != nil {
@@ -41,13 +41,13 @@ func doWithOpenListAPIToken[T any](ctx context.Context, p *cloudDrive2Provider, 
 	return fn(token)
 }
 
-func (p *cloudDrive2Provider) listOpenListAPI(ctx context.Context, dir string) ([]FileEntry, error) {
+func (p *openListProvider) listOpenListAPI(ctx context.Context, dir string) ([]FileEntry, error) {
 	return doWithOpenListAPIToken(ctx, p, func(token string) ([]FileEntry, error) {
 		return p.listOpenListAPIWithToken(ctx, dir, token)
 	})
 }
 
-func (p *cloudDrive2Provider) listOpenListAPIWithToken(ctx context.Context, dir, token string) ([]FileEntry, error) {
+func (p *openListProvider) listOpenListAPIWithToken(ctx context.Context, dir, token string) ([]FileEntry, error) {
 	const pageSize = 500
 	target := normalizeCloudDAVPath(dir)
 	out := make([]FileEntry, 0, pageSize)
@@ -119,13 +119,13 @@ func (p *cloudDrive2Provider) listOpenListAPIWithToken(ctx context.Context, dir,
 	return out, nil
 }
 
-func (p *cloudDrive2Provider) resolveOpenListAPIDirect(ctx context.Context, fileRef string) (*DirectLink, error) {
+func (p *openListProvider) resolveOpenListAPIDirect(ctx context.Context, fileRef string) (*DirectLink, error) {
 	return doWithOpenListAPIToken(ctx, p, func(token string) (*DirectLink, error) {
 		return p.resolveOpenListAPIDirectWithToken(ctx, fileRef, token)
 	})
 }
 
-func (p *cloudDrive2Provider) resolveOpenListAPIDirectWithToken(ctx context.Context, fileRef, token string) (*DirectLink, error) {
+func (p *openListProvider) resolveOpenListAPIDirectWithToken(ctx context.Context, fileRef, token string) (*DirectLink, error) {
 	payload, _ := json.Marshal(map[string]string{"path": normalizeCloudDAVPath(fileRef), "password": ""})
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.openListAPIURL("/api/fs/get"), bytes.NewReader(payload))
 	if err != nil {
@@ -178,7 +178,7 @@ func (p *cloudDrive2Provider) resolveOpenListAPIDirectWithToken(ctx context.Cont
 	return &DirectLink{URL: resolved, Headers: nil, Proxy: false}, nil
 }
 
-func (p *cloudDrive2Provider) resolveOpenListCDNRedirect(ctx context.Context, fileRef, rawURL string) (string, error) {
+func (p *openListProvider) resolveOpenListCDNRedirect(ctx context.Context, fileRef, rawURL string) (string, error) {
 	if p.apiBase == nil || !sameURLHost(rawURL, p.apiBase) {
 		return rawURL, nil
 	}
@@ -192,14 +192,14 @@ func (p *cloudDrive2Provider) resolveOpenListCDNRedirect(ctx context.Context, fi
 	return "", fmt.Errorf("%s: api get %s returned an OpenList-hosted raw_url with http %d and no CDN Location; refusing OpenList/WebDAV proxy fallback for pure 302 playback", p.name, fileRef, status)
 }
 
-func (p *cloudDrive2Provider) openListAPIStatusError(action, target string, status int) error {
+func (p *openListProvider) openListAPIStatusError(action, target string, status int) error {
 	if status == http.StatusUnauthorized || status == http.StatusForbidden {
 		return fmt.Errorf("%s: api %s %s returned http %d；请检查 OpenList Token 或用户名密码，并确认填写的是 OpenList 服务地址而不是 /dav 地址", p.name, action, target, status)
 	}
 	return fmt.Errorf("%s: api %s %s returned http %d", p.name, action, target, status)
 }
 
-func (p *cloudDrive2Provider) hasOpenListAPICredentials() bool {
+func (p *openListProvider) hasOpenListAPICredentials() bool {
 	return strings.TrimSpace(p.token) != "" || (strings.TrimSpace(p.username) != "" && p.password != "")
 }
 
@@ -207,7 +207,7 @@ func (p *cloudDrive2Provider) hasOpenListAPICredentials() bool {
 //   - 配置了静态 token 时直接使用（构造后只读，无并发问题）；
 //   - 否则用用户名密码登录，并在缓存有效期内单飞复用——8 个同步 worker 并发时
 //     只会有一个 goroutine 真正执行登录，避免登录风暴；登录 token 的写入受 tokenMu 保护。
-func (p *cloudDrive2Provider) openListAPIToken(ctx context.Context) (string, error) {
+func (p *openListProvider) openListAPIToken(ctx context.Context) (string, error) {
 	if token := strings.TrimSpace(p.token); token != "" {
 		return token, nil
 	}
@@ -229,7 +229,7 @@ func (p *cloudDrive2Provider) openListAPIToken(ctx context.Context) (string, err
 }
 
 // invalidateOpenListAPIToken 清除登录 token 缓存（收到 401 时调用，下次请求重新登录）。
-func (p *cloudDrive2Provider) invalidateOpenListAPIToken() {
+func (p *openListProvider) invalidateOpenListAPIToken() {
 	p.tokenMu.Lock()
 	p.loginToken = ""
 	p.loginTokenSeen = time.Time{}
@@ -237,7 +237,7 @@ func (p *cloudDrive2Provider) invalidateOpenListAPIToken() {
 }
 
 // openListAPILogin 调用 OpenList /api/auth/login 换取登录 token。
-func (p *cloudDrive2Provider) openListAPILogin(ctx context.Context) (string, error) {
+func (p *openListProvider) openListAPILogin(ctx context.Context) (string, error) {
 	payload, _ := json.Marshal(map[string]string{
 		"username": p.username,
 		"password": p.password,
@@ -275,7 +275,7 @@ func (p *cloudDrive2Provider) openListAPILogin(ctx context.Context) (string, err
 	return token, nil
 }
 
-func (p *cloudDrive2Provider) resolveOpenListPlaybackURL(raw string) (string, error) {
+func (p *openListProvider) resolveOpenListPlaybackURL(raw string) (string, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		return "", fmt.Errorf("%s: empty playback URL", p.name)

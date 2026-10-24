@@ -12,14 +12,8 @@ import (
 	"time"
 )
 
-// cloudDrive2Provider bridges CloudDrive2 through its WebDAV endpoint.
-//
-// CloudDrive2 integrates many cloud disks (115 / 123 / Aliyun and more).
-// Treating it as a WebDAV-backed cloud provider lets Nook
-// browse, mount and upload to those disks without carrying every provider's
-// private chunk-upload protocol in this project.
-type cloudDrive2Provider struct {
-	typ      string
+// openListProvider uses the OpenList API and its WebDAV endpoint.
+type openListProvider struct {
 	name     string
 	base     *url.URL
 	username string
@@ -28,39 +22,26 @@ type cloudDrive2Provider struct {
 	ua       string
 	apiBase  *url.URL
 	client   *http.Client
-	proxy    bool
 
 	// tokenMu / loginToken / loginTokenSeen 保护 OpenList 用户名密码登录的
 	// token 缓存：多 worker 并发时单飞登录，缓存有效期内直接复用，
-	// 401 时清缓存重登（见 clouddrive2_openlist.go 的 openListAPIToken）。
+	// 401 时清缓存重登（见 openlist_api.go 的 openListAPIToken）。
 	tokenMu        sync.Mutex
 	loginToken     string
 	loginTokenSeen time.Time
 }
 
-func newCloudDrive2(cfg map[string]any, client *http.Client) *cloudDrive2Provider {
-	return newCloudDAVProvider(TypeCloudDrive2, "clouddrive2", cfg, client, "/dav")
-}
-
-func newOpenList(cfg map[string]any, client *http.Client) *cloudDrive2Provider {
-	return newCloudDAVProvider(TypeOpenList, "openlist", cfg, client, "/dav")
-}
-
-func newCloudDAVProvider(typ, name string, cfg map[string]any, client *http.Client, defaultDAVPath string) *cloudDrive2Provider {
+func newOpenList(cfg map[string]any, client *http.Client) *openListProvider {
+	const defaultDAVPath = "/dav"
 	rawURL := webDAVURLFromConfig(cfg, defaultDAVPath)
 	u, _ := url.Parse(strings.TrimRight(rawURL, "/"))
-	var apiBase *url.URL
-	if typ == TypeOpenList {
-		apiBase = openListAPIBaseFromConfig(cfg, rawURL, defaultDAVPath)
-	}
+	apiBase := openListAPIBaseFromConfig(cfg, rawURL, defaultDAVPath)
 	ua := str(cfg["ua"])
 	if ua == "" {
 		ua = defaultUA
 	}
-	proxy := true
-	return &cloudDrive2Provider{
-		typ:      typ,
-		name:     name,
+	return &openListProvider{
+		name:     TypeOpenList,
 		base:     u,
 		username: str(cfg["username"]),
 		password: str(cfg["password"]),
@@ -68,18 +49,17 @@ func newCloudDAVProvider(typ, name string, cfg map[string]any, client *http.Clie
 		ua:       ua,
 		apiBase:  apiBase,
 		client:   client,
-		proxy:    proxy,
 	}
 }
 
-func (p *cloudDrive2Provider) Type() string { return p.typ }
+func (p *openListProvider) Type() string { return TypeOpenList }
 
-func (p *cloudDrive2Provider) Ping(ctx context.Context) error {
+func (p *openListProvider) Ping(ctx context.Context) error {
 	_, err := p.List(ctx, "")
 	return err
 }
 
-func (p *cloudDrive2Provider) Resolve(ctx context.Context, fileRef string) (*DirectLink, error) {
+func (p *openListProvider) Resolve(ctx context.Context, fileRef string) (*DirectLink, error) {
 	if err := p.validate(); err != nil {
 		return nil, err
 	}
@@ -87,7 +67,7 @@ func (p *cloudDrive2Provider) Resolve(ctx context.Context, fileRef string) (*Dir
 	if ref == "/" {
 		return nil, fmt.Errorf("%s: file reference required", p.name)
 	}
-	if p.typ == TypeOpenList && p.apiBase != nil {
+	if p.apiBase != nil {
 		link, err := p.resolveOpenListAPIDirect(ctx, ref)
 		if err == nil {
 			return link, nil
@@ -97,13 +77,6 @@ func (p *cloudDrive2Provider) Resolve(ctx context.Context, fileRef string) (*Dir
 			return nil, fmt.Errorf("%s: resolve download URL for %s via API failed: %w", p.name, ref, err)
 		}
 	}
-	if p.typ == TypeCloudDrive2 && isCloudVideoPlaybackCandidate(ref) {
-		link, err := p.resolveCloudDAVRedirectDirect(ctx, ref)
-		if err != nil {
-			return nil, fmt.Errorf("%s: pure 302 playback requires CloudDrive2/WebDAV to return a CDN Location for %s: %w", p.name, ref, err)
-		}
-		return link, nil
-	}
 	headers := map[string]string{
 		"User-Agent": p.ua,
 	}
@@ -112,10 +85,10 @@ func (p *cloudDrive2Provider) Resolve(ctx context.Context, fileRef string) (*Dir
 	} else if p.username != "" {
 		headers["Authorization"] = "Basic " + base64.StdEncoding.EncodeToString([]byte(p.username+":"+p.password))
 	}
-	return &DirectLink{URL: p.urlFor(ref), Headers: headers, Proxy: p.proxy}, nil
+	return &DirectLink{URL: p.urlFor(ref), Headers: headers, Proxy: true}, nil
 }
 
-func (p *cloudDrive2Provider) validate() error {
+func (p *openListProvider) validate() error {
 	if p.base == nil || p.base.Scheme == "" || p.base.Host == "" {
 		return fmt.Errorf("%s: missing WebDAV URL", p.name)
 	}
@@ -177,7 +150,7 @@ func openListAPIBaseFromConfig(cfg map[string]any, webDAVURL, defaultDAVPath str
 	return u
 }
 
-func (p *cloudDrive2Provider) openListAPIURL(apiPath string) string {
+func (p *openListProvider) openListAPIURL(apiPath string) string {
 	if p.apiBase == nil {
 		return ""
 	}

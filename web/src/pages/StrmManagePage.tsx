@@ -56,14 +56,14 @@ export function providerIcon(provider: StrmProvider) {
   switch (provider) {
     case 'cloud115':
       return Cloud
-    case 'clouddrive2':
-      return HardDrive
     case 'openlist':
       return FolderPlus
     case 'local':
       return HardDrive
     case 'emby_remote':
       return Tv
+    default:
+      return Cloud
   }
 }
 

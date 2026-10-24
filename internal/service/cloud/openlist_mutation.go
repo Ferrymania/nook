@@ -13,14 +13,14 @@ import (
 	"strings"
 )
 
-func (p *cloudDrive2Provider) Mkdir(ctx context.Context, parentDir, name string) (*FileEntry, error) {
+func (p *openListProvider) Mkdir(ctx context.Context, parentDir, name string) (*FileEntry, error) {
 	cleanName, err := cleanCloudEntryName(name)
 	if err != nil {
 		return nil, err
 	}
 	parent := normalizeCloudDAVPath(parentDir)
 	target := joinOpenListAPIPath(parent, cleanName)
-	if p.typ == TypeOpenList && p.apiBase != nil && p.hasOpenListAPICredentials() {
+	if p.apiBase != nil && p.hasOpenListAPICredentials() {
 		if err := p.openListAPIMkdir(ctx, target); err != nil {
 			return nil, err
 		}
@@ -32,7 +32,7 @@ func (p *cloudDrive2Provider) Mkdir(ctx context.Context, parentDir, name string)
 	return &FileEntry{ID: target, Name: cleanName, IsDir: true}, nil
 }
 
-func (p *cloudDrive2Provider) Rename(ctx context.Context, ref, name string) (*FileEntry, error) {
+func (p *openListProvider) Rename(ctx context.Context, ref, name string) (*FileEntry, error) {
 	cleanName, err := cleanCloudEntryName(name)
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func (p *cloudDrive2Provider) Rename(ctx context.Context, ref, name string) (*Fi
 		return nil, fmt.Errorf("%s: cannot rename root directory", p.name)
 	}
 	target := joinOpenListAPIPath(path.Dir(source), cleanName)
-	if p.typ == TypeOpenList && p.apiBase != nil && p.hasOpenListAPICredentials() {
+	if p.apiBase != nil && p.hasOpenListAPICredentials() {
 		if err := p.openListAPIRename(ctx, source, cleanName); err != nil {
 			return nil, err
 		}
@@ -54,7 +54,7 @@ func (p *cloudDrive2Provider) Rename(ctx context.Context, ref, name string) (*Fi
 	return &FileEntry{ID: target, Name: cleanName, IsDir: true}, nil
 }
 
-func (p *cloudDrive2Provider) Move(ctx context.Context, ref, targetDir, name string) (*FileEntry, error) {
+func (p *openListProvider) Move(ctx context.Context, ref, targetDir, name string) (*FileEntry, error) {
 	source := normalizeCloudDAVPath(ref)
 	if source == "/" {
 		return nil, fmt.Errorf("%s: cannot move root directory", p.name)
@@ -73,7 +73,7 @@ func (p *cloudDrive2Provider) Move(ctx context.Context, ref, targetDir, name str
 	if sameCloudDAVPath(source, target) {
 		return &FileEntry{ID: target, Name: cleanName}, nil
 	}
-	if p.typ == TypeOpenList && p.apiBase != nil && p.hasOpenListAPICredentials() {
+	if p.apiBase != nil && p.hasOpenListAPICredentials() {
 		if err := p.openListAPIMove(ctx, source, targetDir, cleanName); err != nil {
 			return nil, err
 		}
@@ -96,18 +96,18 @@ func cleanCloudEntryName(name string) (string, error) {
 	return name, nil
 }
 
-func (p *cloudDrive2Provider) openListAPIMkdir(ctx context.Context, target string) error {
+func (p *openListProvider) openListAPIMkdir(ctx context.Context, target string) error {
 	return p.openListAPIPost(ctx, "/api/fs/mkdir", map[string]string{"path": normalizeCloudDAVPath(target)}, "mkdir")
 }
 
-func (p *cloudDrive2Provider) openListAPIRename(ctx context.Context, source, name string) error {
+func (p *openListProvider) openListAPIRename(ctx context.Context, source, name string) error {
 	return p.openListAPIPost(ctx, "/api/fs/rename", map[string]string{
 		"path": normalizeCloudDAVPath(source),
 		"name": name,
 	}, "rename")
 }
 
-func (p *cloudDrive2Provider) openListAPIMove(ctx context.Context, source, targetDir, targetName string) error {
+func (p *openListProvider) openListAPIMove(ctx context.Context, source, targetDir, targetName string) error {
 	targetDir = normalizeCloudDAVPath(targetDir)
 	sourceName := path.Base(normalizeCloudDAVPath(source))
 	if sameCloudDAVPath(path.Dir(source), targetDir) {
@@ -130,14 +130,14 @@ func (p *cloudDrive2Provider) openListAPIMove(ctx context.Context, source, targe
 	return nil
 }
 
-func (p *cloudDrive2Provider) openListAPIPost(ctx context.Context, apiPath string, payload any, action string) error {
+func (p *openListProvider) openListAPIPost(ctx context.Context, apiPath string, payload any, action string) error {
 	_, err := doWithOpenListAPIToken(ctx, p, func(token string) (struct{}, error) {
 		return struct{}{}, p.openListAPIPostWithToken(ctx, apiPath, payload, action, token)
 	})
 	return err
 }
 
-func (p *cloudDrive2Provider) openListAPIPostWithToken(ctx context.Context, apiPath string, payload any, action, token string) error {
+func (p *openListProvider) openListAPIPostWithToken(ctx context.Context, apiPath string, payload any, action, token string) error {
 	body, _ := json.Marshal(payload)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.openListAPIURL(apiPath), bytes.NewReader(body))
 	if err != nil {
@@ -179,12 +179,12 @@ func (p *cloudDrive2Provider) openListAPIPostWithToken(ctx context.Context, apiP
 
 // PutFile 把本地文件内容上传（覆盖）到远端 remotePath。
 // OpenList 账号优先走 OpenList /api/fs/form 分片表单接口；其余走 WebDAV PUT。
-func (p *cloudDrive2Provider) PutFile(ctx context.Context, remotePath string, r io.Reader) error {
+func (p *openListProvider) PutFile(ctx context.Context, remotePath string, r io.Reader) error {
 	target := normalizeCloudDAVPath(remotePath)
 	if target == "/" {
 		return fmt.Errorf("%s: cannot upload to root directory", p.name)
 	}
-	if p.typ == TypeOpenList && p.apiBase != nil && p.hasOpenListAPICredentials() {
+	if p.apiBase != nil && p.hasOpenListAPICredentials() {
 		return p.openListAPIPutFile(ctx, target, r)
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, p.urlFor(target), r)
@@ -208,7 +208,7 @@ func (p *cloudDrive2Provider) PutFile(ctx context.Context, remotePath string, r 
 // openListAPIPutFile 通过 OpenList /api/fs/form 上传（QMediaSync 同款契约：
 // PUT + multipart + File-Path 头）。使用 io.Pipe + multipart.Writer 边写边发，
 // 避免把整个文件读进内存。
-func (p *cloudDrive2Provider) openListAPIPutFile(ctx context.Context, remotePath string, r io.Reader) error {
+func (p *openListProvider) openListAPIPutFile(ctx context.Context, remotePath string, r io.Reader) error {
 	token, err := p.openListAPIToken(ctx)
 	if err != nil {
 		return err
@@ -277,7 +277,7 @@ func openListPathEscape(p string) string {
 	return strings.Join(parts, "/")
 }
 
-func (p *cloudDrive2Provider) webDAVMkdir(ctx context.Context, target string) error {
+func (p *openListProvider) webDAVMkdir(ctx context.Context, target string) error {
 	req, err := http.NewRequestWithContext(ctx, "MKCOL", p.urlFor(target), nil)
 	if err != nil {
 		return err
@@ -298,7 +298,7 @@ func (p *cloudDrive2Provider) webDAVMkdir(ctx context.Context, target string) er
 	}
 }
 
-func (p *cloudDrive2Provider) webDAVRename(ctx context.Context, source, target string) error {
+func (p *openListProvider) webDAVRename(ctx context.Context, source, target string) error {
 	req, err := http.NewRequestWithContext(ctx, "MOVE", p.urlFor(source), nil)
 	if err != nil {
 		return err
@@ -319,7 +319,7 @@ func (p *cloudDrive2Provider) webDAVRename(ctx context.Context, source, target s
 	}
 }
 
-func (p *cloudDrive2Provider) webDAVDestination(target string) string {
+func (p *openListProvider) webDAVDestination(target string) string {
 	raw := p.urlFor(target)
 	u, err := url.Parse(raw)
 	if err != nil {
@@ -330,7 +330,7 @@ func (p *cloudDrive2Provider) webDAVDestination(target string) string {
 	return u.String()
 }
 
-func (p *cloudDrive2Provider) decorateDAVMutationStatusError(resp *http.Response, action, target string) error {
+func (p *openListProvider) decorateDAVMutationStatusError(resp *http.Response, action, target string) error {
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 	detail := compactDAVErrorBody(string(body))
 	if detail == "" {

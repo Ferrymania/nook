@@ -1,6 +1,6 @@
 // STRM 播放端点解析：strm 文件内容指向 /api/strm/play/{provider}，服务端
 // 依据账号凭据解析出直链：能 302 的走 302（115/OpenList API），需要携带请求
-// 头（CloudDrive2 WebDAV）的走反向代理；本地源直接以静态文件方式提供。
+// 头的元数据链接走反向代理；本地源直接以静态文件方式提供。
 package service
 
 import (
@@ -39,7 +39,7 @@ func (s *StrmService) ResolvePlay(ctx context.Context, provider string, q url.Va
 		return s.resolveLocalPlay(ctx, q.Get("path"))
 	case model.StrmProvider115:
 		return s.resolveCloudPlay(ctx, provider, q, "pickcode")
-	case model.StrmProviderCloudDrive, model.StrmProviderOpenList:
+	case model.StrmProviderOpenList:
 		return s.resolveCloudPlay(ctx, provider, q, "ref")
 	default:
 		return nil, errors.New("未知的 STRM 提供方")
