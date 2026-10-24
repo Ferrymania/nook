@@ -1,4 +1,4 @@
-// Package handler — system config + scheduler trigger + events ticket.
+// Package handler — settings schema and events ticket.
 package handler
 
 import (
@@ -11,50 +11,8 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/Ferrymania/nook/internal/middleware"
-	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/service"
 )
-
-// listSystemConfigHandler is the non-admin alias for /admin/settings.
-// It returns the same key/value rows so the Vue UI's `system.getConfig`
-// helper keeps working.
-func listSystemConfigHandler(svc *service.Container) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		rows, err := svc.Repo.Setting.All(c.Request.Context())
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		// Hide secret-flavoured keys for non-admins.
-		role, _ := c.Get(middleware.CtxUserRole)
-		out := make([]model.Setting, 0, len(rows))
-		for _, s := range rows {
-			if role != "admin" && isSecretKey(s.Key) {
-				s.Value = "********"
-			}
-			out = append(out, s)
-		}
-		c.JSON(http.StatusOK, gin.H{"items": out})
-	}
-}
-
-func isSecretKey(k string) bool {
-	for _, suffix := range []string{".token", ".secret", ".password", ".api_key", ".cookie", ".pin"} {
-		if endsWith(k, suffix) {
-			return true
-		}
-	}
-	// 非后缀型敏感键：可触发服务端任意命令的更新命令等。
-	switch k {
-	case "system.update.command":
-		return true
-	}
-	return false
-}
-
-func endsWith(s, suffix string) bool {
-	return len(s) >= len(suffix) && s[len(s)-len(suffix):] == suffix
-}
 
 // schemaHandler returns the curated settings schema (used by the
 // `getSchema()` Vue helper). It mirrors the SettingsPage groupings but

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -42,6 +43,30 @@ func TestAuthenticatedRouteSurfacesAreRegistered(t *testing.T) {
 	} {
 		if !routes[want] {
 			t.Fatalf("%s route is not registered", want)
+		}
+	}
+}
+
+func TestRetiredSystemConfigAPIIsUnavailable(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	Register(router, &config.Config{
+		Secrets: config.SecretsConfig{JWTSecret: "test-secret"},
+	}, zap.NewNop(), &service.Container{Log: zap.NewNop()})
+
+	// The retired alias exposed system settings outside the admin routes.
+	for _, route := range router.Routes() {
+		if route.Path == "/api/system/config" {
+			t.Fatalf("retired settings route still registered: %s %s", route.Method, route.Path)
+		}
+	}
+	for _, method := range []string{http.MethodGet, http.MethodHead} {
+		for _, path := range []string{"/api/system/config", "/api/system/config/"} {
+			response := httptest.NewRecorder()
+			router.ServeHTTP(response, httptest.NewRequest(method, path, nil))
+			if response.Code != http.StatusNotFound {
+				t.Errorf("%s %s = %d, want 404", method, path, response.Code)
+			}
 		}
 	}
 }
