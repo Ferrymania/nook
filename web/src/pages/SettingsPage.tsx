@@ -162,6 +162,7 @@ export function SettingsPage() {
       onChange={(v) => onChange(it.key, v)}
       libraries={libraries}
       showKey={group.key !== 'device-notify'}
+      align={group.key === 'device-notify' && it.type !== 'toggle' ? 'center' : 'start'}
     />
   )
   const saveControls = (
