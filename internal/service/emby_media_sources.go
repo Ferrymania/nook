@@ -30,10 +30,7 @@ func (e *EmbyService) mediaVersionSiblings(ctx context.Context, m *model.Media) 
 	if e == nil || e.repo == nil || e.repo.DB == nil || m == nil || strings.TrimSpace(m.ID) == "" {
 		return nil
 	}
-	libraryIDs := e.mergedLibraryIDs(ctx, m.LibraryID)
-	if len(libraryIDs) == 0 {
-		libraryIDs = []string{m.LibraryID}
-	}
+	libraryIDs := []string{m.LibraryID}
 	q := e.repo.DB.WithContext(ctx).Model(&model.Media{}).
 		Where("library_id IN ?", libraryIDs).
 		Where("season_num = ? AND episode_num = ? AND episode_fraction = ?", m.SeasonNum, m.EpisodeNum, m.EpisodeFraction)
@@ -58,10 +55,10 @@ func (e *EmbyService) mediaVersionSiblings(ctx context.Context, m *model.Media) 
 	if err := q.Find(&rows).Error; err != nil || len(rows) == 0 {
 		return []model.Media{*m}
 	}
-	targetKey := e.mediaVersionKey(ctx, m)
+	targetKey := e.mediaVersionKey(m)
 	filtered := rows[:0]
 	for i := range rows {
-		if e.mediaVersionKey(ctx, &rows[i]) == targetKey {
+		if e.mediaVersionKey(&rows[i]) == targetKey {
 			filtered = append(filtered, rows[i])
 		}
 	}
@@ -101,16 +98,11 @@ func (e *EmbyService) collapseExactPathRows(rows []model.Media) []model.Media {
 	return out
 }
 
-func (e *EmbyService) mediaVersionKey(ctx context.Context, m *model.Media) string {
+func (e *EmbyService) mediaVersionKey(m *model.Media) string {
 	if e == nil || m == nil {
 		return ""
 	}
-	ids := e.mergedLibraryIDs(ctx, m.LibraryID)
-	sort.Strings(ids)
-	libraryGroup := strings.Join(ids, ",")
-	if libraryGroup == "" {
-		libraryGroup = strings.TrimSpace(m.LibraryID)
-	}
+	libraryGroup := m.LibraryID
 	kind := mediaSpecialKind(m.Path)
 	season, episode := m.SeasonNum, m.EpisodeNum
 	fraction := m.EpisodeFraction

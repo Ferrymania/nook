@@ -52,15 +52,9 @@ func (o *OrganizerService) resolveOrganizeMediaRequest(ctx context.Context, medi
 			return organizeMediaRequest{}, err
 		}
 	}
-	if _, ok := ParseCloudLibraryMount(lib.Path); ok {
-		return organizeMediaRequest{}, errors.New("local organize cannot use cloud libraries directly; use external storage scan/mount for cloud media or enable cloud transfer to write to cloud")
-	}
 	requestedBaseRoot := o.resolveBaseRoot(ctx, lib, opts.DestPath)
 	mediaType, mediaCategory := o.effectiveOrganizeOverrides(opts, requestedBaseRoot)
 	baseRoot := normalizeMappedOrganizeDestinationRoot(requestedBaseRoot)
-	if _, ok := ParseCloudLibraryMount(baseRoot); ok {
-		return organizeMediaRequest{}, errors.New("organize destination must be a local writable media directory; enable cloud transfer in external storage when writing to cloud")
-	}
 	if !opts.DryRun {
 		if err := ensureOrganizeDestinationWritable(baseRoot); err != nil {
 			return organizeMediaRequest{}, err

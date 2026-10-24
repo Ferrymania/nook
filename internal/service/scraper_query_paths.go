@@ -22,7 +22,7 @@ func genericMovieFileTitle(title string) bool {
 
 func mediaFolderTitle(mediaPath, libraryRoot string) string {
 	dir := parentSlashPath(mediaPath)
-	root := comparableLibraryRoot(libraryRoot)
+	root := cleanSlashPath(libraryRoot)
 	for depth := 0; depth < 5 && dir != ""; depth++ {
 		if root != "" && sameSlashPath(dir, root) {
 			return libraryRootTitle(libraryRoot)
@@ -94,16 +94,6 @@ func pathBaseSlash(value string) string {
 	return parts[len(parts)-1]
 }
 
-func comparableLibraryRoot(libraryRoot string) string {
-	if info, ok := ParseCloudLibraryMount(libraryRoot); ok {
-		if strings.TrimSpace(info.DisplayDir) == "" {
-			return "cloud://" + info.Provider
-		}
-		return "cloud://" + info.Provider + "/" + info.DisplayDir
-	}
-	return cleanSlashPath(libraryRoot)
-}
-
 func sameSlashPath(a, b string) bool {
 	return strings.EqualFold(cleanSlashPath(a), cleanSlashPath(b))
 }
@@ -125,7 +115,7 @@ func seriesFolderTitle(mediaPath, libraryRoot string) string {
 	if strictSeasonFolderMatched(pathBaseSlash(dir)) || isTheatricalFolder(pathBaseSlash(dir)) {
 		dir = parentSlashPath(dir)
 	}
-	if root := comparableLibraryRoot(libraryRoot); root != "" && sameSlashPath(dir, root) {
+	if root := cleanSlashPath(libraryRoot); root != "" && sameSlashPath(dir, root) {
 		return libraryRootTitle(libraryRoot)
 	}
 	base := pathBaseSlash(dir)
@@ -166,12 +156,7 @@ func pathHasTheatricalFolder(path string) bool {
 }
 
 func libraryRootTitle(libraryRoot string) string {
-	base := ""
-	if info, ok := ParseCloudLibraryMount(libraryRoot); ok {
-		base = pathBaseSlash(info.DisplayDir)
-	} else {
-		base = pathBaseSlash(libraryRoot)
-	}
+	base := pathBaseSlash(libraryRoot)
 	if base == "" || base == "." || isGenericMediaCategoryFolder(base) || isTechnicalMediaFolder(base) || strictSeasonFolderMatched(base) || isMediaCollectionFolder(base) {
 		return ""
 	}

@@ -46,9 +46,6 @@ func (o *OrganizerService) OrganizeDirectory(ctx context.Context, opts OrganizeO
 		return nil, fmt.Errorf("source directory not accessible: %s", filepath.Clean(requestedSource))
 	}
 	requestedDest := strings.TrimSpace(o.defaultDestRoot(ctx, opts.DestPath))
-	if _, ok := ParseCloudLibraryMount(requestedDest); ok {
-		return nil, errors.New("organize destination must be a local writable media directory; enable cloud transfer in external storage when writing to cloud")
-	}
 	resolvedDest := resolveMappedDestinationPath(requestedDest)
 	mediaTypeOverride, mediaCategoryOverride := o.effectiveOrganizeOverrides(opts, resolvedDest)
 	dest := normalizeOrganizeDestinationRoot(resolvedDest)

@@ -282,3 +282,11 @@ func (s *ScraperService) invalidateMediaCache(ctx context.Context) {
 		s.cache.DeletePrefix(ctx, "stats:")
 	}
 }
+
+func cloneLocalMetadata(src *LocalMetadata) *LocalMetadata {
+	if src == nil {
+		return nil
+	}
+	cp := *src
+	return &cp
+}

@@ -7,6 +7,19 @@ import (
 	"github.com/Ferrymania/nook/internal/model"
 )
 
+func TestEmbyVersionCollapseStaysWithinLibrary(t *testing.T) {
+	svc := &EmbyService{}
+	rows := []model.Media{
+		{Base: model.Base{ID: "a-1080"}, LibraryID: "a", TMDbID: 438631, Width: 1920},
+		{Base: model.Base{ID: "a-2160"}, LibraryID: "a", TMDbID: 438631, Width: 3840},
+		{Base: model.Base{ID: "b-1080"}, LibraryID: "b", TMDbID: 438631, Width: 1920},
+	}
+	got := svc.collapseMediaVersionRows(t.Context(), rows)
+	if len(got) != 2 || got[0].ID != "a-2160" || got[1].ID != "b-1080" {
+		t.Fatalf("collapsed versions = %#v; want best version in each library", got)
+	}
+}
+
 func TestEmbyLatestItemsCollapsesMovieVersions(t *testing.T) {
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "电影", Path: `/media/movies`, Type: "movie", Enabled: true}

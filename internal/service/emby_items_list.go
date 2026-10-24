@@ -19,7 +19,7 @@ func (e *EmbyService) mediaItems(ctx context.Context, p ItemsParams) (map[string
 	q := e.repo.DB.WithContext(ctx).Model(&model.Media{})
 	q = e.applyUserMediaVisibility(ctx, q, p.UserID)
 	if p.ParentID != "" {
-		q = q.Where("library_id IN ? OR series_id = ?", e.mergedLibraryIDs(ctx, p.ParentID), p.ParentID)
+		q = q.Where("library_id IN ? OR series_id = ?", []string{p.ParentID}, p.ParentID)
 	}
 	if p.SearchTerm != "" {
 		// Match search terms without case sensitivity.
@@ -233,7 +233,7 @@ func (e *EmbyService) collapseMediaVersionRows(ctx context.Context, rows []model
 	out := make([]model.Media, 0, len(rows))
 	indexByKey := make(map[string]int, len(rows))
 	for _, row := range rows {
-		key := e.mediaVersionKey(ctx, &row)
+		key := e.mediaVersionKey(&row)
 		if key == "" {
 			out = append(out, row)
 			continue
@@ -265,7 +265,7 @@ func (e *EmbyService) seriesItemsForLibrary(ctx context.Context, libraryID strin
 	q := e.repo.DB.WithContext(ctx).Model(&model.Media{}).Where("season_num > 0 OR episode_num > 0")
 	q = e.applyUserMediaVisibility(ctx, q, p.UserID)
 	if libraryID != "" {
-		q = q.Where("library_id IN ?", e.mergedLibraryIDs(ctx, libraryID))
+		q = q.Where("library_id IN ?", []string{libraryID})
 	}
 	if p.SearchTerm != "" {
 		// Match search terms without case sensitivity.

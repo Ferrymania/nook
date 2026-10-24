@@ -75,7 +75,6 @@ type seriesCardGroup struct {
 
 // libraryRowsWithIndex 返回整库行与预计算剧集索引（带对象缓存）。
 func (s *MediaService) libraryRowsWithIndex(ctx context.Context, libraryID string, visibility MediaVisibility) (*libraryRowsCacheValue, error) {
-	visibility = ExpandMediaVisibilityForMergedCloudLibraries(ctx, s.repo, visibility)
 	cacheKey := s.libraryRowsCacheKey(libraryID, visibility)
 	value, err, _ := s.libraryRowsFlight.Do(cacheKey, func() (any, error) {
 		if s.cache != nil {
@@ -328,19 +327,16 @@ func (s *MediaService) ListMediaEpisodes(ctx context.Context, mediaID string, vi
 		return []model.Media{*target}, nil
 	}
 	if seriesID := strings.TrimSpace(target.SeriesID); seriesID != "" {
-		libraryIDs, err := MergedLibraryIDsForLibrary(ctx, s.repo, target.LibraryID)
-		if err == nil && len(libraryIDs) > 0 {
-			rows, queryErr := s.repo.Media.ListByLibrariesFilteredNoCount(ctx, libraryIDs, 0, maxMediaSearchLimit, repository.MediaQueryFilter{
-				IncludeNSFW:       visibility.IncludeNSFW,
-				AllowedLibraryIDs: visibility.AllowedLibraryIDs,
-				HiddenLibraryIDs:  visibility.HiddenLibraryIDs,
-				SeriesID:          seriesID,
-			})
-			if queryErr == nil && len(rows) > 1 {
-				s.attachLibraryMetadata(ctx, rows)
-				sortEpisodesForDisplay(rows)
-				return rows, nil
-			}
+		rows, queryErr := s.repo.Media.ListByLibrariesFilteredNoCount(ctx, []string{target.LibraryID}, 0, maxMediaSearchLimit, repository.MediaQueryFilter{
+			IncludeNSFW:       visibility.IncludeNSFW,
+			AllowedLibraryIDs: visibility.AllowedLibraryIDs,
+			HiddenLibraryIDs:  visibility.HiddenLibraryIDs,
+			SeriesID:          seriesID,
+		})
+		if queryErr == nil && len(rows) > 1 {
+			s.attachLibraryMetadata(ctx, rows)
+			sortEpisodesForDisplay(rows)
+			return rows, nil
 		}
 	}
 	cache, err := s.libraryRowsWithIndex(ctx, target.LibraryID, visibility)
@@ -430,11 +426,7 @@ func libraryUsesSingleMediaRows(libraryType string) bool {
 }
 
 func (s *MediaService) listAllMediaVisible(ctx context.Context, libraryID string, visibility MediaVisibility) ([]model.Media, int64, error) {
-	visibility = ExpandMediaVisibilityForMergedCloudLibraries(ctx, s.repo, visibility)
-	libraryIDs, err := MergedLibraryIDsForLibrary(ctx, s.repo, libraryID)
-	if err != nil {
-		return nil, 0, err
-	}
+	libraryIDs := []string{libraryID}
 	filter := repository.MediaQueryFilter{
 		IncludeNSFW:       visibility.IncludeNSFW,
 		AllowedLibraryIDs: visibility.AllowedLibraryIDs,

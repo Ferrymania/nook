@@ -280,3 +280,31 @@ func (o *OrganizerService) reclassifyScannedMediaLibraryOnly(ctx context.Context
 	res.Reclassified++
 	return true, nil
 }
+
+func appendUniqueLibraryIDs(ids []string, values ...string) []string {
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		exists := false
+		for _, id := range ids {
+			if id == value {
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			ids = append(ids, value)
+		}
+	}
+	return ids
+}
+
+func compactLibraryIDs(ids ...string) []string {
+	out := make([]string, 0, len(ids))
+	for _, id := range ids {
+		out = appendUniqueLibraryIDs(out, id)
+	}
+	return out
+}

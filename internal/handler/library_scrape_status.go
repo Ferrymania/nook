@@ -20,12 +20,7 @@ func libraryScrapeStatusHandler(svc *service.Container) gin.HandlerFunc {
 			c.JSON(http.StatusNotFound, gin.H{"error": "library not found"})
 			return
 		}
-		ids, err := service.MergedLibraryIDsForLibrary(ctx, svc.Repo, lib.ID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "读取媒体库范围失败"})
-			return
-		}
-		counts, err := svc.Repo.ScrapeTask.CountActiveForLibraries(ctx, ids)
+		counts, err := svc.Repo.ScrapeTask.CountActiveForLibraries(ctx, []string{lib.ID})
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "读取刮削状态失败"})
 			return

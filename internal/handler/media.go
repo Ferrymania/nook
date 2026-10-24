@@ -74,7 +74,6 @@ func listLibrariesWithVisibilityHandler(svc *service.Container, visibilityForReq
 		role, _ := c.Get(middleware.CtxUserRole)
 		includeHidden := role == "admin" && (c.Query("include_hidden") == "1" || c.Query("include_hidden") == "true" || c.Query("all") == "1")
 		if !includeHidden {
-			libs = service.FilterDisplayCloudLibraries(ctx, svc.Repo, libs)
 			visibility := visibilityForRequest(c, svc)
 			filtered := libs[:0]
 			for _, lib := range libs {
@@ -265,15 +264,12 @@ func getLibraryHandler(svc *service.Container) gin.HandlerFunc {
 		role, _ := c.Get(middleware.CtxUserRole)
 		includeHidden := role == "admin" && (c.Query("include_hidden") == "1" || c.Query("include_hidden") == "true" || c.Query("all") == "1")
 		if !includeHidden {
-			libs := service.FilterDisplayCloudLibraries(ctx, svc.Repo, []model.Library{*lib})
-			if len(libs) == 0 || !service.LibraryVisibleForUser(ctx, svc.Repo, libs[0], mediaVisibilityForRequest(c, svc)) {
+			if !service.LibraryVisibleForUser(ctx, svc.Repo, *lib, mediaVisibilityForRequest(c, svc)) {
 				c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 				return
 			}
-			c.JSON(http.StatusOK, webLibraryPayload{Library: libs[0]})
-		} else {
-			c.JSON(http.StatusOK, webLibraryPayload{Library: *lib})
 		}
+		c.JSON(http.StatusOK, webLibraryPayload{Library: *lib})
 	}
 }
 

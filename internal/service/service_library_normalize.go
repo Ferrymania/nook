@@ -17,9 +17,6 @@ func (c *Container) NormalizeLocalLibraryPaths(ctx context.Context) error {
 		return err
 	}
 	for _, lib := range libs {
-		if _, ok := ParseCloudLibraryMount(lib.Path); ok {
-			continue
-		}
 		if len(lib.Roots) == 0 {
 			normalized := normalizePersistedLocalLibraryPath(lib.Path)
 			if sameLibraryPath(normalized, lib.Path) {
@@ -35,12 +32,6 @@ func (c *Container) NormalizeLocalLibraryPaths(ctx context.Context) error {
 		}
 		primaryPath := ""
 		for i, root := range lib.Roots {
-			if _, ok := ParseCloudLibraryMount(root.Path); ok {
-				if i == 0 {
-					primaryPath = root.Path
-				}
-				continue
-			}
 			normalized := normalizePersistedLocalLibraryPath(root.Path)
 			if i == 0 {
 				primaryPath = normalized
@@ -76,9 +67,4 @@ func normalizePersistedLocalLibraryPath(pathValue string) string {
 		return filepath.Clean(pathValue)
 	}
 	return resolveMappedDestinationPath(pathValue)
-}
-
-func (c *Container) NormalizeCloudLibraryTypes(ctx context.Context) error {
-	// 网盘后端已移除，不再存在 cloud:// 挂载库类型需修正。
-	return nil
 }

@@ -78,11 +78,7 @@ func (s *MediaService) ListMediaVisibleFiltered(
 	if page < 1 {
 		page = 1
 	}
-	visibility = ExpandMediaVisibilityForMergedCloudLibraries(ctx, s.repo, visibility)
-	libraryIDs, err := MergedLibraryIDsForLibrary(ctx, s.repo, libraryID)
-	if err != nil {
-		return nil, 0, err
-	}
+	libraryIDs := []string{libraryID}
 	filter := filters.apply(repository.MediaQueryFilter{
 		IncludeNSFW:       visibility.IncludeNSFW,
 		AllowedLibraryIDs: visibility.AllowedLibraryIDs,
@@ -129,11 +125,7 @@ func (s *MediaService) GroupedMediaVisibleFiltered(
 	visibility MediaVisibility,
 	filters MediaListFilters,
 ) ([]MediaItem, error) {
-	visibility = ExpandMediaVisibilityForMergedCloudLibraries(ctx, s.repo, visibility)
-	libraryIDs, err := MergedLibraryIDsForLibrary(ctx, s.repo, libraryID)
-	if err != nil {
-		return nil, err
-	}
+	libraryIDs := []string{libraryID}
 	filter := filters.apply(repository.MediaQueryFilter{
 		IncludeNSFW:       visibility.IncludeNSFW,
 		AllowedLibraryIDs: visibility.AllowedLibraryIDs,
@@ -170,11 +162,7 @@ func (s *MediaService) GroupedMediaVisibleFiltered(
 }
 
 func (s *MediaService) listMediaVisibleForGrouping(ctx context.Context, libraryID string, visibility MediaVisibility, filters MediaListFilters) ([]model.Media, error) {
-	visibility = ExpandMediaVisibilityForMergedCloudLibraries(ctx, s.repo, visibility)
-	libraryIDs, err := MergedLibraryIDsForLibrary(ctx, s.repo, libraryID)
-	if err != nil {
-		return nil, err
-	}
+	libraryIDs := []string{libraryID}
 	filter := filters.apply(repository.MediaQueryFilter{
 		IncludeNSFW:       visibility.IncludeNSFW,
 		AllowedLibraryIDs: visibility.AllowedLibraryIDs,
@@ -235,13 +223,7 @@ func (s *MediaService) listVersionSiblings(ctx context.Context, media *model.Med
 	if key == "" {
 		return []model.Media{*media}, nil
 	}
-	libraryIDs, err := MergedLibraryIDsForLibrary(ctx, s.repo, media.LibraryID)
-	if err != nil {
-		return nil, err
-	}
-	if len(libraryIDs) == 0 {
-		libraryIDs = []string{media.LibraryID}
-	}
+	libraryIDs := []string{media.LibraryID}
 	filter := repository.MediaQueryFilter{IncludeNSFW: true}
 	// 成人条目按路径或标题中的番号分组。本地 NFO 不一定包含外部 ID，若按外部
 	// ID 预先收窄候选集，同番号的其它分片会被 SQL 直接排除，表现就是库里折叠
@@ -249,6 +231,7 @@ func (s *MediaService) listVersionSiblings(ctx context.Context, media *model.Med
 	// 直接在该库范围内比对版本键。未刮削但文件名带番号的分片同理：同一部片的
 	// 各分片元数据来源不一致（刮削 vs pending），收窄后标题也对不上。
 	var candidates []model.Media
+	var err error
 	narrowed := false
 	hasAdultCode := mediaAdultGroupCode(*media) != "" ||
 		canonicalAdultGroupCode(AdultCodeFromMediaPath(media.Path)) != ""

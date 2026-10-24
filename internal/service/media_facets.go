@@ -28,8 +28,7 @@ func libraryFilterFrom(visibility MediaVisibility, filters MediaListFilters) rep
 // LibraryFacets 返回某个库的筛选项。类型统计复用 MediaDiscoveryService，
 // 避免在筛选面板与 Emby /Genres 之间出现两套口径。
 //
-// 作用范围必须与列表查询一致：列表用的是「合并网盘库」后的库 ID 集合，因此这
-// 里也把可见性收窄到同一集合，否则筛选项会漏掉列表里真实存在的条目。
+// 作用范围必须与列表查询一致：仅统计目标媒体库内用户可见的条目。
 func (s *MediaService) LibraryFacets(
 	ctx context.Context,
 	libraryID string,
@@ -40,12 +39,7 @@ func (s *MediaService) LibraryFacets(
 	if s == nil || s.repo == nil || s.repo.Media == nil {
 		return facets, nil
 	}
-	visibility = ExpandMediaVisibilityForMergedCloudLibraries(ctx, s.repo, visibility)
-	merged, err := MergedLibraryIDsForLibrary(ctx, s.repo, libraryID)
-	if err != nil {
-		return facets, err
-	}
-	scoped, ok := scopeVisibilityToLibraries(visibility, merged)
+	scoped, ok := scopeVisibilityToLibraries(visibility, []string{libraryID})
 	if !ok {
 		facets.Genres = []GenreCount{}
 		return facets, nil
@@ -106,11 +100,7 @@ func (s *MediaService) RandomMedia(
 	if s == nil || s.repo == nil || s.repo.Media == nil {
 		return nil, nil
 	}
-	visibility = ExpandMediaVisibilityForMergedCloudLibraries(ctx, s.repo, visibility)
-	libraryIDs, err := MergedLibraryIDsForLibrary(ctx, s.repo, libraryID)
-	if err != nil {
-		return nil, err
-	}
+	libraryIDs := []string{libraryID}
 	filter := libraryFilterFrom(visibility, filters)
 
 	_, total, err := s.repo.Media.ListByLibrariesFiltered(ctx, libraryIDs, 0, 1, filter)

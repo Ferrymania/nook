@@ -65,7 +65,6 @@ func (s *MediaService) listLibrariesWithPreview(ctx context.Context, libraries [
 	if len(libraries) == 0 {
 		return out, nil
 	}
-	visibility = ExpandMediaVisibilityForMergedCloudLibraries(ctx, s.repo, visibility)
 	filter := repository.MediaQueryFilter{
 		IncludeNSFW:       visibility.IncludeNSFW,
 		AllowedLibraryIDs: visibility.AllowedLibraryIDs,
@@ -191,29 +190,11 @@ func (s *MediaService) listLibrariesWithPreview(ctx context.Context, libraries [
 // DeleteLibrary removes a library and its media rows. The on-disk files are
 // left untouched.
 func (s *MediaService) DeleteLibrary(ctx context.Context, id string) error {
-	lib, err := s.repo.Library.FindByID(ctx, id)
-	if err != nil {
+	if _, err := s.repo.Library.FindByID(ctx, id); err != nil {
 		return err
 	}
-	if lib != nil {
-		if _, ok := ParseCloudLibraryMount(lib.Path); ok {
-			err := s.repo.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-				if err := tx.Unscoped().Where("library_id = ?", id).Delete(&model.Media{}).Error; err != nil {
-					return err
-				}
-				if err := hardDeleteLibraryRoots(ctx, tx, id); err != nil {
-					return err
-				}
-				return tx.Unscoped().Where("id = ?", id).Delete(&model.Library{}).Error
-			})
-			if err == nil {
-				s.invalidateMediaCache(ctx)
-			}
-			return err
-		}
-	}
-	err = s.repo.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// 本地库媒体行统一硬删除（与云库分支一致）：删库即彻底清空该库的
+	err := s.repo.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 媒体行统一硬删除：删库即彻底清空该库的
 		// media 行，避免重扫时旧行被 upsert 复活却仍挂在已删库下，导致重建
 		// 同名库后条目始终为 0。只作用于数据库表行，磁盘文件不受影响。
 		if err := tx.Unscoped().Where("library_id = ?", id).Delete(&model.Media{}).Error; err != nil {

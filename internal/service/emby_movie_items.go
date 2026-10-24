@@ -22,7 +22,7 @@ func (e *EmbyService) movieLibraryHasEpisodicContent(ctx context.Context, librar
 		return false, nil
 	}
 	q := e.repo.DB.WithContext(ctx).Model(&model.Media{}).
-		Where("library_id IN ?", e.mergedLibraryIDs(ctx, libraryID)).
+		Where("library_id IN ?", []string{libraryID}).
 		Where("(season_num > 0 OR episode_num > 0) AND ("+clause+")", args...)
 	var count int64
 	if err := q.Limit(1).Count(&count).Error; err != nil {
@@ -47,7 +47,7 @@ func (e *EmbyService) movieLibraryItems(ctx context.Context, p ItemsParams) (map
 		}, nil
 	}
 
-	libIDs := e.mergedLibraryIDs(ctx, p.ParentID)
+	libIDs := []string{p.ParentID}
 	apply := func(q *gorm.DB) *gorm.DB {
 		q = e.applyUserMediaVisibility(ctx, q, p.UserID)
 		if p.ParentID != "" {
@@ -231,7 +231,7 @@ func (e *EmbyService) libraryIsEpisodic(ctx context.Context, libraryID string) (
 	}
 	var count int64
 	err := e.repo.DB.WithContext(ctx).Model(&model.Media{}).
-		Where("library_id IN ? AND (season_num > 0 OR episode_num > 0)", e.mergedLibraryIDs(ctx, libraryID)).
+		Where("library_id IN ? AND (season_num > 0 OR episode_num > 0)", []string{libraryID}).
 		Count(&count).Error
 	return count > 0, err
 }

@@ -214,14 +214,6 @@ func (s *ScraperService) EnrichLibraryDetailedWithOptions(ctx context.Context, l
 
 func (s *ScraperService) scrapeCandidateRows(ctx context.Context, libraryID string, options ScrapeOptions) ([]model.Media, error) {
 	var rows []model.Media
-	libraryIDs := []string{}
-	if strings.TrimSpace(libraryID) != "" {
-		var err error
-		libraryIDs, err = MergedLibraryIDsForLibrary(ctx, s.repo, libraryID)
-		if err != nil {
-			return nil, err
-		}
-	}
 	statusFilter := "scrape_status IS NULL OR scrape_status = '' OR scrape_status = ?"
 	statusArgs := []any{"pending"}
 	if options.RetryNoMatch {
@@ -233,8 +225,8 @@ func (s *ScraperService) scrapeCandidateRows(ctx context.Context, libraryID stri
 		statusArgs = append(statusArgs, "matched")
 	}
 	q := s.repo.DB.WithContext(ctx).Where(statusFilter, statusArgs...)
-	if len(libraryIDs) > 0 {
-		q = q.Where("library_id IN ?", libraryIDs)
+	if strings.TrimSpace(libraryID) != "" {
+		q = q.Where("library_id IN ?", []string{libraryID})
 	}
 	if err := q.
 		Order("CASE WHEN COALESCE(season_num, 0) > 0 OR COALESCE(episode_num, 0) > 0 THEN 1 ELSE 0 END").

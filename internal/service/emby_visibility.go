@@ -70,7 +70,6 @@ func (e *EmbyService) mediaVisibility(ctx context.Context, userID string) MediaV
 	if !visibility.IncludeNSFW {
 		visibility.HiddenLibraryIDs = e.hiddenLibraryIDs(ctx, visibility)
 	}
-	visibility = ExpandMediaVisibilityForMergedCloudLibraries(ctx, e.repo, visibility)
 	visibility = cloneMediaVisibility(visibility)
 
 	e.visibilityMu.Lock()
@@ -87,14 +86,6 @@ func (e *EmbyService) mediaVisibility(ctx context.Context, userID string) MediaV
 	e.visibilityMu.Unlock()
 
 	return visibility
-}
-
-func (e *EmbyService) mergedLibraryIDs(ctx context.Context, libraryID string) []string {
-	ids, err := MergedLibraryIDsForLibrary(ctx, e.repo, libraryID)
-	if err != nil || len(ids) == 0 {
-		return []string{libraryID}
-	}
-	return ids
 }
 
 func cloneMediaVisibility(visibility MediaVisibility) MediaVisibility {
@@ -139,10 +130,9 @@ func (e *EmbyService) hiddenLibraryIDs(ctx context.Context, visibility MediaVisi
 	if err != nil {
 		return nil
 	}
-	shadowed := ShadowedCloudLibraryIDSet(libs)
 	ids := make([]string, 0)
 	for _, lib := range libs {
-		if shadowed[lib.ID] || !LibraryVisibleForUser(ctx, e.repo, lib, visibility) {
+		if !LibraryVisibleForUser(ctx, e.repo, lib, visibility) {
 			ids = append(ids, lib.ID)
 		}
 	}

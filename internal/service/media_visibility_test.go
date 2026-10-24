@@ -80,6 +80,23 @@ func TestMediaVisibilityFiltersNSFWAndLibraries(t *testing.T) {
 	if total != 0 || len(listed) != 0 {
 		t.Fatalf("adult library should be hidden total=%d rows=%#v", total, sortedMediaTitles(listed))
 	}
+
+	listed, total, err = svc.ListMediaVisible(t.Context(), libA.ID, 1, 20, MediaVisibility{IncludeNSFW: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if total != 2 || !slices.Equal(sortedMediaTitles(listed), []string{"成人电影", "普通电影"}) {
+		t.Fatalf("library scope leaked: total=%d rows=%#v", total, sortedMediaTitles(listed))
+	}
+	listed, total, err = svc.ListMediaVisible(t.Context(), libB.ID, 1, 20, MediaVisibility{
+		IncludeNSFW: true, AllowedLibraryIDs: []string{libA.ID},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if total != 0 || len(listed) != 0 {
+		t.Fatalf("requested library must not bypass user access: total=%d rows=%#v", total, sortedMediaTitles(listed))
+	}
 }
 
 func TestConfiguredAdultLibrariesDoNotHideSafeLibraryWithNSFWItems(t *testing.T) {

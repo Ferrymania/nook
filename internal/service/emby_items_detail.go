@@ -61,15 +61,11 @@ func (e *EmbyService) item(ctx context.Context, mediaID, userID string) (map[str
 	if lib, err := e.repo.Library.FindByID(ctx, mediaID); err != nil {
 		return nil, err
 	} else if lib != nil {
-		libs := FilterDisplayCloudLibraries(ctx, e.repo, []model.Library{*lib})
-		if len(libs) == 0 {
-			return nil, nil
-		}
 		visibility := e.mediaVisibility(ctx, userID)
-		if !e.libraryVisibleFromCachedVisibility(libs[0], visibility) {
+		if !e.libraryVisibleFromCachedVisibility(*lib, visibility) {
 			return nil, nil
 		}
-		return e.libraryAsView(ctx, &libs[0]), nil
+		return e.libraryAsView(ctx, lib), nil
 	}
 	if strings.HasPrefix(mediaID, embyVirtualSeasonPrefix) {
 		if season, ok, err := e.findSeasonGroup(ctx, mediaID, userID); err != nil {
@@ -259,7 +255,7 @@ func (e *EmbyService) loadLatestItems(ctx context.Context, userID, parentID stri
 			}
 			return embyLatestCacheValue{Items: out, Artwork: artwork}, nil
 		}
-		q = q.Where("library_id IN ?", e.mergedLibraryIDs(ctx, parentID))
+		q = q.Where("library_id IN ?", []string{parentID})
 	}
 	rowLimit := limit * 4
 	if rowLimit < 100 {
@@ -288,7 +284,7 @@ func (e *EmbyService) latestSeriesItemsForLibrary(ctx context.Context, userID, l
 		limit = 20
 	}
 	q := e.repo.DB.WithContext(ctx).Model(&model.Media{}).
-		Where("library_id IN ? AND (season_num > 0 OR episode_num > 0)", e.mergedLibraryIDs(ctx, libraryID))
+		Where("library_id IN ? AND (season_num > 0 OR episode_num > 0)", []string{libraryID})
 	q = e.applyUserMediaVisibility(ctx, q, userID)
 	var rows []model.Media
 	// 只要最近几部剧的卡片，不要把整库 5 万行拉进内存再丢掉。
@@ -386,7 +382,7 @@ func (e *EmbyService) favoriteItems(ctx context.Context, p ItemsParams) (map[str
 	items := make([]map[string]any, 0, len(favs))
 	for _, fav := range favs {
 		if m, ok := byID[fav.MediaID]; ok {
-			if !favoriteMatchesParent(ctx, e, p.ParentID, fav.MediaID, m.LibraryID, m.SeriesID, nil) {
+			if !favoriteMatchesParent(p.ParentID, fav.MediaID, m.LibraryID, m.SeriesID, nil) {
 				continue
 			}
 			if p.SearchTerm != "" {
@@ -411,7 +407,7 @@ func (e *EmbyService) favoriteItems(ctx context.Context, p ItemsParams) (map[str
 		if err != nil || item == nil {
 			continue
 		}
-		if !favoriteMatchesParent(ctx, e, p.ParentID, fav.MediaID, "", "", item) {
+		if !favoriteMatchesParent(p.ParentID, fav.MediaID, "", "", item) {
 			continue
 		}
 		if p.SearchTerm != "" {
@@ -440,18 +436,13 @@ func (e *EmbyService) favoriteItems(ctx context.Context, p ItemsParams) (map[str
 	return map[string]any{"Items": items[p.StartIndex:end], "TotalRecordCount": total, "StartIndex": p.StartIndex}, nil
 }
 
-func favoriteMatchesParent(ctx context.Context, e *EmbyService, parentID, mediaID, libraryID, seriesID string, remoteItem map[string]any) bool {
+func favoriteMatchesParent(parentID, mediaID, libraryID, seriesID string, remoteItem map[string]any) bool {
 	if parentID == "" {
 		return true
 	}
 	if libraryID != "" {
 		if libraryID == parentID || seriesID == parentID {
 			return true
-		}
-		for _, id := range e.mergedLibraryIDs(ctx, parentID) {
-			if id == libraryID {
-				return true
-			}
 		}
 		return false
 	}
@@ -486,11 +477,6 @@ func resumeMatchesParent(ctx context.Context, e *EmbyService, parentID, libraryI
 	}
 	if m != nil && e.seasonIDForMedia(ctx, m) == parentID {
 		return true
-	}
-	for _, id := range e.mergedLibraryIDs(ctx, parentID) {
-		if id == libraryID {
-			return true
-		}
 	}
 	return false
 }

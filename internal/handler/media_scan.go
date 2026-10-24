@@ -23,11 +23,6 @@ func scanLibraryHandler(svc *service.Container) gin.HandlerFunc {
 			c.JSON(http.StatusNotFound, gin.H{"error": "library not found"})
 			return
 		}
-		if _, ok := service.ParseCloudLibraryMount(lib.Path); ok {
-			// 云盘扫描已随网盘后端移除；此处保留空分支以兼容既有客户端。
-			c.JSON(http.StatusBadRequest, gin.H{"error": "cloud 网盘后端已移除，无法扫描云盘媒体库"})
-			return
-		}
 		finishScan, ok := svc.Scan.TryBeginLocalScan(id)
 		if !ok {
 			c.JSON(http.StatusAccepted, gin.H{

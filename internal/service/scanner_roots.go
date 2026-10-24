@@ -35,9 +35,6 @@ func (s *ScannerService) localLibraryScanRoots(ctx context.Context, lib *model.L
 		if !root.Enabled || strings.TrimSpace(root.Path) == "" {
 			continue
 		}
-		if _, ok := ParseCloudLibraryMount(root.Path); ok {
-			continue
-		}
 		out = append(out, root)
 	}
 	return out, nil

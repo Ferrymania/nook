@@ -316,3 +316,8 @@ func (s *ScannerService) resolveLocalLibraryPath(ctx context.Context, lib *model
 	lib.Path = resolved
 	return nil
 }
+
+// scanHasImportChanges reports whether a scan changed the library.
+func scanHasImportChanges(res *ScanResult) bool {
+	return res != nil && (res.Added > 0 || res.Updated > 0 || res.Removed > 0)
+}
