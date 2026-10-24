@@ -59,7 +59,7 @@ export function AdminUsersForm({
           <button type="button" className="btn-secondary min-h-11" aria-expanded={showLimit} aria-controls={limitID} onClick={() => setShowLimit((open) => !open)}>
             用户上限{limitChanged ? ' · 未保存' : ''}
           </button>
-          <button type="button" className="btn-primary min-h-11" aria-expanded={showCreate} aria-controls={createID} disabled={creating || userLimitReached} onClick={() => setShowCreate((open) => !open)}>
+          <button type="button" className="btn-primary min-h-11" aria-expanded={showCreate} aria-controls={createID} disabled={creating || (userLimitReached && !showCreate)} onClick={() => setShowCreate((open) => !open)}>
             <Plus size={16} aria-hidden="true" />添加用户
           </button>
         </div>

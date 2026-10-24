@@ -38,6 +38,7 @@ export function PlaybackSettingsPanel({ values, saving = false, onChange }: Prop
           </label>
         ))}
       </fieldset>
+      {directOnly && <p className="settings-help-text">客户端不支持源格式时将无法播放。</p>}
       {!directOnly && <details className="settings-disclosure settings-disclosure-divided" open>
         <summary>转码参数</summary>
         <div className="settings-fields mt-4">
