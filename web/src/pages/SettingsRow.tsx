@@ -20,10 +20,11 @@ type SettingsRowProps = {
   showKey?: boolean
   showHint?: boolean
   layout?: 'horizontal' | 'stacked'
+  align?: 'start' | 'center'
   unit?: string
 }
 
-export function SettingRow({ def, value, onChange, libraries = [], disabled = false, showKey = true, showHint = true, layout = 'horizontal', unit }: SettingsRowProps) {
+export function SettingRow({ def, value, onChange, libraries = [], disabled = false, showKey = true, showHint = true, layout = 'horizontal', align = 'start', unit }: SettingsRowProps) {
   const controlID = useId()
   const toggleOn = value === 'true' || value === '1' || value === 'on'
   const selectedLibraryIDs = parseLibraryIDs(value)
@@ -34,7 +35,7 @@ export function SettingRow({ def, value, onChange, libraries = [], disabled = fa
     onChange(JSON.stringify(next))
   }
   return (
-    <fieldset disabled={disabled} className={`grid min-w-0 items-start gap-2 ${layout === 'horizontal' ? 'md:grid-cols-[280px_1fr]' : ''} ${disabled ? 'opacity-60' : ''}`}>
+    <fieldset disabled={disabled} className={`grid min-w-0 items-start gap-2 ${layout === 'horizontal' ? `md:grid-cols-[280px_1fr] ${align === 'center' ? 'md:items-center' : ''}` : ''} ${disabled ? 'opacity-60' : ''}`}>
       <label htmlFor={controlID} className="text-sm text-ink-100">
         <div className="font-medium">{def.label}</div>
         {showHint && def.hint && <div className="mt-0.5 text-xs text-sand-500">{def.hint}</div>}

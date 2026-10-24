@@ -12,7 +12,7 @@ import { AdultSettingsPanel } from './AdultSettingsPanel'
 import { DatabaseSettingsPanel } from './DatabaseSettingsPanel'
 import { RecognitionWordsPanel } from './RecognitionWordsPanel'
 import { GeneralSettingsPanel } from './GeneralSettingsPanel'
-import { SettingRow } from './SettingsRow'
+import { SettingRow, type SettingDef } from './SettingsRow'
 import { TelegramNotifyPanel } from './TelegramNotifyPanel'
 import { ALL_KEYS, GROUPS } from './settingsGroups'
 
@@ -154,6 +154,17 @@ export function SettingsPage() {
   }
 
   const group = GROUPS.find((g) => g.key === activeGroup)!
+  const renderSetting = (it: SettingDef) => (
+    <SettingRow
+      key={it.key}
+      def={it}
+      value={values[it.key] ?? it.defaultValue ?? ''}
+      onChange={(v) => onChange(it.key, v)}
+      libraries={libraries}
+      showKey={group.key !== 'device-notify'}
+      align={group.key === 'device-notify' && it.type !== 'toggle' ? 'center' : 'start'}
+    />
+  )
   const saveControls = (
     <div className={group.key === 'general' ? 'settings-save' : 'flex items-center justify-between pt-2'}>
       <span className="text-xs text-(--app-muted)" role="status">
@@ -205,7 +216,6 @@ export function SettingsPage() {
           {group.key === 'recognition-words' && <RecognitionWordsPanel />}
           {group.key === 'adult' && <AdultSettingsPanel />}
           {group.key === 'about' && <AboutSettingsPanel />}
-          {group.key === 'device-notify' && <TelegramNotifyPanel />}
           {group.key !== 'adult' && group.key !== 'library' && group.items.length > 0 && (
             <form onSubmit={onSave} className={group.key === 'general' ? 'general-settings space-y-4' : 'space-y-4'}>
               {group.key === 'general' ? (
@@ -221,18 +231,25 @@ export function SettingsPage() {
                   />
                   {saveControls}
                 </>
+              ) : group.key === 'device-notify' ? (
+                <>
+                  <div className="glass-panel space-y-4">
+                    {group.items.filter((it) => it.key.startsWith('telegram.')).map(renderSetting)}
+                    <div className="md:pl-72">
+                      <TelegramNotifyPanel disabled={saving || [...dirty].some((key) => key.startsWith('telegram.'))} />
+                    </div>
+                  </div>
+                  <div className="glass-panel space-y-4">
+                    {group.items.filter((it) => it.key.startsWith('device.')).map(renderSetting)}
+                  </div>
+                  {saveControls}
+                </>
               ) : (
                 <div className="glass-panel space-y-4">
                   {group.description && <p className="text-xs text-sand-500">{group.description}</p>}
                   {group.items.map((it) => (
                     (!it.key.startsWith('https.') || it.key === 'https.enabled' || httpsEnabled) && (
-                      <SettingRow
-                        key={it.key}
-                        def={it}
-                        value={values[it.key] ?? it.defaultValue ?? ''}
-                        onChange={(v) => onChange(it.key, v)}
-                        libraries={libraries}
-                      />
+                      renderSetting(it)
                     )
                   ))}
                   {saveControls}

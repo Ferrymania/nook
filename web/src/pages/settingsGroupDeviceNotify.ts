@@ -1,76 +1,65 @@
 import type { SettingGroup } from './settingsGroupTypes'
 
 // 设备管控与通知设置。
-//
-// 这些键原先只能通过 Telegram Bot 命令调整，网页端没有任何入口；本分组把它们
-// 暴露成可维护的表单，并解释每个值的实际作用。
 export const deviceNotifySettingsGroup: SettingGroup = {
   key: 'device-notify',
   label: '设备与通知',
-  description: '登录设备管控、防共享策略与管理员 Telegram 通知通道',
   items: [
     {
       key: 'telegram.enabled',
-      label: '启用管理员 Telegram 通知',
+      label: 'Telegram 通知与同步控制',
       type: 'toggle',
       defaultValue: 'false',
-      hint: '通知与同步控制的总开关。关闭后不再发送通知或接收管理命令，已有同步任务按原流程结束。',
     },
     {
       key: 'telegram.bot_token',
       label: 'Bot Token',
       type: 'text',
       placeholder: '123456:AA...',
-      hint: 'BotFather 发放的 Token。保存后再次打开会显示为脱敏值；保持脱敏值不动即表示不修改。',
     },
     {
       key: 'telegram.admin_chat_id',
       label: '管理员 Chat ID',
       type: 'text',
       placeholder: '例如 123456789',
-      hint: '接收运维通知，并授权此私聊控制同步。先与 Bot 私聊发送 /start 获取 Chat ID。填写群组 ID 时仅接收通知，不开放同步控制。',
+      hint: '私聊发送 /start 获取 ID；群组仅接收通知。',
     },
     {
       key: 'device.antishare_enabled',
       label: '启用防共享',
       type: 'toggle',
       defaultValue: 'false',
-      hint: '开启后，超过并发播放/登录终端上限会禁用账号；设备指纹变化按警告累计处理。默认关闭。',
+      hint: '超出设备限制或警告上限会禁用账号。',
     },
     {
       key: 'device.max_concurrent_play',
-      label: '最大并发播放设备',
+      label: '单账号并发播放设备上限',
       type: 'number',
       defaultValue: '3',
-      hint: '同一账号在判定窗口内同时在线的播放设备数上限。',
     },
     {
       key: 'device.max_logged_clients',
-      label: '最大同时登录终端',
+      label: '单账号登录设备上限',
       type: 'number',
       defaultValue: '3',
-      hint: '活跃天数窗口内允许的登录终端数量上限。',
     },
     {
       key: 'device.warn_threshold',
-      label: '设备指纹警告阈值',
+      label: '设备指纹警告上限',
       type: 'number',
       defaultValue: '2',
-      hint: '设备指纹异常累计超过该次数后禁用账号。启用管理员 Telegram 通知后会发送警告。',
     },
     {
       key: 'device.play_window_seconds',
       label: '并发判定窗口（秒）',
       type: 'number',
       defaultValue: '90',
-      hint: '统计「同时播放」时回看的时间窗口。',
     },
     {
       key: 'device.client_active_days',
-      label: '登录设备活跃天数',
+      label: '登录设备统计窗口（天）',
       type: 'number',
       defaultValue: '30',
-      hint: '统计「同时登录终端」时回看的天数窗口。',
     },
   ],
 }
