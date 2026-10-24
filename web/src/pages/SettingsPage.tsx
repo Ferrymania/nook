@@ -12,7 +12,7 @@ import { AdultSettingsPanel } from './AdultSettingsPanel'
 import { DatabaseSettingsPanel } from './DatabaseSettingsPanel'
 import { RecognitionWordsPanel } from './RecognitionWordsPanel'
 import { GeneralSettingsPanel } from './GeneralSettingsPanel'
-import { SettingRow } from './SettingsRow'
+import { SettingRow, type SettingDef } from './SettingsRow'
 import { TelegramNotifyPanel } from './TelegramNotifyPanel'
 import { ALL_KEYS, GROUPS } from './settingsGroups'
 
@@ -154,8 +154,18 @@ export function SettingsPage() {
   }
 
   const group = GROUPS.find((g) => g.key === activeGroup)!
+  const renderSetting = (it: SettingDef) => (
+    <SettingRow
+      key={it.key}
+      def={it}
+      value={values[it.key] ?? it.defaultValue ?? ''}
+      onChange={(v) => onChange(it.key, v)}
+      libraries={libraries}
+      showKey={group.key !== 'device-notify'}
+    />
+  )
   const saveControls = (
-    <div className={group.key === 'general' ? 'settings-save' : group.key === 'device-notify' ? 'flex items-center gap-3' : 'flex items-center justify-between pt-2'}>
+    <div className={group.key === 'general' ? 'settings-save' : 'flex items-center justify-between pt-2'}>
       <span className="text-xs text-(--app-muted)" role="status">
         {dirty.size > 0 ? `有 ${visibleDirtyCount} 项未保存` : ''}
       </span>
@@ -220,27 +230,28 @@ export function SettingsPage() {
                   />
                   {saveControls}
                 </>
+              ) : group.key === 'device-notify' ? (
+                <>
+                  <div className="glass-panel space-y-4">
+                    {group.items.filter((it) => it.key.startsWith('telegram.')).map(renderSetting)}
+                    <div className="md:pl-72">
+                      <TelegramNotifyPanel disabled={saving || [...dirty].some((key) => key.startsWith('telegram.'))} />
+                    </div>
+                  </div>
+                  <div className="glass-panel space-y-4">
+                    {group.items.filter((it) => it.key.startsWith('device.')).map(renderSetting)}
+                  </div>
+                  {saveControls}
+                </>
               ) : (
                 <div className="glass-panel space-y-4">
                   {group.description && <p className="text-xs text-sand-500">{group.description}</p>}
                   {group.items.map((it) => (
                     (!it.key.startsWith('https.') || it.key === 'https.enabled' || httpsEnabled) && (
-                      <SettingRow
-                        key={it.key}
-                        def={it}
-                        value={values[it.key] ?? it.defaultValue ?? ''}
-                        onChange={(v) => onChange(it.key, v)}
-                        libraries={libraries}
-                        showKey={group.key !== 'device-notify'}
-                      />
+                      renderSetting(it)
                     )
                   ))}
-                  {group.key === 'device-notify' ? (
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-(--app-border) pt-4">
-                      <TelegramNotifyPanel disabled={saving || [...dirty].some((key) => key.startsWith('telegram.'))} />
-                      {saveControls}
-                    </div>
-                  ) : saveControls}
+                  {saveControls}
                 </div>
               )}
             </form>
