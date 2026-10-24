@@ -72,7 +72,6 @@ var StrmSettingDefs = map[string]struct {
 	StrmSettingUploadMeta:      {Default: "false", Label: "上传元数据", Kind: "bool", Help: "同步时把本地元数据上传到远端；本地与网盘元数据不同时以本地为准覆盖（需网盘支持写入）"},
 	StrmSettingDeleteDir:       {Default: "false", Label: "清理空目录", Kind: "bool", Help: "清理远端已删除的多余 .strm/元数据后，删除空目录"},
 	StrmSettingKeepExt:         {Default: "false", Label: "保留视频扩展名（多版本）", Kind: "bool", Help: "关闭（默认）：同名不同扩展（如 竞女01.mkv / 竞女01.mp4）按体积→mtime→扩展名优先级择优生成一条 name.strm；开启：分别生成 name.mkv.strm / name.mp4.strm，保留全部版本供播放切换"},
-	Strm115RelayKeySetting:     {Default: "", Label: "115 中继授权共享密钥", Kind: "text", Help: "QMediaSync/MQFamily 中继授权的共享 AES 密钥（OAUTH_RELAY_ENCRYPTION_KEY）；不配置则中继授权不可用"},
 	StrmSettingDownloadThreads: {Default: "6", Label: "下载队列线程数", Kind: "number", Help: "OpenList/CloudDrive2 元数据下载并发数（115 独立限速为 3）"},
 	StrmSettingUploadThreads:   {Default: "2", Label: "上传队列线程数", Kind: "number", Help: "元数据上传并发数"},
 }
@@ -196,7 +195,6 @@ func (s *StrmService) Start(ctx context.Context) {
 	// 但进行中的全量同步（可能持续数小时）完全不受停机控制，优雅停机
 	// 窗口内仍在批量写库/写盘。
 	s.baseCtx = ctx
-	s.sync115RelayKey(ctx)
 	s.recoverInterruptedSyncs(ctx)
 	downloadThreads := s.strmIntSetting(ctx, StrmSettingDownloadThreads, 6)
 	if downloadThreads < 1 {
@@ -626,7 +624,6 @@ func (s *StrmService) UpdateStrmSettings(ctx context.Context, values map[string]
 			return err
 		}
 	}
-	s.sync115RelayKey(ctx)
 	return nil
 }
 

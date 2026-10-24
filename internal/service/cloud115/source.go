@@ -1,4 +1,4 @@
-// 115 开放平台授权来源：内置应用目录与第三方/中继授权源。
+// 115 官方 PKCE 设备码授权应用目录。
 // 数据与逻辑移植自 QMediaSync（MIT 类项目，https://github.com/chen8945/QMediaSync）。
 package cloud115
 
@@ -7,41 +7,25 @@ import "strings"
 type AuthSourceType string
 
 const (
-	SourceTypeBuiltInAppID      AuthSourceType = "built_in_appid"
-	SourceTypeBuiltInRelay      AuthSourceType = "built_in_relay"
-	SourceTypeThirdPartyService AuthSourceType = "third_party_service"
-	SourceTypeCustomAppID       AuthSourceType = "custom_appid"
+	SourceTypeBuiltInAppID AuthSourceType = "built_in_appid"
+	SourceTypeCustomAppID  AuthSourceType = "custom_appid"
 )
 
 type AuthProvider string
 
-const (
-	ProviderOfficialPKCE AuthProvider = "official_pkce"
-	ProviderMQFamily     AuthProvider = "mqfamily"
-	ProviderQMediaSync   AuthProvider = "qmediasync"
-	ProviderMoviePilot   AuthProvider = "moviepilot"
-	ProviderCloudDrive   AuthProvider = "clouddrive"
-)
+const ProviderOfficialPKCE AuthProvider = "official_pkce"
 
-const (
-	BuiltInRelayQMediaSync     = "QMediaSync"
-	BuiltInRelayQ115STRM       = "Q115-STRM"
-	BuiltInRelayMQMediaLibrary = "MQ的媒体库"
-	CustomAppName              = "自定义 APP ID"
-)
+const CustomAppName = "自定义 APP ID"
 
-// Source 描述一种 115 授权来源（应用/服务）。
+// Source 描述一个使用官方扫码授权的 115 应用。
 type Source struct {
-	SourceType            AuthSourceType `json:"auth_source_type"`
-	Provider              AuthProvider   `json:"auth_provider"`
-	AppID                 string         `json:"app_id"`
-	AppName               string         `json:"app_name"`
-	DisplayName           string         `json:"display_name"`
-	AuthServer            string         `json:"auth_server,omitempty"`
-	RedirectURI           string         `json:"redirect_uri,omitempty"`
-	RequiresEncryptionKey bool           `json:"requires_encryption_key"`
-	Pinned                bool           `json:"pinned"`
-	Deprecated            bool           `json:"deprecated"`
+	SourceType  AuthSourceType `json:"auth_source_type"`
+	Provider    AuthProvider   `json:"auth_provider"`
+	AppID       string         `json:"app_id"`
+	AppName     string         `json:"app_name"`
+	DisplayName string         `json:"display_name"`
+	Pinned      bool           `json:"pinned"`
+	Deprecated  bool           `json:"deprecated"`
 }
 
 type AppIDSearchResult struct {
@@ -1209,58 +1193,11 @@ func BuiltInAppIDSources() []Source {
 	return sources
 }
 
-// BuiltInRelaySources 返回中继授权源（需配置共享 AES 密钥才能使用）。
-func BuiltInRelaySources() []Source {
-	return []Source{
-		{SourceType: SourceTypeBuiltInRelay, Provider: ProviderQMediaSync, AppID: BuiltInRelayQMediaSync, AppName: BuiltInRelayQMediaSync, DisplayName: BuiltInRelayQMediaSync, AuthServer: "https://oauth.qmediasync.cn", RequiresEncryptionKey: true},
-		{SourceType: SourceTypeBuiltInRelay, Provider: ProviderMQFamily, AppID: BuiltInRelayQ115STRM, AppName: BuiltInRelayQ115STRM, DisplayName: BuiltInRelayQ115STRM, AuthServer: "https://api.mqfamily.top", RequiresEncryptionKey: true, Deprecated: true},
-		{SourceType: SourceTypeBuiltInRelay, Provider: ProviderMQFamily, AppID: BuiltInRelayMQMediaLibrary, AppName: BuiltInRelayMQMediaLibrary, DisplayName: BuiltInRelayMQMediaLibrary, AuthServer: "https://api.mqfamily.top", RequiresEncryptionKey: true, Deprecated: true},
-	}
-}
-
-// ThirdPartySources 返回第三方授权源（无需共享密钥）。
-func ThirdPartySources() []Source {
-	return []Source{
-		{SourceType: SourceTypeThirdPartyService, Provider: ProviderMoviePilot, AppID: "100197847", AppName: "MoviePilot-115", DisplayName: "MoviePilot", AuthServer: "https://movie-pilot.org"},
-		{SourceType: SourceTypeThirdPartyService, Provider: ProviderCloudDrive, AppID: "100195313", AppName: "CloudDrive", DisplayName: "CloudDrive", RedirectURI: "https://redirect115.zhenyunpan.com"},
-	}
-}
-
-// FindSource 按类型/提供方/AppID 查找授权来源。
+// FindSource 按类型/提供方/AppID 查找官方应用。
 func FindSource(sourceType AuthSourceType, provider AuthProvider, appID string) (Source, bool) {
-	appID = strings.TrimSpace(appID)
-	switch sourceType {
-	case SourceTypeBuiltInAppID:
-		source, ok := builtInAppIDByID[appID]
-		return source, ok
-	case SourceTypeBuiltInRelay:
-		for _, source := range BuiltInRelaySources() {
-			if provider != "" && source.Provider != provider {
-				continue
-			}
-			if appID != "" && source.AppID != appID {
-				continue
-			}
-			return source, true
-		}
-	case SourceTypeThirdPartyService:
-		for _, source := range ThirdPartySources() {
-			if provider != "" && source.Provider != provider {
-				continue
-			}
-			if appID != "" && source.AppID != appID {
-				continue
-			}
-			return source, true
-		}
+	if sourceType != SourceTypeBuiltInAppID || provider != ProviderOfficialPKCE {
+		return Source{}, false
 	}
-	return Source{}, false
-}
-
-// RelayEncryptionKey 是中继授权回调 payload 的共享 AES 密钥；
-// 未配置时 relay 类授权源不可用。可通过设置 strm.115_relay_key 配置。
-var RelayEncryptionKey = ""
-
-func RelayAvailable() bool {
-	return strings.TrimSpace(RelayEncryptionKey) != ""
+	source, ok := builtInAppIDByID[strings.TrimSpace(appID)]
+	return source, ok
 }

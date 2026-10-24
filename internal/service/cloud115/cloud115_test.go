@@ -4,8 +4,6 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -245,123 +243,12 @@ func TestGetFsDetailByCid(t *testing.T) {
 	}
 }
 
-// TestRelayRoundTrip 中继加解密往返 + 回调解析。
-func TestRelayRoundTrip(t *testing.T) {
-	RelayEncryptionKey = "unit-test-shared-key"
-	defer func() { RelayEncryptionKey = "" }()
-
-	payload := `{"data":{"access_token":"at","refresh_token":"rt","expires_in":7200}}`
-	encrypted, err := EncryptRelay(payload)
-	if err != nil {
-		t.Fatal(err)
-	}
-	decrypted, err := DecryptRelay(encrypted)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if decrypted != payload {
-		t.Fatalf("round trip mismatch: %q", decrypted)
-	}
-
-	provider, err := GetOAuthProvider(Source{SourceType: SourceTypeBuiltInRelay, Provider: ProviderQMediaSync, AppID: "QMediaSync"})
-	if err != nil {
-		t.Fatalf("relay provider should be available when key configured: %v", err)
-	}
-	token, err := provider.Confirm(context.Background(), map[string]string{"data": encrypted})
-	if err != nil {
-		t.Fatalf("confirm: %v", err)
-	}
-	if !token.Done || token.AccessToken != "at" || token.RefreshToken != "rt" {
-		t.Fatalf("bad token: %#v", token)
-	}
-}
-
-func TestRelayProviderRequiresKey(t *testing.T) {
-	RelayEncryptionKey = ""
-	if _, err := GetOAuthProvider(Source{SourceType: SourceTypeBuiltInRelay, Provider: ProviderQMediaSync, AppID: "QMediaSync"}); err == nil {
-		t.Fatal("relay provider should fail without key")
-	}
-	if RelayAvailable() {
-		t.Fatal("RelayAvailable should be false without key")
-	}
-}
-
-func TestMoviePilotProvider(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/u115/auth_url":
-			w.Write([]byte(`{"auth_url":"https://passport.115/auth?state=ST","state":"ST"}`))
-		case "/u115/token":
-			if r.URL.Query().Get("state") != "ST" {
-				t.Errorf("bad state")
-			}
-			w.Write([]byte(`{"state":true,"data":{"access_token":"at","refresh_token":"rt","expires_in":7200}}`))
-		default:
-			t.Errorf("unexpected path %s", r.URL.Path)
-		}
-	}))
-	defer srv.Close()
-
-	provider := moviePilotOAuthProvider{authServer: srv.URL}
-	result, err := provider.BuildAuth(context.Background(), OAuthURLRequest{})
-	if err != nil {
-		t.Fatalf("build: %v", err)
-	}
-	if result.AuthURL == "" || result.State != "ST" || !result.Polling {
-		t.Fatalf("bad result: %#v", result)
-	}
-	token, err := provider.Poll(context.Background(), "ST")
-	if err != nil {
-		t.Fatalf("poll: %v", err)
-	}
-	if !token.Done || token.AccessToken != "at" {
-		t.Fatalf("bad token: %#v", token)
-	}
-}
-
-func TestCloudDriveBuildAuth(t *testing.T) {
-	provider := cloudDriveOAuthProvider{source: Source{SourceType: SourceTypeThirdPartyService, Provider: ProviderCloudDrive, AppID: "100195313"}}
-	result, err := provider.BuildAuth(context.Background(), OAuthURLRequest{
-		RedirectURL:     "http://127.0.0.1:8080/api/strm/oauth/callback",
-		AuthorizationID: "auth-123",
-	})
-	if err != nil {
-		t.Fatalf("build: %v", err)
-	}
-	if !strings.Contains(result.AuthURL, "client_id=100195313") {
-		t.Fatalf("bad auth url: %s", result.AuthURL)
-	}
-	parsed, err := url.Parse(result.AuthURL)
-	if err != nil {
-		t.Fatalf("parse auth url: %v", err)
-	}
-	state, err := url.QueryUnescape(parsed.Query().Get("state"))
-	if err != nil {
-		t.Fatalf("unescape state: %v", err)
-	}
-	if !strings.Contains(state, "authorization_id=auth-123") {
-		t.Fatalf("missing auth id in state: %s", result.AuthURL)
-	}
-	token, err := provider.Confirm(context.Background(), map[string]string{
-		"access_token": "at", "refresh_token": "rt", "expires_in": "7200",
-	})
-	if err != nil {
-		t.Fatalf("confirm: %v", err)
-	}
-	if !token.Done || token.AccessToken != "at" {
-		t.Fatalf("bad token: %#v", token)
-	}
-}
-
 func TestSourceCatalog(t *testing.T) {
 	if len(BuiltInAppIDSources()) < 50 {
 		t.Fatalf("built-in app catalog too small: %d", len(BuiltInAppIDSources()))
 	}
 	if _, ok := FindSource(SourceTypeBuiltInAppID, ProviderOfficialPKCE, "100195125"); !ok {
 		t.Fatal("媒体播放器 app not found")
-	}
-	if len(BuiltInRelaySources()) == 0 || len(ThirdPartySources()) != 2 {
-		t.Fatal("relay/thrid-party sources broken")
 	}
 }
 

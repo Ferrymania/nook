@@ -115,7 +115,7 @@ function accountDialogDefaults(existing: StrmAccount | null) {
 // ─── 添加/编辑网盘账号 ────────────────────────────────────────────────────────
 
 const PROVIDER_OPTIONS: { provider: StrmProvider; label: string; desc: string }[] = [
-  { provider: 'cloud115', label: '115 网盘', desc: '开放平台 OAuth 授权（扫码/网页）' },
+  { provider: 'cloud115', label: '115 网盘', desc: '开放平台扫码授权' },
   { provider: 'clouddrive2', label: 'CloudDrive2', desc: 'WebDAV 桥接多种网盘' },
   { provider: 'openlist', label: 'OpenList', desc: 'OpenList / AList 兼容服务' },
 ]
@@ -218,7 +218,7 @@ export function StrmAccountDialog({
   return (
     <DialogShell
       title={existing ? '编辑网盘账号' : '添加网盘账号'}
-      subtitle="115 开放平台授权（内置应用目录 / 中继 / 第三方服务）；CloudDrive2 / OpenList 填写服务地址与凭据"
+      subtitle="115 开放平台扫码授权；CloudDrive2 / OpenList 填写服务地址与凭据"
       onClose={onClose}
       wide
     >
@@ -518,7 +518,6 @@ const SETTING_DEFS: SettingDef[] = [
     type: 'toggle',
     hint: '关闭（默认）：同名不同扩展（如 竞女01.mkv / 竞女01.mp4）择优生成一条 name.strm；开启：分别生成 name.mkv.strm / name.mp4.strm，保留全部版本供播放切换',
   },
-  { key: 'strm.115_relay_key', label: '115 中继授权共享密钥', type: 'text', hint: 'QMediaSync/MQFamily 中继授权的共享 AES 密钥；不配置则中继授权不可用' },
   { key: 'strm.download_threads', label: '下载队列线程数', type: 'number', hint: '元数据下载并发数' },
   { key: 'strm.upload_threads', label: '上传队列线程数', type: 'number', hint: '元数据上传并发数' },
 ]

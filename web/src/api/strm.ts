@@ -17,14 +17,14 @@ export interface StrmRemoteEntry {
   pick_code?: string
 }
 
+export type Strm115AuthSource = 'built_in_appid' | 'custom_appid'
+
 export interface Strm115Source {
-  auth_source_type: 'built_in_appid' | 'built_in_relay' | 'third_party_service' | 'custom_appid'
-  auth_provider: string
+  auth_source_type: Strm115AuthSource
+  auth_provider: 'official_pkce'
   app_id: string
   app_name: string
   display_name: string
-  auth_server?: string
-  requires_encryption_key?: boolean
   deprecated?: boolean
 }
 
@@ -37,17 +37,13 @@ export interface StrmLocalDirList {
 
 export interface Strm115Sources {
   built_in: Strm115Source[]
-  relay: Strm115Source[]
-  third_party: Strm115Source[]
 }
 
 export interface Strm115OAuthStartResult {
   session_id: string
-  mode: 'qrcode' | 'url'
-  auth_url?: string
-  state?: string
+  mode: 'qrcode'
   expires_in?: number
-  qrcode?: {
+  qrcode: {
     uid: string
     time: number
     sign: string
@@ -89,7 +85,7 @@ export const strmAPI = {
   list115Sources: () =>
     api.get<Strm115Sources>('/admin/strm/115/sources').then((r) => r.data),
 
-  start115OAuth: (accountId: string, payload: { auth_source: string; app_id?: string; provider?: string; redirect_url?: string }) =>
+  start115OAuth: (accountId: string, payload: { auth_source: Strm115AuthSource; app_id: string }) =>
     api.post<Strm115OAuthStartResult>(`/admin/strm/accounts/${accountId}/oauth/start`, payload).then((r) => r.data),
 
   poll115OAuth: (accountId: string, sessionId: string) =>

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
-import { ExternalLink, Loader2, QrCode, RefreshCw, Search } from 'lucide-react'
+import { Loader2, QrCode, RefreshCw, Search } from 'lucide-react'
 import QRCode from 'qrcode'
 
-import { strmAPI, type Strm115Source } from '../../api/strm'
+import { strmAPI, type Strm115AuthSource, type Strm115Sources } from '../../api/strm'
 import type { StrmAccount } from '../../types/strm'
 import { apiErrorMessage } from '../StrmManagePage'
 
@@ -45,13 +45,9 @@ function QrCanvas({ content }: { content: string }) {
   )
 }
 
-type AuthSourceKey = 'built_in_appid' | 'custom_appid' | 'built_in_relay' | 'third_party_service'
-
-const AUTH_SOURCE_OPTIONS: { key: AuthSourceKey; label: string; desc: string; needsRelayKey?: boolean }[] = [
+const AUTH_SOURCE_OPTIONS: { key: Strm115AuthSource; label: string; desc: string }[] = [
   { key: 'built_in_appid', label: '官方应用目录', desc: '设备码扫码授权，无需回跳' },
   { key: 'custom_appid', label: '自定义 APP ID', desc: '使用自己申请的开放平台应用' },
-  { key: 'built_in_relay', label: '中继授权', desc: 'QMediaSync / MQFamily 中继', needsRelayKey: true },
-  { key: 'third_party_service', label: '第三方服务', desc: 'MoviePilot / CloudDrive' },
 ]
 
 const inputCls = 'input-base w-full'
@@ -75,16 +71,14 @@ export function Strm115AuthPanel({
   accountName: string
   onAuthed: (account: StrmAccount) => void
 }) {
-  const [sources, setSources] = useState<{ built_in: Strm115Source[]; relay: Strm115Source[]; third_party: Strm115Source[] } | null>(null)
-  const [relayKeyConfigured, setRelayKeyConfigured] = useState(false)
-  const [authSource, setAuthSource] = useState<AuthSourceKey>('built_in_appid')
-  const [thirdParty, setThirdParty] = useState<'moviepilot' | 'clouddrive'>('moviepilot')
-  const [relayProvider, setRelayProvider] = useState<'qmediasync' | 'mqfamily'>('qmediasync')
+  const [sources, setSources] = useState<Strm115Sources | null>(null)
+  const [authSource, setAuthSource] = useState<Strm115AuthSource>('built_in_appid')
   const [appID, setAppID] = useState('100195125')
+  const [customAppID, setCustomAppID] = useState('')
   const [appKeyword, setAppKeyword] = useState('')
 
   const [starting, setStarting] = useState(false)
-  const [authUI, setAuthUI] = useState<{ sessionId: string; accountId: string; mode: 'qrcode' | 'url'; authUrl?: string; qrcodeUrl?: string } | null>(null)
+  const [authUI, setAuthUI] = useState<{ qrcodeUrl: string } | null>(null)
   const [authStatus, setAuthStatus] = useState('')
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -97,17 +91,7 @@ export function Strm115AuthPanel({
   useEffect(() => stopPolling, [])
 
   useEffect(() => {
-    ;(async () => {
-      try {
-        const data = await strmAPI.list115Sources()
-        setSources(data)
-        const settings = await strmAPI.getSettings().catch(() => null)
-        const key = settings?.['strm.115_relay_key']
-        setRelayKeyConfigured(Boolean(key && key.trim()))
-      } catch (err) {
-        toast.error(apiErrorMessage(err))
-      }
-    })()
+    strmAPI.list115Sources().then(setSources).catch((err) => toast.error(apiErrorMessage(err)))
   }, [])
 
   const filteredApps = useMemo(
@@ -124,22 +108,14 @@ export function Strm115AuthPanel({
     }
   }, [appID, filteredApps])
 
-  const buildStartPayload = () => {
-    switch (authSource) {
-      case 'built_in_appid':
-        return { auth_source: 'built_in_appid', app_id: appID }
-      case 'custom_appid':
-        return { auth_source: 'custom_appid', app_id: appID }
-      case 'built_in_relay':
-        return { auth_source: 'built_in_relay', provider: relayProvider }
-      case 'third_party_service':
-        return { auth_source: 'third_party_service', provider: thirdParty }
-    }
-  }
-
   const startAuth = async () => {
     if (authSource === 'built_in_appid' && filteredApps.length === 0) {
       toast.error('未找到匹配的官方应用')
+      return
+    }
+    const selectedAppID = authSource === 'custom_appid' ? customAppID.trim() : appID
+    if (!selectedAppID) {
+      toast.error('请输入自定义 APP ID')
       return
     }
 
@@ -151,12 +127,9 @@ export function Strm115AuthPanel({
       if (!account) {
         account = await strmAPI.createAccount({ name: accountName || '115 网盘', provider: 'cloud115', config: {} })
       }
-      const result = await strmAPI.start115OAuth(account.id, buildStartPayload())
-      setAuthUI(
-        result.mode === 'qrcode'
-          ? { sessionId: result.session_id, accountId: account.id, mode: 'qrcode', qrcodeUrl: result.qrcode?.qrcode }
-          : { sessionId: result.session_id, accountId: account.id, mode: 'url', authUrl: result.auth_url },
-      )
+      const result = await strmAPI.start115OAuth(account.id, { auth_source: authSource, app_id: selectedAppID })
+      if (!result.qrcode?.qrcode) throw new Error('授权响应缺少二维码')
+      setAuthUI({ qrcodeUrl: result.qrcode.qrcode })
       stopPolling()
       // confirmed / expired 只处理一次，防止重叠的轮询回调重复触发
       let settled = false
@@ -197,12 +170,6 @@ export function Strm115AuthPanel({
     }
   }
 
-  const openAuthWindow = () => {
-    if (authUI?.mode === 'url' && authUI.authUrl) {
-      window.open(authUI.authUrl, '_blank', 'noopener')
-    }
-  }
-
   const resetAuth = () => {
     stopPolling()
     setAuthUI(null)
@@ -222,21 +189,18 @@ export function Strm115AuthPanel({
           <div className="grid grid-cols-2 gap-2">
             {AUTH_SOURCE_OPTIONS.map((option) => {
               const active = authSource === option.key
-              const disabled = Boolean(option.needsRelayKey && !relayKeyConfigured)
               return (
                 <button
                   key={option.key}
                   type="button"
-                  disabled={disabled}
                   onClick={() => setAuthSource(option.key)}
                   className={
-                    'rounded-xl border-2 p-2.5 text-left transition disabled:cursor-not-allowed disabled:opacity-40 ' +
+                    'rounded-xl border-2 p-2.5 text-left transition ' +
                     (active ? 'border-brand-400 bg-brand-50' : 'border-gray-100 bg-white hover:border-gray-200')
                   }
                 >
                   <p className="text-sm font-bold text-ink-600">{option.label}</p>
                   <p className="text-[11px] text-sand-500">{option.desc}</p>
-                  {disabled && <p className="text-[10px] text-rose-400">需在 STRM 设置配置共享密钥</p>}
                 </button>
               )
             })}
@@ -262,61 +226,29 @@ export function Strm115AuthPanel({
           )}
           {authSource === 'custom_appid' && (
             <Field label="自定义 APP ID" hint="使用自己在 115 开放平台申请的应用 ID">
-              <input className={inputCls} value={appID} placeholder="100195125" onChange={(e) => setAppID(e.target.value)} />
+              <input className={inputCls} value={customAppID} placeholder="100195125" onChange={(e) => setCustomAppID(e.target.value)} />
             </Field>
           )}
-          {authSource === 'built_in_relay' && (
-            <Field label="中继服务">
-              <select className={inputCls} value={relayProvider} onChange={(e) => setRelayProvider(e.target.value as typeof relayProvider)}>
-                <option value="qmediasync">QMediaSync（oauth.qmediasync.cn）</option>
-                <option value="mqfamily">MQFamily（api.mqfamily.top）</option>
-              </select>
-            </Field>
-          )}
-          {authSource === 'third_party_service' && (
-            <Field label="第三方授权服务">
-              <select className={inputCls} value={thirdParty} onChange={(e) => setThirdParty(e.target.value as typeof thirdParty)}>
-                <option value="moviepilot">MoviePilot（https://movie-pilot.org）</option>
-                <option value="clouddrive">CloudDrive（redirect115.zhenyunpan.com）</option>
-              </select>
-            </Field>
-          )}
-
           <button
             type="button"
             onClick={startAuth}
-            disabled={starting || (authSource === 'built_in_appid' && filteredApps.length === 0)}
+            disabled={starting || (authSource === 'built_in_appid' ? filteredApps.length === 0 : !customAppID.trim())}
             className="neon-button disabled:opacity-50"
           >
             {starting ? <Loader2 size={16} className="animate-spin" /> : <QrCode size={16} />}
-            {authSource === 'built_in_appid' || authSource === 'custom_appid' ? '获取登录二维码' : '获取授权链接'}
+            获取登录二维码
           </button>
         </div>
       )}
 
       {authUI && (
         <div className="space-y-3">
-          {authUI.mode === 'qrcode' && authUI.qrcodeUrl ? (
-            <div className="flex items-center gap-4">
-              <QrCanvas content={authUI.qrcodeUrl} />
-              <div className="space-y-1.5 text-sm">
-                <p className="font-medium text-ink-600">{authStatus || '等待扫码…'}</p>
-                <p className="text-xs text-sand-500">请使用 115 手机客户端扫码并确认授权，5 分钟内有效</p>
-              </div>
+          <div className="flex flex-wrap items-center gap-4">
+            <QrCanvas content={authUI.qrcodeUrl} />
+            <div className="space-y-1.5 text-sm">
+              <p className="flex items-center gap-2 font-medium text-ink-600"><Loader2 size={14} className="animate-spin" />{authStatus || '等待扫码…'}</p>
+              <p className="text-xs text-sand-500">请使用 115 手机客户端扫码并确认授权，5 分钟内有效</p>
             </div>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-sm text-ink-100">请点击下方按钮在新窗口完成授权：</p>
-              <button type="button" onClick={openAuthWindow} className="neon-button">
-                <ExternalLink size={16} />
-                打开授权页面
-              </button>
-              <p className="text-xs text-sand-500">完成后回到此页面等待自动确认（授权成功后可关闭弹窗）</p>
-            </div>
-          )}
-          <div className="flex items-center gap-2 text-sm">
-            <Loader2 size={14} className="animate-spin text-brand-500" />
-            <span className="text-ink-50">{authStatus}</span>
           </div>
           <button
             type="button"
