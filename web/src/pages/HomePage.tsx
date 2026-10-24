@@ -297,7 +297,7 @@ export function HomePage() {
 
   return (
     <div className="nook-home pb-10">
-      <header className="nook-home-heading"><h1>首页</h1></header>
+      <h1 className="sr-only">首页</h1>
       {/* 1. 顶部海报轮播区 */}
       {carouselItems.length > 0 && (
         <HomeCarouselSection items={carouselItems} libraryMap={libraryMap} />
