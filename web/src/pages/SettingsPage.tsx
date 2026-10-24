@@ -155,7 +155,7 @@ export function SettingsPage() {
 
   const group = GROUPS.find((g) => g.key === activeGroup)!
   const saveControls = (
-    <div className={group.key === 'general' ? 'settings-save' : 'flex items-center justify-between pt-2'}>
+    <div className={group.key === 'general' ? 'settings-save' : group.key === 'device-notify' ? 'flex items-center gap-3' : 'flex items-center justify-between pt-2'}>
       <span className="text-xs text-(--app-muted)" role="status">
         {dirty.size > 0 ? `有 ${visibleDirtyCount} 项未保存` : ''}
       </span>
@@ -205,7 +205,6 @@ export function SettingsPage() {
           {group.key === 'recognition-words' && <RecognitionWordsPanel />}
           {group.key === 'adult' && <AdultSettingsPanel />}
           {group.key === 'about' && <AboutSettingsPanel />}
-          {group.key === 'device-notify' && <TelegramNotifyPanel />}
           {group.key !== 'adult' && group.key !== 'library' && group.items.length > 0 && (
             <form onSubmit={onSave} className={group.key === 'general' ? 'general-settings space-y-4' : 'space-y-4'}>
               {group.key === 'general' ? (
@@ -232,10 +231,16 @@ export function SettingsPage() {
                         value={values[it.key] ?? it.defaultValue ?? ''}
                         onChange={(v) => onChange(it.key, v)}
                         libraries={libraries}
+                        showKey={group.key !== 'device-notify'}
                       />
                     )
                   ))}
-                  {saveControls}
+                  {group.key === 'device-notify' ? (
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-(--app-border) pt-4">
+                      <TelegramNotifyPanel disabled={saving || [...dirty].some((key) => key.startsWith('telegram.'))} />
+                      {saveControls}
+                    </div>
+                  ) : saveControls}
                 </div>
               )}
             </form>
