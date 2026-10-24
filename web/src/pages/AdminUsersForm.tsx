@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
-import { Ellipsis, Info, Loader2, Plus, Save, SlidersHorizontal } from 'lucide-react'
+import { Check, Ellipsis, Info, Loader2, Plus, Save, SlidersHorizontal } from 'lucide-react'
 
 type AdminUsersFormProps = {
   usersCount: number
@@ -64,7 +64,7 @@ export function AdminUsersForm({
           <span className="text-sm tabular-nums text-(--app-muted)">{usersCount} / {maxUsers} 人</span>
         </div>
         <div ref={actionsRef} className="relative ml-auto flex shrink-0 items-center gap-2"
-          onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setMenuOpen(false) }}
+          onBlur={(event) => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) setMenuOpen(false) }}
           onKeyDown={(event) => {
             if (event.key === 'Escape' && menuOpen) {
               event.preventDefault()
@@ -86,20 +86,22 @@ export function AdminUsersForm({
             onKeyDown={(event) => {
               if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return
               event.preventDefault()
-              const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'))
+              const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitemcheckbox"]'))
               const current = items.indexOf(document.activeElement as HTMLButtonElement)
               const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (current + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length
               items[next]?.focus()
             }}>
-            <button type="button" role="menuitem" className="flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 text-left text-sm hover:bg-(--app-hover) focus-visible:bg-(--app-hover) focus-visible:outline-none"
+            <button type="button" role="menuitemcheckbox" aria-checked={showLimit} className="flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 text-left text-sm hover:bg-(--app-hover) focus-visible:bg-(--app-hover) focus-visible:outline-none"
               aria-controls={limitID} onClick={() => { setShowLimit((open) => !open); setMenuOpen(false); menuTrigger.current?.focus() }}>
               <SlidersHorizontal size={16} aria-hidden="true" />
               <span className="flex-1">用户上限</span>
               {limitChanged && <span className="text-xs text-(--app-muted)">未保存</span>}
+              {showLimit && <Check size={14} aria-hidden="true" />}
             </button>
-            <button type="button" role="menuitem" className="flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 text-left text-sm hover:bg-(--app-hover) focus-visible:bg-(--app-hover) focus-visible:outline-none"
+            <button type="button" role="menuitemcheckbox" aria-checked={showRoles} className="flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 text-left text-sm hover:bg-(--app-hover) focus-visible:bg-(--app-hover) focus-visible:outline-none"
               aria-controls={rolesID} onClick={() => { setShowRoles((open) => !open); setMenuOpen(false); menuTrigger.current?.focus() }}>
-              <Info size={16} aria-hidden="true" />角色权限说明
+              <Info size={16} aria-hidden="true" /><span className="flex-1">角色权限说明</span>
+              {showRoles && <Check size={14} aria-hidden="true" />}
             </button>
           </div>}
         </div>
