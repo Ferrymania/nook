@@ -1,5 +1,5 @@
-import { useId, useState, type FormEvent } from 'react'
-import { Info, Loader2, Plus, Save } from 'lucide-react'
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { Ellipsis, Info, Loader2, Plus, Save, SlidersHorizontal } from 'lucide-react'
 
 type AdminUsersFormProps = {
   usersCount: number
@@ -34,10 +34,27 @@ export function AdminUsersForm({
 }: AdminUsersFormProps) {
   const [showCreate, setShowCreate] = useState(false)
   const [showLimit, setShowLimit] = useState(false)
+  const [showRoles, setShowRoles] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const actionsRef = useRef<HTMLDivElement>(null)
+  const menuTrigger = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
   const createID = useId()
   const limitID = useId()
+  const rolesID = useId()
+  const menuID = useId()
   const draftValue = Number(maxUsersDraft)
   const limitChanged = maxUsersDraft.trim() !== '' && Number.isFinite(draftValue) && draftValue !== maxUsers
+
+  useEffect(() => {
+    if (!menuOpen) return
+    menuRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
+    const closeOutside = (event: PointerEvent) => {
+      if (!actionsRef.current?.contains(event.target as Node)) setMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', closeOutside)
+    return () => document.removeEventListener('pointerdown', closeOutside)
+  }, [menuOpen])
 
   return (
     <div className="space-y-3">
@@ -46,24 +63,52 @@ export function AdminUsersForm({
           <h1 className="font-display text-2xl font-semibold text-ink-600">用户管理</h1>
           <span className="text-sm tabular-nums text-(--app-muted)">{usersCount} / {maxUsers} 人</span>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <details className="relative">
-            <summary className="btn-ghost flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center rounded-lg [&::-webkit-details-marker]:hidden" aria-label="角色权限说明">
-              <Info size={17} aria-hidden="true" />
-            </summary>
-            <div className="absolute left-0 z-20 w-64 max-w-[calc(100vw-40px)] space-y-2 rounded-xl border border-(--app-border) bg-(--app-panel) p-4 text-sm shadow-lg sm:left-auto sm:right-0">
-              <p><strong className="font-medium">管理员：</strong>全部管理权限。</p>
-              <p><strong className="font-medium">观看用户：</strong>浏览、播放和使用外部播放器；不能下载或操作文件。</p>
-            </div>
-          </details>
-          <button type="button" className="btn-secondary min-h-11" aria-expanded={showLimit} aria-controls={limitID} onClick={() => setShowLimit((open) => !open)}>
-            用户上限{limitChanged ? ' · 未保存' : ''}
+        <div ref={actionsRef} className="relative ml-auto flex shrink-0 items-center gap-2"
+          onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setMenuOpen(false) }}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape' && menuOpen) {
+              event.preventDefault()
+              setMenuOpen(false)
+              menuTrigger.current?.focus()
+            }
+          }}>
+          <button ref={menuTrigger} type="button" className="btn-outline relative h-11 w-11 p-0" title="更多操作"
+            aria-label={limitChanged ? '更多操作，有未保存的用户上限' : '更多操作'} aria-haspopup="menu" aria-expanded={menuOpen} aria-controls={menuID}
+            onClick={() => setMenuOpen((open) => !open)}>
+            <Ellipsis size={18} aria-hidden="true" />
+            {limitChanged && <span aria-hidden="true" className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-amber-500" />}
           </button>
-          <button type="button" className="btn-primary min-h-11" aria-expanded={showCreate} aria-controls={createID} disabled={creating || (userLimitReached && !showCreate)} onClick={() => setShowCreate((open) => !open)}>
+          <button type="button" className="btn-primary h-11" aria-expanded={showCreate} aria-controls={createID} disabled={creating || (userLimitReached && !showCreate)} onClick={() => { setMenuOpen(false); setShowCreate((open) => !open) }}>
             <Plus size={16} aria-hidden="true" />添加用户
           </button>
+          {menuOpen && <div ref={menuRef} id={menuID} role="menu" aria-label="用户管理更多操作"
+            className="absolute right-0 top-full z-20 mt-2 w-52 max-w-[calc(100vw-36px)] rounded-xl border border-(--app-border) bg-(--app-panel) p-1.5 shadow-lg"
+            onKeyDown={(event) => {
+              if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return
+              event.preventDefault()
+              const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'))
+              const current = items.indexOf(document.activeElement as HTMLButtonElement)
+              const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (current + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length
+              items[next]?.focus()
+            }}>
+            <button type="button" role="menuitem" className="flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 text-left text-sm hover:bg-(--app-hover) focus-visible:bg-(--app-hover) focus-visible:outline-none"
+              aria-controls={limitID} onClick={() => { setShowLimit((open) => !open); setMenuOpen(false); menuTrigger.current?.focus() }}>
+              <SlidersHorizontal size={16} aria-hidden="true" />
+              <span className="flex-1">用户上限</span>
+              {limitChanged && <span className="text-xs text-(--app-muted)">未保存</span>}
+            </button>
+            <button type="button" role="menuitem" className="flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 text-left text-sm hover:bg-(--app-hover) focus-visible:bg-(--app-hover) focus-visible:outline-none"
+              aria-controls={rolesID} onClick={() => { setShowRoles((open) => !open); setMenuOpen(false); menuTrigger.current?.focus() }}>
+              <Info size={16} aria-hidden="true" />角色权限说明
+            </button>
+          </div>}
         </div>
       </header>
+
+      <div id={rolesID} hidden={!showRoles} className="space-y-1 rounded-xl bg-(--app-panel) p-4 text-sm text-(--app-subtle)">
+        <p><strong className="font-medium text-(--app-text)">管理员：</strong>全部管理权限。</p>
+        <p><strong className="font-medium text-(--app-text)">观看用户：</strong>浏览、播放和使用外部播放器；不能下载或操作文件。</p>
+      </div>
 
       {userLimitReached && <p role="status" className="text-sm text-amber-800">已达到用户上限，调整上限后可继续添加。</p>}
 
@@ -83,7 +128,7 @@ export function AdminUsersForm({
           </label>
           <button
             type="button"
-            className="btn-secondary min-h-11"
+            className="btn-outline min-h-11"
             disabled={!limitChanged || savingLimit || !Number.isInteger(draftValue) || draftValue < 1 || draftValue > 10000}
             onClick={onSaveMaxUsers}
           >
