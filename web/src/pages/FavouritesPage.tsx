@@ -27,8 +27,8 @@ export function FavouritesPage() {
   const isEmpty = !loading && !error && items.length === 0
 
   return (
-    <div className="space-y-6">
-      <h1 className="font-display text-3xl font-bold text-ink-600">我的收藏</h1>
+    <div className="flex flex-col gap-6">
+      <h1 className="sr-only">我的收藏</h1>
 
       {loading && (
         <div className="flex items-center gap-2 py-8 text-ink-50">
