@@ -123,6 +123,13 @@ export interface StrmSyncRecord {
   created_at: string
 }
 
+export interface StrmSyncRecordPage {
+  items: StrmSyncRecord[]
+  total: number
+  page: number
+  page_size: number
+}
+
 export type StrmTaskStatus = 'pending' | 'running' | 'done' | 'failed' | 'canceled'
 
 export interface StrmTask {

@@ -368,6 +368,24 @@ func cancelStrmSyncHandler(svc *service.Container) gin.HandlerFunc {
 
 func listStrmSyncRecordsHandler(svc *service.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// 未传分页参数的旧调用继续返回数组。
+		if _, paged := c.GetQuery("page"); paged || c.Query("page_size") != "" {
+			var req struct {
+				Page     int `form:"page" binding:"omitempty,min=1,max=1000000"`
+				PageSize int `form:"page_size" binding:"omitempty,min=1,max=200"`
+			}
+			if err := c.ShouldBindQuery(&req); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "分页参数无效"})
+				return
+			}
+			snapshot, err := svc.Strm.SyncRecordPage(c.Request.Context(), c.Query("path_id"), req.Page, req.PageSize)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, snapshot)
+			return
+		}
 		records, err := svc.Strm.ListSyncRecords(c.Request.Context(), c.Query("path_id"), 50)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

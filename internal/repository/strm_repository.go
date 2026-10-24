@@ -169,6 +169,21 @@ func (r *StrmSyncRecordRepository) List(ctx context.Context, syncPathID string, 
 	return rows, err
 }
 
+// ListPage 返回指定页的同步记录和同一筛选范围的总数。
+func (r *StrmSyncRecordRepository) ListPage(ctx context.Context, syncPathID string, page, pageSize int) ([]model.StrmSyncRecord, int64, error) {
+	q := r.db.WithContext(ctx).Model(&model.StrmSyncRecord{})
+	if syncPathID != "" {
+		q = q.Where("sync_path_id = ?", syncPathID)
+	}
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	rows := make([]model.StrmSyncRecord, 0, pageSize)
+	err := q.Order("created_at desc, id desc").Offset((page - 1) * pageSize).Limit(pageSize).Find(&rows).Error
+	return rows, total, err
+}
+
 // Delete 删除单条同步记录（物理删除）。
 func (r *StrmSyncRecordRepository) Delete(ctx context.Context, id string) error {
 	return r.db.WithContext(ctx).Unscoped().Where("id = ?", id).Delete(&model.StrmSyncRecord{}).Error
