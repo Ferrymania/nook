@@ -7,6 +7,7 @@ import type {
   StrmSyncPath,
   StrmSyncPathInput,
   StrmSyncRecord,
+  StrmSyncRecordPage,
 } from '../types/strm'
 
 export interface StrmRemoteEntry {
@@ -121,6 +122,11 @@ export const strmAPI = {
   listRecords: (pathId?: string) =>
     api
       .get<StrmSyncRecord[]>('/admin/strm/records', { params: pathId ? { path_id: pathId } : {} })
+      .then((r) => r.data),
+
+  listRecordsPage: (page: number, pathId?: string) =>
+    api
+      .get<StrmSyncRecordPage>('/admin/strm/records', { params: { page, page_size: 10, ...(pathId ? { path_id: pathId } : {}) } })
       .then((r) => r.data),
 
   deleteRecord: (id: string) => api.delete(`/admin/strm/records/${id}`).then((r) => r.data),

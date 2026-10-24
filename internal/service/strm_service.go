@@ -675,6 +675,36 @@ func (s *StrmService) ListSyncRecords(ctx context.Context, pathID string, limit 
 	return s.repo.StrmSyncRecord.List(ctx, pathID, limit)
 }
 
+type StrmSyncRecordPage struct {
+	Items    []model.StrmSyncRecord `json:"items"`
+	Total    int64                  `json:"total"`
+	Page     int                    `json:"page"`
+	PageSize int                    `json:"page_size"`
+}
+
+// SyncRecordPage 分页查询；删除末页记录后自动回退到仍有数据的最后一页。
+func (s *StrmService) SyncRecordPage(ctx context.Context, pathID string, page, pageSize int) (*StrmSyncRecordPage, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 200 {
+		pageSize = 10
+	}
+	rows, total, err := s.repo.StrmSyncRecord.ListPage(ctx, pathID, page, pageSize)
+	if err != nil {
+		return nil, err
+	}
+	lastPage := max(1, int((total+int64(pageSize)-1)/int64(pageSize)))
+	if page > lastPage {
+		page = lastPage
+		rows, total, err = s.repo.StrmSyncRecord.ListPage(ctx, pathID, page, pageSize)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &StrmSyncRecordPage{Items: rows, Total: total, Page: page, PageSize: pageSize}, nil
+}
+
 // DeleteSyncRecord 删除单条同步记录。
 func (s *StrmService) DeleteSyncRecord(ctx context.Context, id string) error {
 	if err := s.repo.StrmSyncRecord.Delete(ctx, id); err != nil {

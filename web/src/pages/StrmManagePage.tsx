@@ -22,7 +22,7 @@ import {
 
 import { strmAPI } from '../api/strm'
 import { confirmAction } from '../components/confirmAction'
-import type { StrmAccount, StrmSyncPath, StrmSyncRecord } from '../types/strm'
+import type { StrmAccount, StrmSyncPath, StrmSyncRecord, StrmSyncRecordPage } from '../types/strm'
 import { STRM_PROVIDER_LABELS, type StrmProvider } from '../types/strm'
 import { StrmAccountDialog, StrmSettingsDialog, StrmSyncPathDialog } from './StrmDialogs'
 
@@ -70,7 +70,11 @@ export function providerIcon(provider: StrmProvider) {
 export function StrmManagePage() {
   const [accounts, setAccounts] = useState<StrmAccount[]>([])
   const [paths, setPaths] = useState<StrmSyncPath[]>([])
-  const [records, setRecords] = useState<StrmSyncRecord[]>([])
+  const [recordSnapshot, setRecordSnapshot] = useState<StrmSyncRecordPage>({ items: [], total: 0, page: 1, page_size: 10 })
+  const [recordsLoading, setRecordsLoading] = useState(false)
+  const [recordsError, setRecordsError] = useState('')
+  const recordPageRef = useRef(1)
+  const recordRequestRef = useRef(0)
   const [loading, setLoading] = useState(true)
   const [dialog, setDialog] = useState<StrmDialogKey>(null)
   const [editingPath, setEditingPath] = useState<StrmSyncPath | null>(null)
@@ -79,22 +83,40 @@ export function StrmManagePage() {
   const [accountTests, setAccountTests] = useState<Record<string, AccountTestState>>({})
   const testingAccountIds = useRef(new Set<string>())
 
+  const loadRecords = useCallback(async (page = recordPageRef.current) => {
+    const request = ++recordRequestRef.current
+    recordPageRef.current = page
+    setRecordsLoading(true)
+    setRecordsError('')
+    try {
+      const snapshot = await strmAPI.listRecordsPage(page)
+      if (request !== recordRequestRef.current) return
+      recordPageRef.current = snapshot.page
+      setRecordSnapshot(snapshot)
+    } catch (err) {
+      if (request === recordRequestRef.current) setRecordsError(apiErrorMessage(err))
+    } finally {
+      if (request === recordRequestRef.current) setRecordsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => () => { recordRequestRef.current += 1 }, [])
+
   const refresh = useCallback(async () => {
     try {
-      const [accts, pths, recs] = await Promise.all([
+      const [accts, pths] = await Promise.all([
         strmAPI.listAccounts().then((rows) => rows.filter((a) => a.provider !== 'emby_remote')),
         strmAPI.listPaths(),
-        strmAPI.listRecords(),
+        loadRecords(),
       ])
       setAccounts(accts)
       setPaths(pths)
-      setRecords(recs)
     } catch {
       /* 保留旧数据 */
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [loadRecords])
 
   useEffect(() => {
     refresh().catch(() => undefined)
@@ -250,7 +272,13 @@ export function StrmManagePage() {
             onCancel={cancelSync}
           />
 
-          <RecordSection records={records} onDeleted={refresh} />
+          <RecordSection
+            snapshot={recordSnapshot}
+            loading={recordsLoading}
+            error={recordsError}
+            onPageChange={loadRecords}
+            onDeleted={() => loadRecords()}
+          />
         </>
       )}
 
@@ -515,8 +543,18 @@ function SyncPathSection({
 
 // ─── 同步记录 ────────────────────────────────────────────────────────────────
 
-function RecordSection({ records, onDeleted }: { records: StrmSyncRecord[]; onDeleted: () => void }) {
+function RecordSection({ snapshot, loading, error, onPageChange, onDeleted }: {
+  snapshot: StrmSyncRecordPage
+  loading: boolean
+  error: string
+  onPageChange: (page: number) => Promise<void>
+  onDeleted: () => Promise<void>
+}) {
+  const records = snapshot.items
+  const totalPages = Math.max(1, Math.ceil(snapshot.total / snapshot.page_size))
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [clearing, setClearing] = useState(false)
+  const busy = loading || deletingId !== null || clearing
 
   const deleteRecord = async (record: StrmSyncRecord) => {
     const ok = await confirmAction({ message: '确定删除这条同步记录？', confirmText: '删除' })
@@ -525,7 +563,7 @@ function RecordSection({ records, onDeleted }: { records: StrmSyncRecord[]; onDe
     try {
       await strmAPI.deleteRecord(record.id)
       toast.success('已删除同步记录')
-      onDeleted()
+      await onDeleted()
     } catch (err) {
       toast.error(apiErrorMessage(err))
     } finally {
@@ -536,12 +574,15 @@ function RecordSection({ records, onDeleted }: { records: StrmSyncRecord[]; onDe
   const clearRecords = async () => {
     const ok = await confirmAction({ message: '确定清空全部同步记录？此操作不可恢复。', confirmText: '清空' })
     if (!ok) return
+    setClearing(true)
     try {
       const res = await strmAPI.clearRecords()
       toast.success(`已清空 ${res.deleted} 条同步记录`)
-      onDeleted()
+      await onDeleted()
     } catch (err) {
       toast.error(apiErrorMessage(err))
+    } finally {
+      setClearing(false)
     }
   }
 
@@ -550,18 +591,24 @@ function RecordSection({ records, onDeleted }: { records: StrmSyncRecord[]; onDe
       <div className="flex items-center gap-2">
         <History size={18} className="text-brand-500" />
         <h2 className="font-display text-lg font-semibold text-ink-600">同步记录</h2>
-        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-sand-500">{records.length}</span>
-        {records.length > 0 && (
-          <button type="button" onClick={clearRecords} className={iconButtonCls + ' ml-auto'}>
+        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-sand-500">{snapshot.total}</span>
+        {snapshot.total > 0 && (
+          <button type="button" onClick={clearRecords} disabled={busy} className={iconButtonCls + ' ml-auto'}>
             <Trash2 size={14} />
             清空
           </button>
         )}
       </div>
-      {records.length === 0 ? (
+      {error && (
+        <p role="alert" className="flex items-center gap-3 text-sm text-rose-500">
+          同步记录加载失败：{error}
+          <button type="button" disabled={busy} onClick={onDeleted} className="text-ink-100 underline disabled:opacity-40">重试</button>
+        </p>
+      )}
+      {records.length === 0 && !error ? (
         <p className="rounded-xl bg-gray-50 px-4 py-6 text-center text-sm text-sand-500">还没有同步记录</p>
-      ) : (
-        <div className="table-scroll">
+      ) : records.length > 0 && (
+        <div className="table-scroll" aria-busy={loading}>
           <table className="min-w-[980px] w-full text-left text-sm">
             <thead className="border-b border-gray-200 text-xs uppercase tracking-wider text-sand-500">
               <tr>
@@ -608,7 +655,7 @@ function RecordSection({ records, onDeleted }: { records: StrmSyncRecord[]; onDe
                       <button
                         type="button"
                         onClick={() => deleteRecord(record)}
-                        disabled={deletingId === record.id}
+                        disabled={busy}
                         title="删除记录"
                         className="rounded-md p-1 text-sand-400 transition hover:bg-rose-50 hover:text-rose-500 disabled:opacity-40"
                       >
@@ -621,6 +668,15 @@ function RecordSection({ records, onDeleted }: { records: StrmSyncRecord[]; onDe
             </tbody>
           </table>
         </div>
+      )}
+      {snapshot.total > 0 && (
+        <nav aria-label="同步记录分页" className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 pt-3">
+          <span className="text-xs tabular-nums text-sand-500">第 {snapshot.page} / {totalPages} 页</span>
+          <div className="flex items-center gap-2">
+            <button type="button" disabled={busy || snapshot.page <= 1} onClick={() => onPageChange(snapshot.page - 1)} className="min-h-11 rounded-lg border border-gray-200 px-3 text-sm text-ink-100 transition hover:bg-gray-50 disabled:opacity-40">上一页</button>
+            <button type="button" disabled={busy || snapshot.page >= totalPages} onClick={() => onPageChange(snapshot.page + 1)} className="min-h-11 rounded-lg border border-gray-200 px-3 text-sm text-ink-100 transition hover:bg-gray-50 disabled:opacity-40">下一页</button>
+          </div>
+        </nav>
       )}
     </section>
   )
