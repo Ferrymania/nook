@@ -32,7 +32,6 @@ func registerAuthedSearchRoutes(authed *gin.RouterGroup, svc *service.Container)
 }
 
 func registerAuthedSystemExtraRoutes(authed *gin.RouterGroup, svc *service.Container) {
-	authed.GET("/system/config", listSystemConfigHandler(svc))
 	authed.GET("/settings/schema", schemaHandler(svc))
 	authed.GET("/system/events/ticket", systemEventsTicketHandler(svc))
 }
