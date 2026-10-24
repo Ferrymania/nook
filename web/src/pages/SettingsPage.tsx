@@ -157,7 +157,7 @@ export function SettingsPage() {
   const saveControls = (
     <div className={group.key === 'general' ? 'settings-save' : 'flex items-center justify-between pt-2'}>
       <span className="text-xs text-(--app-muted)" role="status">
-        {dirty.size > 0 ? `有 ${visibleDirtyCount} 项未保存` : '所有更改已保存'}
+        {dirty.size > 0 ? `有 ${visibleDirtyCount} 项未保存` : ''}
       </span>
       <button type="submit" disabled={saving || toolsBusy || dirty.size === 0}
         className={group.key === 'general' ? 'btn-primary disabled:opacity-50' : 'neon-button disabled:opacity-50'}>

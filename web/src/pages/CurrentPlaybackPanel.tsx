@@ -64,7 +64,7 @@ export function CurrentPlaybackPanel() {
           <Loader2 size={14} className="animate-spin" />正在加载播放状态…
         </div>
       ) : sessions.length === 0 ? (
-        <div role="status" className="rounded-xl border border-dashed border-sand-200 bg-sand-50/40 px-4 py-6 text-center text-xs text-sand-500">
+        <div role="status" className="rounded-xl border border-dashed border-sand-200 bg-sand-50/40 px-4 py-3 text-center text-xs text-sand-500">
           暂无用户正在播放
         </div>
       ) : (
