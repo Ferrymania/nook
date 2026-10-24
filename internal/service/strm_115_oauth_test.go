@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/service/cloud115"
@@ -16,163 +15,108 @@ import (
 // 创建账号（空凭据）→ 发起授权（取二维码）→ 轮询（未扫码/已扫码/已确认）
 // → 确认后 token 写入账号 → 驱动可用。
 func Test115OAuthQRFlow(t *testing.T) {
-	svc := testStrmService(t)
+	for _, authSource := range []string{string(cloud115.SourceTypeBuiltInAppID), string(cloud115.SourceTypeCustomAppID)} {
+		t.Run(authSource, func(t *testing.T) {
+			svc := testStrmService(t)
 
-	var scanCalls int
-	pro := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/open/user/info":
-			w.Write([]byte(`{"state":true,"data":{"user_id":"115001","user_name":"测试用户"}}`))
-		default:
-			t.Errorf("unexpected pro path %s", r.URL.Path)
-		}
-	}))
-	defer pro.Close()
-	passport := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/open/authDeviceCode":
-			w.Write([]byte(`{"state":true,"data":{"uid":"U1","time":1700,"sign":"S1","qrcode":"https://img/qr.png"}}`))
-		case "/open/deviceCodeToToken":
-			w.Write([]byte(`{"state":true,"data":{"access_token":"open-at","refresh_token":"open-rt","expires_in":7200}}`))
-		default:
-			t.Errorf("unexpected passport path %s", r.URL.Path)
-		}
-	}))
-	defer passport.Close()
-	qr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		scanCalls++
-		switch scanCalls {
-		case 1:
-			w.Write([]byte(`{"state":true,"data":{"status":0}}`))
-		case 2:
-			w.Write([]byte(`{"state":true,"data":{"status":1}}`))
-		default:
-			w.Write([]byte(`{"state":true,"data":{"status":2}}`))
-		}
-	}))
-	defer qr.Close()
+			var scanCalls int
+			pro := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case "/open/user/info":
+					w.Write([]byte(`{"state":true,"data":{"user_id":"115001","user_name":"测试用户"}}`))
+				default:
+					t.Errorf("unexpected pro path %s", r.URL.Path)
+				}
+			}))
+			defer pro.Close()
+			passport := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case "/open/authDeviceCode":
+					w.Write([]byte(`{"state":true,"data":{"uid":"U1","time":1700,"sign":"S1","qrcode":"https://img/qr.png"}}`))
+				case "/open/deviceCodeToToken":
+					w.Write([]byte(`{"state":true,"data":{"access_token":"open-at","refresh_token":"open-rt","expires_in":7200}}`))
+				default:
+					t.Errorf("unexpected passport path %s", r.URL.Path)
+				}
+			}))
+			defer passport.Close()
+			qr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				scanCalls++
+				switch scanCalls {
+				case 1:
+					w.Write([]byte(`{"state":true,"data":{"status":0}}`))
+				case 2:
+					w.Write([]byte(`{"state":true,"data":{"status":1}}`))
+				default:
+					w.Write([]byte(`{"state":true,"data":{"status":2}}`))
+				}
+			}))
+			defer qr.Close()
 
-	oldPro, oldPassport, oldQR := cloud115.ProAPIBase, cloud115.PassportAPIBase, cloud115.QRCodeAPIBase
-	cloud115.ProAPIBase, cloud115.PassportAPIBase, cloud115.QRCodeAPIBase = pro.URL, passport.URL, qr.URL
-	defer func() {
-		cloud115.ProAPIBase, cloud115.PassportAPIBase, cloud115.QRCodeAPIBase = oldPro, oldPassport, oldQR
-	}()
+			oldPro, oldPassport, oldQR := cloud115.ProAPIBase, cloud115.PassportAPIBase, cloud115.QRCodeAPIBase
+			cloud115.ProAPIBase, cloud115.PassportAPIBase, cloud115.QRCodeAPIBase = pro.URL, passport.URL, qr.URL
+			defer func() {
+				cloud115.ProAPIBase, cloud115.PassportAPIBase, cloud115.QRCodeAPIBase = oldPro, oldPassport, oldQR
+			}()
 
-	// 1. 创建 115 账号（自定义 AppID，空凭据）
-	acct, err := svc.CreateStrmAccount(context.Background(), "我的115", model.StrmProvider115, map[string]string{})
-	if err != nil {
-		t.Fatalf("create account: %v", err)
-	}
-	if HasStrmAccountCredential(acct) {
-		t.Fatalf("new account should have no credential")
-	}
+			// 1. 创建空凭据 115 账号
+			acct, err := svc.CreateStrmAccount(context.Background(), "我的115", model.StrmProvider115, map[string]string{})
+			if err != nil {
+				t.Fatalf("create account: %v", err)
+			}
+			if HasStrmAccountCredential(acct) {
+				t.Fatalf("new account should have no credential")
+			}
 
-	// 2. 发起设备码授权
-	result, err := svc.Start115OAuth(context.Background(), acct.ID,
-		string(cloud115.SourceTypeCustomAppID), "100195125", "", "")
-	if err != nil {
-		t.Fatalf("start oauth: %v", err)
-	}
-	if result.Mode != "qrcode" || result.QRCode == nil || result.QRCode.Qrcode == "" {
-		t.Fatalf("bad start result: %#v", result)
-	}
+			// 2. 发起设备码授权
+			result, err := svc.Start115OAuth(context.Background(), acct.ID,
+				authSource, "100195125")
+			if err != nil {
+				t.Fatalf("start oauth: %v", err)
+			}
+			if result.Mode != "qrcode" || result.QRCode == nil || result.QRCode.Qrcode == "" {
+				t.Fatalf("bad start result: %#v", result)
+			}
 
-	// 3. 轮询：waiting -> scanned
-	for _, want := range []string{"waiting", "scanned"} {
-		status, err := svc.Poll115OAuth(context.Background(), result.SessionID)
-		if err != nil {
-			t.Fatalf("poll: %v", err)
-		}
-		if status.Status != want {
-			t.Fatalf("poll status = %s, want %s", status.Status, want)
-		}
-	}
+			// 3. 轮询：waiting -> scanned
+			for _, want := range []string{"waiting", "scanned"} {
+				status, err := svc.Poll115OAuth(context.Background(), result.SessionID)
+				if err != nil {
+					t.Fatalf("poll: %v", err)
+				}
+				if status.Status != want {
+					t.Fatalf("poll status = %s, want %s", status.Status, want)
+				}
+			}
 
-	// 4. 确认
-	status, err := svc.Poll115OAuth(context.Background(), result.SessionID)
-	if err != nil {
-		t.Fatalf("poll confirm: %v", err)
-	}
-	if status.Status != "confirmed" {
-		t.Fatalf("final status = %s, want confirmed", status.Status)
-	}
+			// 4. 确认
+			status, err := svc.Poll115OAuth(context.Background(), result.SessionID)
+			if err != nil {
+				t.Fatalf("poll confirm: %v", err)
+			}
+			if status.Status != "confirmed" {
+				t.Fatalf("final status = %s, want confirmed", status.Status)
+			}
 
-	// 5. 账号已保存 token 与用户信息
-	updated, err := svc.repo.StrmAccount.FindByID(context.Background(), acct.ID)
-	if err != nil || updated == nil {
-		t.Fatal("account missing")
-	}
-	cfg, err := svc.strmAccountConfig(updated)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if cfg["access_token"] != "open-at" || cfg["refresh_token"] != "open-rt" {
-		t.Fatalf("token not saved: %#v", cfg)
-	}
-	if cfg["user_name"] != "测试用户" && !strings.Contains(updated.Name, "115") && updated.Name != "测试用户" {
-		t.Fatalf("user info not saved: %#v", cfg)
-	}
-	if !HasStrmAccountCredential(updated) {
-		t.Fatal("credential should be present after auth")
-	}
-}
-
-// Test115OAUTHCallbackRelay 中继回调链路：发起 → 回调（加密 payload）→ 轮询确认。
-func Test115OAUTHCallbackRelay(t *testing.T) {
-	svc := testStrmService(t)
-	cloud115.RelayEncryptionKey = "callback-test-key"
-	defer func() { cloud115.RelayEncryptionKey = "" }()
-
-	acct, err := svc.CreateStrmAccount(context.Background(), "中继115", model.StrmProvider115, map[string]string{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	result, err := svc.Start115OAuth(context.Background(), acct.ID,
-		string(cloud115.SourceTypeBuiltInRelay), "QMediaSync", string(cloud115.ProviderQMediaSync),
-		"http://127.0.0.1/api/strm/oauth/callback")
-	if err != nil {
-		t.Fatalf("start relay oauth: %v", err)
-	}
-	if result.Mode != "url" || result.AuthURL == "" {
-		t.Fatalf("bad relay start: %#v", result)
-	}
-	if !strings.Contains(result.AuthURL, "oauth.qmediasync.cn") {
-		t.Fatalf("unexpected relay url: %s", result.AuthURL)
-	}
-
-	// 模拟中继服务器回调（加密 data + authorization_id）
-	payload := `{"data":{"access_token":"relay-at","refresh_token":"relay-rt","expires_in":7200}}`
-	encrypted, err := cloud115.EncryptRelay(payload)
-	if err != nil {
-		t.Fatal(err)
-	}
-	cbErr := svc.Handle115OAuthCallback(context.Background(), map[string]string{
-		"authorization_id": result.SessionID,
-		"data":             encrypted,
-	})
-	if cbErr != nil {
-		t.Fatalf("callback: %v", cbErr)
-	}
-
-	// 轮询确认
-	deadline := time.Now().Add(5 * time.Second)
-	for time.Now().Before(deadline) {
-		status, err := svc.Poll115OAuth(context.Background(), result.SessionID)
-		if err != nil {
-			t.Fatalf("poll: %v", err)
-		}
-		if status.Status == "confirmed" {
-			break
-		}
-		time.Sleep(20 * time.Millisecond)
-	}
-	updated, err := svc.repo.StrmAccount.FindByID(context.Background(), acct.ID)
-	if err != nil || updated == nil {
-		t.Fatal("account missing")
-	}
-	cfg, _ := svc.strmAccountConfig(updated)
-	if cfg["access_token"] != "relay-at" {
-		t.Fatalf("relay token not saved: %#v", cfg)
+			// 5. 账号已保存 token 与用户信息
+			updated, err := svc.repo.StrmAccount.FindByID(context.Background(), acct.ID)
+			if err != nil || updated == nil {
+				t.Fatal("account missing")
+			}
+			cfg, err := svc.strmAccountConfig(updated)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if cfg["access_token"] != "open-at" || cfg["refresh_token"] != "open-rt" {
+				t.Fatalf("token not saved: %#v", cfg)
+			}
+			if cfg["user_name"] != "测试用户" && !strings.Contains(updated.Name, "115") && updated.Name != "测试用户" {
+				t.Fatalf("user info not saved: %#v", cfg)
+			}
+			if !HasStrmAccountCredential(updated) {
+				t.Fatal("credential should be present after auth")
+			}
+		})
 	}
 }
 
@@ -224,5 +168,42 @@ func Test115TokenRefreshLoop(t *testing.T) {
 	}
 	if deadUpdated.LastTestOK {
 		t.Fatal("dead account should be marked failed")
+	}
+}
+
+func TestResolve115Source(t *testing.T) {
+	for _, tc := range []struct {
+		source string
+		appID  string
+		valid  bool
+	}{
+		{"built_in_appid", "100195125", true},
+		{"custom_appid", " 123456789 ", true},
+		{"custom_appid", " ", false},
+		{"built_in_appid", "unknown", false},
+		{"built_in_relay", "100195125", false},
+		{"third_party_service", "100195125", false},
+	} {
+		t.Run(tc.source+"/"+tc.appID, func(t *testing.T) {
+			source, err := resolve115Source(tc.source, tc.appID)
+			if (err == nil) != tc.valid {
+				t.Fatalf("source resolution valid = %v, want %v: %v", err == nil, tc.valid, err)
+			}
+			if err == nil && (source.Provider != cloud115.ProviderOfficialPKCE || source.AppID != strings.TrimSpace(tc.appID)) {
+				t.Fatalf("unexpected source: %+v", source)
+			}
+		})
+	}
+}
+
+func TestList115SourcesOnlyOfficialCatalog(t *testing.T) {
+	sources, err := (&StrmService{}).List115Sources(context.Background())
+	if err != nil || len(sources) != 1 || len(sources["built_in"]) == 0 {
+		t.Fatalf("unexpected auth catalog: %d groups, %v", len(sources), err)
+	}
+	for _, source := range sources["built_in"] {
+		if source.SourceType != cloud115.SourceTypeBuiltInAppID || source.Provider != cloud115.ProviderOfficialPKCE {
+			t.Fatalf("unexpected catalog source: %+v", source)
+		}
 	}
 }

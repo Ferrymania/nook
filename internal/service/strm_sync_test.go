@@ -50,6 +50,19 @@ func testStrmService(t *testing.T) *StrmService {
 	return NewStrmService(nil, zap.NewNop(), repos, NewCryptoService("test-secret", zap.NewNop()))
 }
 
+func TestRemovedStrmProviderIsRejected(t *testing.T) {
+	svc := &StrmService{}
+	if _, err := svc.CreateStrmAccount(context.Background(), "old provider", "clouddrive2", nil); err == nil {
+		t.Fatal("removed provider should not accept new accounts")
+	}
+	if err := svc.validateSyncPath(context.Background(), &model.StrmSyncPath{Provider: "clouddrive2"}); err == nil {
+		t.Fatal("removed provider should not accept sync paths")
+	}
+	if _, err := svc.ResolvePlay(context.Background(), "clouddrive2", nil); err == nil {
+		t.Fatal("removed provider should not resolve playback")
+	}
+}
+
 func TestStrmVideoExtensionsUpgradeSavedDefault(t *testing.T) {
 	svc := testStrmService(t)
 	ctx := t.Context()
@@ -384,7 +397,7 @@ func TestScanLocalMetaForUpload(t *testing.T) {
 	p := &model.StrmSyncPath{
 		Base:       model.Base{ID: "test-path-upload"},
 		AccountID:  "acct-1",
-		Provider:   model.StrmProviderCloudDrive,
+		Provider:   model.StrmProviderOpenList,
 		RemotePath: "/Media",
 		LocalPath:  localDir,
 		UploadMeta: true,

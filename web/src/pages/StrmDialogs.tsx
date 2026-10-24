@@ -100,7 +100,6 @@ function accountDialogDefaults(existing: StrmAccount | null) {
     provider: (existing?.provider ?? 'cloud115') as StrmProvider,
     name: existing?.name ?? '',
     enabled: existing?.enabled ?? true,
-    url: preview?.url ?? '',
     server: preview?.server ?? '',
     username: preview?.username ?? '',
     password: '',
@@ -115,8 +114,7 @@ function accountDialogDefaults(existing: StrmAccount | null) {
 // ─── 添加/编辑网盘账号 ────────────────────────────────────────────────────────
 
 const PROVIDER_OPTIONS: { provider: StrmProvider; label: string; desc: string }[] = [
-  { provider: 'cloud115', label: '115 网盘', desc: '开放平台 OAuth 授权（扫码/网页）' },
-  { provider: 'clouddrive2', label: 'CloudDrive2', desc: 'WebDAV 桥接多种网盘' },
+  { provider: 'cloud115', label: '115 网盘', desc: '开放平台扫码授权' },
   { provider: 'openlist', label: 'OpenList', desc: 'OpenList / AList 兼容服务' },
 ]
 
@@ -133,7 +131,6 @@ export function StrmAccountDialog({
   const [provider, setProvider] = useState<StrmProvider>(defaults.provider)
   const [name, setName] = useState(defaults.name)
   const [enabled, setEnabled] = useState(defaults.enabled)
-  const [url, setUrl] = useState(defaults.url)
   const [embyLines, setEmbyLines] = useState<EmbyRemoteLine[]>(defaults.embyLines)
   const [server, setServer] = useState(defaults.server)
   const [username, setUsername] = useState(defaults.username)
@@ -146,12 +143,6 @@ export function StrmAccountDialog({
 
   const buildConfig = (): Record<string, string> => {
     switch (provider) {
-      case 'clouddrive2':
-        return {
-          ...(url ? { url } : {}),
-          ...(username ? { username } : {}),
-          ...(password ? { password } : {}),
-        }
       case 'openlist':
         return {
           ...(server ? { server } : {}),
@@ -176,8 +167,6 @@ export function StrmAccountDialog({
 
   const canSave = () => {
     switch (provider) {
-      case 'clouddrive2':
-        return url !== ''
       case 'openlist':
         return server !== '' && (token !== '' || password !== '')
       case 'emby_remote':
@@ -218,23 +207,21 @@ export function StrmAccountDialog({
   return (
     <DialogShell
       title={existing ? '编辑网盘账号' : '添加网盘账号'}
-      subtitle="115 开放平台授权（内置应用目录 / 中继 / 第三方服务）；CloudDrive2 / OpenList 填写服务地址与凭据"
+      subtitle="115 开放平台扫码授权；OpenList 填写服务地址与凭据"
       onClose={onClose}
       wide
     >
       <form name="strm-remote-account" autoComplete="off" onSubmit={submit} className="space-y-5">
         {/* 提供方选择 */}
         {!existing && (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {PROVIDER_OPTIONS.map((option) => {
               const Icon =
                 option.provider === 'cloud115'
                   ? QrCode
-                  : option.provider === 'clouddrive2'
-                    ? HardDrive
-                    : option.provider === 'emby_remote'
-                      ? Tv
-                      : FolderPlus
+                  : option.provider === 'emby_remote'
+                    ? Tv
+                    : FolderPlus
               const active = provider === option.provider
               return (
                 <button
@@ -275,12 +262,6 @@ export function StrmAccountDialog({
               onSaved()
             }}
           />
-        )}
-
-        {provider === 'clouddrive2' && (
-          <Field label="WebDAV 地址" hint="例如 http://192.168.1.10:19798/dav">
-            <input className={inputCls} value={url} placeholder="http://host:19798/dav" onChange={(e) => setUrl(e.target.value)} />
-          </Field>
         )}
 
         {provider === 'openlist' && (
@@ -378,7 +359,7 @@ export function StrmAccountDialog({
           </div>
         )}
 
-        {(provider === 'clouddrive2' || provider === 'openlist' || provider === 'emby_remote') && (
+        {(provider === 'openlist' || provider === 'emby_remote') && (
           <div key={provider} className="grid grid-cols-2 gap-3">
             <Field label="用户名">
               <input
@@ -518,7 +499,6 @@ const SETTING_DEFS: SettingDef[] = [
     type: 'toggle',
     hint: '关闭（默认）：同名不同扩展（如 竞女01.mkv / 竞女01.mp4）择优生成一条 name.strm；开启：分别生成 name.mkv.strm / name.mp4.strm，保留全部版本供播放切换',
   },
-  { key: 'strm.115_relay_key', label: '115 中继授权共享密钥', type: 'text', hint: 'QMediaSync/MQFamily 中继授权的共享 AES 密钥；不配置则中继授权不可用' },
   { key: 'strm.download_threads', label: '下载队列线程数', type: 'number', hint: '元数据下载并发数' },
   { key: 'strm.upload_threads', label: '上传队列线程数', type: 'number', hint: '元数据上传并发数' },
 ]
@@ -776,7 +756,6 @@ export function StrmSyncPathDialog({
               }}
             >
               <option value="cloud115">115 网盘</option>
-              <option value="clouddrive2">CloudDrive2</option>
               <option value="openlist">OpenList</option>
               <option value="local">本地目录</option>
             </select>

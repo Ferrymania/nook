@@ -743,10 +743,8 @@ func listStrm115SourcesHandler(svc *service.Container) gin.HandlerFunc {
 }
 
 type strm115OAuthStartReq struct {
-	AuthSource  string `json:"auth_source" binding:"required"` // built_in_appid / custom_appid / built_in_relay / third_party_service
-	AppID       string `json:"app_id"`
-	Provider    string `json:"provider"`
-	RedirectURL string `json:"redirect_url"`
+	AuthSource string `json:"auth_source" binding:"required,oneof=built_in_appid custom_appid"`
+	AppID      string `json:"app_id" binding:"required"`
 }
 
 type strm115OAuthPollReq struct {
@@ -760,12 +758,7 @@ func startStrm115OAuthHandler(svc *service.Container) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		redirectURL := strings.TrimSpace(req.RedirectURL)
-		if redirectURL == "" {
-			// 默认回跳本服务回调端点（中继/CloudDrive 模式需要）
-			redirectURL = "http://" + c.Request.Host + "/api/strm/oauth/callback"
-		}
-		result, err := svc.Strm.Start115OAuth(c.Request.Context(), c.Param("id"), req.AuthSource, req.AppID, req.Provider, redirectURL)
+		result, err := svc.Strm.Start115OAuth(c.Request.Context(), c.Param("id"), req.AuthSource, req.AppID)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -787,31 +780,6 @@ func pollStrm115OAuthHandler(svc *service.Container) gin.HandlerFunc {
 			return
 		}
 		c.JSON(http.StatusOK, status)
-	}
-}
-
-// strm115OAuthCallbackHandler 处理中继 / CloudDrive 授权回跳（公开端点，
-// 无鉴权；凭 authorization_id 会话 + 共享密钥（中继）校验合法性）。
-func strm115OAuthCallbackHandler(svc *service.Container) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		payload := map[string]string{}
-		for key, values := range c.Request.URL.Query() {
-			if len(values) > 0 {
-				payload[key] = values[0]
-			}
-		}
-		if err := c.Request.ParseForm(); err == nil {
-			for key, values := range c.Request.PostForm {
-				if len(values) > 0 && payload[key] == "" {
-					payload[key] = values[0]
-				}
-			}
-		}
-		if err := svc.Strm.Handle115OAuthCallback(c.Request.Context(), payload); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"ok": true})
 	}
 }
 

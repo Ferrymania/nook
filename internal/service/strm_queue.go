@@ -33,7 +33,7 @@ const (
 // downloadWorker 下载队列 worker：认领 → 解析直链 → 下载 → 落盘。
 //
 // 采用「批量认领 + 按网盘类型限流」：一次认领数个任务，115 与 WebDAV/OpenList
-// 使用独立信号量（115 固定 3 防风控；OpenList/CloudDrive2 并发由 download_threads 控制）。
+// 使用独立信号量（115 固定 3 防风控；OpenList 并发由 download_threads 控制）。
 func (s *StrmService) downloadWorker(ctx context.Context) {
 	const claimBatch = 12 // 每次批量认领的任务数
 	for {

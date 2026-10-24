@@ -10,8 +10,7 @@
 //	  "user_name":      "user"            // 可选
 //	}
 //
-// 授权流程：设备码扫码（官方 PKCE 应用目录）、QMediaSync/MQFamily 中继、
-// MoviePilot 轮询、CloudDrive 回跳，见 internal/service/cloud115。
+// 授权流程：官方 PKCE 应用目录或自定义 APP ID 设备码扫码，见 internal/service/cloud115。
 package cloud
 
 import (

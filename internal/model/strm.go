@@ -10,7 +10,6 @@ import "time"
 // Strm 提供方类型。cloud.Local 常量保持一致。
 const (
 	StrmProvider115        = "cloud115"    // 115 网盘（Cookie + 二维码登录）
-	StrmProviderCloudDrive = "clouddrive2" // CloudDrive2（WebDAV 桥接）
 	StrmProviderOpenList   = "openlist"    // OpenList / AList 兼容桥接
 	StrmProviderLocal      = "local"       // 本地目录（无账号）
 	StrmProviderEmbyRemote = "emby_remote" // 远程 Emby 服务器（API 网关聚合挂载，不走 STRM 同步）
@@ -35,10 +34,10 @@ type StrmSyncPath struct {
 	Name       string `gorm:"size:128" json:"name"`            // 展示名
 	AccountID  string `gorm:"size:36;index" json:"account_id"` // StrmAccount.ID；local 为空
 	Provider   string `gorm:"size:32" json:"provider"`         // StrmProvider*（冗余，便于列表展示）
-	RemotePath string `gorm:"size:1024" json:"remote_path"`    // 远端目录：115=目录ID，OpenList/CD2=路径，local=源目录
+	RemotePath string `gorm:"size:1024" json:"remote_path"`    // 远端目录：115=目录ID，OpenList=路径，local=源目录
 	// RemoteDisplayPath 是远端目录的完整展示路径（如 /电影/剧集）。115 的
 	// RemotePath 是目录 ID，用户无法辨认，浏览选择或按 ID 反查时把人类可读
-	// 路径存到这里；路径型网盘（CD2/OpenList）与 local 留空（RemotePath 即路径）。
+	// 路径存到这里；OpenList 与 local 留空（RemotePath 即路径）。
 	RemoteDisplayPath string `gorm:"size:1024" json:"remote_display_path"`
 	LocalPath         string `gorm:"size:1024" json:"local_path"` // STRM/元数据本地输出目录
 	// STRM 链接配置（空值继承全局 strm.* 设置）

@@ -227,8 +227,6 @@ func CloudMountProviderLabel(provider string) string {
 		return "已停用网盘"
 	case "115":
 		return "115 网盘"
-	case "clouddrive2":
-		return "CloudDrive2"
 	case "openlist":
 		return "OpenList"
 	default:

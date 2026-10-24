@@ -7,23 +7,23 @@ import (
 	"strings"
 )
 
-func (p *cloudDrive2Provider) decorateDAVStatusError(resp *http.Response, target string) error {
+func (p *openListProvider) decorateDAVStatusError(resp *http.Response, target string) error {
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 	detail := compactDAVErrorBody(string(body))
 	if detail == "" {
 		if resp.StatusCode == http.StatusMethodNotAllowed {
-			return fmt.Errorf("%s: list %s returned http %d；请确认填写的是 WebDAV 地址（通常以 /dav 结尾），并且桥接网盘已在 OpenList/CloudDrive2 内完成登录或 Cookie 保存", p.name, target, resp.StatusCode)
+			return fmt.Errorf("%s: list %s returned http %d；请确认填写的是 WebDAV 地址（通常以 /dav 结尾），并且桥接网盘已在 OpenList 内完成登录或 Cookie 保存", p.name, target, resp.StatusCode)
 		}
 		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
-			return fmt.Errorf("%s: list %s returned http %d；请填写 OpenList/CloudDrive2 的 Token 或用户名密码，或确认 WebDAV 凭据可用", p.name, target, resp.StatusCode)
+			return fmt.Errorf("%s: list %s returned http %d；请填写 OpenList 的 Token 或用户名密码，或确认 WebDAV 凭据可用", p.name, target, resp.StatusCode)
 		}
 		return fmt.Errorf("%s: list %s returned http %d", p.name, target, resp.StatusCode)
 	}
 	if resp.StatusCode == http.StatusMethodNotAllowed {
-		return fmt.Errorf("%s: list %s returned http %d：%s；请确认填写的是 WebDAV 地址（通常以 /dav 结尾），并且桥接网盘已在 OpenList/CloudDrive2 内完成登录或 Cookie 保存", p.name, target, resp.StatusCode, detail)
+		return fmt.Errorf("%s: list %s returned http %d：%s；请确认填写的是 WebDAV 地址（通常以 /dav 结尾），并且桥接网盘已在 OpenList 内完成登录或 Cookie 保存", p.name, target, resp.StatusCode, detail)
 	}
 	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
-		return fmt.Errorf("%s: list %s returned http %d：%s；请检查 WebDAV 用户名/密码、Authorization Token，或先在 OpenList/CloudDrive2 中保存对应网盘 Cookie", p.name, target, resp.StatusCode, detail)
+		return fmt.Errorf("%s: list %s returned http %d：%s；请检查 WebDAV 用户名/密码、Authorization Token，或先在 OpenList 中保存对应网盘 Cookie", p.name, target, resp.StatusCode, detail)
 	}
 	return fmt.Errorf("%s: list %s returned http %d：%s", p.name, target, resp.StatusCode, detail)
 }

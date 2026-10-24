@@ -10,6 +10,7 @@ import (
 
 	"github.com/Ferrymania/nook/internal/testutil"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -71,6 +72,32 @@ func TestStrmAdminRoutesAreRegistered(t *testing.T) {
 		if !routes[want] {
 			t.Fatalf("%s route is not registered", want)
 		}
+	}
+	for _, removed := range []string{"GET /api/strm/oauth/callback", "POST /api/strm/oauth/callback"} {
+		if routes[removed] {
+			t.Fatalf("removed authorization callback is still registered: %s", removed)
+		}
+	}
+}
+
+func TestStrm115OAuthStartValidation(t *testing.T) {
+	for _, tc := range []struct {
+		body  string
+		valid bool
+	}{
+		{`{"auth_source":"built_in_appid","app_id":"100195125"}`, true},
+		{`{"auth_source":"custom_appid","app_id":"123456789"}`, true},
+		{`{"auth_source":"custom_appid"}`, false},
+		{`{"auth_source":"built_in_relay","provider":"qmediasync","app_id":"100195125"}`, false},
+		{`{"auth_source":"third_party_service","provider":"moviepilot","app_id":"100195125"}`, false},
+	} {
+		t.Run(tc.body, func(t *testing.T) {
+			var req strm115OAuthStartReq
+			err := binding.JSON.BindBody([]byte(tc.body), &req)
+			if (err == nil) != tc.valid {
+				t.Fatalf("request accepted = %v, want %v: %v", err == nil, tc.valid, err)
+			}
+		})
 	}
 }
 

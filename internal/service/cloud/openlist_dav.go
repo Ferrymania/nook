@@ -2,7 +2,6 @@ package cloud
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -12,11 +11,11 @@ import (
 	"strings"
 )
 
-func (p *cloudDrive2Provider) List(ctx context.Context, dir string) ([]FileEntry, error) {
+func (p *openListProvider) List(ctx context.Context, dir string) ([]FileEntry, error) {
 	if err := p.validate(); err != nil {
 		return nil, err
 	}
-	if p.typ == TypeOpenList && p.apiBase != nil && p.hasOpenListAPICredentials() {
+	if p.apiBase != nil && p.hasOpenListAPICredentials() {
 		return p.listOpenListAPI(ctx, dir)
 	}
 	target := normalizeCloudDAVPath(dir)
@@ -67,27 +66,7 @@ func (p *cloudDrive2Provider) List(ctx context.Context, dir string) ([]FileEntry
 	return out, nil
 }
 
-func (p *cloudDrive2Provider) resolveCloudDAVRedirectDirect(ctx context.Context, fileRef string) (*DirectLink, error) {
-	target := p.urlFor(fileRef)
-	headers := map[string]string{
-		"User-Agent": p.ua,
-	}
-	if p.token != "" {
-		headers["Authorization"] = p.token
-	} else if p.username != "" {
-		headers["Authorization"] = "Basic " + base64.StdEncoding.EncodeToString([]byte(p.username+":"+p.password))
-	}
-	location, status, err := p.firstHTTPRedirectLocation(ctx, target, headers)
-	if err != nil {
-		return nil, decorateDAVTransportError(p.name, target, err)
-	}
-	if location == "" {
-		return nil, fmt.Errorf("%s: WebDAV %s returned http %d without CDN Location; refusing WebDAV/proxy fallback for pure 302 playback", p.name, fileRef, status)
-	}
-	return &DirectLink{URL: location, Headers: nil, Proxy: false}, nil
-}
-
-func (p *cloudDrive2Provider) firstHTTPRedirectLocation(ctx context.Context, target string, headers map[string]string) (string, int, error) {
+func (p *openListProvider) firstHTTPRedirectLocation(ctx context.Context, target string, headers map[string]string) (string, int, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
 	if err != nil {
 		return "", 0, err
@@ -161,7 +140,7 @@ func resolveHTTPRedirectLocation(baseURL, rawLocation string) (string, error) {
 	return base.ResolveReference(location).String(), nil
 }
 
-func (p *cloudDrive2Provider) auth(req *http.Request) {
+func (p *openListProvider) auth(req *http.Request) {
 	req.Header.Set("User-Agent", p.ua)
 	if p.token != "" {
 		req.Header.Set("Authorization", p.token)

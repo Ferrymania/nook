@@ -232,7 +232,7 @@ func (s *StrmService) ListRemoteDir(ctx context.Context, accountID, dir string) 
 
 // ResolveRemoteDirPath 解析远端目录的完整展示路径。115 的目录以 ID 存储，
 // 用户无法辨认，这里按 ID 反查 115 返回的祖先链拼出人类可读路径；路径型
-// 网盘（CD2/OpenList）与本地目录的 remote_path 本身就是路径，原样返回。
+// 网盘（OpenList）与本地目录的 remote_path 本身就是路径，原样返回。
 func (s *StrmService) ResolveRemoteDirPath(ctx context.Context, accountID, dir string) (string, error) {
 	acct, err := s.repo.StrmAccount.FindByID(ctx, accountID)
 	if err != nil || acct == nil {
@@ -1443,7 +1443,7 @@ func (st *strmSyncState) strmContent(entry cloud.FileEntry, rel, ext string) (st
 	case model.StrmProvider115:
 		q.Set("acct", st.p.AccountID)
 		q.Set("pickcode", entry.PickCode)
-	case model.StrmProviderCloudDrive, model.StrmProviderOpenList:
+	case model.StrmProviderOpenList:
 		q.Set("acct", st.p.AccountID)
 		q.Set("ref", entry.ID)
 	case model.StrmProviderLocal:
@@ -1893,7 +1893,7 @@ func (st *strmSyncState) remoteUploadPath(rel string) string {
 
 // uploadRemoteTarget 返回上传任务的目标远端描述。
 //   - 115：返回父目录 cid（供 PutFileNamed 定位），基于 dirPathToID 把父目录相对路径映射到 cid。
-//   - 网盘桥接（clouddrive2/openlist）：返回完整远端路径。
+//   - 网盘桥接（openlist）：返回完整远端路径。
 func (st *strmSyncState) uploadRemoteTarget(rel string) string {
 	if st.p.Provider == model.StrmProvider115 {
 		dir := rel

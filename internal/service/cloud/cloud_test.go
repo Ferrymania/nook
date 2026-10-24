@@ -1,16 +1,6 @@
 package cloud
 
-import (
-	"net/http"
-	"testing"
-)
-
-func TestDeprecatedProviderPlaybackOverrideKeysAreIgnored(t *testing.T) {
-	cd2 := newCloudDrive2(map[string]any{"url": "http://example.test/dav", "force_302": "true"}, http.DefaultClient)
-	if !cd2.proxy {
-		t.Fatalf("clouddrive2 should keep safe proxy mode; force_302 is deprecated")
-	}
-}
+import "testing"
 
 func TestUnsupportedProvider(t *testing.T) {
 	if _, err := New("dropbox", nil, nil); err != ErrUnsupported {
@@ -21,5 +11,11 @@ func TestUnsupportedProvider(t *testing.T) {
 	}
 	if IsCloudType("quark") {
 		t.Fatal("quark should not be an active cloud provider")
+	}
+	if _, err := New("clouddrive2", nil, nil); err != ErrUnsupported {
+		t.Fatalf("clouddrive2 should be unsupported, got %v", err)
+	}
+	if IsCloudType("clouddrive2") {
+		t.Fatal("clouddrive2 should not be an active cloud provider")
 	}
 }

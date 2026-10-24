@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func (p *cloudDrive2Provider) urlFor(remotePath string) string {
+func (p *openListProvider) urlFor(remotePath string) string {
 	u := *p.base
 	u.RawPath = ""
 	basePath := strings.TrimRight(u.Path, "/")
@@ -26,7 +26,7 @@ func (p *cloudDrive2Provider) urlFor(remotePath string) string {
 	return u.String()
 }
 
-func (p *cloudDrive2Provider) entryIDFromHref(href, basePath string) (string, error) {
+func (p *openListProvider) entryIDFromHref(href, basePath string) (string, error) {
 	if href == "" {
 		return "", nil
 	}
