@@ -26,6 +26,7 @@ func TestAdminRouteSurfacesAreRegistered(t *testing.T) {
 	for _, want := range []string{
 		"GET /api/admin/settings",
 		"PUT /api/admin/settings",
+		"GET /api/admin/system/release",
 		"GET /api/admin/users",
 		"GET /api/admin/users/:id/permissions",
 		"POST /api/admin/backups",

@@ -22,6 +22,14 @@ type serviceContainerBuilder struct {
 	c       *Container
 }
 
+func normalizeBuildVersion(version string) string {
+	version = strings.TrimSpace(version)
+	if version == "" {
+		return "dev"
+	}
+	return version
+}
+
 func newServiceContainer(cfg *config.Config, log *zap.Logger, repos *repository.Container, version string) *Container {
 	ApplyRuntimeSettings(context.Background(), cfg, repos, log)
 
@@ -29,9 +37,9 @@ func newServiceContainer(cfg *config.Config, log *zap.Logger, repos *repository.
 		cfg:     cfg,
 		log:     log,
 		repos:   repos,
-		version: normalizeSystemUpdateVersion(version),
+		version: normalizeBuildVersion(version),
 		c: &Container{
-			Version: normalizeSystemUpdateVersion(version),
+			Version: normalizeBuildVersion(version),
 			Cfg:     cfg,
 			Log:     log,
 			Repo:    repos,
@@ -62,7 +70,6 @@ func (b *serviceContainerBuilder) startRealtimeServices() {
 	b.c.WSHub = NewHub(b.log)
 	helper.Go(b.log, "ws.hub", b.c.WSHub.Run)
 	b.c.Tasks = NewTaskTrackerService(b.log, b.c.WSHub)
-	b.c.SystemUpdate = NewSystemUpdateService(b.cfg, b.log, b.repos, b.c.Tasks, b.version)
 	b.c.ReleaseCheck = NewReleaseCheckService(b.version)
 
 	b.c.SSEHub = NewSSEHub(b.log)

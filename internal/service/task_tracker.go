@@ -19,7 +19,6 @@ const (
 	TaskKindOrganize = "organize"
 	TaskKindScan     = "scan"
 	TaskKindScrape   = "scrape"
-	TaskKindUpdate   = "update"
 )
 
 // BackgroundTask is the compact, operator-facing shape shown on the live tasks

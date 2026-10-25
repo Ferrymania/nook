@@ -47,7 +47,7 @@ type ReleaseCheckService struct {
 
 func NewReleaseCheckService(version string) *ReleaseCheckService {
 	return &ReleaseCheckService{
-		version: normalizeSystemUpdateVersion(version),
+		version: normalizeBuildVersion(version),
 		client:  helper.NewSiteHTTPClient(8, true),
 		now:     time.Now,
 	}
