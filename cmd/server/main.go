@@ -10,9 +10,8 @@
 package main
 
 import (
+	"os"
 	"strings"
-
-	"github.com/Ferrymania/nook/internal/config"
 )
 
 // version is overwritten at build time via -ldflags="-X main.version=...".
@@ -23,7 +22,7 @@ func effectiveVersion(buildVersion string) string {
 	if buildVersion != "" && buildVersion != "dev" {
 		return buildVersion
 	}
-	if envVersion := strings.TrimSpace(config.Env("NOOK_VERSION")); envVersion != "" {
+	if envVersion := strings.TrimSpace(os.Getenv("NOOK_VERSION")); envVersion != "" {
 		return envVersion
 	}
 	if buildVersion == "" {

@@ -10,8 +10,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/Ferrymania/nook/internal/model"
-
-	"github.com/Ferrymania/nook/internal/config"
 )
 
 // ScanLibrary walks the library root and persists discovered media files.
@@ -101,7 +99,7 @@ func (s *ScannerService) scanLibrary(ctx context.Context, libraryID string, auto
 				zap.String("root_id", root.ID),
 				zap.String("path", root.Path),
 				zap.Strings("candidates", mappedPathCandidates(root.Path)),
-				zap.String("media_dir_env", config.Env("NOOK_MEDIA_DIR")),
+				zap.String("media_dir_env", os.Getenv("NOOK_MEDIA_DIR")),
 				zap.String("media_container_env", envOrDefault("NOOK_MEDIA_CONTAINER_DIR", "/media")),
 				zap.String("diagnostic", diag),
 				zap.Error(err))

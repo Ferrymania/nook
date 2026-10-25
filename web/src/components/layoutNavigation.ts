@@ -149,7 +149,6 @@ export function resolveHeaderBack(pathname: string): HeaderBackTarget | null {
   if (
     pathname === '/profile' ||
     pathname === '/dlna' ||
-    pathname === '/playback-settings' ||
     pathname === '/poster-wall'
   ) {
     return { to: '/', label: '首页' }

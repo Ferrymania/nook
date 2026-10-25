@@ -1,10 +1,9 @@
 package service
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/Ferrymania/nook/internal/config"
 )
 
 func cleanPathForVolumeMapping(path string) string {
@@ -45,7 +44,7 @@ func sameLibraryPath(a, b string) bool {
 }
 
 func envOrDefault(key, fallback string) string {
-	if value := strings.TrimSpace(config.Env(key)); value != "" {
+	if value := strings.TrimSpace(os.Getenv(key)); value != "" {
 		return value
 	}
 	return fallback
