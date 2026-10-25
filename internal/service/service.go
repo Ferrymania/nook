@@ -53,7 +53,6 @@ type Container struct {
 	EmbyRemote       *EmbyRemoteService
 	Backup           *BackupService
 	Permissions      *PermissionService
-	SystemUpdate     *SystemUpdateService
 	ReleaseCheck     *ReleaseCheckService
 	Organizer        *OrganizerService
 	OrganizePipeline *OrganizePipelineService

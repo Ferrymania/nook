@@ -21,6 +21,25 @@ func releaseCheckResponse(code int, body string) *http.Response {
 	return &http.Response{StatusCode: code, Body: io.NopCloser(strings.NewReader(body)), Header: make(http.Header)}
 }
 
+func TestReleaseCheckPreservesBuildVersion(t *testing.T) {
+	for _, tc := range []struct{ input, want string }{
+		{"Nook-v0.0.99", "Nook-v0.0.99"},
+		{"  v0.0.99 \n", "v0.0.99"},
+		{"", "dev"},
+		{" \n\t", "dev"},
+	} {
+		t.Run(tc.input, func(t *testing.T) {
+			s := NewReleaseCheckService(tc.input)
+			s.client.Transport = releaseCheckTransport(func(*http.Request) (*http.Response, error) {
+				return releaseCheckResponse(http.StatusOK, `{"tag_name":"v0.0.99"}`), nil
+			})
+			if got := s.Check(t.Context(), false); got.CurrentVersion != tc.want {
+				t.Fatalf("current version = %q, want %q", got.CurrentVersion, tc.want)
+			}
+		})
+	}
+}
+
 func TestReleaseCheckVersionComparison(t *testing.T) {
 	for _, tc := range []struct{ current, latest, want string }{
 		{"nook-v0.0.9", "nook-v0.0.10", "update_available"},
