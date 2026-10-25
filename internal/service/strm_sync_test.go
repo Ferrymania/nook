@@ -122,8 +122,10 @@ func waitSyncDone(t *testing.T, svc *StrmService, pathID string, timeout time.Du
 		if err != nil {
 			t.Fatal(err)
 		}
+		// The record can be finalized before runSync releases its running marker.
+		// Wait for both before a test starts another sync or closes the database.
 		if len(records) > 0 && records[0].Status != model.StrmSyncRecordRunning &&
-			records[0].Status != model.StrmSyncRecordPending {
+			records[0].Status != model.StrmSyncRecordPending && !svc.IsSyncRunning(pathID) {
 			return &records[0]
 		}
 		time.Sleep(50 * time.Millisecond)
