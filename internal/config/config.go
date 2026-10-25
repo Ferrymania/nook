@@ -66,7 +66,7 @@ func Load() (*Config, error) {
 	v.AutomaticEnv()
 	for _, key := range v.AllKeys() {
 		name := strings.ToUpper(EnvPrefix + "_" + strings.ReplaceAll(key, ".", "_"))
-		if err := v.BindEnv(key, name, legacyEnvName(name)); err != nil {
+		if err := v.BindEnv(key, name); err != nil {
 			return nil, fmt.Errorf("bind environment %s: %w", key, err)
 		}
 	}

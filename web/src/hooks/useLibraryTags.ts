@@ -14,7 +14,6 @@ import {
   reorderLibraryTags,
   resolveSelectedTagId,
   saveLibraryTags,
-  writeCachedLibraryTags,
   writeSelectedTagId,
   type LibraryTag,
 } from '../utils/libraryTags'
@@ -26,7 +25,7 @@ export type UseLibraryTagsResult = {
   loading: boolean
   /** 是否有写入在途（可用于禁用重复点击）。 */
   saving: boolean
-  /** 接口不可用（例如旧后端）时降级为本地标签。 */
+  /** 最近一次加载或保存失败；读取失败时显示本地缓存。 */
   loadError: boolean
   /** 当前选中的标签栏：ALL_TAG_ID 表示「全部」。 */
   selectedTagId: string
@@ -49,8 +48,7 @@ export type UseLibraryTagsResult = {
  *
  * 写入采用「先乐观更新、串行提交、失败回滚」：标签是整份替换（`PUT`），
  * 并发请求可能让旧快照最后落库，因此所有写操作串行排队，每次发送的都是
- * 排队时的最新本地状态。接口不可用（旧后端/网络异常）时退回本地存储，
- * 标签栏依旧可用，不会因为一次失败就让标签凭空消失。
+ * 排队时的最新本地状态。读取失败时显示缓存，写入失败时回滚并提示。
  */
 export function useLibraryTags(): UseLibraryTagsResult {
   const [tags, setTags] = useState<LibraryTag[]>([])
@@ -64,8 +62,6 @@ export function useLibraryTags(): UseLibraryTagsResult {
   const savedRef = useRef<LibraryTag[]>([])
   const chainRef = useRef<Promise<unknown>>(Promise.resolve())
   const pendingRef = useRef(0)
-  // 后端没有该接口（旧版本）时退化为仅本地存储，不再反复提示保存失败。
-  const localOnlyRef = useRef(false)
 
   useEffect(() => {
     tagsRef.current = tags
@@ -86,16 +82,14 @@ export function useLibraryTags(): UseLibraryTagsResult {
         setTags(rows)
         setLoadError(false)
       })
-      .catch((err) => {
+      .catch(() => {
         if (cancelled) return
-        // 旧后端没有 /me/library-tags：用本地缓存兜底，标签栏照常可用。
+        // 读取失败时显示缓存；后续编辑仍需由服务器确认保存。
         const cached = readCachedLibraryTags()
         tagsRef.current = cached
         savedRef.current = cached
         setTags(cached)
         setLoadError(true)
-        // 接口不存在时（旧后端）只做本地读写，避免每次编辑都弹一次保存失败。
-        localOnlyRef.current = isMissingEndpoint(err)
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -135,12 +129,6 @@ export function useLibraryTags(): UseLibraryTagsResult {
     const task = chainRef.current.then(async () => {
       // 发送排队时的最新本地状态：链上更早的写入已经被后面的状态取代。
       const snapshot = tagsRef.current
-      if (localOnlyRef.current) {
-        // 已知后端不支持标签接口：只落本地缓存，不再发请求。
-        if (tagsRef.current === snapshot) savedRef.current = snapshot
-        writeCachedLibraryTags(snapshot)
-        return
-      }
       try {
         const saved = await saveLibraryTags(snapshot)
         savedRef.current = saved
@@ -149,15 +137,7 @@ export function useLibraryTags(): UseLibraryTagsResult {
           tagsRef.current = saved
           setTags(saved)
         }
-      } catch (err) {
-        if (isMissingEndpoint(err)) {
-          // 旧后端不支持标签接口：本次修改保留在本地存储，标签栏照常可用。
-          localOnlyRef.current = true
-          savedRef.current = snapshot
-          writeCachedLibraryTags(snapshot)
-          setLoadError(true)
-          return
-        }
+      } catch {
         // 用最后一次成功保存的状态回滚，避免前端显示一份服务端并不存在的标签。
         tagsRef.current = rollback
         savedRef.current = rollback
@@ -258,10 +238,4 @@ export function useLibraryTags(): UseLibraryTagsResult {
     assignLibrary,
     assignLibraries,
   }
-}
-
-/** 判断错误是否说明后端没有这个接口（旧版本 / 反向代理未更新）。 */
-function isMissingEndpoint(err: unknown): boolean {
-  const status = (err as { response?: { status?: number } })?.response?.status
-  return status === 404 || status === 405 || status === 501
 }

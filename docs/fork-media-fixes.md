@@ -63,6 +63,8 @@ Emby 兼容接口支持 SenPlayer 首页同时请求 `Series,Movie,Video`，保�
 - Docker 服务为 `nook`，健康检查为 `/usr/local/bin/nook-healthcheck`。
 - 配置环境变量使用 `NOOK_*`，数据库使用 PostgreSQL；发布标签为 `nook-v版本号`，安装包为 `nook_平台_架构`。
 
-已有安装可以先仅更换镜像，旧 `MEBOX_*` 环境变量仍可读取；同时配置时 `NOOK_*` 优先。旧 Compose 的健康检查脚本路径保留兼容入口。逻辑备份和浏览器偏好保持兼容，不改变 `.jwt_secret`。
+升级前须将旧 `MEBOX_*` 环境变量改为对应的 `NOOK_*` 名称。本版本不再读取旧环境变量或迁移旧品牌浏览器偏好；已保存的 `nook` 登录状态、主题和偏好继续使用。旧页面 `/play-profiles`、`/playback-settings`、`/api-configs`、`/tools` 不再单独跳转，请使用当前菜单入口。旧 Compose 的健康检查脚本路径与旧逻辑备份格式仍保留兼容，不改变 `.jwt_secret`。
+
+当前播放设置保存在用户账号中，旧 `play_profiles` 数据不再自动导入；仍需该迁移的旧部署，应先升级到包含 Profile 迁移的版本（PR #44）完成转换，再升级本版本。启动时保留旧表和数据，不执行删除。媒体库标签要求前后端同步升级；读取失败仍显示缓存，写入失败回滚并提示。
 
 已有 PostgreSQL 的用户、数据库名和密码属于实际部署数据，不能仅因改名就替换成默认的 `nook`。将配置键改为 `NOOK_DATABASE_DSN` 时，保留原 DSN 的连接参数和现有挂载目录。将 Compose 服务从 `mebox` 改为 `nook` 前，先停止原应用服务，避免两个应用同时访问相同数据；PostgreSQL 服务与数据卷保持原配置。

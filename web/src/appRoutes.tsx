@@ -1,6 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
 import { lazy, type ReactElement } from 'react'
-import { Navigate } from 'react-router-dom'
 
 const HomePageLoader = () => import('./pages/HomePage').then((m) => ({ default: m.HomePage }))
 const LibraryPageLoader = () => import('./pages/LibraryPage').then((m) => ({ default: m.LibraryPage }))
@@ -107,10 +106,6 @@ export const appRoutes: AppRoute[] = [
   { path: 'history', element: <WatchHistoryPage /> },
   { path: 'history/stats', element: <WatchStatsPage /> },
   { path: 'poster-wall', element: <PosterWallPage /> },
-  { path: 'playback-settings', element: <Navigate to="/profile?tab=playback" replace /> },
-  { path: 'play-profiles', element: <Navigate to="/profile?tab=playback" replace /> },
-  { path: 'api-configs', element: <Navigate to="/settings?group=api-configs" replace /> },
-  { path: 'tools', element: <Navigate to="/files" replace /> },
   { path: 'files', element: <FileManagerPage />, adminOnly: true },
   { path: 'settings', element: <SettingsPage />, adminOnly: true },
   { path: 'emby-mount', element: <EmbyMountPage />, adminOnly: true },

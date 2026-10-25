@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/Ferrymania/nook/internal/config"
 )
 
 func inferLibraryKind(name, path, requested string) string {
@@ -105,7 +103,7 @@ func embeddedContainerMarkerCandidates(input string) []string {
 func describeUnresolvedLibraryPath(rawPath string) string {
 	rawPath = strings.TrimSpace(rawPath)
 	candidates := mappedPathCandidates(rawPath)
-	mediaHost := strings.TrimSpace(config.Env("NOOK_MEDIA_DIR"))
+	mediaHost := strings.TrimSpace(os.Getenv("NOOK_MEDIA_DIR"))
 	mediaContainer := envOrDefault("NOOK_MEDIA_CONTAINER_DIR", "/media")
 	var b strings.Builder
 	fmt.Fprintf(&b, "媒体库路径无法解析为可访问目录：%s（已尝试候选：%s）", rawPath, strings.Join(candidates, " | "))
@@ -240,7 +238,7 @@ func dockerVolumePathCandidates(path string) []string {
 				continue
 			}
 		}
-		host := cleanPathForVolumeMapping(config.Env(mapping.env))
+		host := cleanPathForVolumeMapping(os.Getenv(mapping.env))
 		if host == "." || host == "" || strings.HasPrefix(host, ".") {
 			continue
 		}

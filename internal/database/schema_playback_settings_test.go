@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func TestPlaybackSettingsMigrationPreservesDefaultAndAccountLock(t *testing.T) {
+func TestStartupPreservesCurrentSettingsAndLeavesLegacyProfilesUntouched(t *testing.T) {
 	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
@@ -17,13 +17,14 @@ func TestPlaybackSettingsMigrationPreservesDefaultAndAccountLock(t *testing.T) {
 	if err := db.AutoMigrate(&model.User{}); err != nil {
 		t.Fatal(err)
 	}
-	for _, id := range []string{"restricted", "locked", "no-default"} {
-		if err := db.Create(&model.User{Base: model.Base{ID: id}, Username: id, PasswordHash: "x", HideAdult: true}).Error; err != nil {
+	currentSettings := `{"preferred_audio_lang":"ja","autoplay_next":false,"skip_intro":true}`
+	for _, user := range []model.User{
+		{Base: model.Base{ID: "configured"}, Username: "configured", PasswordHash: "x", HideAdult: true, PlaybackSettings: currentSettings},
+		{Base: model.Base{ID: "unconfigured"}, Username: "unconfigured", PasswordHash: "x", HideAdult: true},
+	} {
+		if err := db.Create(&user).Error; err != nil {
 			t.Fatal(err)
 		}
-	}
-	if err := db.Model(&model.User{}).Where("id = ?", "restricted").Update("hide_adult", false).Error; err != nil {
-		t.Fatal(err)
 	}
 	if err := db.Exec(`CREATE TABLE play_profiles (
 		id text PRIMARY KEY, user_id text, is_default boolean, deleted_at timestamptz,
@@ -33,50 +34,30 @@ func TestPlaybackSettingsMigrationPreservesDefaultAndAccountLock(t *testing.T) {
 	)`).Error; err != nil {
 		t.Fatal(err)
 	}
-	for _, row := range []struct {
-		id         string
-		def, adult bool
-	}{
-		{"restricted", true, false}, {"locked", true, true}, {"no-default", false, false},
-	} {
-		if err := db.Exec(`INSERT INTO play_profiles
-			(id, user_id, is_default, content_rating_limit, allow_adult, preferred_subtitle_lang, preferred_audio_lang, autoplay_next, skip_intro, allowed_library_ids)
-			VALUES (?, ?, ?, 'PG-13', ?, 'zh-CN', 'ja', false, true, '["lib-a"]')`, row.id, row.id, row.def, row.adult).Error; err != nil {
+	for _, id := range []string{"configured", "unconfigured"} {
+		if err := db.Exec(`INSERT INTO play_profiles (id, user_id, is_default, allow_adult, preferred_audio_lang, autoplay_next)
+			VALUES (?, ?, true, true, 'fr', true)`, id, id).Error; err != nil {
 			t.Fatal(err)
 		}
 	}
 	if err := AutoMigrateWithConfig(db, &config.Config{}, nil); err != nil {
 		t.Fatal(err)
 	}
-	for _, id := range []string{"restricted", "locked"} {
+	for id, want := range map[string]string{"configured": currentSettings, "unconfigured": ""} {
 		var user model.User
 		if err := db.First(&user, "id = ?", id).Error; err != nil {
 			t.Fatal(err)
 		}
-		settings := user.DecodePlaybackSettings()
-		if !user.HideAdult || settings.AllowAdult || settings.AutoplayNext || !settings.SkipIntro || settings.ContentRatingLimit != "PG-13" || settings.PreferredSubtitleLang != "zh-CN" || settings.PreferredAudioLang != "ja" || len(settings.AllowedLibraryIDs) != 1 || settings.AllowedLibraryIDs[0] != "lib-a" {
-			t.Fatalf("migration changed effective settings for %s: %+v", id, settings)
+		if user.PlaybackSettings != want || !user.HideAdult {
+			t.Fatalf("startup changed account %s: settings=%q hide_adult=%t", id, user.PlaybackSettings, user.HideAdult)
 		}
 	}
-	var noDefault model.User
-	if err := db.First(&noDefault, "id = ?", "no-default").Error; err != nil {
+	var count int64
+	if err := db.Table("play_profiles").Where("preferred_audio_lang = 'fr' AND is_default = true").Count(&count).Error; err != nil {
 		t.Fatal(err)
 	}
-	if noDefault.PlaybackSettings != "" {
-		t.Fatal("inactive non-default settings must not replace account defaults")
-	}
-	if err := db.Model(&model.User{}).Where("id = ?", "restricted").Update("playback_settings", `{"autoplay_next":true,"skip_intro":false}`).Error; err != nil {
-		t.Fatal(err)
-	}
-	if err := migratePlaybackSettings(db); err != nil {
-		t.Fatal(err)
-	}
-	var edited model.User
-	if err := db.First(&edited, "id = ?", "restricted").Error; err != nil {
-		t.Fatal(err)
-	}
-	if !edited.DecodePlaybackSettings().AutoplayNext || edited.DecodePlaybackSettings().SkipIntro {
-		t.Fatal("restart overwrote edited account settings")
+	if count != 2 {
+		t.Fatalf("legacy profile data was altered: remaining rows=%d", count)
 	}
 }
 
