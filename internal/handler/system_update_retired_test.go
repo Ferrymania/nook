@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -46,38 +45,6 @@ func TestRetiredSystemUpdateAPIsAreUnavailable(t *testing.T) {
 				if response.Code != http.StatusNotFound {
 					t.Errorf("%s %s = %d, want 404", method, path+suffix, response.Code)
 				}
-			}
-		}
-	}
-}
-
-func TestSettingsSchemaOmitsRetiredUpdater(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	router := gin.New()
-	router.GET("/schema", schemaHandler(nil))
-	response := httptest.NewRecorder()
-	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/schema", nil))
-	var schema struct {
-		Groups []struct {
-			Key   string `json:"key"`
-			Items []struct {
-				Key string `json:"key"`
-			} `json:"items"`
-		} `json:"groups"`
-	}
-	if err := json.Unmarshal(response.Body.Bytes(), &schema); err != nil {
-		t.Fatal(err)
-	}
-	if response.Code != http.StatusOK || len(schema.Groups) == 0 {
-		t.Fatalf("settings schema missing: status=%d body=%s", response.Code, response.Body)
-	}
-	for _, group := range schema.Groups {
-		if group.Key == "system-update" {
-			t.Fatal("settings schema still advertises the retired updater")
-		}
-		for _, item := range group.Items {
-			if strings.HasPrefix(item.Key, "system.update.") {
-				t.Errorf("settings schema still advertises %s", item.Key)
 			}
 		}
 	}

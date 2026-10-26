@@ -38,6 +38,8 @@ func TestAuthenticatedRouteSurfacesAreRegistered(t *testing.T) {
 		"GET /api/stream/:id",
 		"GET /api/storage",
 		"GET /api/watch-history",
+		"GET /api/events",
+		"GET /api/ws",
 		"GET /api/playback/:id/info",
 		"GET /api/playback/:id/segments",
 	} {
@@ -47,26 +49,50 @@ func TestAuthenticatedRouteSurfacesAreRegistered(t *testing.T) {
 	}
 }
 
-func TestRetiredSystemConfigAPIIsUnavailable(t *testing.T) {
+func TestRetiredSystemCompatibilityAPIsAreUnavailable(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	Register(router, &config.Config{
 		Secrets: config.SecretsConfig{JWTSecret: "test-secret"},
 	}, zap.NewNop(), &service.Container{Log: zap.NewNop()})
 
-	// The retired alias exposed system settings outside the admin routes.
+	retiredPaths := []string{
+		"/api/system/config",
+		"/api/settings/schema",
+		"/api/system/events/ticket",
+	}
 	for _, route := range router.Routes() {
-		if route.Path == "/api/system/config" {
-			t.Fatalf("retired settings route still registered: %s %s", route.Method, route.Path)
+		for _, path := range retiredPaths {
+			if strings.TrimSuffix(route.Path, "/") == path {
+				t.Fatalf("retired system route still registered: %s %s", route.Method, route.Path)
+			}
 		}
 	}
 	for _, method := range []string{http.MethodGet, http.MethodHead} {
-		for _, path := range []string{"/api/system/config", "/api/system/config/"} {
-			response := httptest.NewRecorder()
-			router.ServeHTTP(response, httptest.NewRequest(method, path, nil))
-			if response.Code != http.StatusNotFound {
-				t.Errorf("%s %s = %d, want 404", method, path, response.Code)
+		for _, path := range retiredPaths {
+			for _, suffix := range []string{"", "/"} {
+				response := httptest.NewRecorder()
+				router.ServeHTTP(response, httptest.NewRequest(method, path+suffix, nil))
+				if response.Code != http.StatusNotFound {
+					t.Errorf("%s %s = %d, want 404", method, path+suffix, response.Code)
+				}
 			}
+		}
+	}
+}
+
+func TestRealtimeAPIsRequireAuthentication(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	Register(router, &config.Config{
+		Secrets: config.SecretsConfig{JWTSecret: "test-secret"},
+	}, zap.NewNop(), &service.Container{Log: zap.NewNop()})
+
+	for _, path := range []string{"/api/events", "/api/ws"} {
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, path, nil))
+		if response.Code != http.StatusUnauthorized {
+			t.Errorf("GET %s without authentication = %d, want 401", path, response.Code)
 		}
 	}
 }

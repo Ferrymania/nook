@@ -24,7 +24,6 @@ func registerAuthenticatedRoutes(api *gin.RouterGroup, cfg *config.Config, svc *
 	registerAuthedRealtimeRoutes(authed, svc)
 	registerAuthedUISurfaceRoutes(authed, svc)
 	registerAuthedSearchRoutes(authed, svc)
-	registerAuthedSystemExtraRoutes(authed, svc)
 	registerAuthedStatsExtraRoutes(authed, svc)
 	registerAuthedPlaylistExtraRoutes(authed, svc)
 	registerAuthedDLNAControlRoutes(authed, svc)
