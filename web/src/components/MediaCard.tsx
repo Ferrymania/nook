@@ -64,12 +64,11 @@ export const MediaCard = memo(function MediaCard({
           <span>{media.year > 0 ? media.year : '未知年份'}</span>
           {displayRating > 0 && <span className="nook-rating ml-auto"><Star size={11} fill="currentColor" />{displayRating.toFixed(1)}</span>}
         </div>
-        <div className="nook-media-card-formats">
-          {(count !== undefined && count > 1) || (count === undefined && versionCount > 1) ? (
+        {((count !== undefined && count > 1) || (count === undefined && versionCount > 1)) && (
+          <div className="nook-media-card-formats">
             <span><Layers size={12} /><span>{count !== undefined && count > 1 ? `${count} 集` : `${versionCount} 版本`}</span></span>
-          ) : null}
-          {media.video_codec && <span className="hidden sm:inline-flex">{media.video_codec}</span>}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   )
