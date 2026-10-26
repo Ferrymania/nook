@@ -1,4 +1,4 @@
-import { ArrowLeft, Heart, Play, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Heart, Play } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { AddToPlaylistButton } from '../components/AddToPlaylistButton'
@@ -11,7 +11,6 @@ import { MediaVersionSwitcher } from '../components/MediaVersionSwitcher'
 import { MetadataEditDialog } from '../components/MetadataEditDialog'
 import { OrganizeMediaDialog } from '../components/OrganizeMediaDialog'
 import type { Media } from '../types'
-import { isDirectStreamMedia } from './playerPageModel'
 import { MediaDetailAdminPanel } from './MediaDetailAdminPanel'
 import { MediaDetailPoster } from './MediaDetailArtwork'
 import { MediaDetailMetadata } from './MediaDetailMetadata'
@@ -114,17 +113,6 @@ export function MediaDetailPlaybackActions({
         <Play size={16} fill="currentColor" />
         <span>立即播放</span>
       </Link>
-
-      {!isDirectStreamMedia(media) && (
-        <Link
-          to={`/play/${targetId}?mode=hls`}
-          state={{ from: `/media/${media.id}` }}
-          className="btn-outline h-11 border-brand-500/30 px-5 text-[#c9954a] hover:border-brand-500 hover:bg-brand-50"
-        >
-          <RefreshCw size={14} />
-          <span>HLS 兼容转码播放</span>
-        </Link>
-      )}
 
       <ExternalPlayerButton mediaId={targetId} />
 
