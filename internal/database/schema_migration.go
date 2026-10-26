@@ -262,6 +262,8 @@ func ensurePerformanceIndexes(db *gorm.DB) error {
 		`DROP INDEX IF EXISTS idx_media_library_release_active`,
 		// 首页与媒体库的最近添加预览复用入库时间索引。
 		`CREATE INDEX IF NOT EXISTS idx_media_library_created_active ON media(library_id, created_at DESC) WHERE deleted_at IS NULL`,
+		// Telegram incremental notifications seek by the global ingest cursor.
+		`CREATE INDEX IF NOT EXISTS idx_media_ingest_created_active ON media(created_at, id) WHERE deleted_at IS NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_media_library_episode_active ON media(library_id, season_num, episode_num, created_at DESC) WHERE deleted_at IS NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_media_library_root_active ON media(library_id, library_root_id) WHERE deleted_at IS NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_media_series_active ON media(series_id, season_num, episode_num) WHERE deleted_at IS NULL`,
