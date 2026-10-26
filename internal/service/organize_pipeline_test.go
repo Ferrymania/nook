@@ -61,7 +61,7 @@ func TestOrganizePipelineFailsWhenEveryOrganizeItemErrors(t *testing.T) {
 
 	_, err := pipeline.Run(t.Context(), OrganizePipelineRequest{
 		Scope:        OrganizeScopeDirectory,
-		Trigger:      OrganizeTriggerScheduled,
+		Trigger:      OrganizeTriggerManual,
 		SourcePath:   src,
 		DestPath:     dest,
 		TransferMode: string(TransferHardlink),

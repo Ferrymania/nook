@@ -24,9 +24,8 @@ services:
       # 配置、JWT 密钥、日志；PostgreSQL 主库仍由已有数据库服务管理。
       - ./data:/data
       - ./cache:/cache
-      # 媒体与下载目录；目录不存在时会自动创建。
+      # 媒体库目录；目录不存在时会自动创建。
       - ./media:/media
-      - ./downloads:/downloads
 
     environment:
       TZ: Asia/Shanghai

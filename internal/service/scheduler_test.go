@@ -12,12 +12,12 @@ import (
 )
 
 func TestSchedulerRunNowAsyncSurvivesCallerCancellation(t *testing.T) {
-	scheduler := NewSchedulerService(zap.NewNop(), nil, nil, nil, nil, nil, "")
+	scheduler := NewSchedulerService(zap.NewNop(), nil, nil, nil, nil, "")
 	started := make(chan struct{})
 	release := make(chan struct{})
 	finished := make(chan struct{})
 	scheduler.jobs = []*scheduledJob{{
-		name:     "organize_source",
+		name:     "test_job",
 		interval: time.Minute,
 		run: func(ctx context.Context) error {
 			close(started)
@@ -32,7 +32,7 @@ func TestSchedulerRunNowAsyncSurvivesCallerCancellation(t *testing.T) {
 	}}
 
 	ctx, cancel := context.WithCancel(t.Context())
-	if err := scheduler.RunNowAsync(ctx, "organize_source"); err != nil {
+	if err := scheduler.RunNowAsync(ctx, "test_job"); err != nil {
 		t.Fatalf("run now async: %v", err)
 	}
 	<-started
@@ -66,11 +66,11 @@ func TestSchedulerRunNowAsyncSurvivesCallerCancellation(t *testing.T) {
 }
 
 func TestSchedulerRunNowAsyncRejectsDuplicateRun(t *testing.T) {
-	scheduler := NewSchedulerService(zap.NewNop(), nil, nil, nil, nil, nil, "")
+	scheduler := NewSchedulerService(zap.NewNop(), nil, nil, nil, nil, "")
 	started := make(chan struct{})
 	release := make(chan struct{})
 	scheduler.jobs = []*scheduledJob{{
-		name:     "organize_source",
+		name:     "test_job",
 		interval: time.Minute,
 		run: func(ctx context.Context) error {
 			close(started)
@@ -79,18 +79,18 @@ func TestSchedulerRunNowAsyncRejectsDuplicateRun(t *testing.T) {
 		},
 	}}
 
-	if err := scheduler.RunNowAsync(t.Context(), "organize_source"); err != nil {
+	if err := scheduler.RunNowAsync(t.Context(), "test_job"); err != nil {
 		t.Fatalf("first run now async: %v", err)
 	}
 	<-started
-	if err := scheduler.RunNowAsync(t.Context(), "organize_source"); !errors.Is(err, ErrSchedulerJobAlreadyRunning) {
+	if err := scheduler.RunNowAsync(t.Context(), "test_job"); !errors.Is(err, ErrSchedulerJobAlreadyRunning) {
 		t.Fatalf("duplicate run error = %v, want %v", err, ErrSchedulerJobAlreadyRunning)
 	}
 	close(release)
 }
 
 func TestSchedulerStartDoesNotRegisterSubscriptionPullJob(t *testing.T) {
-	scheduler := NewSchedulerService(zap.NewNop(), nil, nil, nil, nil, nil, "")
+	scheduler := NewSchedulerService(zap.NewNop(), nil, nil, nil, nil, "")
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 	scheduler.Start(ctx)
@@ -103,8 +103,25 @@ func TestSchedulerStartDoesNotRegisterSubscriptionPullJob(t *testing.T) {
 	}
 }
 
+func TestSchedulerStartDoesNotRegisterSourceOrganizeJob(t *testing.T) {
+	scheduler := NewSchedulerService(zap.NewNop(), nil, nil, nil, nil, "")
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	scheduler.Start(ctx)
+	defer scheduler.Stop()
+
+	for _, status := range scheduler.Status() {
+		if status.Name == "organize_source" {
+			t.Fatal("scheduler registered retired source organize job")
+		}
+	}
+	if err := scheduler.RunNow(ctx, "organize_source"); !errors.Is(err, ErrSchedulerJobNotFound) {
+		t.Fatalf("run retired organize job: got %v, want ErrSchedulerJobNotFound", err)
+	}
+}
+
 func TestSchedulerLoopWaitsIntervalAfterSlowRun(t *testing.T) {
-	scheduler := NewSchedulerService(zap.NewNop(), nil, nil, nil, nil, nil, "")
+	scheduler := NewSchedulerService(zap.NewNop(), nil, nil, nil, nil, "")
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 

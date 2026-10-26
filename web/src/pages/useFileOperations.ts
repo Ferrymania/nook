@@ -12,7 +12,6 @@ type UseFileOperationsOptions = {
 
 export function useFileOperations({ currentDir, path, refresh }: UseFileOperationsOptions) {
   const [selected, setSelected] = useState<FileEntry | null>(null)
-  const [selectedPaths, setSelectedPaths] = useState<string[]>([])
   const [folderName, setFolderName] = useState('')
   const [renameTo, setRenameTo] = useState('')
   const [destPath, setDestPath] = useState('')
@@ -21,7 +20,6 @@ export function useFileOperations({ currentDir, path, refresh }: UseFileOperatio
 
   useEffect(() => {
     setSelected(null)
-    setSelectedPaths([])
     setRenameTo('')
   }, [path])
 
@@ -29,15 +27,6 @@ export function useFileOperations({ currentDir, path, refresh }: UseFileOperatio
     setSelected(entry)
     setRenameTo(entry.name)
     if (entry.is_dir) setDestPath(entry.path)
-  }
-
-  const toggleSelectedPath = (entry: FileEntry, checked: boolean) => {
-    setSelectedPaths((current) => {
-      if (checked) {
-        return current.includes(entry.path) ? current : [...current, entry.path]
-      }
-      return current.filter((item) => item !== entry.path)
-    })
   }
 
   const createFolder = async () => {
@@ -109,19 +98,16 @@ export function useFileOperations({ currentDir, path, refresh }: UseFileOperatio
 
   return {
     selected,
-    selectedPaths,
     folderName,
     renameTo,
     destPath,
     transferMode,
     busy,
-    setSelectedPaths,
     setFolderName,
     setRenameTo,
     setDestPath,
     setTransferMode,
     choose,
-    toggleSelectedPath,
     createFolder,
     renameSelected,
     deleteSelected,

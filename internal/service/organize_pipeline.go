@@ -22,14 +22,13 @@ const (
 type OrganizeTrigger string
 
 const (
-	OrganizeTriggerManual    OrganizeTrigger = "manual"
-	OrganizeTriggerScheduled OrganizeTrigger = "scheduled"
-	OrganizeTriggerDownload  OrganizeTrigger = "download"
+	OrganizeTriggerManual   OrganizeTrigger = "manual"
+	OrganizeTriggerDownload OrganizeTrigger = "download"
 )
 
 // OrganizePipelineRequest is the single service-facing entry point for every
-// organize → rename → scan → scrape ingest workflow. Handlers, scheduler jobs
-// and download-complete hooks should only decide the trigger/scope/options;
+// organize → rename → scan → scrape ingest workflow. Handlers and
+// download-complete hooks should only decide the trigger/scope/options;
 // the pipeline owns the execution order and task reporting.
 type OrganizePipelineRequest struct {
 	Scope              OrganizeScope

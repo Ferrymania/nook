@@ -5,7 +5,6 @@
 //
 //	library_scan      every 24 h  — optional full re-scan for local libraries;
 //	                                  filesystem watchers handle normal changes.
-//	organize_source   opt-in        — organize the configured staging folder.
 //	transcode_cleanup every 24 h   — purge HLS transcode artefacts
 //	                                  older than 24 h.
 //	segment_prewarm   every 6 h    — fill IntroDB skip segments for queryable media.
@@ -29,16 +28,14 @@ import (
 
 // SchedulerService runs the periodic jobs.
 type SchedulerService struct {
-	log              *zap.Logger
-	repo             *repository.Container
-	scanner          *ScannerService
-	transcoder       *TranscoderService
-	organizer        *OrganizerService
-	organizePipeline *OrganizePipelineService
-	hub              *Hub
-	tasks            *TaskTrackerService
-	cacheDir         string
-	now              func() time.Time
+	log        *zap.Logger
+	repo       *repository.Container
+	scanner    *ScannerService
+	transcoder *TranscoderService
+	hub        *Hub
+	tasks      *TaskTrackerService
+	cacheDir   string
+	now        func() time.Time
 
 	imagesPolicyProvider func() ImageCachePolicy
 
@@ -56,10 +53,6 @@ var (
 
 func (s *SchedulerService) SetTaskTracker(tasks *TaskTrackerService) {
 	s.tasks = tasks
-}
-
-func (s *SchedulerService) SetOrganizePipeline(pipeline *OrganizePipelineService) {
-	s.organizePipeline = pipeline
 }
 
 // ImageCachePolicy 是一次图片缓存清理要用的策略（全部为 0 表示不做任何清理）。
@@ -101,7 +94,6 @@ func NewSchedulerService(
 	repo *repository.Container,
 	scanner *ScannerService,
 	transcoder *TranscoderService,
-	organizer *OrganizerService,
 	hub *Hub,
 	cacheDir string,
 ) *SchedulerService {
@@ -110,7 +102,6 @@ func NewSchedulerService(
 		repo:       repo,
 		scanner:    scanner,
 		transcoder: transcoder,
-		organizer:  organizer,
 		hub:        hub,
 		cacheDir:   cacheDir,
 		now:        time.Now,
@@ -125,11 +116,6 @@ func (s *SchedulerService) Start(ctx context.Context) {
 			name:     "library_scan",
 			interval: 24 * time.Hour,
 			run:      s.jobScanLibraries,
-		},
-		{
-			name:     "organize_source",
-			interval: s.organizeSourceInterval(ctx),
-			run:      s.jobOrganizeSource,
 		},
 		{
 			name:     "transcode_cleanup",
@@ -152,8 +138,8 @@ func (s *SchedulerService) Start(ctx context.Context) {
 	}
 	for _, j := range s.jobs {
 		initialDelay := 15 * time.Second
-		if j.name == "library_scan" || j.name == "organize_source" || j.name == "segment_prewarm" {
-			// 重启后不立即整库重扫/整理/预热：更新窗口恰是登录高峰，
+		if j.name == "library_scan" || j.name == "segment_prewarm" {
+			// 重启后不立即整库重扫/预热：更新窗口恰是登录高峰，
 			// 15 秒即全量 walk + ffprobe 曾把 CPU/磁盘打满导致无法登录。
 			// 首轮等满一个完整周期再跑，平时节奏不变。
 			initialDelay = j.interval
