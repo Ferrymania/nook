@@ -255,6 +255,9 @@ func (b *serviceContainerBuilder) initImageProxy() {
 	}
 	b.c.Scan.SetImageProxy(b.c.ImageProxy)
 	b.c.Scraper.SetImageProxy(b.c.ImageProxy)
+	if b.c.Telegram != nil && b.c.Emby != nil {
+		b.c.Telegram.SetMediaNotificationSources(b.c.ImageProxy, b.c.Emby.resolveMediaPeople)
+	}
 }
 
 func (b *serviceContainerBuilder) libraryRoots() []string {

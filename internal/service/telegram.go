@@ -16,6 +16,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/Ferrymania/nook/internal/helper"
+	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/repository"
 )
 
@@ -58,6 +59,9 @@ type TelegramService struct {
 	pollClient *http.Client
 	strm       *StrmService
 	syncRun    *telegramSyncRun // guarded by mu; at most one Telegram batch
+	images     *ImageProxy
+	people     func(context.Context, *model.Media) []map[string]any
+	mediaOnce  sync.Once
 }
 
 // NewTelegramService 构建 TelegramService。
@@ -161,7 +165,7 @@ func (s *TelegramService) SendToAdminChecked(ctx context.Context, htmlText strin
 	return s.sendMessage(ctx, chatID, htmlText)
 }
 
-// sendMessage 是唯一的出网点。所有前置条件在这里统一校验。
+// sendMessage sends ordinary text notifications after checking configuration.
 func (s *TelegramService) sendMessage(ctx context.Context, chatID, htmlText string) error {
 	cfg := s.config(ctx)
 	if !cfg.Enabled || cfg.BotToken == "" {
@@ -206,7 +210,10 @@ func (s *TelegramService) callWithClient(ctx context.Context, client *http.Clien
 		return fmt.Errorf("telegram %s: %w", method, redactSensitiveError(err))
 	}
 	defer func() { _ = resp.Body.Close() }()
+	return decodeTelegramResponse(resp, method, out)
+}
 
+func decodeTelegramResponse(resp *http.Response, method string, out any) error {
 	raw, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return err
@@ -214,7 +221,11 @@ func (s *TelegramService) callWithClient(ctx context.Context, client *http.Clien
 	var envelope struct {
 		OK          bool            `json:"ok"`
 		Description string          `json:"description"`
+		ErrorCode   int             `json:"error_code"`
 		Result      json.RawMessage `json:"result"`
+		Parameters  struct {
+			RetryAfter int `json:"retry_after"`
+		} `json:"parameters"`
 	}
 	if err := json.Unmarshal(raw, &envelope); err != nil {
 		return fmt.Errorf("telegram %s: decode response: %w", method, err)
@@ -223,7 +234,11 @@ func (s *TelegramService) callWithClient(ctx context.Context, client *http.Clien
 		if envelope.Description == "" {
 			envelope.Description = fmt.Sprintf("http %d", resp.StatusCode)
 		}
-		return fmt.Errorf("telegram %s: %s", method, envelope.Description)
+		status := envelope.ErrorCode
+		if status == 0 {
+			status = resp.StatusCode
+		}
+		return &telegramAPIError{Method: method, Description: envelope.Description, Status: status, RetryAfter: envelope.Parameters.RetryAfter}
 	}
 	if out != nil && len(envelope.Result) > 0 {
 		return json.Unmarshal(envelope.Result, out)
