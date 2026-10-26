@@ -166,7 +166,7 @@ export function LayoutUserMenu({
         <div className="hidden text-left md:block">
           <p className="text-[13px] font-medium leading-none text-(--app-text)">{user?.username}</p>
           <p className="mt-1 text-[11px] leading-none text-(--app-muted)">
-            {user?.role}
+            {user?.role === 'admin' ? '管理员' : user?.role === 'user' ? '普通用户' : ''}
           </p>
         </div>
         <ChevronDown size={14} className="text-(--app-muted)" />

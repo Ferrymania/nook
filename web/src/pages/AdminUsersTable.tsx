@@ -74,7 +74,7 @@ export function AdminUsersTable({
                   </span>
                 )}
               </td>
-              <td className="text-ink-100 whitespace-nowrap">{u.role === 'admin' ? '管理员' : '观看用户'}</td>
+              <td className="text-ink-100 whitespace-nowrap">{u.role === 'admin' ? '管理员' : '普通用户'}</td>
               <td className="whitespace-nowrap">
                 {u.role === 'admin' ? (
                   <span className="inline-flex items-center rounded-full bg-sand-100 px-2.5 py-0.5 text-xs text-sand-600 font-medium">
