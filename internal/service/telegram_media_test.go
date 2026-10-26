@@ -18,6 +18,7 @@ import (
 	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/repository"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 type telegramMediaFixture struct {
@@ -276,4 +277,42 @@ func (f *telegramMediaFixture) setPhotoStatus(status int) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.photoStatus = status
+}
+
+func TestTelegramMediaDatabaseOperationsHaveBoundedContexts(t *testing.T) {
+	f := newTelegramMediaFixture(t)
+	interrupted := errors.New("stop before database query")
+	var remaining time.Duration
+	probe := func(tx *gorm.DB) {
+		deadline, ok := tx.Statement.Context.Deadline()
+		if ok {
+			remaining = time.Until(deadline)
+		} else {
+			remaining = 0
+		}
+		tx.AddError(interrupted)
+	}
+	db := f.bot.repo.DB
+	if err := db.Callback().Row().Before("gorm:row").Register("test:telegram_deadline", probe); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Callback().Query().Before("gorm:query").Register("test:telegram_deadline", probe); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = db.Callback().Row().Remove("test:telegram_deadline")
+		_ = db.Callback().Query().Remove("test:telegram_deadline")
+	})
+	if err := f.bot.initializeMediaNotifications(t.Context()); !errors.Is(err, interrupted) {
+		t.Fatalf("initialization error=%v", err)
+	}
+	if remaining <= 0 || remaining > telegramMediaInitTimeout {
+		t.Fatalf("startup query timeout=%s", remaining)
+	}
+	if _, err := f.bot.processMediaNotification(t.Context(), f.now); !errors.Is(err, interrupted) {
+		t.Fatalf("background pass error=%v", err)
+	}
+	if remaining <= telegramMediaInitTimeout || remaining > telegramMediaPassTimeout {
+		t.Fatalf("background query timeout=%s", remaining)
+	}
 }

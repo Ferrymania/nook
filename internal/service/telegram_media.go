@@ -17,6 +17,8 @@ const (
 	telegramMediaCursorKey    = "telegram.media_ingest_cursor"
 	telegramMediaSettleTime   = 10 * time.Second
 	telegramMediaMetadataWait = 5 * time.Minute
+	telegramMediaInitTimeout  = 2 * time.Second
+	telegramMediaPassTimeout  = 30 * time.Second
 )
 
 // The durable cursor tracks inserts, not metadata updates. Initial startup and
@@ -40,11 +42,7 @@ func (s *TelegramService) StartMediaNotifications(ctx context.Context) {
 	}
 	s.mediaOnce.Do(func() {
 		// Synchronously establish the initial baseline, without sending messages.
-		cfg, err := s.mediaNotificationConfig(ctx)
-		if err == nil {
-			_, err = s.mediaNotificationCursor(ctx, cfg, time.Now())
-		}
-		if err != nil {
+		if err := s.initializeMediaNotifications(ctx); err != nil {
 			s.warn("telegram media notification initialization failed", "admin", err)
 		}
 		helper.Go(s.log, "telegram.mediaNotifications", func() {
@@ -68,6 +66,17 @@ func (s *TelegramService) StartMediaNotifications(ctx context.Context) {
 			}
 		})
 	})
+}
+
+func (s *TelegramService) initializeMediaNotifications(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, telegramMediaInitTimeout)
+	defer cancel()
+	cfg, err := s.mediaNotificationConfig(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = s.mediaNotificationCursor(ctx, cfg, time.Now())
+	return err
 }
 
 func telegramMediaDestination(cfg telegramConfig) string {
@@ -144,6 +153,8 @@ func (s *TelegramService) mediaNotificationCursor(ctx context.Context, cfg teleg
 }
 
 func (s *TelegramService) processMediaNotification(ctx context.Context, now time.Time) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, telegramMediaPassTimeout)
+	defer cancel()
 	cfg, err := s.mediaNotificationConfig(ctx)
 	if err != nil {
 		return false, err
