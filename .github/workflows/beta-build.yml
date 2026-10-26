@@ -35,7 +35,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       binary_version: ${{ steps.version.outputs.binary_version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -52,7 +52,7 @@ jobs:
 
       # The binary embeds the SPA (web/dist) via go:embed, so dist must exist
       # before the Go toolchain touches the web package.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
@@ -63,10 +63,11 @@ jobs:
           npm ci
           npm run build
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version: '1.26'
           cache: true
+          cache-dependency-path: go.sum
 
       - name: go vet
         run: go vet ./...
@@ -86,7 +87,7 @@ jobs:
         run: CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-s -w -H=windowsgui -X main.version=${{ steps.version.outputs.binary_version }}" -o dist/nook-beta-windows-amd64.exe ./cmd/server
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nook-beta-binaries
           path: dist/*
@@ -103,13 +104,13 @@ jobs:
     # PR 事件不推送镜像，仅 push beta / 手动触发时推送
     if: github.event_name != 'pull_request'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -117,7 +118,7 @@ jobs:
 
       - name: Extract image metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
@@ -125,7 +126,7 @@ jobs:
             type=raw,value=${{ needs.test-and-build.outputs.version }}
 
       - name: Build & push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64,linux/arm64
