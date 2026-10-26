@@ -109,7 +109,7 @@ export function AdminUsersForm({
 
       <div id={rolesID} hidden={!showRoles} className="space-y-1 rounded-xl bg-(--app-panel) p-4 text-sm text-(--app-subtle)">
         <p><strong className="font-medium text-(--app-text)">管理员：</strong>全部管理权限。</p>
-        <p><strong className="font-medium text-(--app-text)">观看用户：</strong>浏览、播放和使用外部播放器；不能下载或操作文件。</p>
+        <p><strong className="font-medium text-(--app-text)">普通用户：</strong>浏览、播放和使用外部播放器；不能下载或操作文件。</p>
       </div>
 
       {userLimitReached && <p role="status" className="text-sm text-amber-800">已达到用户上限，调整上限后可继续添加。</p>}
