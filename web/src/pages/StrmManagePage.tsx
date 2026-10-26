@@ -274,6 +274,7 @@ export function StrmManagePage() {
 
           <RecordSection
             snapshot={recordSnapshot}
+            paths={paths}
             loading={recordsLoading}
             error={recordsError}
             onPageChange={loadRecords}
@@ -543,8 +544,9 @@ function SyncPathSection({
 
 // ─── 同步记录 ────────────────────────────────────────────────────────────────
 
-function RecordSection({ snapshot, loading, error, onPageChange, onDeleted }: {
+function RecordSection({ snapshot, paths, loading, error, onPageChange, onDeleted }: {
   snapshot: StrmSyncRecordPage
+  paths: StrmSyncPath[]
   loading: boolean
   error: string
   onPageChange: (page: number) => Promise<void>
@@ -609,10 +611,11 @@ function RecordSection({ snapshot, loading, error, onPageChange, onDeleted }: {
         <p className="rounded-xl bg-gray-50 px-4 py-6 text-center text-sm text-sand-500">还没有同步记录</p>
       ) : records.length > 0 && (
         <div className="table-scroll" aria-busy={loading}>
-          <table className="min-w-[980px] w-full text-left text-sm">
+          <table className="min-w-[1120px] w-full text-left text-sm">
             <thead className="border-b border-gray-200 text-xs uppercase tracking-wider text-sand-500">
               <tr>
                 <th className="px-3 py-2">时间</th>
+                <th className="px-3 py-2">同步目录</th>
                 <th className="px-3 py-2">类型</th>
                 <th className="px-3 py-2">状态</th>
                 <th className="px-3 py-2 text-right">扫描文件</th>
@@ -629,10 +632,15 @@ function RecordSection({ snapshot, loading, error, onPageChange, onDeleted }: {
               {records.map((record) => {
                 const meta = RECORD_STATUS_META[record.status] ?? RECORD_STATUS_META.pending
                 const isFull = record.sync_type === 'full'
+                const syncPath = paths.find((path) => path.id === record.sync_path_id)
+                const directory = syncPath?.name.trim() || syncPath?.remote_display_path?.trim() || syncPath?.remote_path || '—'
                 return (
                   <tr key={record.id} className="border-t border-gray-100">
                     <td className="whitespace-nowrap px-3 py-2 text-xs text-ink-50">
                       {formatTime(record.started_at ?? record.created_at)}
+                    </td>
+                    <td className="px-3 py-2 text-ink-100">
+                      <span className="block max-w-40 truncate" title={directory}>{directory}</span>
                     </td>
                     <td className="px-3 py-2">
                       <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${isFull ? 'bg-amber-50 text-amber-600 border border-amber-200' : 'bg-brand-50 text-brand-600 border border-brand-200'}`}>
