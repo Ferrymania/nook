@@ -316,3 +316,109 @@ func TestTelegramMediaDatabaseOperationsHaveBoundedContexts(t *testing.T) {
 		t.Fatalf("background query timeout=%s", remaining)
 	}
 }
+
+func (f *telegramMediaFixture) addEpisode(t *testing.T, id, series string, episode int, created time.Time) model.Media {
+	t.Helper()
+	m := f.add(t, id, "matched", created)
+	if err := f.bot.repo.DB.Model(&m).Updates(map[string]any{"title": "同一部剧", "series_id": series, "season_num": 1, "episode_num": episode, "tm_db_id": 123}).Error; err != nil {
+		t.Fatal(err)
+	}
+	m.Title, m.SeriesID, m.SeasonNum, m.EpisodeNum, m.TMDbID = "同一部剧", series, 1, episode, 123
+	return m
+}
+
+func TestTelegramMediaGroupsInterleavedEpisodesAcrossRestart(t *testing.T) {
+	f := newTelegramMediaFixture(t)
+	f.baseline(t)
+	when := f.now.Add(-time.Minute)
+	f.addEpisode(t, "a", "same-series", 11, when)
+	f.add(t, "b-movie", "matched", when)
+	f.addEpisode(t, "c", "same-series", 12, when)
+	f.addEpisode(t, "d", "different-series", 1, when)
+	if err := f.bot.repo.DB.Create(&model.Series{Base: model.Base{ID: "same-series"}, LibraryID: f.lib.ID, Title: "整剧标题", Overview: "整剧简介"}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if !f.step(t, f.now) || len(f.snapshot()) != 1 {
+		t.Fatalf("group=%+v", f.snapshot())
+	}
+	caption := f.snapshot()[0].Payload["text"].(string)
+	for _, want := range []string{"S01E11–E12 · 新增 2 集", "整剧标题", "整剧简介"} {
+		if !strings.Contains(caption, want) {
+			t.Fatalf("missing %q: %s", want, caption)
+		}
+	}
+	raw, err := f.bot.repo.Setting.Get(t.Context(), telegramMediaCursorKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cursor telegramMediaCursor
+	if err := json.Unmarshal([]byte(raw), &cursor); err != nil {
+		t.Fatal(err)
+	}
+	if cursor.MediaID != "a" || len(cursor.SentAhead) != 1 || cursor.SentAhead[0].MediaID != "c" {
+		t.Fatalf("progress skipped movie: %+v", cursor)
+	}
+	restarted := NewTelegramService(zap.NewNop(), f.bot.repo)
+	restarted.apiBase, restarted.client = f.bot.apiBase, f.bot.client
+	f.bot = restarted
+	if !f.step(t, f.now) || !f.step(t, f.now) || f.step(t, f.now) || len(f.snapshot()) != 3 {
+		t.Fatalf("lost or duplicated interleaved media: %+v", f.snapshot())
+	}
+	if !strings.Contains(f.snapshot()[1].Payload["text"].(string), "b-movie") || !strings.Contains(f.snapshot()[2].Payload["text"].(string), "S01E01") {
+		t.Fatalf("other media missing: %+v", f.snapshot())
+	}
+}
+
+func TestTelegramMediaGroupQuietTimeAndLaterBatch(t *testing.T) {
+	f := newTelegramMediaFixture(t)
+	f.baseline(t)
+	f.addEpisode(t, "first", "series", 11, f.now.Add(-20*time.Second))
+	second := f.addEpisode(t, "second", "series", 12, f.now.Add(-10*time.Second))
+	if f.step(t, f.now) || len(f.snapshot()) != 0 {
+		t.Fatal("burst sent individual episode too early")
+	}
+	if err := f.bot.repo.DB.Model(&second).Update("scrape_status", "pending").Error; err != nil {
+		t.Fatal(err)
+	}
+	if f.step(t, f.now.Add(21*time.Second)) {
+		t.Fatal("group did not wait for episode metadata")
+	}
+	if err := f.bot.repo.DB.Model(&second).Update("scrape_status", "matched").Error; err != nil {
+		t.Fatal(err)
+	}
+	if !f.step(t, f.now.Add(21*time.Second)) || len(f.snapshot()) != 1 {
+		t.Fatal("settled episodes did not form one notification")
+	}
+	f.addEpisode(t, "third", "series", 13, f.now.Add(3*time.Minute))
+	if !f.step(t, f.now.Add(4*time.Minute)) || len(f.snapshot()) != 2 {
+		t.Fatal("later episode batch was suppressed")
+	}
+	if strings.Contains(f.snapshot()[1].Payload["text"].(string), "E11") || !strings.Contains(f.snapshot()[1].Payload["text"].(string), "E13") {
+		t.Fatal("later batch replayed previously sent episodes")
+	}
+}
+
+func TestTelegramMediaGroupFailureDoesNotAcknowledgeEpisodes(t *testing.T) {
+	f := newTelegramMediaFixture(t)
+	f.baseline(t)
+	when := f.now.Add(-time.Minute)
+	f.addEpisode(t, "a", "series", 11, when)
+	f.add(t, "b-movie", "matched", when)
+	f.addEpisode(t, "c", "series", 12, when)
+	before, err := f.bot.repo.Setting.Get(t.Context(), telegramMediaCursorKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.setTextStatus(http.StatusTooManyRequests)
+	if advanced, err := f.bot.processMediaNotification(t.Context(), f.now); advanced || err == nil {
+		t.Fatal("failed group advanced progress")
+	}
+	after, err := f.bot.repo.Setting.Get(t.Context(), telegramMediaCursorKey)
+	if err != nil || before != after {
+		t.Fatal("failed group changed durable acknowledgements")
+	}
+	f.setTextStatus(0)
+	if !f.step(t, f.now) || !f.step(t, f.now) || f.step(t, f.now) || len(f.snapshot()) != 3 {
+		t.Fatalf("group retry lost media: %+v", f.snapshot())
+	}
+}
