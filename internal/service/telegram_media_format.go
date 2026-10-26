@@ -12,7 +12,7 @@ import (
 
 const telegramMediaCaptionLimit = 1024
 
-func formatTelegramMediaNotification(m model.Media, lib model.Library, people []map[string]any) string {
+func formatTelegramMediaNotification(m model.Media, lib model.Library, people []map[string]any, episodes ...model.Media) string {
 	kind := "电影"
 	if mediaIsEpisodic(&m, &lib) {
 		kind = "剧集"
@@ -23,8 +23,15 @@ func formatTelegramMediaNotification(m model.Media, lib model.Library, people []
 		title += fmt.Sprintf(" (%d)", m.Year)
 	}
 	lines := []string{heading, "", title}
-	if m.EpisodeNum > 0 {
-		lines = append(lines, fmt.Sprintf("集数：S%02dE%s", m.SeasonNum, FormatEpisodeNumber(m.EpisodeNum, m.EpisodeFraction)))
+	if len(episodes) == 0 {
+		episodes = []model.Media{m}
+	}
+	if label, count := telegramEpisodeSummary(episodes); count > 0 {
+		line := "集数：" + truncateTelegramText(label, 160)
+		if len(episodes) > 1 {
+			line += fmt.Sprintf(" · 新增 %d 集", count)
+		}
+		lines = append(lines, line)
 	}
 	if lib.Name != "" {
 		lines = append(lines, "媒体库："+truncateTelegramText(lib.Name, 80))

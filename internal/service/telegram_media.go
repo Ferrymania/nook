@@ -25,9 +25,10 @@ const (
 // changes of recipient establish a baseline so an existing library is never
 // broadcast as newly imported media. It contains no Bot Token or media URLs.
 type telegramMediaCursor struct {
-	CreatedAt   time.Time `json:"created_at"`
-	MediaID     string    `json:"media_id"`
-	Destination string    `json:"destination"`
+	CreatedAt   time.Time               `json:"created_at"`
+	MediaID     string                  `json:"media_id"`
+	Destination string                  `json:"destination"`
+	SentAhead   []telegramMediaPosition `json:"sent_ahead,omitempty"`
 }
 
 func (s *TelegramService) SetMediaNotificationSources(images *ImageProxy, people func(context.Context, *model.Media) []map[string]any) {
@@ -144,7 +145,7 @@ func (s *TelegramService) mediaNotificationCursor(ctx context.Context, cfg teleg
 			next.CreatedAt = cursor.CreatedAt
 		}
 	}
-	if next != cursor {
+	if !next.CreatedAt.Equal(cursor.CreatedAt) || next.MediaID != cursor.MediaID || next.Destination != cursor.Destination || len(cursor.SentAhead) > 0 {
 		if err := s.saveMediaNotificationCursor(ctx, next); err != nil {
 			return cursor, err
 		}
@@ -163,35 +164,76 @@ func (s *TelegramService) processMediaNotification(ctx context.Context, now time
 	if err != nil || cursor.Destination == "" {
 		return false, err
 	}
-	var rows []model.Media
-	if err := s.repo.DB.WithContext(ctx).
-		Where("(created_at, id) > (?, ?)", cursor.CreatedAt, cursor.MediaID).
-		Order("created_at ASC, id ASC").Limit(1).Find(&rows).Error; err != nil {
+	loadRows := func(limit int) ([]model.Media, error) {
+		var rows []model.Media
+		err := s.repo.DB.WithContext(ctx).Where("(created_at, id) > (?, ?)", cursor.CreatedAt, cursor.MediaID).
+			Order("created_at ASC, id ASC").Limit(limit).Find(&rows).Error
+		return rows, err
+	}
+	rows, err := loadRows(1)
+	if err != nil {
 		return false, err
+	}
+	if len(rows) > 0 && (rows[0].EpisodeNum > 0 || len(cursor.SentAhead) > 0) {
+		rows, err = loadRows(telegramMediaBatchLimit)
+		if err != nil {
+			return false, err
+		}
 	}
 	if len(rows) == 0 {
 		return false, nil
+	}
+	// A deleted intervening row can expose already-notified episodes at the
+	// head. Advance through those without sending a duplicate message.
+	next := advanceTelegramMediaCursor(cursor, rows, nil)
+	if next.MediaID != cursor.MediaID || !next.CreatedAt.Equal(cursor.CreatedAt) {
+		return true, s.saveMediaNotificationCursor(ctx, next)
 	}
 	m := rows[0]
 	// Let the short insert transaction and its metadata work settle. Pending
 	// scrapes get up to five minutes; failed/disabled scraping still notifies
 	// using the available metadata rather than blocking the queue forever.
-	if now.Before(m.CreatedAt.Add(telegramMediaSettleTime)) ||
-		((m.ScrapeStatus == "pending" || m.ScrapeStatus == "") && now.Before(m.CreatedAt.Add(telegramMediaMetadataWait))) {
+	if !telegramMediaReady(m, now) {
 		return false, nil
 	}
 	lib, err := s.repo.Library.FindByID(ctx, m.LibraryID)
 	if err != nil {
 		return false, err
 	}
+	group := []model.Media{m}
 	if lib != nil {
+		var ready bool
+		group, ready = telegramMediaGroup(rows, cursor, *lib, now)
+		if !ready {
+			return false, nil
+		}
+		// Use series-level artwork/overview when available, while preserving
+		// the new episodes' own import time and IDs for notification progress.
+		if telegramMediaSeriesKey(m, *lib) != "" {
+			series, err := s.repo.Series.FindByID(ctx, seriesMetadataStorageID(scrapedSeriesPublicID(&m, m.Title)))
+			if err != nil {
+				return false, err
+			}
+			if series != nil {
+				m.Title = firstNonEmpty(series.Title, m.Title)
+				m.PosterURL = firstNonEmpty(series.PosterURL, m.PosterURL)
+				m.Overview = firstNonEmpty(series.Overview, m.Overview)
+				if series.Rating > 0 {
+					m.Rating = series.Rating
+				}
+				if series.Year > 0 {
+					m.Year = series.Year
+				}
+			}
+			m.CreatedAt = group[len(group)-1].CreatedAt
+		}
 		var people []map[string]any
 		if s.people != nil {
 			peopleCtx, cancel := context.WithTimeout(ctx, 4*time.Second)
 			people = s.people(peopleCtx, &m)
 			cancel()
 		}
-		caption := formatTelegramMediaNotification(m, *lib, people)
+		caption := formatTelegramMediaNotification(m, *lib, people, group...)
 		if err := s.checkMediaNotificationDestination(ctx, cfg); err != nil {
 			return false, err
 		}
@@ -199,6 +241,6 @@ func (s *TelegramService) processMediaNotification(ctx context.Context, now time
 			return false, err
 		}
 	}
-	cursor.CreatedAt, cursor.MediaID = m.CreatedAt, m.ID
+	cursor = advanceTelegramMediaCursor(cursor, rows, group)
 	return true, s.saveMediaNotificationCursor(ctx, cursor)
 }
