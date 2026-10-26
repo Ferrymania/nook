@@ -42,7 +42,7 @@ func TestJobSegmentPrewarmSkippedWhenDisabled(t *testing.T) {
 	segments := NewMediaSegmentService(zap.NewNop(), repos).
 		SetIntroDB(NewIntroDBService(zap.NewNop()).SetBaseURL(server.URL)).
 		SetPrewarmGap(0)
-	scheduler := NewSchedulerService(zap.NewNop(), repos, nil, nil, nil, nil, "")
+	scheduler := NewSchedulerService(zap.NewNop(), repos, nil, nil, nil, "")
 	scheduler.SetSegments(segments)
 
 	if err := scheduler.jobSegmentPrewarm(t.Context()); err != nil {
@@ -91,7 +91,7 @@ func TestJobSegmentPrewarmRespectsLibraryScopeAndKeepsPlaybackQueries(t *testing
 	if err := repos.Setting.Set(t.Context(), legacySegmentPrewarmEnabledKey, "true"); err != nil {
 		t.Fatal(err)
 	}
-	scheduler := NewSchedulerService(zap.NewNop(), repos, nil, nil, nil, nil, "")
+	scheduler := NewSchedulerService(zap.NewNop(), repos, nil, nil, nil, "")
 	scheduler.SetSegments(segments)
 	// Manual execution must not bypass the library preference.
 	ctx := context.WithValue(t.Context(), schedulerManualRunKey{}, true)

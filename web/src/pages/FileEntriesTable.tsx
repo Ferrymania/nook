@@ -7,9 +7,6 @@ type FileEntriesTableProps = {
   entries: FileEntry[]
   recursive: boolean
   selectedPath?: string
-  selectedPaths: string[]
-  onSelectAll: (checked: boolean) => void
-  onToggleSelectedPath: (entry: FileEntry, checked: boolean) => void
   onEnter: (entry: FileEntry) => void
   onChoose: (entry: FileEntry) => void
 }
@@ -19,9 +16,6 @@ export function FileEntriesTable({
   entries,
   recursive,
   selectedPath,
-  selectedPaths,
-  onSelectAll,
-  onToggleSelectedPath,
   onEnter,
   onChoose,
 }: FileEntriesTableProps) {
@@ -30,14 +24,6 @@ export function FileEntriesTable({
       <table className="min-w-[700px] w-full text-left text-sm">
         <thead className="text-xs uppercase tracking-wider text-sand-500">
           <tr>
-            <th className="w-10 py-2">
-              <input
-                type="checkbox"
-                aria-label="选择当前目录全部项目"
-                checked={entries.length > 0 && entries.every((entry) => selectedPaths.includes(entry.path))}
-                onChange={(event) => onSelectAll(event.target.checked)}
-              />
-            </th>
             <th className="py-2">名称</th>
             <th>大小</th>
             <th>修改时间</th>
@@ -48,16 +34,8 @@ export function FileEntriesTable({
           {entries.map((entry) => (
             <tr
               key={entry.path}
-              className={'border-t border-gray-200 transition hover:bg-gray-50 ' + (selectedPath === entry.path || selectedPaths.includes(entry.path) ? 'bg-primary-400/5' : '')}
+              className={'border-t border-gray-200 transition hover:bg-gray-50 ' + (selectedPath === entry.path ? 'bg-primary-400/5' : '')}
             >
-              <td className="py-2">
-                <input
-                  type="checkbox"
-                  aria-label={`选择 ${entry.name}`}
-                  checked={selectedPaths.includes(entry.path)}
-                  onChange={(event) => onToggleSelectedPath(entry, event.target.checked)}
-                />
-              </td>
               <td className="py-2 text-ink-600">
                 <button
                   className="flex max-w-xl items-center gap-2 text-left"

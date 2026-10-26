@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -73,100 +72,6 @@ func (s *SchedulerService) markPeriodicScanCompleted(ctx context.Context, now ti
 		return nil
 	}
 	return s.repo.Setting.Set(ctx, localLastPeriodicScanDateKey, now.In(time.Local).Format("2006-01-02"))
-}
-
-// jobOrganizeSource periodically organizes the configured staging/download
-// source directory into the configured media destination. It is intentionally
-// opt-in: manual file management remains available, but background disk walking
-// only starts after the operator enables organize.auto.
-func (s *SchedulerService) jobOrganizeSource(ctx context.Context) error {
-	manual, _ := ctx.Value(schedulerManualRunKey{}).(bool)
-	if s.organizer == nil || (!manual && !s.autoOrganizeSourceEnabled(ctx)) {
-		return nil
-	}
-	taskName := "自动整理重命名刮削入库"
-	if manual {
-		taskName = "手动触发自动整理重命名刮削入库"
-	}
-	resWrap, err := s.ensureOrganizePipeline().Run(ctx, OrganizePipelineRequest{
-		Scope:    OrganizeScopeDirectory,
-		Trigger:  OrganizeTriggerScheduled,
-		TaskName: taskName,
-	})
-	if err != nil {
-		return err
-	}
-	res := resWrap.Result
-	if res == nil {
-		res = &OrganizeResult{}
-	}
-	if s.log != nil && res != nil {
-		s.log.Info("scheduled source organize finished",
-			zap.String("source", res.SourcePath),
-			zap.String("dest", res.DestPath),
-			zap.Int("organized", res.Organized),
-			zap.Int("replaced", res.Replaced),
-			zap.Int("skipped", res.Skipped),
-			zap.Int("scrapes", len(res.Scrapes)),
-			zap.Int("errors", len(res.Errors)),
-		)
-	}
-	return nil
-}
-
-func (s *SchedulerService) ensureOrganizePipeline() *OrganizePipelineService {
-	if s.organizePipeline != nil {
-		return s.organizePipeline
-	}
-	return NewOrganizePipelineService(s.log, s.repo, s.organizer, s.scanner, s.tasks)
-}
-
-func (s *SchedulerService) startScheduledOrganizeTask(ctx context.Context, manual bool) *TaskHandle {
-	if s == nil || s.tasks == nil {
-		return nil
-	}
-	name := "自动整理重命名入库"
-	message := "正在执行计划自动整理/重命名/入库"
-	if manual {
-		name = "手动触发自动整理重命名入库"
-		message = "正在执行手动触发的自动整理/重命名/入库"
-	}
-	return s.tasks.Start(TaskKindOrganize, name, TaskUpdate{
-		Stage:      "organize",
-		SourcePath: s.organizer.defaultSourceRoot(ctx, ""),
-		DestPath:   s.organizer.defaultDestRoot(ctx, ""),
-		Message:    message,
-	})
-}
-
-func (s *SchedulerService) autoOrganizeSourceEnabled(ctx context.Context) bool {
-	if s.repo == nil || s.repo.Setting == nil {
-		return false
-	}
-	v, err := s.repo.Setting.Get(ctx, "organize.auto")
-	if err != nil {
-		return false
-	}
-	return parseBoolSetting(v, false)
-}
-
-func (s *SchedulerService) organizeSourceInterval(ctx context.Context) time.Duration {
-	const fallback = 5 * time.Minute
-	if s.repo == nil || s.repo.Setting == nil {
-		return fallback
-	}
-	v, err := s.repo.Setting.Get(ctx, "organize.interval_seconds")
-	if err != nil {
-		return fallback
-	}
-	seconds, err := strconv.Atoi(strings.TrimSpace(v))
-	if err != nil || seconds <= 0 {
-		return fallback
-	}
-	if seconds < 60 {
-		seconds = 60
-	}
-	return time.Duration(seconds) * time.Second
 }
 
 // jobCleanTranscodeCache deletes HLS artefacts older than 24h.

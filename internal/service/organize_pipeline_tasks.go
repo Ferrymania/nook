@@ -40,8 +40,6 @@ func (p *OrganizePipelineService) finishTask(task *TaskHandle, err error, stage,
 
 func (p *OrganizePipelineService) defaultTaskName(req OrganizePipelineRequest) string {
 	switch req.Trigger {
-	case OrganizeTriggerScheduled:
-		return "自动整理重命名刮削入库"
 	case OrganizeTriggerDownload:
 		return "下载完成自动整理重命名刮削入库"
 	default:
@@ -54,8 +52,6 @@ func (p *OrganizePipelineService) defaultTaskName(req OrganizePipelineRequest) s
 
 func (p *OrganizePipelineService) failureMessage(req OrganizePipelineRequest) string {
 	switch req.Trigger {
-	case OrganizeTriggerScheduled:
-		return "自动整理重命名入库失败"
 	case OrganizeTriggerDownload:
 		return "下载完成自动整理失败"
 	default:
@@ -65,8 +61,6 @@ func (p *OrganizePipelineService) failureMessage(req OrganizePipelineRequest) st
 
 func (p *OrganizePipelineService) completedMessage(req OrganizePipelineRequest) string {
 	switch req.Trigger {
-	case OrganizeTriggerScheduled:
-		return "自动整理重命名刮削入库结束"
 	case OrganizeTriggerDownload:
 		return "下载完成自动整理入库结束"
 	default:

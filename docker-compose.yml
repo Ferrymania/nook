@@ -5,7 +5,7 @@
 # 新手建议：
 #   1. 不用 .env。
 #   2. 直接改本文件。
-#   3. 第一次可以不改路径；media 和 downloads 目录不存在时会自动创建。
+#   3. 第一次可以不改路径；media 目录不存在时会自动创建。
 #
 # 启动：
 #   docker compose up -d
@@ -40,7 +40,7 @@ services:
       - ./cache:/cache
 
       # 媒体库目录。
-      # 如果要使用自动整理/重命名/入库，这里必须保持读写，不能加 :ro。
+      # 文件操作、重命名和整理入库需要保持读写，不能加 :ro。
       # 只有完全不整理、只扫描/播放已有媒体时，才建议手动改成只读。
       # 默认使用当前目录的 ./media；目录不存在时会自动创建。
       # NAS 用户把左边改成真实路径，例如：
@@ -48,14 +48,6 @@ services:
       # Windows Docker Desktop 示例：
       #   - "D:/Media:/media"
       - ./media:/media
-
-      # 下载目录。
-      # qB 下载目录、手动整理、自动整理会经常用到。
-      # NAS 示例：
-      #   - /vol1/1000/Downloads:/downloads
-      # Windows Docker Desktop 示例：
-      #   - "D:/Downloads:/downloads"
-      - ./downloads:/downloads
 
     environment:
       TZ: Asia/Shanghai
@@ -69,7 +61,7 @@ services:
       NOOK_DATABASE_TYPE: postgres
       NOOK_DATABASE_DSN: postgres://nook:nook@postgres:5432/nook?sslmode=disable
 
-      # 媒体库与下载器统一使用容器路径；更换媒体库目录请在网页管理。
+      # 媒体库使用容器路径；更换媒体库目录请在网页管理。
 
       # 播放模式、转码与硬件加速统一在网页「系统设置 → 常规」中管理。
 
