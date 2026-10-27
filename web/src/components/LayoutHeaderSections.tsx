@@ -105,7 +105,7 @@ function LayoutMediaNavigation() {
 
   return (
     <nav className="nook-media-navigation hidden lg:flex" aria-label="影视导航">
-      {MEDIA_NAV_ITEMS.slice(0, 3).map((item) => {
+      {MEDIA_NAV_ITEMS.slice(0, 4).map((item) => {
         const active = isSidebarLinkActive(item.to, location.pathname, location.search, item.end)
         return (
           <Link key={item.to} to={item.to} aria-current={active ? 'page' : undefined}>

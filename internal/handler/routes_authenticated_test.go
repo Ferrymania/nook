@@ -38,6 +38,7 @@ func TestAuthenticatedRouteSurfacesAreRegistered(t *testing.T) {
 		"GET /api/stream/:id",
 		"GET /api/storage",
 		"GET /api/watch-history",
+		"PATCH /api/watch-history/:id/played",
 		"GET /api/events",
 		"GET /api/ws",
 		"GET /api/playback/:id/info",

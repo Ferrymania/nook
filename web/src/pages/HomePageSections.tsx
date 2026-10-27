@@ -21,6 +21,7 @@ import { useInViewOnce } from '../hooks/useInViewOnce'
 import { useLazyPreviewBatch } from '../hooks/useLazyPreviewBatch'
 import { useRememberedListPosition } from '../hooks/useListPositionMemory'
 import { MediaCard } from '../components/MediaCard'
+import { ContinueWatchingMenu } from '../components/ContinueWatchingMenu'
 import type { HistoryItem } from '../api/playback'
 import type { Library, Media } from '../types'
 import type { SeriesCard } from '../utils/groupSeries'
@@ -520,7 +521,7 @@ export function HomeLibraryRowSection({
    4. 继续观看行 (Continue Watching)
    ========================================================================= */
 
-export function ContinueWatchingSection({ history }: { history: HistoryItem[] }) {
+export function ContinueWatchingSection({ history, onHistoryChanged }: { history: HistoryItem[]; onHistoryChanged: (id: string) => void }) {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const scroll = (direction: 'left' | 'right') => {
@@ -582,7 +583,8 @@ export function ContinueWatchingSection({ history }: { history: HistoryItem[] })
           const progress = h.duration_ms > 0 ? h.position_ms / h.duration_ms : 0
           return (
             <div key={h.id} className="nook-continue-item shrink-0">
-              <ContinueCard media={media} progress={progress} />
+              <ContinueCard media={media} progress={progress}
+                actions={<ContinueWatchingMenu history={h} media={media} onHistoryChanged={onHistoryChanged} />} />
             </div>
           )
         })}
@@ -591,12 +593,14 @@ export function ContinueWatchingSection({ history }: { history: HistoryItem[] })
   )
 }
 
-function ContinueCard({ media, progress }: { media: Media; progress: number }) {
+function ContinueCard({ media, progress, actions }: { media: Media; progress: number; actions: ReactNode }) {
   const visual = media.backdrop_url || media.poster_url
   const episodeNumber = formatEpisodeNumber(media)
 
   return (
-    <Link to={`/play/${media.id}`} className="nook-continue-card group">
+    <div className="nook-continue-card group relative">
+      <Link to={`/play/${media.id}`} aria-label={`继续播放：${media.title}`}
+        className="absolute inset-0 z-1 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2" />
       <div className="nook-continue-artwork">
         {visual ? (
           <img src={imageURL(visual, media.updated_at, ARTWORK.backdropStrip)} alt=""
@@ -606,6 +610,7 @@ function ContinueCard({ media, progress }: { media: Media; progress: number }) {
         {progress > 0 && progress < 1 && (
           <div className="nook-progress-track"><span style={{ width: `${Math.round(progress * 100)}%` }} /></div>
         )}
+        {actions}
       </div>
       <div className="nook-continue-info">
         <p title={media.title}>{media.title}</p>
@@ -617,6 +622,6 @@ function ContinueCard({ media, progress }: { media: Media; progress: number }) {
           {progress > 0 && progress < 1 && <span className="ml-auto">已观看 {Math.round(progress * 100)}%</span>}
         </div>
       </div>
-    </Link>
+    </div>
   )
 }

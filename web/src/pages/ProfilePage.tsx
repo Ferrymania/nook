@@ -9,6 +9,7 @@ import { MyDevicesPanel } from '../components/MyDevicesPanel'
 import { requestPassword } from '../components/requestPassword'
 import { useAuthStore } from '../stores/auth'
 import { ProfilePlaybackSettings } from './ProfilePlaybackSettings'
+import { WatchHistoryPanel } from './WatchHistoryPage'
 
 const PROFILE_TABS = [
   { value: 'info', label: '资料与安全' },
@@ -168,10 +169,10 @@ export function ProfilePage() {
   return (
     <div className="space-y-4 text-(--app-text)">
       <header>
-        <h1 className="font-display text-2xl font-semibold">个人资料</h1>
+        <h1 className="font-display text-2xl font-semibold">个人主页</h1>
       </header>
 
-      <div role="tablist" aria-label="个人资料分类" className="flex gap-5 border-b border-(--app-border)">
+      <div role="tablist" aria-label="个人主页分类" className="flex gap-5 border-b border-(--app-border)">
         {PROFILE_TABS.map((tab, index) => (
           <button
             key={tab.value}
@@ -336,6 +337,8 @@ export function ProfilePage() {
 
         {activeTab === 'devices' && <MyDevicesPanel />}
       </div>
+
+      <WatchHistoryPanel embedded />
     </div>
   )
 }

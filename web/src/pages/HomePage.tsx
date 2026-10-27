@@ -33,6 +33,9 @@ export function HomePage() {
   // 避免整页被 Promise.all 里最慢的那个请求拖住。
   const [librariesLoading, setLibrariesLoading] = useState(true)
   const [historyLoading, setHistoryLoading] = useState(true)
+  const removeHistoryItem = useCallback((id: string) => {
+    setHistory((current) => current.filter((item) => item.id !== id))
+  }, [])
   const { pinnedIds } = usePinnedLibraries()
   const { field: sortField, order: sortOrder } = useLibraryListSort()
   const libraryTags = useLibraryTags()
@@ -305,7 +308,7 @@ export function HomePage() {
 
       {/* 2. 继续观看（独立加载，未回来前展示同构骨架） */}
       {historyLoading && <ContinueWatchingSkeleton />}
-      {!historyLoading && history.length > 0 && <ContinueWatchingSection history={history} />}
+      {!historyLoading && history.length > 0 && <ContinueWatchingSection history={history} onHistoryChanged={removeHistoryItem} />}
 
       {/* 3. 媒体库标签栏 + 卡片区（每页展示 20 个媒体库） */}
       {sortedLibraries.length > 0 && (
