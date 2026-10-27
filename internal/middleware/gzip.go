@@ -25,6 +25,7 @@ var apiGzipExcludedPrefixes = []string{
 	"/api/strm/play/",
 	"/api/ws",
 	"/api/events",
+	"/api/admin/diagnostics/pprof/",
 }
 
 // GzipAPI 压缩 /api 下的 JSON 响应（媒体列表动辄数 MB，压缩率 85%+）。

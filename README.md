@@ -47,6 +47,7 @@ docker compose up -d
 | [更新与备份](https://github.com/Ferrymania/nook/wiki/Updates-and-Backups) | 版本检查、更新镜像、数据备份与旧安装升级 |
 | [常见问题](https://github.com/Ferrymania/nook/wiki/Troubleshooting) | 扫库、整理、硬链接、日志与客户端连接排查 |
 | [Telegram 通知](docs/telegram-notifications.md) | 入库海报通知、STRM 同步控制与发送规则 |
+| [运行诊断](docs/runtime-diagnostics.md) | 临时开启 pprof、下载内存与 CPU 分析文件 |
 | [开发与构建](https://github.com/Ferrymania/nook/wiki/Development) | 本地开发、数据库测试、二进制构建与发布流程 |
 
 ## 贡献与致谢

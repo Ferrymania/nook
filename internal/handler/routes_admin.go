@@ -16,6 +16,7 @@ func registerAdminRoutes(api *gin.RouterGroup, cfg *config.Config, svc *service.
 	registerAdminUserRoutes(admin, svc)
 	registerAdminPermissionRoutes(admin, svc)
 	registerAdminSystemRoutes(admin, svc)
+	registerAdminDiagnosticsRoutes(admin, svc)
 	registerAdminBackupRoutes(admin, svc)
 	registerAdminOrganizerRoutes(admin, svc)
 	registerAdminAPIConfigRoutes(admin, svc)
