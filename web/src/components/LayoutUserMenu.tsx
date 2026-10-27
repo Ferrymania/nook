@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useLocation } from 'react-router-dom'
-import { Cast, ChevronDown, Clock, Heart, ListMusic, LogOut, Settings, Tv } from 'lucide-react'
+import { Cast, ChevronDown, LogOut, Settings, Tv, User } from 'lucide-react'
 
 import { LayoutThemeToggle } from './LayoutThemeToggle'
 import { TemporaryPasswordDialog } from './TemporaryPasswordDialog'
@@ -104,10 +104,7 @@ export function LayoutUserMenu({
             className="nook-user-menu fixed z-121 w-56 origin-top-right overflow-y-auto rounded-2xl border border-(--app-border) bg-(--app-panel) p-2 shadow-xl animate-menu-in"
             onPointerDown={(event) => event.stopPropagation()}
           >
-	            <UserMenuLink to="/profile" icon={<Settings size={16} />} label="个人资料" onNavigate={onClose} />
-	            <UserMenuLink to="/favourites" icon={<Heart size={16} />} label="我的收藏" onNavigate={onClose} />
-	            <UserMenuLink to="/playlists" icon={<ListMusic size={16} />} label="播放列表" onNavigate={onClose} />
-	            <UserMenuLink to="/history" icon={<Clock size={16} />} label="观看历史" onNavigate={onClose} />
+            <UserMenuLink to="/profile" icon={<User size={16} />} label="个人主页" onNavigate={onClose} />
 	            <UserMenuLink to="/dlna" icon={<Cast size={16} />} label="DLNA投屏" onNavigate={onClose} />
 	            <button
 	              type="button"
