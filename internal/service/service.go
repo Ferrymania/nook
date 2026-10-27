@@ -70,6 +70,7 @@ type Container struct {
 	Cloud115         *Cloud115PlaybackService
 	Database         *DatabaseAdminService
 	FFTools          *FFmpegToolsService
+	Diagnostics      *DiagnosticsService
 
 	stopCtx    context.Context
 	stopCancel context.CancelFunc
@@ -179,6 +180,9 @@ func (c *Container) runInactivitySweeper(ctx context.Context) {
 
 // Close 释放 services 持有的任何资源（websocket hub, ffmpeg 转码, fsnotify, 后台轮询器）。
 func (c *Container) Close() {
+	if c.Diagnostics != nil {
+		c.Diagnostics.Disable()
+	}
 	if c.stopCancel != nil {
 		c.stopCancel()
 	}

@@ -11,6 +11,7 @@ import {
 import { systemAPI } from '../api/system'
 import { formatAppVersion } from '../utils/formatAppVersion'
 import { VersionUpdatePanel } from './VersionUpdatePanel'
+import { DiagnosticsPanel } from './DiagnosticsPanel'
 
 type SystemInfo = {
   name: string
@@ -134,6 +135,7 @@ export function AboutSettingsPanel() {
       </div>
 
       <VersionUpdatePanel />
+      <DiagnosticsPanel />
     </div>
   )
 }
