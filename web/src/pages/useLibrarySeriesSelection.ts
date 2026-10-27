@@ -54,9 +54,9 @@ export function useLibrarySeriesSelection({
   // 一页卡片里时，需要单独按 key 解析；resolvingSeries 让页面在这段时间
   // 显示加载态，而不是先闪一下整个媒体库列表。
   const [resolvingSeries, setResolvingSeries] = useState(false)
-  const [pendingSeriesKey, setPendingSeriesKey] = useState('')
   // 当前 URL 请求的剧集 key（非剧集库 / 加载中 / 没带参数时为空）。
   const requestedSeriesKey = !loading && isSeries ? (searchParams.get('series') ?? '') : ''
+  const requestedMediaID = !loading && isSeries ? (searchParams.get('media_id') ?? '') : ''
 
   const selectedEpisodes = useMemo(() => {
     const sourceItems = isSeriesLibrary ? seriesEpisodeItems : items
@@ -104,39 +104,30 @@ export function useLibrarySeriesSelection({
   useEffect(() => {
     if (loading) return
     if (!isSeries) {
-      setPendingSeriesKey('')
+      setResolvingSeries(false)
       setSelectedSeries(null)
       setSelectedSeason(null)
       return
     }
 
-    if (!requestedSeriesKey) {
-      setPendingSeriesKey('')
+    if (!requestedSeriesKey && !requestedMediaID) {
+      setResolvingSeries(false)
       setSelectedSeries(null)
       return
     }
 
     const next = seriesCards.find((card) => card.key === requestedSeriesKey)
     if (next) {
-      setPendingSeriesKey('')
+      setResolvingSeries(false)
       setSelectedSeries(next)
       return
     }
 
-    // 目标剧集尚未加载到（远程库分页 / 大库分页）：登记待解析 key。
-    setPendingSeriesKey((prev) => (prev === requestedSeriesKey ? prev : requestedSeriesKey))
-  }, [isSeries, loading, requestedSeriesKey, seriesCards, setSelectedSeason, setSelectedSeries])
-
-  useEffect(() => {
-    // pendingSeriesKey 必须仍然是 URL 上请求的 key：切换媒体库/清空参数
-    // 时直接丢弃待解析状态，避免把别的库的剧集解析进来。
-    if (!pendingSeriesKey || pendingSeriesKey !== requestedSeriesKey) {
-      setResolvingSeries(false)
-      return
-    }
+    // Resolve against the complete server index when pagination or a changed
+    // grouping key prevents an in-page match. Cancel on navigation changes.
     let cancelled = false
     setResolvingSeries(true)
-    resolveSeriesCardByKey(libraryID, pendingSeriesKey)
+    resolveSeriesCardByKey(libraryID, requestedSeriesKey, requestedMediaID)
       .then((card) => {
         if (cancelled) return
         setResolvingSeries(false)
@@ -150,7 +141,7 @@ export function useLibrarySeriesSelection({
     return () => {
       cancelled = true
     }
-  }, [libraryID, pendingSeriesKey, requestedSeriesKey, setSelectedSeries])
+  }, [isSeries, loading, libraryID, requestedSeriesKey, requestedMediaID, seriesCards, setSelectedSeason, setSelectedSeries])
 
   useEffect(() => {
     if (!selectedSeries || selectedEpisodes.length === 0) {
@@ -166,6 +157,7 @@ export function useLibrarySeriesSelection({
     setSelectedSeries(card)
     const next = new URLSearchParams(searchParams)
     next.set('series', card.key)
+    next.set('media_id', card.rep.id)
     setSearchParams(next)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -176,6 +168,7 @@ export function useLibrarySeriesSelection({
     onClearSeriesState?.()
     const next = new URLSearchParams(searchParams)
     next.delete('series')
+    next.delete('media_id')
     setSearchParams(next)
   }
 

@@ -540,7 +540,7 @@ function mediaParentLooksLikeCollection(path?: string): boolean {
 export function seriesCardLink(card: SeriesCard): string {
   if (isSeriesCard(card)) {
     const targetLibrary = card.linkLibraryId || targetLibraryID(card.linkMedia ?? card.rep)
-    return `/library/${targetLibrary}?series=${encodeURIComponent(card.key)}`
+    return `/library/${targetLibrary}?series=${encodeURIComponent(card.key)}&media_id=${encodeURIComponent(card.rep.id)}`
   }
   return `/media/${card.rep.id}`
 }

@@ -1,4 +1,4 @@
-import { libraryAPI, mediaAPI } from '../api/library'
+import { libraryAPI, mediaAPI, type SeriesEpisodesPage } from '../api/library'
 import type { Media } from '../types'
 import { groupSeries, type SeriesCard } from './groupSeries'
 import { isRemoteEmbyID } from './remoteEmby'
@@ -12,12 +12,12 @@ import { isRemoteEmbyID } from './remoteEmby'
  * 单独解析目标剧集，与分页无关：
  *
  * - 远程 Emby 的 key 本身就是（伪装后的）剧集 ID，直接取该条目详情；
- * - 本地 key 是分组 hash，改取该剧集的集列表，再折叠出代表条目。
+ * - 本地优先使用服务端完整分组卡片；key 变化时按固定媒体 ID 定位当前归属。
  *
  * key 失效（剧集已删除等）时返回 null，调用方保持"整库列表"原状态。
  */
-export async function resolveSeriesCardByKey(libraryID: string, key: string): Promise<SeriesCard | null> {
-  if (!libraryID || !key) return null
+export async function resolveSeriesCardByKey(libraryID: string, key: string, mediaID = ''): Promise<SeriesCard | null> {
+  if (!libraryID || (!key && !mediaID)) return null
 
   if (isRemoteEmbyID(key)) {
     const rep = await fetchRemoteSeriesMedia(key)
@@ -26,7 +26,9 @@ export async function resolveSeriesCardByKey(libraryID: string, key: string): Pr
     }
   }
 
-  const episodes = await fetchSeriesEpisodes(libraryID, key)
+  const page = await fetchSeriesPage(libraryID, key, mediaID)
+  if (page?.card) return page.card
+  const episodes = page?.items ?? []
   if (episodes.length === 0) return null
   // 与列表页同一套折叠规则，选出海报/元数据最好的那一集做代表卡片。
   const [grouped] = groupSeries(episodes)
@@ -49,11 +51,10 @@ async function fetchRemoteSeriesMedia(id: string): Promise<Media | null> {
   }
 }
 
-async function fetchSeriesEpisodes(libraryID: string, key: string): Promise<Media[]> {
+async function fetchSeriesPage(libraryID: string, key: string, mediaID: string): Promise<SeriesEpisodesPage | null> {
   try {
-    const page = await libraryAPI.listSeriesEpisodes(libraryID, key)
-    return Array.isArray(page.items) ? page.items : []
+    return await libraryAPI.listSeriesEpisodes(libraryID, key, mediaID)
   } catch {
-    return []
+    return null
   }
 }

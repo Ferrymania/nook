@@ -242,7 +242,7 @@ export function useLibraryData(
     let cancelled = false
     setLoadingSeriesEpisodes(true)
     setSeriesEpisodeItems([])
-    libraryAPI.listSeriesEpisodes(libraryID, selectedSeries.key)
+    libraryAPI.listSeriesEpisodes(libraryID, selectedSeries.key, selectedSeries.rep.id)
       .then((r) => {
         if (!cancelled) setSeriesEpisodeItems(r.items ?? [])
       })

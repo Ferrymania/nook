@@ -166,8 +166,9 @@ func listLibrarySeriesEpisodesHandler(svc *service.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		libID := c.Param("id")
 		key := c.Query("key")
-		if key == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "key is required"})
+		mediaID := c.Query("media_id")
+		if key == "" && mediaID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "key or media_id is required"})
 			return
 		}
 		ctx := c.Request.Context()
@@ -200,13 +201,23 @@ func listLibrarySeriesEpisodesHandler(svc *service.Container) gin.HandlerFunc {
 				return
 			}
 		}
-		items, err := svc.Media.ListLibrarySeriesEpisodes(c.Request.Context(), libID, key, mediaVisibilityForRequest(c, svc))
+		visibility := mediaVisibilityForRequest(c, svc)
+		card, err := svc.Media.ResolveLibrarySeriesCard(ctx, libID, key, mediaID, visibility)
+		if err != nil {
+			writeInternalOrCanceled(c, err)
+			return
+		}
+		if card == nil {
+			c.JSON(http.StatusOK, gin.H{"items": []model.Media{}, "total": 0})
+			return
+		}
+		items, err := svc.Media.ListLibrarySeriesEpisodes(ctx, libID, card.Key, visibility)
 		if err != nil {
 			writeInternalOrCanceled(c, err)
 			return
 		}
 		grouped := service.GroupEpisodeVersionsForDisplay(items)
-		c.JSON(http.StatusOK, gin.H{"items": grouped, "total": len(grouped)})
+		c.JSON(http.StatusOK, gin.H{"items": grouped, "total": len(grouped), "card": card})
 	}
 }
 

@@ -38,7 +38,9 @@ export function mediaLibraryTarget(media: Media): string | null {
 
   const seriesKey = resolveLibrarySeriesKey(media)
   const base = `/library/${encodeURIComponent(libraryID)}`
-  return seriesKey ? `${base}?series=${encodeURIComponent(seriesKey)}` : base
+  const params = new URLSearchParams({ media_id: media.id })
+  if (seriesKey) params.set('series', seriesKey)
+  return `${base}?${params}`
 }
 
 /** Link target for favourites / cards that should open the library series view when possible. */

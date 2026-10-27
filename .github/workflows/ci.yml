@@ -101,6 +101,8 @@ jobs:
           node "$frontend_test_dir/utils/homeCarousel.test.js"
           node "$frontend_test_dir/utils/mediaStatistics.test.js"
           node "$frontend_test_dir/utils/subtitleDisplay.test.js"
+          npx tsc src/utils/seriesNavigation.test.ts --module commonjs --target ES2020 --strict --skipLibCheck --outDir "$frontend_test_dir"
+          node "$frontend_test_dir/utils/seriesNavigation.test.js"
           node src/pages/adminLibraryPanelModel.test.ts
           npx tsc src/utils/mediaTechnicalSummary.test.ts --module commonjs --target ES2020 --strict --skipLibCheck --outDir "$frontend_test_dir"
           node "$frontend_test_dir/utils/mediaTechnicalSummary.test.js"
