@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { ArrowRight, BarChart3, Clock, Play, Trash2 } from 'lucide-react'
+import { ArrowRight, BarChart3, ChevronLeft, ChevronRight, Clock, Play, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 import { historyAPI } from '../api/history'
 import { ARTWORK, imageURL } from '../api/client'
 import { confirmAction } from '../components/confirmAction'
+import { ArtworkImage } from '../components/ArtworkImage'
+import { artworkSources } from '../utils/artworkSources'
 import { isRemoteEmbyID } from '../utils/remoteEmby'
 import type { HistoryItem, Media } from '../types'
 
@@ -30,6 +32,8 @@ export function WatchHistoryPanel({ embedded = false }: { embedded?: boolean }) 
   const [error, setError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
   const [busy, setBusy] = useState('')
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [canScroll, setCanScroll] = useState({ left: false, right: false })
   const limit = embedded ? 5 : 200
   const from = embedded ? `${location.pathname}${location.search}` : '/history'
   const Heading = embedded ? 'h2' : 'h1'
@@ -48,6 +52,32 @@ export function WatchHistoryPanel({ embedded = false }: { embedded?: boolean }) 
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [limit, reloadKey])
+
+  useEffect(() => {
+    const track = scrollRef.current
+    if (!embedded || !track) return
+    const update = () => setCanScroll({
+      left: track.scrollLeft > 1,
+      right: track.scrollLeft + track.clientWidth < track.scrollWidth - 1,
+    })
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(track)
+    track.addEventListener('scroll', update, { passive: true })
+    return () => {
+      observer.disconnect()
+      track.removeEventListener('scroll', update)
+    }
+  }, [embedded, loading, items.length])
+
+  const scrollHistory = (direction: number) => {
+    const track = scrollRef.current
+    if (!track) return
+    track.scrollBy({
+      left: direction * track.clientWidth,
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+    })
+  }
 
   const removeOne = async (id: string) => {
     if (!(await confirmAction({ title: '移除观看历史', message: '确定移除此条观看历史？不会删除媒体文件。', confirmText: '移除' }))) return
@@ -88,9 +118,15 @@ export function WatchHistoryPanel({ embedded = false }: { embedded?: boolean }) 
           <Heading id="watch-history-heading" className={embedded ? 'text-base font-semibold' : 'font-display text-3xl font-bold text-ink-600'}>观看历史</Heading>
         </div>
         {embedded ? (
-          <Link to="/history" className="inline-flex min-h-11 items-center gap-1.5 text-sm text-(--app-muted) transition-colors hover:text-(--app-text)">
-            查看全部 <ArrowRight size={14} />
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link to="/history" className="inline-flex min-h-11 items-center gap-1.5 text-sm text-(--app-muted) transition-colors hover:text-(--app-text)">
+              查看全部 <ArrowRight size={14} />
+            </Link>
+            {!loading && !error && (canScroll.left || canScroll.right) && <div className="hidden items-center gap-1 sm:flex">
+              <button type="button" aria-label="向左浏览观看历史" disabled={!canScroll.left} onClick={() => scrollHistory(-1)} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-(--app-border) hover:bg-(--app-hover) disabled:opacity-35"><ChevronLeft size={16} /></button>
+              <button type="button" aria-label="向右浏览观看历史" disabled={!canScroll.right} onClick={() => scrollHistory(1)} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-(--app-border) hover:bg-(--app-hover) disabled:opacity-35"><ChevronRight size={16} /></button>
+            </div>}
+          </div>
         ) : <div className="flex flex-wrap items-center gap-2">
           <Link
             to="/history/stats"
@@ -127,7 +163,8 @@ export function WatchHistoryPanel({ embedded = false }: { embedded?: boolean }) 
         <p className="py-4 text-sm text-(--app-muted)">暂无观看记录。</p>
       )}
 
-      <div className={embedded ? 'divide-y divide-(--app-border)' : 'space-y-3'}>
+      <div ref={scrollRef} role={embedded ? 'list' : undefined} aria-label={embedded ? '最近观看记录' : undefined} tabIndex={embedded && items.length > 0 ? 0 : undefined}
+        className={embedded ? 'flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 focus-visible:outline-2 focus-visible:outline-offset-2' : 'space-y-3'}>
         {!loading && !error && items.map((h) => {
           const m: Media = h.media || ({
             id: h.media_id,
@@ -137,10 +174,29 @@ export function WatchHistoryPanel({ embedded = false }: { embedded?: boolean }) 
           } as Media)
           const progress =
             h.duration_ms > 0 ? h.position_ms / h.duration_ms : 0
+          if (embedded) {
+            return (
+              <article key={h.id} role="listitem" className="w-36 shrink-0 snap-start space-y-2 sm:w-40 lg:w-44">
+                <Link to={`/media/${m.id}`} state={{ from }} className="block aspect-2/3 overflow-hidden rounded-lg bg-(--app-panel-soft)">
+                  <ArtworkImage sources={artworkSources(m, 'poster').map(source => imageURL(source, m.updated_at, ARTWORK.posterCard))} alt={m.title}
+                    className="h-full w-full object-cover" fallbackClassName="h-full w-full" />
+                </Link>
+                <Link to={`/media/${m.id}`} state={{ from }} title={m.title} className="block truncate text-sm font-medium hover:text-brand-500">{m.title}</Link>
+                <div className="space-y-1.5 text-xs text-(--app-muted)">
+                  <p>{h.completed ? '已看完' : `${fmtDuration(h.position_ms)} / ${fmtDuration(h.duration_ms)}`}</p>
+                  <div className="h-1 overflow-hidden rounded-full bg-(--app-hover)"><div className="h-full bg-(--app-brand-text)" style={{ width: `${Math.min(100, Math.max(0, Math.round(progress * 100)))}%` }} /></div>
+                  <time dateTime={h.watched_at} className="block">{new Date(h.watched_at).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}</time>
+                </div>
+                <Link to={`/play/${m.id}`} state={{ from }} className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-full border border-(--app-border) text-sm transition-colors hover:bg-(--app-hover)">
+                  <Play size={14} /> {h.completed ? '播放' : '继续播放'}
+                </Link>
+              </article>
+            )
+          }
           return (
             <div
               key={h.id}
-              className={embedded ? 'flex items-center gap-3 py-3' : 'glass-panel flex flex-col gap-3 p-3! sm:flex-row sm:items-center sm:gap-4'}
+              className="glass-panel flex flex-col gap-3 p-3! sm:flex-row sm:items-center sm:gap-4"
             >
               <div className="h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-surface-900">
                 {m.poster_url ? (
@@ -176,15 +232,15 @@ export function WatchHistoryPanel({ embedded = false }: { embedded?: boolean }) 
                   />
                 </div>
               </div>
-              <div className={embedded ? 'shrink-0' : 'flex w-full items-center gap-2 sm:w-auto sm:shrink-0'}>
+              <div className="flex w-full items-center gap-2 sm:w-auto sm:shrink-0">
                 <Link
                   to={`/play/${m.id}`}
                   state={{ from }}
-                  className={embedded ? 'inline-flex min-h-11 items-center gap-1.5 rounded-full border border-(--app-border) px-3 text-sm transition-colors hover:bg-(--app-hover)' : 'neon-button px-3! py-1! text-xs!'}
+                  className="neon-button px-3! py-1! text-xs!"
                 >
-                  <Play size={12} /> {embedded && h.completed ? '播放' : '继续'}
+                  <Play size={12} /> 继续
                 </Link>
-                {!embedded && <button
+                <button
                   onClick={() => removeOne(h.id)}
                   disabled={busy === h.id}
                   className="inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-500 disabled:opacity-50"
@@ -192,7 +248,7 @@ export function WatchHistoryPanel({ embedded = false }: { embedded?: boolean }) 
                 >
                   <Trash2 size={12} />
                   移除
-                </button>}
+                </button>
               </div>
             </div>
           )
