@@ -2,6 +2,12 @@ import { api, BATCH_REQUEST_TIMEOUT, LONG_REQUEST_TIMEOUT } from './client'
 import type { Library, LibraryRoot, Media, PlaybackInfo, ScanResult } from '../types'
 import type { SeriesCard } from '../utils/groupSeries'
 
+export interface SeriesEpisodesPage {
+  items: Media[]
+  total: number
+  card?: SeriesCard
+}
+
 export interface LibraryScanTask {
   id: string
   library_id: string
@@ -300,10 +306,10 @@ export const libraryAPI = {
       })
       .then((r) => r.data),
 
-  listSeriesEpisodes: (id: string, key: string) =>
+  listSeriesEpisodes: (id: string, key: string, mediaID?: string) =>
     api
-      .get<{ items: Media[]; total: number }>(`/libraries/${id}/series/episodes`, {
-        params: { key },
+      .get<SeriesEpisodesPage>(`/libraries/${id}/series/episodes`, {
+        params: { key, media_id: mediaID || undefined },
         timeout: LONG_REQUEST_TIMEOUT,
       })
       .then((r) => r.data),

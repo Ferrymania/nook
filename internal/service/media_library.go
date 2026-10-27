@@ -108,9 +108,36 @@ func (s *MediaService) listLibrariesWithPreview(ctx context.Context, libraries [
 		}
 	}
 
-	// Preview rows are only an internal candidate window. Keep it bounded so a
-	// library with a very long series cannot turn a homepage request into a full
-	// 50k-row scan merely to find another distinct card.
+	// A recent-row window cannot determine a stable series key or the full
+	// episode count. Reuse the complete, permission-scoped series index already
+	// used by library details, and only limit the final cards shown in a shelf.
+	for i := range out {
+		if _, pendingItem := pendingSet[out[i].ID]; !pendingItem || !isSeriesLibraryType(out[i].Type) {
+			continue
+		}
+		cards, _, err := s.ListLibrarySeriesCards(ctx, out[i].ID, visibility)
+		if err != nil {
+			return nil, err
+		}
+		out[i].Cards = latestLibraryCards(cards, cardLimit)
+		if s.cache != nil {
+			itemKey := s.libraryPreviewCacheKey([]model.Library{out[i].Library}, cardLimit, filter, includeCounts)
+			s.cache.SetJSON(ctx, itemKey, out[i], s.derivedReadCacheTTL())
+		}
+		delete(pendingSet, out[i].ID)
+	}
+	libIDs = libIDs[:0]
+	for _, lib := range pending {
+		if _, pendingItem := pendingSet[lib.ID]; pendingItem {
+			libIDs = append(libIDs, lib.ID)
+		}
+	}
+	if len(libIDs) == 0 {
+		return out, nil
+	}
+
+	// Remaining movie previews only need a bounded recent-row window; series
+	// libraries above use the shared complete index for their grouping.
 	fetchCount := cardLimit * 12
 	minFetchCount := 120
 	if cardLimit <= 2 {
@@ -156,29 +183,7 @@ func (s *MediaService) listLibrariesWithPreview(ctx context.Context, libraries [
 			}
 			continue
 		}
-		cards := groupMediaSeriesCards(items)
-		// Preview shelves use actual library additions, including a new episode
-		// or movie version. Keep release-date ordering on other series surfaces.
-		sort.SliceStable(cards, func(i, j int) bool {
-			left, right := cards[i].LastAddedAt, cards[j].LastAddedAt
-			switch {
-			case left == nil && right != nil:
-				return false
-			case left != nil && right == nil:
-				return true
-			case left != nil && right != nil && !left.Equal(*right):
-				return left.After(*right)
-			default:
-				return cards[i].Key < cards[j].Key
-			}
-		})
-		if len(cards) > cardLimit {
-			cards = cards[:cardLimit]
-		}
-		if cards == nil {
-			cards = []SeriesCard{}
-		}
-		out[i].Cards = cards
+		out[i].Cards = latestLibraryCards(groupMediaSeriesCards(items), cardLimit)
 		if s.cache != nil {
 			itemKey := s.libraryPreviewCacheKey([]model.Library{out[i].Library}, cardLimit, filter, includeCounts)
 			s.cache.SetJSON(ctx, itemKey, out[i], s.derivedReadCacheTTL())
@@ -186,6 +191,29 @@ func (s *MediaService) listLibrariesWithPreview(ctx context.Context, libraries [
 	}
 
 	return out, nil
+}
+
+// Sort a copy: series cards in the shared index remain immutable and retain
+// their existing library ordering. Preview shelves use the latest addition.
+func latestLibraryCards(cards []SeriesCard, limit int) []SeriesCard {
+	out := append([]SeriesCard{}, cards...)
+	sort.SliceStable(out, func(i, j int) bool {
+		left, right := out[i].LastAddedAt, out[j].LastAddedAt
+		switch {
+		case left == nil && right != nil:
+			return false
+		case left != nil && right == nil:
+			return true
+		case left != nil && right != nil && !left.Equal(*right):
+			return left.After(*right)
+		default:
+			return out[i].Key < out[j].Key
+		}
+	})
+	if len(out) > limit {
+		out = out[:limit]
+	}
+	return out
 }
 
 // DeleteLibrary removes a library and its media rows. The on-disk files are

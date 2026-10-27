@@ -331,8 +331,9 @@ type seriesListResponse struct {
 }
 
 type seriesEpisodesResponse struct {
-	Items []model.Media `json:"items"`
-	Total int64         `json:"total"`
+	Items []model.Media       `json:"items"`
+	Total int64               `json:"total"`
+	Card  *service.SeriesCard `json:"card"`
 }
 
 func requestMediaList(t *testing.T, svc *service.Container, path, libraryID string) mediaListResponse {

@@ -63,7 +63,7 @@ func (s *MediaService) libraryPreviewCacheKey(libraries []model.Library, cardLim
 	sort.Strings(allowed)
 	sort.Strings(hidden)
 	sum := sha1.Sum([]byte(strings.Join([]string{
-		"preview:recent-added:v1",
+		"preview:recent-added:v2:canonical-series",
 		strings.Join(libIDs, ","),
 		fmt.Sprintf("%d:%t:%t", cardLimit, filter.IncludeNSFW, includeCounts),
 		strings.Join(allowed, ","),

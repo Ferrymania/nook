@@ -22,10 +22,12 @@ type seriesCardsCacheValue struct {
 // 整库 SQL 加载与 series key 解析，之后剧集卡片、剧集列表、媒体详情剧集
 // 共享这份结果：命中路径零 SQL、零逐行 key 解析。Rows/Episodes 视为不可变。
 type libraryRowsCacheValue struct {
-	Rows     []model.Media
-	Resolver mediaSeriesKeyResolver
-	Episodes map[string][]model.Media
-	Cards    []SeriesCard
+	Rows        []model.Media
+	Resolver    mediaSeriesKeyResolver
+	Episodes    map[string][]model.Media
+	Cards       []SeriesCard
+	MediaKeys   map[string]string
+	CardIndexes map[string]int
 }
 
 type SeriesCard struct {
@@ -95,16 +97,25 @@ func (s *MediaService) libraryRowsWithIndex(ctx context.Context, libraryID strin
 		// key 计算依赖 DisplayLibraryPath/ID）。
 		resolver, keys := resolveMediaSeriesKeys(rows)
 		episodes := make(map[string][]model.Media, len(rows)/4+1)
+		mediaKeys := make(map[string]string, len(rows))
 		for i, row := range rows {
 			k := keys[i]
 			if k == "" {
 				continue
 			}
 			episodes[k] = append(episodes[k], row)
+			mediaKeys[row.ID] = k
 		}
 		cards := groupMediaSeriesCardsByKeys(rows, keys)
 		s.attachSeriesMetadataToCards(loadCtx, cards)
-		value := &libraryRowsCacheValue{Rows: rows, Resolver: resolver, Episodes: episodes, Cards: cards}
+		cardIndexes := make(map[string]int, len(cards))
+		for i, card := range cards {
+			cardIndexes[card.Key] = i
+		}
+		value := &libraryRowsCacheValue{
+			Rows: rows, Resolver: resolver, Episodes: episodes, Cards: cards,
+			MediaKeys: mediaKeys, CardIndexes: cardIndexes,
+		}
 		if s.cache != nil {
 			s.cache.SetObject(cacheKey, value, s.derivedReadCacheTTL())
 		}
@@ -170,13 +181,15 @@ func (s *MediaService) ListLibrarySeriesCardsFiltered(
 	}
 	completed := s.completedMediaIDSet(ctx, filters)
 	kept := make([]model.Media, 0, len(rows.Rows))
+	keys := make([]string, 0, len(rows.Rows))
 	for _, row := range rows.Rows {
 		if !mediaRowMatchesFilters(&row, filters, completed) {
 			continue
 		}
 		kept = append(kept, row)
+		keys = append(keys, rows.MediaKeys[row.ID])
 	}
-	cards := groupMediaSeriesCards(kept)
+	cards := groupMediaSeriesCardsByKeys(kept, keys)
 	s.attachSeriesMetadataToCards(ctx, cards)
 	if cards == nil {
 		cards = []SeriesCard{}
@@ -259,6 +272,25 @@ func (s *MediaService) ListRecentSeriesCards(ctx context.Context, limit int, vis
 		cards = cards[:limit]
 	}
 	return cards, nil
+}
+
+// ResolveLibrarySeriesCard shares the same visible library index as the list
+// and episode endpoints. A stable media ID recovers links whose grouping key
+// changed after an import or metadata update; it cannot escape that scope.
+func (s *MediaService) ResolveLibrarySeriesCard(ctx context.Context, libraryID, key, mediaID string, visibility MediaVisibility) (*SeriesCard, error) {
+	rows, err := s.libraryRowsWithIndex(ctx, libraryID, visibility)
+	if err != nil {
+		return nil, err
+	}
+	index, found := rows.CardIndexes[key]
+	if !found && mediaID != "" {
+		index, found = rows.CardIndexes[rows.MediaKeys[mediaID]]
+	}
+	if !found {
+		return nil, nil
+	}
+	card := rows.Cards[index]
+	return &card, nil
 }
 
 func (s *MediaService) ListLibrarySeriesEpisodes(ctx context.Context, libraryID, key string, visibility MediaVisibility) ([]model.Media, error) {
