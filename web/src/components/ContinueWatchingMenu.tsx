@@ -125,7 +125,7 @@ export function ContinueWatchingMenu({ history, media, onHistoryChanged }: {
     <button ref={triggerRef} type="button" disabled={busy} aria-label={`操作：${media.title}`} aria-haspopup="menu" aria-expanded={open} aria-controls={open ? menuID : undefined}
       onClick={() => { setPosition(null); setOpen((value) => !value) }}
       onKeyDown={(event) => { if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); setOpen(true) } }}
-      className="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full bg-black/65 text-white transition-colors hover:bg-black/85 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-60">
+      className="absolute bottom-1.5 right-1.5 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-black/65 text-white transition-colors hover:bg-black/85 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-60">
       {busy ? <Loader2 size={18} className="animate-spin" /> : <MoreHorizontal size={20} />}
     </button>
     {open && createPortal(<>
