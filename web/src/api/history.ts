@@ -30,4 +30,7 @@ export const historyAPI = {
       .then((r) => r.data),
 
   remove: (id: string) => api.delete(`/watch-history/${id}`).then((r) => r.data),
+
+  setPlayed: (id: string, played: boolean) =>
+    api.patch<{ played: boolean }>(`/watch-history/${encodeURIComponent(id)}/played`, { played }).then((r) => r.data),
 }

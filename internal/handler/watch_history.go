@@ -1,17 +1,19 @@
 // Package handler — watch history endpoints.
 //
-// The base /history GET / POST routes already exist; these add the three
-// auxiliary surfaces the React WatchHistoryPage needs:
+// The base /history GET / POST routes already exist; these add the
+// auxiliary surfaces the React watch history views need:
 //
-//	GET  /api/watch-history          paginated list (admin sees every user)
+//	GET  /api/watch-history          caller's recent history
 //	GET  /api/watch-history/stats    aggregate watch time + completion
 //	GET  /api/watch-history/continue resume rail (incomplete only)
+//	PATCH /api/watch-history/:id/played set watched/unwatched for an owned row
 //	DELETE /api/watch-history        clear (?media_item_id= optional)
 //	DELETE /api/watch-history/:id    remove one row
 package handler
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"sort"
 	"strconv"
@@ -19,6 +21,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 
 	"github.com/Ferrymania/nook/internal/middleware"
 	"github.com/Ferrymania/nook/internal/model"
@@ -392,5 +395,40 @@ func historyDeleteOneHandler(svc *service.Container) gin.HandlerFunc {
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"removed": res.RowsAffected})
+	}
+}
+
+// historySetPlayedHandler changes only a history row owned by the caller. Reuse
+// the Emby service so manual status changes invalidate its cached user data too.
+func historySetPlayedHandler(svc *service.Container) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID := currentUserID(c)
+		if userID == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+			return
+		}
+		var req struct {
+			Played *bool `json:"played" binding:"required"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "played must be a boolean"})
+			return
+		}
+		var history model.PlaybackHistory
+		err := svc.Repo.DB.WithContext(c.Request.Context()).
+			Where("id = ? AND user_id = ?", c.Param("id"), userID).First(&history).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "history not found"})
+			return
+		}
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		if err := svc.Emby.MarkPlayed(c.Request.Context(), userID, history.MediaID, *req.Played); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"played": *req.Played})
 	}
 }

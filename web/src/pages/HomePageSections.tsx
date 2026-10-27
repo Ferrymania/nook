@@ -21,6 +21,7 @@ import { useInViewOnce } from '../hooks/useInViewOnce'
 import { useLazyPreviewBatch } from '../hooks/useLazyPreviewBatch'
 import { useRememberedListPosition } from '../hooks/useListPositionMemory'
 import { MediaCard } from '../components/MediaCard'
+import { ContinueWatchingMenu } from '../components/ContinueWatchingMenu'
 import type { HistoryItem } from '../api/playback'
 import type { Library, Media } from '../types'
 import type { SeriesCard } from '../utils/groupSeries'
@@ -520,7 +521,7 @@ export function HomeLibraryRowSection({
    4. 继续观看行 (Continue Watching)
    ========================================================================= */
 
-export function ContinueWatchingSection({ history }: { history: HistoryItem[] }) {
+export function ContinueWatchingSection({ history, onHistoryChanged }: { history: HistoryItem[]; onHistoryChanged: (id: string) => void }) {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const scroll = (direction: 'left' | 'right') => {
@@ -581,8 +582,9 @@ export function ContinueWatchingSection({ history }: { history: HistoryItem[] })
           } as Media)
           const progress = h.duration_ms > 0 ? h.position_ms / h.duration_ms : 0
           return (
-            <div key={h.id} className="nook-continue-item shrink-0">
+            <div key={h.id} className="nook-continue-item relative shrink-0">
               <ContinueCard media={media} progress={progress} />
+              <ContinueWatchingMenu history={h} media={media} onHistoryChanged={onHistoryChanged} />
             </div>
           )
         })}
