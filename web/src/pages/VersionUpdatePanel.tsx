@@ -8,6 +8,7 @@ import { formatAppVersion } from '../utils/formatAppVersion'
 
 const RELEASES_URL = 'https://github.com/Ferrymania/nook/releases'
 const UPDATE_COMMAND = 'docker compose pull nook\ndocker compose up -d --no-deps nook'
+const UPDATE_COMMAND_LINES = UPDATE_COMMAND.split('\n')
 
 function formatDate(value?: string): string {
   if (!value) return ''
@@ -62,67 +63,58 @@ export function VersionUpdatePanel() {
   const available = !error && result?.status === 'update_available'
   const failed = error || result?.status === 'unavailable'
   const Icon = checking ? Loader2 : failed ? AlertCircle : available ? ArrowUpCircle : result?.status === 'up_to_date' ? CheckCircle2 : RefreshCw
-  const title = checking ? '正在检查更新…' : failed ? '暂时无法检查更新' : result?.message || '版本更新'
+  const title = checking ? '正在检查更新…' : failed ? '暂时无法检查更新'
+    : available && result?.latest_version ? `发现新版本 ${formatAppVersion(result.latest_version)}`
+      : result?.message || '版本状态未知'
+  const showLatest = !available && result?.latest_version && result.status !== 'up_to_date'
 
   return (
-    <section className="glass-panel space-y-5 p-6 sm:p-8" aria-labelledby="version-update-heading">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h3 id="version-update-heading" className="font-display text-lg font-bold text-ink-600">版本更新</h3>
+    <section className="about-panel about-update" aria-label="版本更新">
+      <div className="about-update-heading">
+        <div className={`about-release-state${available ? ' about-release-available' : ''}`} role="status" aria-live="polite" aria-busy={checking}>
+          <div className="about-release-title">
+            <Icon size={20} className={`shrink-0 ${checking ? 'animate-spin' : ''}`} aria-hidden="true" />
+            <h3>{title}</h3>
+          </div>
+          {failed && !checking && (
+            <p className="about-release-note">
+              {error ? '检查失败，请稍后重试。也可以前往 GitHub 发布页查看。' : result?.message}
+            </p>
+          )}
+          {result && !error && !checking && !failed && (
+            <div className="about-release-note">
+              {showLatest && <span>最新正式版 {formatAppVersion(result.latest_version)}</span>}
+              {formatDate(result.published_at) && <span>发布于 {formatDate(result.published_at)}</span>}
+            </div>
+          )}
         </div>
-        <button type="button" onClick={check} disabled={checking} className="library-toolbar-button">
+        <button type="button" onClick={check} disabled={checking} className="about-button about-button-primary">
           <RefreshCw size={16} className={checking ? 'animate-spin' : ''} aria-hidden="true" />
           {checking ? '检查中…' : '检查更新'}
         </button>
       </div>
 
-      <div
-        className={`rounded-2xl border p-4 sm:p-5 ${available ? 'border-brand-500/30 bg-brand-500/5' : 'border-(--app-border) bg-(--app-panel-soft)'}`}
-        role="status" aria-live="polite" aria-busy={checking}
-      >
-        <div className="flex items-center gap-2 text-ink-600">
-          <Icon size={20} className={`shrink-0 ${checking ? 'animate-spin' : ''} ${available ? 'text-brand-500' : ''}`} aria-hidden="true" />
-          <p className="font-semibold">{title}</p>
-          {available && !checking && <span className="shrink-0 whitespace-nowrap rounded-full bg-brand-500/10 px-2 py-0.5 text-xs font-semibold text-brand-600">可更新</span>}
-        </div>
-        {failed && !checking && (
-          <p className="mt-2 text-sm leading-relaxed text-sand-500">
-            {error ? '检查失败，请稍后重试。也可以前往 GitHub 发布页查看。' : result?.message}
-          </p>
-        )}
-        {result && !error && (
-          <div className="mt-4 flex flex-wrap gap-x-8 gap-y-3 text-sm">
-            <div><span className="text-sand-500">当前版本</span><p className="mt-1 font-mono font-semibold text-ink-600">{formatAppVersion(result.current_version)}</p></div>
-            {result.latest_version && <div><span className="text-sand-500">最新正式版</span><p className="mt-1 font-mono font-semibold text-ink-600">{formatAppVersion(result.latest_version)}</p></div>}
-            {formatDate(result.published_at) && <div><span className="text-sand-500">发布时间</span><p className="mt-1 text-ink-600">{formatDate(result.published_at)}</p></div>}
-          </div>
-        )}
-      </div>
-
       {available && result?.release_notes && (
-        <details className="rounded-xl border border-(--app-border) px-4 py-3" open={available || undefined}>
-          <summary className="cursor-pointer text-sm font-semibold text-ink-600">
-            最新正式版{result.latest_version && ` ${formatAppVersion(result.latest_version)}`} 更新说明
+        <details className="about-release-notes" open={available || undefined}>
+          <summary>
+            更新说明
           </summary>
           <ReleaseNotes>{result.release_notes}</ReleaseNotes>
         </details>
       )}
 
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h4 className="text-sm font-semibold text-ink-600">Docker Compose 更新</h4>
-          <button type="button" onClick={copyCommand} className="library-toolbar-button">
-            {copied ? <Check size={15} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />}
-            {copied ? '已复制更新命令' : '复制更新命令'}
-          </button>
-        </div>
-        <pre className="overflow-x-auto rounded-xl border border-(--app-border) bg-(--app-panel-soft) p-4 text-xs leading-7 text-ink-600 sm:text-sm"><code>{UPDATE_COMMAND}</code></pre>
+      <div className="about-command">
+        <button type="button" onClick={copyCommand} className="about-button about-command-copy"
+          aria-label={copied ? '已复制命令' : '复制命令'} title={copied ? '已复制命令' : '复制命令'}>
+          {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+        </button>
+        <pre><code><span>{UPDATE_COMMAND_LINES[0]}</span>{'\n'}{UPDATE_COMMAND_LINES.slice(1).join('\n')}</code></pre>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-(--app-border) pt-4 text-xs text-sand-500">
-        <p>{result ? `检查于 ${formatDate(result.checked_at)}` : error ? '可稍后重试或前往发布页查看' : '检查结果缓存 30 分钟'}</p>
-        <a href={result?.release_url || RELEASES_URL} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 font-medium text-brand-600 hover:underline">
-          查看 GitHub 发布页 <ExternalLink size={13} aria-hidden="true" />
+      <div className="about-update-footer">
+        <p>{result ? `检查于 ${formatDate(result.checked_at)}` : error ? '检查失败，可重新检查' : '正在读取版本信息'}</p>
+        <a href={result?.release_url || RELEASES_URL} target="_blank" rel="noreferrer" className="about-text-link">
+          发布记录 <ExternalLink size={13} aria-hidden="true" />
         </a>
       </div>
     </section>
