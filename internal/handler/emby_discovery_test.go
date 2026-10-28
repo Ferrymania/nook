@@ -276,8 +276,8 @@ func TestEmbyGenresReturnsCounts(t *testing.T) {
 		t.Fatalf("items = %d, want 2 (body=%s)", len(items), w.Body.String())
 	}
 	// 排序按计数降序：Action(2) 在前。
-	if name, _ := items[0]["Name"].(string); name != "Action" {
-		t.Fatalf("first Name = %q, want Action", name)
+	if name, _ := items[0]["Name"].(string); name != "动作" {
+		t.Fatalf("first Name = %q, want 动作", name)
 	}
 	if count, ok := items[0]["ItemCount"].(float64); !ok || int(count) != 2 {
 		t.Fatalf("ItemCount = %v, want 2", items[0]["ItemCount"])

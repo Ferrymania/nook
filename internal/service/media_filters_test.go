@@ -25,6 +25,7 @@ func TestMediaRowMatchesFilters(t *testing.T) {
 	}{
 		{name: "no filters", filters: MediaListFilters{}, want: true},
 		{name: "genre hit", filters: MediaListFilters{Genres: []string{"Action"}}, want: true},
+		{name: "Chinese alias hit", filters: MediaListFilters{Genres: []string{"动作"}}, want: true},
 		{name: "genre miss", filters: MediaListFilters{Genres: []string{"Comedy"}}, want: false},
 		{name: "year in range", filters: MediaListFilters{YearMin: 2010, YearMax: 2020}, want: true},
 		{name: "year below min", filters: MediaListFilters{YearMin: 2016}, want: false},
@@ -46,6 +47,33 @@ func TestMediaRowMatchesFilters(t *testing.T) {
 				t.Fatalf("matched = %t, want %t", got, tc.want)
 			}
 		})
+	}
+}
+
+func TestSeriesGenreAliasMatching(t *testing.T) {
+	for _, tc := range []struct {
+		raw, query string
+		want       bool
+	}{
+		{"恐怖", "Horror", true},
+		{"Horror,恐怖", "恐怖", true},
+		{"Drama；\tHORROR\n、Crime", "恐怖", true},
+		{"Sci-Fi & Fantasy", "科幻与奇幻", true},
+		{"Sci-Fi & Fantasy", "科幻", false},
+		{"Action & Adventure", "动作冒险", true},
+		{"Action & Adventure", "动作", false},
+		{"我的类型", "我的类型", true},
+		{"100ABCustom", "100%_Custom", false},
+		{"100%_Custom", "100%_custom", true},
+		{"HorrorComedy", "Horror", false},
+	} {
+		row := &model.Media{Genres: tc.raw}
+		if got := mediaRowMatchesFilters(row, MediaListFilters{Genres: []string{tc.query}}, nil); got != tc.want {
+			t.Fatalf("%q matches %q = %v, want %v", tc.raw, tc.query, got, tc.want)
+		}
+		if row.Genres != tc.raw {
+			t.Fatalf("filter modified shared library row: %+v", row)
+		}
 	}
 }
 

@@ -3,6 +3,7 @@ package service
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 )
 
@@ -49,7 +50,17 @@ func TestSeriesEpisodeGenreFallbackIgnoresShowTags(t *testing.T) {
 
 func TestCountGenresCountsEachMediaOnce(t *testing.T) {
 	got := countGenres([]string{"Action，action;剧情、剧情,我的类型", "action；我的类型", "", "Drama"})
-	if len(got) != 4 || findGenre(got, "Action") != 2 || findGenre(got, "剧情") != 1 || findGenre(got, "我的类型") != 2 || findGenre(got, "Drama") != 1 {
+	if len(got) != 3 || findGenre(got, "动作") != 2 || findGenre(got, "剧情") != 2 || findGenre(got, "我的类型") != 2 {
 		t.Fatalf("genres = %+v", got)
+	}
+}
+
+func TestGenreCountsExposeKnownAliases(t *testing.T) {
+	got := countGenres([]string{"Horror,恐怖", "恐怖", "MY Genre,my genre"})
+	if len(got) != 2 || findGenre(got, "恐怖") != 2 || findGenre(got, "MY Genre") != 1 {
+		t.Fatalf("genres = %+v", got)
+	}
+	if !slices.Equal(got[0].Aliases, []string{"恐怖", "Horror"}) {
+		t.Fatalf("facet aliases = %v", got[0].Aliases)
 	}
 }

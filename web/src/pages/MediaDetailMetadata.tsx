@@ -10,7 +10,7 @@ type MediaDetailMetadataProps = {
 export function MediaDetailMetadata({ media }: MediaDetailMetadataProps) {
   const heading = media.episode_title?.trim() || media.title
   const showTitleContext = Boolean(media.episode_title?.trim() && media.title && media.title !== heading)
-  const genres = parseCSV(media.genres)
+  const genres = media.genre_names ?? parseCSV(media.genres)
   const languages = parseCSV(media.languages)
   const countries = parseCSV(media.countries)
   const hasTaxonomy = genres.length > 0 || languages.length > 0 || countries.length > 0
@@ -56,7 +56,7 @@ export function MediaDetailMetadata({ media }: MediaDetailMetadataProps) {
 
       {hasTaxonomy && (
         <div className="nook-detail-taxonomy space-y-3">
-          <MetadataRow label="类型流派" values={parseCSV(media.genres)} tone="brand" />
+          <MetadataRow label="类型流派" values={genres} tone="brand" />
           <MetadataRow label="语言" values={parseCSV(media.languages)} />
           <MetadataRow label="国家/地区" values={parseCSV(media.countries)} />
           </div>

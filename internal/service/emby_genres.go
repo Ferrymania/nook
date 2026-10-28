@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Ferrymania/nook/internal/genre"
 	"github.com/Ferrymania/nook/internal/model"
 )
 
@@ -20,7 +21,7 @@ type embyGenreItem struct {
 }
 
 func embyGenreNumber(name string) int64 {
-	sum := sha256.Sum256([]byte("nook:genre:" + strings.ToLower(strings.TrimSpace(name))))
+	sum := sha256.Sum256([]byte("nook:genre:" + genre.Key(name)))
 	id := int64(binary.BigEndian.Uint64(sum[:8]) & ((1 << 53) - 1))
 	if id == 0 {
 		return 1
@@ -33,18 +34,7 @@ func embyGenreID(name string) string {
 }
 
 func normalizedEmbyGenres(names []string) []string {
-	out := make([]string, 0, len(names))
-	seen := make(map[string]bool, len(names))
-	for _, raw := range names {
-		for _, name := range SplitGenreList(raw) {
-			key := strings.ToLower(name)
-			if !seen[key] {
-				seen[key] = true
-				out = append(out, name)
-			}
-		}
-	}
-	return out
+	return genre.Names(names...)
 }
 
 func setEmbyGenres(item map[string]any, names []string) {

@@ -47,7 +47,7 @@ import {
 
 /** 媒体库筛选面板的可选项。 */
 export interface LibraryFacets {
-  genres: Array<{ name: string; count: number }>
+  genres: Array<{ name: string; count: number; aliases?: string[] }>
   year_min: number
   year_max: number
 }

@@ -13,7 +13,8 @@ import (
 
 type MediaItem struct {
 	model.Media
-	Versions []model.Media `json:"versions,omitempty"`
+	Versions   []model.Media `json:"versions,omitempty"`
+	GenreNames []string      `json:"genre_names,omitempty"` // Display only; Genres remains editable source metadata.
 }
 
 func normalizeGroupedMediaPage(page, pageSize int) (int, int) {

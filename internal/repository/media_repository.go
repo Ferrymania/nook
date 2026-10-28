@@ -8,6 +8,7 @@ import (
 
 	"gorm.io/gorm"
 
+	"github.com/Ferrymania/nook/internal/genre"
 	"github.com/Ferrymania/nook/internal/model"
 )
 
@@ -26,7 +27,7 @@ type MediaQueryFilter struct {
 	// LibraryID 是精确匹配的单个库过滤，用于库内场景（例如媒体库页筛选）。
 	// 它与 AllowedLibraryIDs 是「与」关系：可见性仍由后者兜底，避免越权。
 	LibraryID string
-	// Genres 是类型多选，之间为「或」。按整词匹配（见 genreMatchClause）。
+	// Genres 是类型多选，之间为「或」，中英文别名按整词匹配。
 	Genres []string
 	// YearMin / YearMax 为 0 表示该端不限。
 	YearMin int
@@ -57,7 +58,17 @@ func applyMediaQueryFilter(q *gorm.DB, filter MediaQueryFilter) *gorm.DB {
 		q = q.Where("series_id = ?", seriesID)
 	}
 	if len(filter.Genres) > 0 {
-		q = q.Where(genreMatchClause(filter.Genres), genreMatchArgs(filter.Genres)...)
+		names := genre.MatchNames(filter.Genres)
+		if len(names) == 0 {
+			q = q.Where("FALSE")
+		} else {
+			// Split whole tokens so custom names containing % or _ stay literal.
+			// Use the same separators as genre.Split and trim surrounding whitespace.
+			q = q.Where(`EXISTS (
+				SELECT 1 FROM regexp_split_to_table(COALESCE(genres, ''), '[,，、;；]') AS genre_part(value)
+				WHERE LOWER(BTRIM(genre_part.value, E' \t\r\n\f\013')) IN ?
+			)`, names)
+		}
 	}
 	if filter.YearMin > 0 {
 		q = q.Where("year >= ?", filter.YearMin)
@@ -79,40 +90,6 @@ func applyMediaQueryFilter(q *gorm.DB, filter MediaQueryFilter) *gorm.DB {
 		}
 	}
 	return q
-}
-
-// genreMatchClause 生成类型整词匹配条件。
-//
-// genres 列是逗号分隔字符串，直接 LIKE '%Action%' 会把 "ActionComedy" 也命中。
-// 这里统一补上首尾逗号（并用空格容错）后再按 "%,Action,%" 匹配，实现整词语义；
-//
-// 注意写法：参数本身带上首尾逗号，SQL 里只做一次 REPLACE 来保证列值两端也有
-// 分隔符，避免 OR 链里重复拼接列表达式。
-func genreMatchClause(genres []string) string {
-	clauses := make([]string, 0, len(genres))
-	for range genres {
-		clauses = append(clauses, "',' || REPLACE(REPLACE(TRIM(genres), ' ', ''), '，', ',') || ',' LIKE ?")
-	}
-	return "(" + strings.Join(clauses, " OR ") + ")"
-}
-
-// genreMatchArgs 生成与 genreMatchClause 对应的参数，形如 "%,Action,%"。
-//
-// 必须与 genreMatchClause 的列端处理完全对称：
-//   - TRIM                   → TrimSpace
-//   - REPLACE(…, ' ', ”)    → ReplaceAll(…, " ", "")   ← 多词类型（如 "Science Fiction"）
-//   - REPLACE(…, '，', ',')  → ReplaceAll(…, "，", ",")
-func genreMatchArgs(genres []string) []any {
-	args := make([]any, 0, len(genres))
-	for _, genre := range genres {
-		name := strings.ReplaceAll(strings.TrimSpace(genre), "，", ",")
-		name = strings.ReplaceAll(name, " ", "") // mirror REPLACE(…,' ','') in genreMatchClause
-		if name == "" {
-			name = "\x00" // 空类型不会命中任何行
-		}
-		args = append(args, "%,"+name+",%")
-	}
-	return args
 }
 
 // ListGenreValues 返回符合过滤条件的 media.genres 原始值（逗号分隔字符串）。

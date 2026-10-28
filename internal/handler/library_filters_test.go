@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"slices"
 	"testing"
 
@@ -105,8 +107,70 @@ func TestLibraryFacetsReturnGenresAndYears(t *testing.T) {
 	if len(facets.Genres) != 2 {
 		t.Fatalf("genres = %+v, want 2 entries", facets.Genres)
 	}
-	if facets.Genres[0].Name != "Action" || facets.Genres[0].Count != 2 {
-		t.Fatalf("first genre = %+v, want Action:2", facets.Genres[0])
+	if facets.Genres[0].Name != "动作" || facets.Genres[0].Count != 2 {
+		t.Fatalf("first genre = %+v, want 动作:2", facets.Genres[0])
+	}
+}
+
+func TestLibraryGenreAliasesAgreeAcrossFacetsFiltersAndDetail(t *testing.T) {
+	router, svc, userID, libID := newLibraryFilterEnv(t)
+	const rawGenres = "Horror,恐怖,我的类型"
+	m := &model.Media{LibraryID: libID, Title: "English", Genres: rawGenres, Path: "/english.mkv"}
+	seedLibraryMedia(t, svc, m,
+		&model.Media{LibraryID: libID, Title: "Chinese", Genres: "恐怖", Path: "/chinese.mkv"},
+		&model.Media{LibraryID: libID, Title: "Hidden", Genres: "Horror", Path: "/hidden.mkv", NSFW: true},
+		&model.Media{LibraryID: "other-library", Title: "Other", Genres: "Horror", Path: "/other.mkv"},
+	)
+	code, body := getJSON(t, router, "/api/libraries/"+libID+"/facets")
+	var facets struct{ Genres []service.GenreCount }
+	if err := json.Unmarshal(body, &facets); err != nil || code != http.StatusOK {
+		t.Fatalf("facets: %d %s, err=%v", code, body, err)
+	}
+	if len(facets.Genres) != 2 || facets.Genres[0].Name != "恐怖" || facets.Genres[0].Count != 2 || !slices.Contains(facets.Genres[0].Aliases, "Horror") {
+		t.Fatalf("facets include duplicates or hidden media: %+v", facets.Genres)
+	}
+	for _, query := range []string{"恐怖", "Horror", "horror"} {
+		for _, grouped := range []string{"0", "1"} {
+			code, body := getJSON(t, router, "/api/libraries/"+libID+"/media?group_versions="+grouped+"&genre="+url.QueryEscape(query))
+			var page struct {
+				Items []model.Media
+				Total int64
+			}
+			if err := json.Unmarshal(body, &page); err != nil || code != http.StatusOK || len(page.Items) != 2 || page.Total != 2 {
+				t.Fatalf("filter %q grouped=%s: %d %s, err=%v", query, grouped, code, body, err)
+			}
+		}
+	}
+	// Keep source metadata editable: translated labels must not be sent back as
+	// raw genres when the metadata editor saves an unrelated field.
+	auth := func(c *gin.Context) {
+		c.Set(middleware.CtxUserID, userID)
+		c.Set(middleware.CtxUserRole, "user")
+		c.Next()
+	}
+	router.GET("/api/media/:id", auth, getMediaHandler(svc))
+	router.PUT("/api/media/:id", auth, updateMediaMetadataHandler(svc))
+	assertDetail := func(code int, body []byte) {
+		t.Helper()
+		var detail struct {
+			Genres     string   `json:"genres"`
+			GenreNames []string `json:"genre_names"`
+		}
+		if err := json.Unmarshal(body, &detail); err != nil || code != http.StatusOK || detail.Genres != rawGenres || !slices.Equal(detail.GenreNames, []string{"恐怖", "我的类型"}) {
+			t.Fatalf("detail lost source or display names: %d %s, err=%v", code, body, err)
+		}
+	}
+	code, body = getJSON(t, router, "/api/media/"+m.ID)
+	assertDetail(code, body)
+	payload, _ := json.Marshal(map[string]string{"overview": "Updated", "genres": rawGenres})
+	req := httptest.NewRequest(http.MethodPut, "/api/media/"+m.ID, bytes.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	assertDetail(w.Code, w.Body.Bytes())
+	saved, err := svc.Repo.Media.FindByID(t.Context(), m.ID)
+	if err != nil || saved == nil || saved.Genres != rawGenres || saved.Overview != "Updated" {
+		t.Fatalf("metadata edit changed raw genres: %+v, err=%v", saved, err)
 	}
 }
 

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/Ferrymania/nook/internal/testutil"
@@ -93,6 +94,46 @@ func TestFilterByGenreDoesNotMatchSubstring(t *testing.T) {
 	}
 }
 
+func TestGenreAliasesMatchWholeTokensWithoutChangingStoredValues(t *testing.T) {
+	db := newMediaFilterTestDB(t)
+	rows := []*model.Media{
+		{Title: "English", Genres: "Drama,Horror,恐怖"},
+		{Title: "Chinese", Genres: "恐怖"},
+		{Title: "Separators", Genres: "Drama；\tHORROR\n、Crime;Fantasy，Music"},
+		{Title: "Compound", Genres: "Sci-Fi & Fantasy,Action & Adventure"},
+		{Title: "MovieSciFi", Genres: "Science Fiction,Action"},
+		{Title: "Custom", Genres: "100%_Custom"},
+		{Title: "WildcardDecoy", Genres: "100ABCustom,HorrorComedy"},
+	}
+	for _, row := range rows {
+		row.LibraryID, row.Path = "lib-1", "/"+row.Title+".mkv"
+	}
+	seedFilterMedia(t, db, rows...)
+	for _, tc := range []struct {
+		filters []string
+		want    []string
+	}{
+		{[]string{"恐怖"}, []string{"Chinese", "English", "Separators"}},
+		{[]string{" horror "}, []string{"Chinese", "English", "Separators"}},
+		{[]string{"剧情", "恐怖"}, []string{"Chinese", "English", "Separators"}},
+		{[]string{"犯罪"}, []string{"Separators"}},
+		{[]string{"科幻"}, []string{"MovieSciFi"}},
+		{[]string{"动作冒险"}, []string{"Compound"}},
+		{[]string{"100%_Custom"}, []string{"Custom"}},
+		{[]string{"HorrorComedy"}, []string{"WildcardDecoy"}},
+		{[]string{" ", "；"}, []string{}},
+	} {
+		got := listFiltered(t, db, MediaQueryFilter{IncludeNSFW: true, Genres: tc.filters})
+		if !slices.Equal(got, tc.want) {
+			t.Fatalf("filter %v = %v, want %v", tc.filters, got, tc.want)
+		}
+	}
+	var original model.Media
+	if err := db.First(&original, "id = ?", rows[0].ID).Error; err != nil || original.Genres != rows[0].Genres {
+		t.Fatalf("read changed raw metadata: %q, err=%v", original.Genres, err)
+	}
+}
+
 func TestFilterYearAndRating(t *testing.T) {
 	db := newMediaFilterTestDB(t)
 	seedFilterMedia(t, db,
@@ -144,9 +185,8 @@ func TestFilterUnwatchedExcludesCompleted(t *testing.T) {
 	}
 }
 
-// 多词类型（如 "Science Fiction"）：列侧 SQL 会 REPLACE 掉空格，参数侧也必须同步
-// 去掉空格，两侧对称才能命中。
-func TestFilterByGenreMultiWordStripsSpaces(t *testing.T) {
+// 多词类型（如 "Science Fiction"）保留词间空格，作为完整类型匹配。
+func TestFilterByGenreMultiWordExactToken(t *testing.T) {
 	db := newMediaFilterTestDB(t)
 	seedFilterMedia(t, db,
 		&model.Media{Title: "科幻", Genres: "Science Fiction,Drama", Path: "/a.mkv", LibraryID: "lib-1"},
@@ -155,7 +195,7 @@ func TestFilterByGenreMultiWordStripsSpaces(t *testing.T) {
 
 	got := listFiltered(t, db, MediaQueryFilter{IncludeNSFW: true, Genres: []string{"Science Fiction"}})
 	if !hasTitle(got, "科幻") {
-		t.Fatalf("result = %v, want 科幻 (multi-word genre must match after space stripping)", got)
+		t.Fatalf("result = %v, want 科幻 (multi-word genre must match as a whole token)", got)
 	}
 	if hasTitle(got, "动作") {
 		t.Fatalf("result = %v, must not contain 动作", got)

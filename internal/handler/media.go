@@ -13,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/Ferrymania/nook/internal/genre"
 	"github.com/Ferrymania/nook/internal/helper"
 	"github.com/Ferrymania/nook/internal/middleware"
 	"github.com/Ferrymania/nook/internal/model"
@@ -624,7 +625,7 @@ func getMediaHandler(svc *service.Container) gin.HandlerFunc {
 				c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 				return
 			}
-			c.JSON(http.StatusOK, m)
+			c.JSON(http.StatusOK, service.MediaItem{Media: *m, GenreNames: genre.Names(m.Genres)})
 			return
 		}
 		m, err := svc.Media.GetMediaItem(ctx, id)
@@ -662,7 +663,7 @@ func updateMediaMetadataHandler(svc *service.Container) gin.HandlerFunc {
 			c.JSON(status, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, m)
+		c.JSON(http.StatusOK, service.MediaItem{Media: *m, GenreNames: genre.Names(m.Genres)})
 	}
 }
 
