@@ -114,7 +114,7 @@ func TestLibraryFacetsReturnGenresAndYears(t *testing.T) {
 
 func TestLibraryGenreAliasesAgreeAcrossFacetsFiltersAndDetail(t *testing.T) {
 	router, svc, userID, libID := newLibraryFilterEnv(t)
-	const rawGenres = "Horror,恐怖,我的类型"
+	const rawGenres = "27,Horror,恐怖,我的类型"
 	m := &model.Media{LibraryID: libID, Title: "English", Genres: rawGenres, Path: "/english.mkv"}
 	seedLibraryMedia(t, svc, m,
 		&model.Media{LibraryID: libID, Title: "Chinese", Genres: "恐怖", Path: "/chinese.mkv"},
@@ -129,7 +129,7 @@ func TestLibraryGenreAliasesAgreeAcrossFacetsFiltersAndDetail(t *testing.T) {
 	if len(facets.Genres) != 2 || facets.Genres[0].Name != "恐怖" || facets.Genres[0].Count != 2 || !slices.Contains(facets.Genres[0].Aliases, "Horror") {
 		t.Fatalf("facets include duplicates or hidden media: %+v", facets.Genres)
 	}
-	for _, query := range []string{"恐怖", "Horror", "horror"} {
+	for _, query := range []string{"恐怖", "Horror", "horror", "27"} {
 		for _, grouped := range []string{"0", "1"} {
 			code, body := getJSON(t, router, "/api/libraries/"+libID+"/media?group_versions="+grouped+"&genre="+url.QueryEscape(query))
 			var page struct {

@@ -100,8 +100,10 @@ func TestGenreAliasesMatchWholeTokensWithoutChangingStoredValues(t *testing.T) {
 		{Title: "English", Genres: "Drama,Horror,恐怖"},
 		{Title: "Chinese", Genres: "恐怖"},
 		{Title: "Separators", Genres: "Drama；\tHORROR\n、Crime;Fantasy，Music"},
-		{Title: "Compound", Genres: "Sci-Fi & Fantasy,Action & Adventure"},
+		{Title: "Compound", Genres: "10765,10759"},
 		{Title: "MovieSciFi", Genres: "Science Fiction,Action"},
+		{Title: "Numeric", Genres: "18,28,10749,Horror,27"},
+		{Title: "NumericDecoy", Genres: "180,281,107491"},
 		{Title: "Custom", Genres: "100%_Custom"},
 		{Title: "WildcardDecoy", Genres: "100ABCustom,HorrorComedy"},
 	}
@@ -113,9 +115,14 @@ func TestGenreAliasesMatchWholeTokensWithoutChangingStoredValues(t *testing.T) {
 		filters []string
 		want    []string
 	}{
-		{[]string{"恐怖"}, []string{"Chinese", "English", "Separators"}},
-		{[]string{" horror "}, []string{"Chinese", "English", "Separators"}},
-		{[]string{"剧情", "恐怖"}, []string{"Chinese", "English", "Separators"}},
+		{[]string{"恐怖"}, []string{"Chinese", "English", "Numeric", "Separators"}},
+		{[]string{" horror "}, []string{"Chinese", "English", "Numeric", "Separators"}},
+		{[]string{"27"}, []string{"Chinese", "English", "Numeric", "Separators"}},
+		{[]string{"剧情", "恐怖"}, []string{"Chinese", "English", "Numeric", "Separators"}},
+		{[]string{"动作"}, []string{"MovieSciFi", "Numeric"}},
+		{[]string{"10749"}, []string{"Numeric"}},
+		{[]string{"爱情"}, []string{"Numeric"}},
+		{[]string{"Romance"}, []string{"Numeric"}},
 		{[]string{"犯罪"}, []string{"Separators"}},
 		{[]string{"科幻"}, []string{"MovieSciFi"}},
 		{[]string{"动作冒险"}, []string{"Compound"}},

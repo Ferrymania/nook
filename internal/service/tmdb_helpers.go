@@ -1,9 +1,6 @@
 package service
 
-import (
-	"fmt"
-	"strings"
-)
+import "strings"
 
 // deduplicate removes duplicates from a string slice.
 func deduplicate(s []string) []string {
@@ -27,19 +24,6 @@ func nonEmptyStrings(values ...string) []string {
 		value = strings.TrimSpace(value)
 		if value != "" {
 			out = append(out, value)
-		}
-	}
-	return out
-}
-
-func genreIDStrings(ids []int) []string {
-	if len(ids) == 0 {
-		return nil
-	}
-	out := make([]string, 0, len(ids))
-	for _, id := range ids {
-		if id > 0 {
-			out = append(out, fmt.Sprint(id))
 		}
 	}
 	return out

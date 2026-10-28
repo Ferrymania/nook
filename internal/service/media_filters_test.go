@@ -66,6 +66,13 @@ func TestSeriesGenreAliasMatching(t *testing.T) {
 		{"100ABCustom", "100%_Custom", false},
 		{"100%_Custom", "100%_custom", true},
 		{"HorrorComedy", "Horror", false},
+		{"18,28,10749", "剧情", true},
+		{"18,28,10749", "Romance", true},
+		{"爱情", "10749", true},
+		{"10759,10765", "动作冒险", true},
+		{"10759,10765", "动作", false},
+		{"10759,10765", "科幻", false},
+		{"281,107491", "动作", false},
 	} {
 		row := &model.Media{Genres: tc.raw}
 		if got := mediaRowMatchesFilters(row, MediaListFilters{Genres: []string{tc.query}}, nil); got != tc.want {

@@ -39,8 +39,8 @@ func TestCompoundGenresStayDistinct(t *testing.T) {
 }
 
 func TestAliasExpansionMatchesCanonicalNames(t *testing.T) {
-	for _, name := range []string{"Horror", "恐怖", " horror "} {
-		if got := MatchNames([]string{name}); !reflect.DeepEqual(got, []string{"恐怖", "horror"}) {
+	for _, name := range []string{"Horror", "恐怖", " horror ", "27"} {
+		if got := MatchNames([]string{name}); !reflect.DeepEqual(got, []string{"恐怖", "horror", "27"}) {
 			t.Fatalf("MatchNames(%q) = %v", name, got)
 		}
 	}
@@ -53,5 +53,30 @@ func TestAliasExpansionMatchesCanonicalNames(t *testing.T) {
 	}
 	if got := MatchNames([]string{" ", "100%_Custom"}); !reflect.DeepEqual(got, []string{"100%_custom"}) {
 		t.Fatalf("custom query changed: %v", got)
+	}
+}
+
+func TestNumericAliasesUseOnlyKnownTMDBIDs(t *testing.T) {
+	got := Names("18,28,10749,Drama,爱情", "10759,动作冒险,10765,Sci-Fi & Fantasy,10768", "2026,018,我的类型")
+	want := []string{"剧情", "动作", "爱情", "动作冒险", "科幻与奇幻", "战争与政治", "2026", "018", "我的类型"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("Names = %v, want %v", got, want)
+	}
+	if got := Split("18,28,10749"); !slices.Equal(got, []string{"18", "28", "10749"}) {
+		t.Fatalf("raw metadata changed: %v", got)
+	}
+}
+
+func TestFromTMDBIDsReturnsNamesWithoutUnknownNumericLabels(t *testing.T) {
+	if got := FromTMDBIDs([]int{18, 28, 10749, 18, 0, -1, 999999}); !slices.Equal(got, []string{"剧情", "动作", "爱情"}) {
+		t.Fatalf("movie genres = %v", got)
+	}
+	if got := FromTMDBIDs([]int{10759, 16, 10765, 10768}); !slices.Equal(got, []string{"动作冒险", "动画", "科幻与奇幻", "战争与政治"}) {
+		t.Fatalf("TV genres = %v", got)
+	}
+	for _, ids := range [][]int{nil, {}, {0, -1, 999999}} {
+		if got := FromTMDBIDs(ids); len(got) != 0 {
+			t.Fatalf("invalid IDs %v became genre names: %v", ids, got)
+		}
 	}
 }
