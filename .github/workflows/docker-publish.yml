@@ -51,6 +51,14 @@ jobs:
         with:
           ref: ${{ needs.resolve-ref.outputs.sha }}
 
+      - name: Download tested SPA
+        uses: actions/download-artifact@v8
+        with:
+          artifact-ids: ${{ needs.verify.outputs.frontend-artifact-id }}
+          path: ${{ runner.temp }}/nook-frontend/app/web/dist
+      - name: Validate tested SPA
+        run: test -s "$RUNNER_TEMP/nook-frontend/app/web/dist/index.html"
+
       - uses: docker/setup-qemu-action@v4
       - uses: docker/setup-buildx-action@v4
 
@@ -74,6 +82,8 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
+          build-contexts: |
+            frontend=${{ runner.temp }}/nook-frontend
           platforms: linux/amd64,linux/arm64
           push: true
           provenance: false
