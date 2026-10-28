@@ -15,6 +15,8 @@
 # =============================================================================
 
 # ---- Stage 1: frontend (always build on the host architecture) -------------
+# CI replaces this stage with --build-context frontend=<artifact-root>, where
+# the tested SPA is at <artifact-root>/app/web/dist. Local builds use Node below.
 FROM --platform=$BUILDPLATFORM node:24.22.1-alpine AS frontend
 ARG NPM_CONFIG_REGISTRY=https://registry.npmjs.org/
 WORKDIR /app/web

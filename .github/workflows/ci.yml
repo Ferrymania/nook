@@ -9,6 +9,10 @@ on:
         description: 'Exact commit to test; defaults to the triggering commit'
         required: false
         type: string
+    outputs:
+      frontend-artifact-id:
+        description: 'Tested SPA artifact from this workflow run'
+        value: ${{ jobs.frontend.outputs.artifact-id }}
 
 permissions:
   contents: read
@@ -16,6 +20,7 @@ permissions:
 jobs:
   backend:
     name: Backend (Go)
+    needs: [frontend]
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -40,18 +45,12 @@ jobs:
           cache: true
           cache-dependency-path: go.sum
 
-      # The binary embeds the SPA (web/dist) via go:embed, so the dist must exist
-      # before the Go toolchain touches the `web` package.
-      - uses: actions/setup-node@v7
+      # Embed the exact SPA already built and tested by the frontend job.
+      - name: Download tested SPA
+        uses: actions/download-artifact@v8
         with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-          cache-dependency-path: web/package-lock.json
-      - name: Build SPA
-        working-directory: web
-        run: |
-          npm ci
-          npm run build
+          artifact-ids: ${{ needs.frontend.outputs.artifact-id }}
+          path: web/dist
 
       - name: go vet
         run: go vet ./...
@@ -68,6 +67,8 @@ jobs:
   frontend:
     name: Frontend (Node)
     runs-on: ubuntu-latest
+    outputs:
+      artifact-id: ${{ steps.web-dist.outputs.artifact-id }}
     defaults:
       run:
         working-directory: web
@@ -106,6 +107,15 @@ jobs:
           node src/pages/adminLibraryPanelModel.test.ts
           npx tsc src/utils/mediaTechnicalSummary.test.ts --module commonjs --target ES2020 --strict --skipLibCheck --outDir "$frontend_test_dir"
           node "$frontend_test_dir/utils/mediaTechnicalSummary.test.js"
+
+      - name: Upload tested SPA
+        id: web-dist
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-dist
+          path: web/dist
+          if-no-files-found: error
+          retention-days: 1
 
   smoke:
     name: Deployment smoke test

@@ -31,9 +31,11 @@ jobs:
       contents: read
     uses: ./.github/workflows/ci.yml
 
-  build-image:
+  prepare-version:
     needs: [verify]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       version: ${{ steps.version.outputs.version }}
       release_tag: ${{ steps.version.outputs.release_tag }}
@@ -82,6 +84,24 @@ jobs:
           done
           [ "$ok" = "1" ] || { echo "::error::version 分支推送冲突，重试 5 次仍失败"; exit 1; }
 
+  build-image:
+    needs: [verify, prepare-version]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+
+      # Override the Dockerfile frontend stage with the SPA tested by CI.
+      # Keep its /app/web/dist layout so both COPY --from=frontend stay unchanged.
+      - name: Download tested SPA
+        uses: actions/download-artifact@v8
+        with:
+          artifact-ids: ${{ needs.verify.outputs.frontend-artifact-id }}
+          path: ${{ runner.temp }}/nook-frontend/app/web/dist
+      - name: Validate tested SPA
+        run: test -s "$RUNNER_TEMP/nook-frontend/app/web/dist/index.html"
+
       # 3. 设置 Docker QEMU 和 Buildx
       - uses: docker/setup-qemu-action@v4
       - uses: docker/setup-buildx-action@v4
@@ -102,13 +122,15 @@ jobs:
           images: ghcr.io/${{ github.repository }}
           tags: |
             type=raw,value=latest
-            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=${{ needs.prepare-version.outputs.version }}
 
       # 5. 构建并推送
       - name: Build & push
         uses: docker/build-push-action@v7
         with:
           context: .
+          build-contexts: |
+            frontend=${{ runner.temp }}/nook-frontend
           platforms: linux/amd64,linux/arm64
           push: true
           provenance: false
@@ -116,41 +138,14 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            VERSION=${{ steps.version.outputs.release_tag }}
+            VERSION=${{ needs.prepare-version.outputs.release_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # 单文件可执行构建：把前端打包进二进制（go:embed），交叉编译 Linux amd64/arm64、
-  # Windows amd64 和 macOS arm64 产物，作为 GitHub Release 附件发布。
-  build-frontend:
-    needs: [build-image]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.sha }}
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-          cache-dependency-path: web/package-lock.json
-      - name: Install
-        working-directory: web
-        run: npm ci
-      - name: Build SPA
-        working-directory: web
-        run: npm run build
-      - name: Upload web/dist
-        uses: actions/upload-artifact@v7
-        with:
-          name: web-dist
-          path: web/dist
-          retention-days: 1
-
-  # 先创建带 changelog 的 GitHub Release，供后续 build-binaries 并行上传附件，
-  # 也避免矩阵各 job 并发 upload 时 release 尚不存在而互相竞争。
+  # Binary compilation runs alongside the image build. A single publisher waits
+  # for both before creating the Release and uploading the finished packages.
   publish-create-release:
-    needs: [build-image]
+    needs: [prepare-version, build-image, build-binaries]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -161,12 +156,18 @@ jobs:
           fetch-depth: 0  # changelog 需要上一个发布标签及完整提交历史
       - name: Generate changelog
         env:
-          RELEASE_TAG: ${{ needs.build-image.outputs.release_tag }}
+          RELEASE_TAG: ${{ needs.prepare-version.outputs.release_tag }}
         run: python3 scripts/release-notes.py --tag "$RELEASE_TAG" > "$RUNNER_TEMP/release-notes.md"
+      - name: Download binary packages
+        uses: actions/download-artifact@v8
+        with:
+          pattern: binary-*
+          merge-multiple: true
+          path: release-assets
       - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ needs.build-image.outputs.release_tag }}
+          RELEASE_TAG: ${{ needs.prepare-version.outputs.release_tag }}
         run: |
           set -eu
           # tag push 时 tag 已存在；手动触发时基于当前 main 创建 tag（幂等）
@@ -176,18 +177,34 @@ jobs:
           fi
           if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release create "$RELEASE_TAG" \
-              --title "Nook ${{ needs.build-image.outputs.version }}" \
+              --title "Nook ${{ needs.prepare-version.outputs.version }}" \
               --notes-file "$RUNNER_TEMP/release-notes.md" \
               --verify-tag --latest
           else
             gh release edit "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md"
           fi
 
+      - name: Upload to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.prepare-version.outputs.release_tag }}
+        run: |
+          set -eu
+          for archive in release-assets/nook_*; do
+            [ -f "$archive" ] || { echo "::error::No binary packages found"; exit 1; }
+            ok=0
+            for attempt in 1 2 3; do
+              if gh release upload "$RELEASE_TAG" "$archive" --clobber; then ok=1; break; fi
+              sleep 5
+            done
+            [ "$ok" = "1" ] || exit 1
+          done
+
+  # All platforms embed the same tested SPA; their compilation does not depend
+  # on the image or Release being available yet.
   build-binaries:
-    needs: [build-image, build-frontend, publish-create-release]
+    needs: [verify, prepare-version]
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -216,11 +233,11 @@ jobs:
       - name: Download web/dist
         uses: actions/download-artifact@v8
         with:
-          name: web-dist
+          artifact-ids: ${{ needs.verify.outputs.frontend-artifact-id }}
           path: web/dist
       - name: Build binary
         run: |
-          LDFLAGS="-s -w -X main.version=${{ needs.build-image.outputs.release_tag }}"
+          LDFLAGS="-s -w -X main.version=${{ needs.prepare-version.outputs.release_tag }}"
           if [ "${{ matrix.goos }}" = "windows" ]; then
             LDFLAGS="$LDFLAGS -H=windowsgui"
           fi
@@ -228,28 +245,24 @@ jobs:
             go build -trimpath -ldflags="$LDFLAGS" \
             -o "dist/nook-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}" ./cmd/server
       - name: Package
+        id: package
         run: |
           mkdir -p package/nook
           cp "dist/nook-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}" package/nook/nook${{ matrix.ext }}
           cp README.md package/nook/ 2>/dev/null || true
           if [ "${{ matrix.goos }}" = "windows" ]; then
-            (cd package && zip -r "../nook_${{ matrix.goos }}_${{ matrix.goarch }}.zip" nook)
+            archive="nook_${{ matrix.goos }}_${{ matrix.goarch }}.zip"
+            (cd package && zip -r "../$archive" nook)
           else
-            tar -czf "nook_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz" -C package nook
+            archive="nook_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz"
+            tar -czf "$archive" -C package nook
           fi
-      - name: Upload to GitHub Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ needs.build-image.outputs.release_tag }}
-        run: |
-          set -eu
-          PKG="nook_${{ matrix.goos }}_${{ matrix.goarch }}.zip"
-          TAR="nook_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz"
-          # 并发上传到同一 release 各自文件，--clobber 幂等覆盖
-          ARCHIVE="$TAR"
-          if [ -f "$PKG" ]; then ARCHIVE="$PKG"; fi
-          for i in 1 2 3; do
-            if gh release upload "$RELEASE_TAG" "$ARCHIVE" --clobber; then exit 0; fi
-            sleep 5
-          done
-          exit 1
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+      - name: Upload binary package
+        uses: actions/upload-artifact@v7
+        with:
+          name: binary-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: ${{ steps.package.outputs.archive }}
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
