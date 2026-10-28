@@ -6,6 +6,26 @@ import (
 	"testing"
 )
 
+func TestLoadReadOnlyDoesNotInitializeJWTSecret(t *testing.T) {
+	t.Chdir(t.TempDir())
+	t.Setenv("NOOK_SECRETS_JWT_SECRET", "")
+	t.Setenv("NOOK_APP_DATA_DIR", "./maintenance-data")
+	t.Setenv("NOOK_DATABASE_DSN", "postgres://test@localhost/test")
+	cfg, err := LoadReadOnly()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Database.DSN != "postgres://test@localhost/test" || cfg.Database.MaxOpenConns != defaultDatabaseMaxOpenConns {
+		t.Fatal("read-only config lost database environment/defaults")
+	}
+	if cfg.Secrets.JWTSecret != "" {
+		t.Fatal("read-only load initialized a JWT secret")
+	}
+	if _, err := os.Stat("maintenance-data"); !os.IsNotExist(err) {
+		t.Fatalf("read-only load created runtime files: %v", err)
+	}
+}
+
 // TestLoadDefaults asserts that a Load on a clean working directory yields
 // usable, normalized defaults.
 func TestLoadDefaults(t *testing.T) {
