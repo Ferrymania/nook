@@ -22,6 +22,8 @@ import type { StrmAccount, StrmSyncPath, StrmSyncPathInput, StrmProvider } from 
 import { STRM_PROVIDER_LABELS } from '../types/strm'
 import { apiErrorMessage } from './StrmManagePage'
 import { Strm115AuthPanel } from './strm-dialogs/Strm115AuthPanel'
+import { OpenListAuthFields } from './strm-dialogs/OpenListAuthFields'
+import { defaultOpenListAuthMode, openListAuthConfig, openListAuthError } from '../utils/openListAuth'
 import { LocalDirBrowserDialog } from '../components/LocalDirBrowserDialog'
 import {
   defaultEmbyRemoteLines,
@@ -139,17 +141,19 @@ export function StrmAccountDialog({
   const [proxyPlay, setProxyPlay] = useState(defaults.proxyPlay)
   const [hasPassword, setHasPassword] = useState(defaults.hasPassword)
   const [hasToken, setHasToken] = useState(defaults.hasToken)
+  const [openListAuthMode, setOpenListAuthMode] = useState(() => defaultOpenListAuthMode(existing?.config_preview))
   const [saving, setSaving] = useState(false)
+
+  const openListAuth = {
+    mode: openListAuthMode, server, username, password, token,
+    hasPassword: Boolean(existing?.config_preview?.has_password),
+    hasToken: Boolean(existing?.config_preview?.has_token),
+  }
 
   const buildConfig = (): Record<string, string> => {
     switch (provider) {
       case 'openlist':
-        return {
-          ...(server ? { server } : {}),
-          ...(username ? { username } : {}),
-          ...(password ? { password } : {}),
-          ...(token ? { token } : {}),
-        }
+        return openListAuthConfig(openListAuth)
       case 'emby_remote': {
         const lineConfig = encodeEmbyRemoteConfigLines(embyLines)
         return {
@@ -168,7 +172,7 @@ export function StrmAccountDialog({
   const canSave = () => {
     switch (provider) {
       case 'openlist':
-        return server !== '' && (token !== '' || password !== '')
+        return !openListAuthError(openListAuth)
       case 'emby_remote':
         return normalizeEmbyRemoteLines(embyLines).length > 0 && (token !== '' || password !== '')
       default:
@@ -178,6 +182,13 @@ export function StrmAccountDialog({
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
+    if (provider === 'openlist') {
+      const error = openListAuthError(openListAuth)
+      if (error) {
+        toast.error(error)
+        return
+      }
+    }
     setSaving(true)
     try {
       if (existing) {
@@ -265,8 +276,8 @@ export function StrmAccountDialog({
         )}
 
         {provider === 'openlist' && (
-          <Field label="服务器地址" hint="OpenList / AList 服务地址，如 http://192.168.1.10:5244">
-            <input className={inputCls} value={server} placeholder="http://host:5244" onChange={(e) => setServer(e.target.value)} />
+          <Field label="OpenList 服务地址" hint="必须包含 http:// 或 https://，如 https://list.example.com 或 http://192.168.1.10:5244">
+            <input name="strm-openlist-server" autoComplete="url" autoCapitalize="none" spellCheck={false} className={inputCls} value={server} placeholder="https://list.example.com" onChange={(e) => setServer(e.target.value)} />
           </Field>
         )}
 
@@ -359,7 +370,7 @@ export function StrmAccountDialog({
           </div>
         )}
 
-        {(provider === 'openlist' || provider === 'emby_remote') && (
+        {provider === 'emby_remote' && (
           <div key={provider} className="grid grid-cols-2 gap-3">
             <Field label="用户名">
               <input
@@ -411,21 +422,18 @@ export function StrmAccountDialog({
         )}
 
         {provider === 'openlist' && (
-          <Field label="Token（可选，优先于密码）">
-            <input
-              name="strm-openlist-token"
-              autoComplete="off"
-              autoCapitalize="none"
-              spellCheck={false}
-              className={inputCls}
-              value={token}
-              placeholder={existing && hasToken ? SECRET_PLACEHOLDER : undefined}
-              onChange={(e) => {
-                setToken(e.target.value)
-                if (e.target.value) setHasToken(false)
-              }}
-            />
-          </Field>
+          <OpenListAuthFields
+            mode={openListAuthMode}
+            onModeChange={setOpenListAuthMode}
+            username={username}
+            onUsernameChange={setUsername}
+            password={password}
+            onPasswordChange={setPassword}
+            token={token}
+            onTokenChange={setToken}
+            hasPassword={openListAuth.hasPassword}
+            hasToken={openListAuth.hasToken}
+          />
         )}
 
         {provider === 'emby_remote' && (

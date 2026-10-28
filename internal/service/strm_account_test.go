@@ -73,6 +73,45 @@ func TestUpdateStrmAccountMergesConfigWithoutClearingSecrets(t *testing.T) {
 	}
 }
 
+func TestUpdateOpenListAuthClearsInactiveCredentials(t *testing.T) {
+	svc := testStrmService(t)
+	ctx := context.Background()
+	acct, err := svc.CreateStrmAccount(ctx, "openlist", model.StrmProviderOpenList, map[string]string{
+		"server": "https://list.example.com", "token": "original-token",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	passwordAccount, err := svc.UpdateStrmAccount(ctx, acct.ID, "", nil, map[string]string{
+		"token": "", "username": "alice", "password": "secret",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := svc.strmAccountConfig(passwordAccount)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, exists := cfg["token"]; exists || cfg["username"] != "alice" || cfg["password"] != "secret" {
+		t.Fatal("switching to password must remove the saved Token")
+	}
+	tokenAccount, err := svc.UpdateStrmAccount(ctx, acct.ID, "", nil, map[string]string{
+		"token": "replacement-token", "username": "", "password": "",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, err = svc.strmAccountConfig(tokenAccount)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, hasUsername := cfg["username"]
+	_, hasPassword := cfg["password"]
+	if hasUsername || hasPassword || cfg["token"] != "replacement-token" || cfg["server"] != "https://list.example.com" {
+		t.Fatal("switching to Token must remove username/password and preserve the server")
+	}
+}
+
 func TestProviderForReuses115ClientUntilCredentialsChange(t *testing.T) {
 	svc := testStrmService(t)
 	ctx := context.Background()
