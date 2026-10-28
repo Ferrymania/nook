@@ -25,7 +25,7 @@ func metadataFromDoc(doc *nfoDocument, baseDir string, seriesLike bool) *LocalMe
 		TheTVDBID:    externalIDFromUniqueIDs(doc.UniqueIDs, "thetvdb", "tvdb"),
 		SeasonNum:    int(doc.Season),
 		EpisodeNum:   int(doc.Episode),
-		Genres:       joinNFOValues(adultAwareGenres(doc)),
+		Genres:       joinNFOValues(doc.Genres),
 		Countries:    joinNFOValues(doc.Countries),
 		Languages:    joinNFOValues(doc.Languages),
 		HasNFO:       true,
@@ -55,23 +55,6 @@ func metadataFromDoc(doc *nfoDocument, baseDir string, seriesLike bool) *LocalMe
 		meta.TMDbID = tmdbIDFromUniqueIDs(doc.UniqueIDs)
 	}
 	return meta
-}
-
-func adultAwareGenres(doc *nfoDocument) []string {
-	if doc == nil {
-		return nil
-	}
-	values := make([]string, 0, len(doc.Genres)+len(doc.Tags)+4)
-	values = append(values, doc.Genres...)
-	values = append(values, doc.Tags...)
-	for _, value := range []string{doc.Studio, doc.Maker, doc.Publisher, doc.Label} {
-		if cleanXMLText(value) != "" {
-			values = append(values, cleanXMLText(value))
-		}
-	}
-	// Cast and crew are intentionally not folded into genres. They are read
-	// from NFO/TMDb on detail requests and kept only in the in-memory cache.
-	return values
 }
 
 // mergeEpisodeMetadata 把单集 sidecar NFO(<episodedetails>)合并进整剧元数据

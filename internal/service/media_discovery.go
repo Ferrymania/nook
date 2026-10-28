@@ -66,8 +66,13 @@ func countGenres(values []string) []GenreCount {
 	counts := make(map[string]int)
 	display := make(map[string]string)
 	for _, value := range values {
+		seen := make(map[string]bool)
 		for _, name := range SplitGenreList(value) {
 			key := strings.ToLower(name)
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
 			if _, seen := display[key]; !seen {
 				display[key] = name
 			}
