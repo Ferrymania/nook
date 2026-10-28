@@ -8,6 +8,7 @@ import { formatAppVersion } from '../utils/formatAppVersion'
 
 const RELEASES_URL = 'https://github.com/Ferrymania/nook/releases'
 const UPDATE_COMMAND = 'docker compose pull nook\ndocker compose up -d --no-deps nook'
+const UPDATE_COMMAND_LINES = UPDATE_COMMAND.split('\n')
 
 function formatDate(value?: string): string {
   if (!value) return ''
@@ -68,31 +69,29 @@ export function VersionUpdatePanel() {
   const showLatest = !available && result?.latest_version && result.status !== 'up_to_date'
 
   return (
-    <section className="about-panel about-update" aria-labelledby="version-update-heading">
-      <div className="about-panel-heading">
-        <h3 id="version-update-heading">版本更新</h3>
+    <section className="about-panel about-update" aria-label="版本更新">
+      <div className="about-update-heading">
+        <div className={`about-release-state${available ? ' about-release-available' : ''}`} role="status" aria-live="polite" aria-busy={checking}>
+          <div className="about-release-title">
+            <Icon size={20} className={`shrink-0 ${checking ? 'animate-spin' : ''}`} aria-hidden="true" />
+            <h3>{title}</h3>
+          </div>
+          {failed && !checking && (
+            <p className="about-release-note">
+              {error ? '检查失败，请稍后重试。也可以前往 GitHub 发布页查看。' : result?.message}
+            </p>
+          )}
+          {result && !error && !checking && !failed && (
+            <div className="about-release-note">
+              {showLatest && <span>最新正式版 {formatAppVersion(result.latest_version)}</span>}
+              {formatDate(result.published_at) && <span>发布于 {formatDate(result.published_at)}</span>}
+            </div>
+          )}
+        </div>
         <button type="button" onClick={check} disabled={checking} className="about-button about-button-primary">
           <RefreshCw size={16} className={checking ? 'animate-spin' : ''} aria-hidden="true" />
           {checking ? '检查中…' : '检查更新'}
         </button>
-      </div>
-
-      <div className={`about-release-state${available ? ' about-release-available' : ''}`} role="status" aria-live="polite" aria-busy={checking}>
-        <div className="about-release-title">
-          <Icon size={20} className={`shrink-0 ${checking ? 'animate-spin' : ''}`} aria-hidden="true" />
-          <p>{title}</p>
-        </div>
-        {failed && !checking && (
-          <p className="about-release-note">
-            {error ? '检查失败，请稍后重试。也可以前往 GitHub 发布页查看。' : result?.message}
-          </p>
-        )}
-        {result && !error && !checking && !failed && (
-          <div className="about-release-note">
-            {showLatest && <span>最新正式版 {formatAppVersion(result.latest_version)}</span>}
-            {formatDate(result.published_at) && <span>发布于 {formatDate(result.published_at)}</span>}
-          </div>
-        )}
       </div>
 
       {available && result?.release_notes && (
@@ -105,14 +104,11 @@ export function VersionUpdatePanel() {
       )}
 
       <div className="about-command">
-        <div className="about-command-heading">
-          <h4>Docker Compose</h4>
-          <button type="button" onClick={copyCommand} className="about-button about-button-quiet">
-            {copied ? <Check size={15} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />}
-            {copied ? '已复制命令' : '复制命令'}
-          </button>
-        </div>
-        <pre><code>{UPDATE_COMMAND}</code></pre>
+        <button type="button" onClick={copyCommand} className="about-button about-command-copy"
+          aria-label={copied ? '已复制命令' : '复制命令'} title={copied ? '已复制命令' : '复制命令'}>
+          {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+        </button>
+        <pre><code><span>{UPDATE_COMMAND_LINES[0]}</span>{'\n'}{UPDATE_COMMAND_LINES.slice(1).join('\n')}</code></pre>
       </div>
 
       <div className="about-update-footer">

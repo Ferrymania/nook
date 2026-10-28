@@ -8,7 +8,6 @@
 .about-product,
 .about-product-name,
 .about-panel-heading,
-.about-command-heading,
 .about-update-footer,
 .about-diagnostics-heading {
   display: flex;
@@ -69,14 +68,18 @@
 .about-button-primary:hover:not(:disabled) { background: var(--app-subtle); }
 .about-button-quiet { border-color: transparent; padding-inline: 6px; }
 .about-update { display: grid; gap: 20px; }
+.about-update-heading { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px 16px; }
+.about-update-heading > .about-release-state { flex: 1 1 180px; }
+.about-update-heading > button { margin-left: auto; }
 .about-release-state { padding: 4px 0; }
 .about-release-title { display: flex; align-items: center; gap: 10px; }
-.about-release-title p { font-size: 18px; line-height: 28px; font-weight: 550; }
+.about-release-title h3 { font-size: 18px; line-height: 28px; font-weight: 550; }
 .about-release-available .about-release-title { color: var(--app-brand-text); }
 .about-release-note { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; color: var(--app-muted); font-size: 12px; line-height: 20px; }
-.about-command-heading { min-height: 36px; }
-.about-command-heading h4 { font-size: 13px; font-weight: 500; }
-.about-command pre { margin-top: 8px; padding: 14px; border-radius: 6px; background: var(--app-panel); color: var(--app-text); font-size: 12px; line-height: 24px; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
+.about-command { position: relative; }
+.about-command-copy { position: absolute; top: 6px; right: 6px; width: 36px; padding: 0; border-color: transparent; }
+.about-command pre { padding: 14px; border-radius: 6px; background: var(--app-panel); color: var(--app-text); font-size: 12px; line-height: 24px; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
+.about-command code > span { display: inline-block; width: 100%; padding-right: 38px; vertical-align: top; }
 .about-update-footer { flex-wrap: wrap; gap: 8px 16px; font-size: 12px; color: var(--app-muted); line-height: 20px; }
 .about-text-link { display: inline-flex; min-height: 28px; align-items: center; gap: 5px; color: var(--app-text); }
 .about-text-link:hover { text-decoration: underline; }
@@ -114,8 +117,10 @@
   .about-panel { padding-inline: 16px; }
   .about-button { min-height: 44px; }
   .about-panel-heading { min-height: 44px; }
-  .about-release-title p { font-size: 16px; line-height: 24px; }
-  .about-command-heading { gap: 8px; }
+  .about-release-title h3 { font-size: 16px; line-height: 24px; }
+  .about-command-copy { width: 44px; }
+  .about-command pre { padding-top: 26px; }
+  .about-command code > span { padding-right: 46px; }
   .about-diagnostics-heading { min-height: 64px; }
 }
 @media (prefers-reduced-motion: reduce) {
