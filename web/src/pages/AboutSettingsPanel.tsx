@@ -1,140 +1,101 @@
 import { useEffect, useState } from 'react'
-import {
-  Cpu,
-  ExternalLink,
-  Github,
-  HardDrive,
-  Server,
-  Tag,
-} from 'lucide-react'
+import { Check, Copy, ExternalLink, Github, RefreshCw } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 import { systemAPI } from '../api/system'
 import { formatAppVersion } from '../utils/formatAppVersion'
 import { VersionUpdatePanel } from './VersionUpdatePanel'
 import { DiagnosticsPanel } from './DiagnosticsPanel'
+import './AboutSettingsPanel.css'
 
-type SystemInfo = {
-  name: string
-  version: string
-  go: string
-  os: string
-  arch: string
-  data_dir: string
-  cache_dir: string
-}
-
+type SystemInfo = Awaited<ReturnType<typeof systemAPI.info>>
 const GITHUB_REPO_URL = 'https://github.com/Ferrymania/nook'
 
 export function AboutSettingsPanel() {
   const [info, setInfo] = useState<SystemInfo | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const [revision, setRevision] = useState(0)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    systemAPI
-      .info()
-      .then((res) => {
-        setInfo({
-          name: res.name || 'Nook',
-          version: res.version || 'dev',
-          go: res.go || '',
-          os: res.os || '',
-          arch: res.arch || '',
-          data_dir: res.data_dir || '',
-          cache_dir: res.cache_dir || '',
-        })
-      })
-      .catch(() => {
-        setInfo({
-          name: 'Nook',
-          version: '未知',
-          go: '',
-          os: '',
-          arch: '',
-          data_dir: '',
-          cache_dir: '',
-        })
-      })
-      .finally(() => setLoading(false))
-  }, [])
+    let disposed = false
+    setLoading(true)
+    setError(false)
+    systemAPI.info()
+      .then((value) => { if (!disposed) setInfo(value) })
+      .catch(() => { if (!disposed) setError(true) })
+      .finally(() => { if (!disposed) setLoading(false) })
+    return () => { disposed = true }
+  }, [revision])
+
+  useEffect(() => {
+    if (!copied) return
+    const timer = window.setTimeout(() => setCopied(false), 2000)
+    return () => window.clearTimeout(timer)
+  }, [copied])
+
+  const environment = [
+    { label: '系统', value: [info?.os, info?.arch].filter(Boolean).join(' / ') },
+    { label: 'Go', value: info?.go },
+    { label: '数据目录', value: info?.data_dir, path: true },
+    { label: '缓存目录', value: info?.cache_dir, path: true },
+  ]
+  const copyInfo = async () => {
+    if (!info) return
+    try {
+      await navigator.clipboard.writeText([
+        `${info.name || 'Nook'} ${formatAppVersion(info.version)}`,
+        ...environment.map((row) => `${row.label}: ${row.value || '—'}`),
+      ].join('\n'))
+      setCopied(true)
+      toast.success('运行信息已复制')
+    } catch {
+      toast.error('复制失败，请手动选择运行信息复制')
+    }
+  }
 
   return (
-    <div className="space-y-6">
-      {/* 顶部概览与项目卡片 */}
-      <div className="glass-panel overflow-hidden p-6 sm:p-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-3">
-              <h2 className="font-display text-2xl sm:text-3xl font-bold text-ink-600">
-                Nook 影音管理系统
-              </h2>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-500/10 px-3 py-1 text-xs font-semibold text-brand-600 border border-brand-500/20">
-                <Tag size={13} />
-                {loading ? '加载中...' : formatAppVersion(info?.version)}
-              </span>
-            </div>
-            <p className="max-w-2xl text-sm leading-relaxed text-sand-600">
-              Nook 是一款专为个人与家庭设计的现代化开源媒体库管理与流媒体点播系统。
-              集媒体资源归纳、智能多源刮削、弹幕交互、海量云盘 STRM 转存与多端播放于一体，让观影体验更轻快自由。
-            </p>
-          </div>
-
-          {/* 仓库链接操作区 */}
-          <div className="flex flex-wrap items-center gap-3">
-            <a
-              href={GITHUB_REPO_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl bg-ink-600 px-4 py-2.5 text-sm font-medium text-white shadow-xs transition hover:bg-ink-700 hover:shadow-sm"
-            >
-              <Github size={16} />
-              <span>访问 GitHub 仓库</span>
-              <ExternalLink size={14} className="opacity-70" />
-            </a>
+    <div className="about-settings">
+      <header className="about-identity">
+        <div className="about-product">
+          <img src="/brand/logo-64.png" alt="" width={48} height={48} />
+          <div className="about-product-name">
+            <h2>{info?.name || 'Nook'}</h2>
+            <span className={`about-version${loading && !info ? ' about-placeholder' : ''}`}>
+              {loading && !info ? '读取版本…' : formatAppVersion(info?.version)}
+            </span>
           </div>
         </div>
+        <a href={GITHUB_REPO_URL} target="_blank" rel="noreferrer" className="about-button">
+          <Github size={16} aria-hidden="true" />GitHub<ExternalLink size={14} aria-hidden="true" />
+        </a>
+      </header>
 
-        {/* 运行环境规格栏 */}
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 border-t border-gray-200/60 pt-6">
-          <div className="rounded-xl bg-sand-100/50 p-3.5">
-            <div className="flex items-center gap-1.5 text-xs text-sand-500">
-              <Tag size={13} />
-              <span>系统版本</span>
-            </div>
-            <p className="mt-1 font-mono text-sm font-semibold text-ink-600">
-              {loading ? '...' : formatAppVersion(info?.version)}
-            </p>
+      <div className="about-overview">
+        <VersionUpdatePanel />
+        <section className="about-panel about-environment" aria-labelledby="about-environment-heading" aria-busy={loading}>
+          <div className="about-panel-heading">
+            <h3 id="about-environment-heading">运行环境</h3>
+            <button type="button" className="about-button about-button-quiet" disabled={!info || loading} onClick={() => { void copyInfo() }} aria-label={copied ? '运行信息已复制' : '复制运行信息'}>
+              {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+              {copied ? '已复制' : '复制信息'}
+            </button>
           </div>
-          <div className="rounded-xl bg-sand-100/50 p-3.5">
-            <div className="flex items-center gap-1.5 text-xs text-sand-500">
-              <Server size={13} />
-              <span>运行环境</span>
-            </div>
-            <p className="mt-1 font-mono text-sm font-semibold text-ink-600">
-              {loading ? '...' : `${info?.os || 'linux'} / ${info?.arch || 'amd64'}`}
-            </p>
-          </div>
-          <div className="rounded-xl bg-sand-100/50 p-3.5">
-            <div className="flex items-center gap-1.5 text-xs text-sand-500">
-              <Cpu size={13} />
-              <span>Go 运行时</span>
-            </div>
-            <p className="mt-1 font-mono text-sm font-semibold text-ink-600">
-              {loading ? '...' : info?.go || 'go1.x'}
-            </p>
-          </div>
-          <div className="rounded-xl bg-sand-100/50 p-3.5">
-            <div className="flex items-center gap-1.5 text-xs text-sand-500">
-              <HardDrive size={13} />
-              <span>数据目录</span>
-            </div>
-            <p className="mt-1 truncate font-mono text-xs font-semibold text-ink-600" title={info?.data_dir}>
-              {loading ? '...' : info?.data_dir || './data'}
-            </p>
-          </div>
-        </div>
+          <dl className="about-environment-list">
+            {environment.map((row) => <div key={row.label}>
+              <dt>{row.label}</dt>
+              <dd title={row.value || undefined} className={`${row.path ? 'about-path ' : ''}${loading && !info ? 'about-placeholder' : ''}`}>
+                {loading && !info ? '读取中…' : row.value || '—'}
+              </dd>
+            </div>)}
+          </dl>
+          {error && <div className="about-error" role="alert">
+            <span>无法加载运行信息</span>
+            <button type="button" className="about-button about-button-quiet" onClick={() => setRevision((value) => value + 1)}><RefreshCw size={14} aria-hidden="true" />重试</button>
+          </div>}
+        </section>
       </div>
-
-      <VersionUpdatePanel />
       <DiagnosticsPanel />
     </div>
   )

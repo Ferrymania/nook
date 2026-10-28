@@ -117,16 +117,16 @@ export function DiagnosticsPanel() {
     : '已关闭'
 
   return (
-    <details className="glass-panel p-6 sm:p-8" onToggle={(event) => setExpanded(event.currentTarget.open)}>
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
-        <h3 className="font-display text-lg font-bold text-ink-600">运行诊断</h3>
+    <details className="about-panel about-diagnostics" onToggle={(event) => setExpanded(event.currentTarget.open)}>
+      <summary className="about-diagnostics-heading">
+        <h3>运行诊断</h3>
         <ChevronRight size={18} aria-hidden="true" className={`shrink-0 text-(--app-muted) transition-transform ${expanded ? 'rotate-90' : ''}`} />
       </summary>
       {expanded && (
         <div className="mt-5 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p role="status" className="text-sm text-(--app-text)">{stateLabel}{busy && ' · 采集中…'}</p>
-            <button type="button" className="library-toolbar-button min-h-11" disabled={changing || !status}
+            <button type="button" className="about-button" disabled={changing || !status}
               onClick={() => { void change(!enabled) }}>
               {changing && <Loader2 size={15} className="animate-spin" aria-hidden="true" />}
               {enabled ? '关闭诊断' : '开启 15 分钟'}
@@ -134,7 +134,7 @@ export function DiagnosticsPanel() {
           </div>
           <div className="flex flex-wrap gap-2" aria-busy={busy}>
             {PROFILES.map((profile) => (
-              <button key={profile.key} type="button" className="library-toolbar-button min-h-11"
+              <button key={profile.key} type="button" className="about-button"
                 disabled={!enabled || busy || changing} onClick={() => { void capture(profile.key) }}>
                 {capturing === profile.key ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : <Download size={15} aria-hidden="true" />}
                 {profile.label}

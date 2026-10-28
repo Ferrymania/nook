@@ -1,0 +1,123 @@
+.about-settings {
+  display: grid;
+  gap: 24px;
+  color: var(--app-text);
+}
+
+.about-identity,
+.about-product,
+.about-product-name,
+.about-panel-heading,
+.about-command-heading,
+.about-update-footer,
+.about-diagnostics-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.about-identity { padding: 4px 0 8px; }
+.about-product { justify-content: flex-start; }
+.about-product > img { flex: none; }
+.about-product-name { justify-content: flex-start; flex-wrap: wrap; gap: 8px 12px; }
+.about-product-name h2 { font-size: 26px; font-weight: 650; letter-spacing: -.025em; }
+.about-version { color: var(--app-muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+
+/* Both columns share one 24px gutter and fill the canvas; below 960px they stack. */
+.about-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 1fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.about-panel {
+  min-width: 0;
+  border: 1px solid var(--app-border);
+  border-radius: 8px;
+  background: var(--app-panel-elevated);
+  padding: 20px;
+}
+
+.about-panel h3 { font-size: 16px; font-weight: 600; line-height: 24px; }
+.about-panel-heading { min-height: 36px; gap: 12px; }
+.about-button {
+  display: inline-flex;
+  min-height: 36px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--app-border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  background: transparent;
+  color: var(--app-text);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 22px;
+  transition: background-color .15s, border-color .15s;
+}
+.about-button:hover:not(:disabled) { background: var(--app-hover); }
+.about-button:focus-visible,
+.about-text-link:focus-visible,
+.about-diagnostics-heading:focus-visible,
+.about-release-notes summary:focus-visible { outline: 2px solid var(--app-text); outline-offset: 3px; }
+.about-button:disabled { cursor: not-allowed; color: var(--app-muted); background: var(--app-panel); }
+.about-button-primary { background: var(--app-command-bg); color: var(--app-command-text); border-color: var(--app-command-bg); }
+.about-button-primary:hover:not(:disabled) { background: var(--app-subtle); }
+.about-button-quiet { border-color: transparent; padding-inline: 6px; }
+.about-update { display: grid; gap: 20px; }
+.about-release-state { padding: 4px 0; }
+.about-release-title { display: flex; align-items: center; gap: 10px; }
+.about-release-title p { font-size: 18px; line-height: 28px; font-weight: 550; }
+.about-release-available .about-release-title { color: var(--app-brand-text); }
+.about-release-note { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; color: var(--app-muted); font-size: 12px; line-height: 20px; }
+.about-command-heading { min-height: 36px; }
+.about-command-heading h4 { font-size: 13px; font-weight: 500; }
+.about-command pre { margin-top: 8px; padding: 14px; border-radius: 6px; background: var(--app-panel); color: var(--app-text); font-size: 12px; line-height: 24px; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
+.about-update-footer { flex-wrap: wrap; gap: 8px 16px; font-size: 12px; color: var(--app-muted); line-height: 20px; }
+.about-text-link { display: inline-flex; min-height: 28px; align-items: center; gap: 5px; color: var(--app-text); }
+.about-text-link:hover { text-decoration: underline; }
+.about-environment { display: flex; flex-direction: column; }
+.about-environment-list { display: grid; flex: 1; grid-template-rows: repeat(4, minmax(0, 1fr)); margin-top: 12px; }
+.about-environment-list > div { display: grid; grid-template-columns: 84px minmax(0, 1fr); align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--app-border); font-size: 14px; line-height: 22px; }
+.about-environment-list > div:last-child { border-bottom: 0; padding-bottom: 4px; }
+.about-environment-list dt { color: var(--app-muted); }
+.about-environment-list dd { min-width: 0; text-align: right; overflow-wrap: anywhere; user-select: text; }
+.about-path { font-family: var(--font-mono); font-size: 12px; }
+.about-error { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; color: var(--app-danger-text); font-size: 13px; }
+.about-placeholder { color: var(--app-muted); }
+.about-release-notes { border-top: 1px solid var(--app-border); padding-top: 12px; }
+.about-release-notes summary { cursor: pointer; font-size: 13px; font-weight: 500; }
+.about-overview:has(.about-release-notes[open]) { align-items: start; }
+.about-diagnostics { padding-block: 0; }
+.about-diagnostics-heading { cursor: pointer; list-style: none; min-height: 64px; }
+.about-diagnostics-heading::-webkit-details-marker { display: none; }
+.about-diagnostics[open] { padding-bottom: 20px; }
+.about-diagnostics > div { margin-top: 0; }
+
+@media (max-width: 959px) {
+  .about-overview { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .about-settings { gap: 20px; }
+  .about-environment-list { flex: initial; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; gap: 4px 24px; }
+  .about-environment-list > div { grid-template-columns: minmax(0, 1fr); gap: 4px; border: 0; padding: 8px 0; }
+  .about-environment-list dd { text-align: left; }
+}
+@media (max-width: 540px) {
+  .about-identity { gap: 12px; }
+  .about-product { gap: 10px; }
+  .about-product > img { width: 40px; height: 40px; }
+  .about-product-name { display: grid; gap: 0; }
+  .about-product-name h2 { font-size: 24px; line-height: 28px; }
+  .about-panel { padding-inline: 16px; }
+  .about-button { min-height: 44px; }
+  .about-panel-heading { min-height: 44px; }
+  .about-release-title p { font-size: 16px; line-height: 24px; }
+  .about-command-heading { gap: 8px; }
+  .about-diagnostics-heading { min-height: 64px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .about-settings *, .about-settings *::before, .about-settings *::after { transition: none; animation: none; }
+}
