@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -171,5 +172,46 @@ func TestGenreRepairRollsBackOnConcurrentEdit(t *testing.T) {
 	var first model.Media
 	if err := db.First(&first, "id = ?", rows[0].ID).Error; err != nil || first.Genres != "剧情,关键词" {
 		t.Fatalf("transaction not rolled back: %+v, %v", first, err)
+	}
+}
+
+func TestGenreRepairPreviewBatchesAndScopesRows(t *testing.T) {
+	db := newServiceTestDB(t)
+	library := model.Library{Name: "大媒体库", Path: t.TempDir(), Type: "movie"}
+	other := model.Library{Name: "其他媒体库", Path: t.TempDir(), Type: "movie"}
+	if err := db.Create(&library).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&other).Error; err != nil {
+		t.Fatal(err)
+	}
+	rows := make([]model.Media, 201)
+	for i := range rows {
+		rows[i] = model.Media{LibraryID: library.ID, Title: "无 NFO", Path: filepath.Join(library.Path, fmt.Sprintf("movie-%d.mkv", i)), Genres: "剧情,关键词"}
+	}
+	if err := db.CreateInBatches(&rows, 100).Error; err != nil {
+		t.Fatal(err)
+	}
+	foreign := model.Media{LibraryID: other.ID, Title: "其他库", Path: filepath.Join(other.Path, "other.mkv"), Genres: "剧情"}
+	deleted := model.Media{LibraryID: library.ID, Title: "已删除", Path: filepath.Join(library.Path, "deleted.mkv"), Genres: "剧情"}
+	if err := db.Create(&foreign).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&deleted).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Delete(&deleted).Error; err != nil {
+		t.Fatal(err)
+	}
+	plan, err := BuildGenreRepairPlan(t.Context(), db, library.ID)
+	if err != nil || len(plan.Changes) != 0 || len(plan.Skipped) != 201 {
+		t.Fatalf("plan=%+v, err=%v", plan, err)
+	}
+	seen := map[string]bool{}
+	for _, skipped := range plan.Skipped {
+		if seen[skipped.MediaID] || skipped.MediaID == foreign.ID || skipped.MediaID == deleted.ID {
+			t.Fatalf("duplicate or out-of-scope row: %+v", skipped)
+		}
+		seen[skipped.MediaID] = true
 	}
 }

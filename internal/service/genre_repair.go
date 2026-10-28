@@ -64,33 +64,45 @@ func BuildGenreRepairPlan(ctx context.Context, db *gorm.DB, libraryID string) (*
 	}
 	plan := &GenreRepairPlan{Version: 1, LibraryID: library.ID, LibraryName: library.Name, CreatedAt: time.Now().UTC(),
 		Changes: []GenreRepairChange{}, Skipped: []GenreRepairSkip{}}
-	var rows []genreRepairMedia
-	err := db.WithContext(ctx).Model(&model.Media{}).
-		Select("id, path, genres, library_root_id, season_num, episode_num, updated_at").
-		Where("library_id = ? AND genres IS NOT NULL AND TRIM(genres) <> ''", library.ID).
-		FindInBatches(&rows, 200, func(_ *gorm.DB, _ int) error {
-			for _, row := range rows {
-				if err := ctx.Err(); err != nil {
-					return err
-				}
-				root := genreRepairRoot(library, row)
-				var change *GenreRepairChange
-				var err error
-				if root == "" {
-					err = errors.New("不是可读取的媒体库本地路径")
-				} else {
-					seriesLike := library.Type == "tv" || library.Type == "anime" || row.SeasonNum > 0 || row.EpisodeNum > 0
-					change, err = planNFOSourcedGenres(row, root, seriesLike)
-				}
-				if err != nil {
-					plan.Skipped = append(plan.Skipped, GenreRepairSkip{MediaID: row.ID, Path: row.Path, Reason: err.Error()})
-				} else if change != nil {
-					plan.Changes = append(plan.Changes, *change)
-				}
+	lastID := ""
+	for {
+		// Use an explicit cursor: GORM FindInBatches extracts the primary key
+		// using Media's embedded Base indexes, which do not match this projection.
+		var rows []genreRepairMedia
+		query := db.WithContext(ctx).Model(&model.Media{}).
+			Select("id, path, genres, library_root_id, season_num, episode_num, updated_at").
+			Where("library_id = ? AND genres IS NOT NULL AND TRIM(genres) <> ''", library.ID).
+			Order("id").Limit(200)
+		if lastID != "" {
+			query = query.Where("id > ?", lastID)
+		}
+		if err := query.Find(&rows).Error; err != nil {
+			return nil, err
+		}
+		for _, row := range rows {
+			if err := ctx.Err(); err != nil {
+				return nil, err
 			}
-			return nil
-		}).Error
-	return plan, err
+			root := genreRepairRoot(library, row)
+			var change *GenreRepairChange
+			var err error
+			if root == "" {
+				err = errors.New("不是可读取的媒体库本地路径")
+			} else {
+				seriesLike := library.Type == "tv" || library.Type == "anime" || row.SeasonNum > 0 || row.EpisodeNum > 0
+				change, err = planNFOSourcedGenres(row, root, seriesLike)
+			}
+			if err != nil {
+				plan.Skipped = append(plan.Skipped, GenreRepairSkip{MediaID: row.ID, Path: row.Path, Reason: err.Error()})
+			} else if change != nil {
+				plan.Changes = append(plan.Changes, *change)
+			}
+		}
+		if len(rows) < 200 {
+			return plan, nil
+		}
+		lastID = rows[len(rows)-1].ID
+	}
 }
 
 func genreRepairRoot(library model.Library, row genreRepairMedia) string {
