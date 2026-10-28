@@ -32,12 +32,5 @@ func effectiveVersion(buildVersion string) string {
 }
 
 func main() {
-	if len(os.Args) > 1 && os.Args[1] == "repair-genres" {
-		if err := runGenreRepair(os.Args[2:], os.Stdout); err != nil {
-			reportError("Nook 类型修复失败", err)
-			os.Exit(1)
-		}
-		return
-	}
 	runProgram()
 }

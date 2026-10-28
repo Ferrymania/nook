@@ -30,20 +30,6 @@ var RuntimeMu sync.RWMutex
 //
 // 即使没有文件也始终返回可用的 Config。
 func Load() (*Config, error) {
-	cfg, err := LoadReadOnly()
-	if err != nil {
-		return nil, err
-	}
-	if err := cfg.normalize(); err != nil {
-		return nil, err
-	}
-	return cfg, nil
-}
-
-// LoadReadOnly reads the same files, defaults and environment as Load without
-// initializing runtime state (in particular, without reading/creating JWT keys).
-// Maintenance commands that only need database settings use this path.
-func LoadReadOnly() (*Config, error) {
 	v := viper.New()
 	setDefaults(v)
 
@@ -88,6 +74,9 @@ func LoadReadOnly() (*Config, error) {
 	cfg := &Config{}
 	if err := v.Unmarshal(cfg); err != nil {
 		return nil, fmt.Errorf("decode config: %w", err)
+	}
+	if err := cfg.normalize(); err != nil {
+		return nil, err
 	}
 	return cfg, nil
 }
