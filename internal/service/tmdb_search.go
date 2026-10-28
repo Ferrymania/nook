@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+
+	"github.com/Ferrymania/nook/internal/genre"
 )
 
 type tmdbMovieSearchResult struct {
@@ -108,7 +110,7 @@ func (t *TMDbProvider) movieSearchResultToMatch(r tmdbMovieSearchResult) *Match 
 		Overview:     r.Overview,
 		Rating:       r.VoteAverage,
 		Languages:    nonEmptyStrings(r.OriginalLanguage),
-		Genres:       genreIDStrings(r.GenreIDs),
+		Genres:       genre.FromTMDBIDs(r.GenreIDs),
 	}
 	if r.PosterPath != "" {
 		m.PosterURL = t.imgCDN + "/w500" + r.PosterPath
@@ -197,7 +199,7 @@ func (t *TMDbProvider) tvSearchResultToMatch(r tmdbTVSearchResult) *Match {
 		Rating:       r.VoteAverage,
 		Languages:    nonEmptyStrings(r.OriginalLanguage),
 		Countries:    deduplicate(r.OriginCountry),
-		Genres:       genreIDStrings(r.GenreIDs),
+		Genres:       genre.FromTMDBIDs(r.GenreIDs),
 	}
 	if m.Title == "" {
 		m.Title = r.OriginalName

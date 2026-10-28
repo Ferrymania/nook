@@ -48,12 +48,22 @@ export function LibraryFilterBar({
 
   const active = hasActiveFilters(filters)
 
+  // Use aliases supplied by the backend so an existing ?genre=Horror link also
+  // selects the 恐怖 button, without maintaining a second translation table.
+  const canonicalGenre = (name: string) => {
+    const key = name.trim().toLowerCase()
+    return facets?.genres.find((genre) =>
+      [genre.name, ...(genre.aliases ?? [])].some((alias) => alias.toLowerCase() === key),
+    )?.name ?? name.trim()
+  }
+
   const toggleGenre = (name: string) => {
     setDraft((prev) => {
-      const exists = prev.genres.includes(name)
+      const names = [...new Set(prev.genres.map(canonicalGenre))]
+      const exists = names.includes(name)
       return {
         ...prev,
-        genres: exists ? prev.genres.filter((item) => item !== name) : [...prev.genres, name],
+        genres: exists ? names.filter((item) => item !== name) : [...names, name],
       }
     })
   }
@@ -66,7 +76,7 @@ export function LibraryFilterBar({
     )
     const rating = ratingMin ? Number(ratingMin) : undefined
     return {
-      genres: draft.genres,
+      genres: [...new Set(draft.genres.map(canonicalGenre))],
       ...range,
       rating_min: Number.isFinite(rating) && (rating ?? 0) > 0 ? rating : undefined,
       unwatched: draft.unwatched,
@@ -158,7 +168,7 @@ export function LibraryFilterBar({
             ) : (
               <div className="flex flex-wrap gap-1.5">
                 {facets.genres.map((genre) => {
-                  const selected = draft.genres.includes(genre.name)
+                  const selected = draft.genres.some((name) => canonicalGenre(name) === genre.name)
                   return (
                     <button
                       key={genre.name}

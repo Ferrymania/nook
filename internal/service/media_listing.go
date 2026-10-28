@@ -7,6 +7,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/Ferrymania/nook/internal/genre"
 	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/repository"
 )
@@ -218,7 +219,7 @@ func (s *MediaService) GetMediaItem(ctx context.Context, id string) (*MediaItem,
 	if err != nil {
 		return nil, err
 	}
-	item := &MediaItem{Media: *media}
+	item := &MediaItem{Media: *media, GenreNames: genre.Names(media.Genres)}
 	s.attachVideoMetadata(ctx, &item.Media)
 	if len(versions) > 1 {
 		item.Versions = versions

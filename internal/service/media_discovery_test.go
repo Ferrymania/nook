@@ -58,11 +58,11 @@ func TestAggregateGenresSplitsAndCounts(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// 大小写不同视为同一类型，展示名保留首次出现的写法。
-	if got := findGenre(genres, "Action"); got != 2 {
+	// 大小写不同视为同一类型，已知类型统一为中文名。
+	if got := findGenre(genres, "动作"); got != 2 {
 		t.Fatalf("Action count = %d, want 2 (genres=%+v)", got, genres)
 	}
-	if got := findGenre(genres, "Drama"); got != 1 {
+	if got := findGenre(genres, "剧情"); got != 1 {
 		t.Fatalf("Drama count = %d, want 1 (genres=%+v)", got, genres)
 	}
 }
@@ -103,11 +103,11 @@ func TestAggregateGenresScopedToLibrary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if findGenre(genres, "Comedy") != -1 {
+	if findGenre(genres, "喜剧") != -1 {
 		t.Fatalf("Comedy must not appear when scoped to the movie library: %+v", genres)
 	}
-	if findGenre(genres, "Action") != 1 {
-		t.Fatalf("Action count = %d, want 1", findGenre(genres, "Action"))
+	if findGenre(genres, "动作") != 1 {
+		t.Fatalf("Action count = %d, want 1", findGenre(genres, "动作"))
 	}
 }
 

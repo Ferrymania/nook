@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
+	"github.com/Ferrymania/nook/internal/genre"
 	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/repository"
 )
@@ -22,11 +23,11 @@ type MediaDiscoveryService struct {
 	repo *repository.Container
 }
 
-// GenreCount 是类型聚合结果。Name 保留首次出现时的写法（大小写与全半角
-// 均按原样展示），计数则不区分大小写。
+// GenreCount 合并已知别名，未知自定义类型保留首次出现时的写法。
 type GenreCount struct {
-	Name  string `json:"name"`
-	Count int    `json:"count"`
+	Name    string   `json:"name"`
+	Count   int      `json:"count"`
+	Aliases []string `json:"aliases,omitempty"`
 }
 
 // NewMediaDiscoveryService 构建发现服务。
@@ -60,19 +61,13 @@ func (s *MediaDiscoveryService) AggregateGenres(ctx context.Context, visibility 
 	return countGenres(raw), nil
 }
 
-// countGenres 切分并计数。大小写不同的同名类型合并计数，展示名取首次出现的
-// 写法；结果按 count 降序、同数按名称升序，保证输出稳定可测。
+// countGenres 每条媒体的同义类型只计一次；按 count 降序、名称升序排序。
 func countGenres(values []string) []GenreCount {
 	counts := make(map[string]int)
 	display := make(map[string]string)
 	for _, value := range values {
-		seen := make(map[string]bool)
-		for _, name := range SplitGenreList(value) {
+		for _, name := range genre.Names(value) {
 			key := strings.ToLower(name)
-			if seen[key] {
-				continue
-			}
-			seen[key] = true
 			if _, seen := display[key]; !seen {
 				display[key] = name
 			}
@@ -81,7 +76,7 @@ func countGenres(values []string) []GenreCount {
 	}
 	out := make([]GenreCount, 0, len(counts))
 	for key, count := range counts {
-		out = append(out, GenreCount{Name: display[key], Count: count})
+		out = append(out, GenreCount{Name: display[key], Count: count, Aliases: genre.Aliases(display[key])})
 	}
 	sort.Slice(out, func(i, j int) bool {
 		if out[i].Count != out[j].Count {
@@ -92,29 +87,14 @@ func countGenres(values []string) []GenreCount {
 	return out
 }
 
-// SplitGenreList 切分逗号分隔的类型字段。
-//
-// 刮削来源既有英文逗号也有中文全角逗号，且常见首尾空格，因此三种分隔符都要
-// 处理，并丢弃空段。
+// SplitGenreList 切分类型字段，保留原始名称，供元数据导入和导出使用。
 func SplitGenreList(value string) []string {
-	if strings.TrimSpace(value) == "" {
-		return nil
-	}
-	parts := strings.FieldsFunc(value, func(r rune) bool {
-		return r == ',' || r == '，' || r == '、' || r == ';' || r == '；'
-	})
-	out := make([]string, 0, len(parts))
-	for _, part := range parts {
-		if trimmed := strings.TrimSpace(part); trimmed != "" {
-			out = append(out, trimmed)
-		}
-	}
-	return out
+	return genre.Split(value)
 }
 
 // genreSet 把类型字段转成小写集合，用于相似度计算。
 func genreSet(value string) map[string]struct{} {
-	names := SplitGenreList(value)
+	names := genre.Names(value)
 	if len(names) == 0 {
 		return nil
 	}

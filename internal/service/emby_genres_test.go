@@ -39,10 +39,10 @@ func assertEmbyGenres(t *testing.T, item map[string]any, names ...string) {
 
 func TestEmbyGenreOfficialShapeAndNormalization(t *testing.T) {
 	item := map[string]any{}
-	setEmbyGenres(item, []string{" Action，剧情;action ", "剧情、喜剧；", ""})
-	assertEmbyGenres(t, item, "Action", "剧情", "喜剧")
-	if embyGenreNumber(" ACTION ") != embyGenreNumber("action") {
-		t.Fatal("case/whitespace changed stable genre ID")
+	setEmbyGenres(item, []string{"28, Action，剧情;18;action ", "剧情、喜剧；35", ""})
+	assertEmbyGenres(t, item, "动作", "剧情", "喜剧")
+	if embyGenreNumber(" ACTION ") != embyGenreNumber("动作") || embyGenreNumber("28") != embyGenreNumber("动作") {
+		t.Fatal("aliases/case/whitespace changed stable genre ID")
 	}
 	for _, genre := range []string{"剧情", "Action", "Science Fiction"} {
 		id, err := strconv.ParseInt(embyGenreID(genre), 10, 64)
@@ -64,7 +64,7 @@ func TestEmbyGenreMetadataAcrossMovieEndpointsAndCache(t *testing.T) {
 	svc := newTestEmbyService(t)
 	svc.cache = newRuntimeCacheForTest(t, 8)
 	libID := seedDiscoveryLibrary(t, svc.repo, "movie")
-	m := model.Media{LibraryID: libID, Title: "类型测试电影", Genres: "动作，惊悚;动作", Path: "/media/genres/movie.mkv"}
+	m := model.Media{LibraryID: libID, Title: "类型测试电影", Genres: "28,Action，惊悚;动作,Thriller,53", Path: "/media/genres/movie.mkv"}
 	seedDiscoveryMedia(t, svc.repo, &m)
 	for range 2 {
 		item, err := svc.Item(t.Context(), m.ID, "")
@@ -107,7 +107,7 @@ func TestEmbySeriesSeasonEpisodeGenresAndVisibility(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i, row := range []model.Media{
-		{Base: model.Base{ID: "genre-s1e1"}, SeasonNum: 1, EpisodeNum: 1, Genres: "剧情，Crime;剧情"},
+		{Base: model.Base{ID: "genre-s1e1"}, SeasonNum: 1, EpisodeNum: 1, Genres: "18,剧情，Crime;80;剧情"},
 		{Base: model.Base{ID: "genre-s1e2"}, SeasonNum: 1, EpisodeNum: 2},
 		{Base: model.Base{ID: "genre-s2e1"}, SeasonNum: 2, EpisodeNum: 1, Genres: "喜剧"},
 		{Base: model.Base{ID: "genre-s3e1"}, SeasonNum: 3, EpisodeNum: 1},
@@ -130,12 +130,12 @@ func TestEmbySeriesSeasonEpisodeGenresAndVisibility(t *testing.T) {
 		id     string
 		genres []string
 	}{
-		{"genre-show", []string{"剧情", "Crime", "喜剧"}},
-		{seasonID("genre-show", 1), []string{"剧情", "Crime"}},
+		{"genre-show", []string{"剧情", "犯罪", "喜剧"}},
+		{seasonID("genre-show", 1), []string{"剧情", "犯罪"}},
 		{seasonID("genre-show", 2), []string{"喜剧"}},
-		{seasonID("genre-show", 3), []string{"剧情", "Crime", "喜剧"}},
-		{"genre-s1e1", []string{"剧情", "Crime"}},
-		{"genre-s1e2", []string{"剧情", "Crime", "喜剧"}},
+		{seasonID("genre-show", 3), []string{"剧情", "犯罪", "喜剧"}},
+		{"genre-s1e1", []string{"剧情", "犯罪"}},
+		{"genre-s1e2", []string{"剧情", "犯罪", "喜剧"}},
 	}
 	for range 2 {
 		for _, check := range checks {
@@ -149,14 +149,14 @@ func TestEmbySeriesSeasonEpisodeGenresAndVisibility(t *testing.T) {
 		if err != nil || len(latest) != 1 {
 			t.Fatalf("latest: %v %v", latest, err)
 		}
-		assertEmbyGenres(t, latest[0], "剧情", "Crime", "喜剧")
+		assertEmbyGenres(t, latest[0], "剧情", "犯罪", "喜剧")
 		out, err := svc.Items(t.Context(), ItemsParams{UserID: user.ID, ParentID: "genre-show", IncludeItemTypes: []string{"Episode"}, Recursive: true})
 		if err != nil {
 			t.Fatal(err)
 		}
 		for _, item := range similarResponseItems(t, out) {
 			if item["Id"] == "genre-s1e2" {
-				assertEmbyGenres(t, item, "剧情", "Crime", "喜剧")
+				assertEmbyGenres(t, item, "剧情", "犯罪", "喜剧")
 			}
 		}
 	}

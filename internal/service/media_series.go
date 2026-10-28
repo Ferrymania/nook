@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Ferrymania/nook/internal/genre"
 	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/repository"
 )
@@ -221,8 +222,8 @@ func mediaRowMatchesFilters(row *model.Media, filters MediaListFilters, complete
 	if len(filters.Genres) > 0 {
 		rowGenres := genreSet(row.Genres)
 		matched := false
-		for _, want := range filters.Genres {
-			if _, ok := rowGenres[strings.ToLower(strings.TrimSpace(want))]; ok {
+		for _, want := range genre.Names(filters.Genres...) {
+			if _, ok := rowGenres[strings.ToLower(want)]; ok {
 				matched = true
 				break
 			}
