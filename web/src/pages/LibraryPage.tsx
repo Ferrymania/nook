@@ -31,6 +31,7 @@ import { useLibraryData } from './useLibraryData'
 import { useLibraryScanStatus } from './useLibraryScanStatus'
 import { useLibrarySeriesSelection } from './useLibrarySeriesSelection'
 import { useLibraryAdminActions } from './useLibraryAdminActions'
+import { useLibraryManualScrape } from './useLibraryManualScrape'
 import { usePermission } from '../hooks/usePermission'
 import { useFavourites } from '../hooks/useFavourites'
 
@@ -44,7 +45,6 @@ export function LibraryPage() {
   const { isFavourite, toggleFavourite } = useFavourites()
   const [favouriteBusyID, setFavouriteBusyID] = useState('')
 
-  const [manualSeriesScrapeOpen, setManualSeriesScrapeOpen] = useState(false)
   const [seriesMetadataEditOpen, setSeriesMetadataEditOpen] = useState(false)
   const [manualMovie, setManualMovie] = useState<Media | null>(null)
   const [movieDialog, setMovieDialog] = useState<LibraryMovieDialog>(null)
@@ -152,6 +152,7 @@ export function LibraryPage() {
     reloadCurrentLibrary,
     updateLibrary,
   } = useLibraryData(id, selectedSeries, serverSortField, serverSortOrder, libraryFilters)
+  const seriesManualScrape = useLibraryManualScrape(id)
 
   // 常规排序由服务端全局完成；只有 random 模式才在客户端洗牌。
   const displayedItems = useMemo(() => {
@@ -227,9 +228,13 @@ export function LibraryPage() {
     setSelectedSeason,
     onClearSeriesState: () => setSeriesMetadataEditOpen(false),
   })
-  const selectedSeriesScrapeMedia = selectedSeriesEpisodes.find((media) => !isTheatricalFeature(media))
-    ?? selectedSeries?.rep
-    ?? null
+  const handleCardManualScrape = (media: Media) => {
+    const series = isSeries && !isTheatricalFeature(media)
+      ? displayedSeriesCards.find(card => card.rep.id === media.id)
+      : undefined
+    if (series) void seriesManualScrape.open(series)
+    else setManualMovie(media)
+  }
 
   const {
     scraping,
@@ -250,7 +255,8 @@ export function LibraryPage() {
     selectedSeriesEpisodes: selectedSeriesAllEpisodes,
     reloadCurrentLibrary,
     clearSelectedSeries,
-    setManualMovie,
+    onManualScrape: handleCardManualScrape,
+    manualScrapeLoadingID: seriesManualScrape.loadingMediaID,
     onMovieMetadataEdit: media => setMovieDialog({ kind: 'metadata', media }),
     onMovieOrganize: media => setMovieDialog({ kind: 'organize', media }),
     onMovieQuerySegments: media => setMovieDialog({ kind: 'segments', media }),
@@ -372,10 +378,10 @@ export function LibraryPage() {
           if (!selectedSeries) return
           void handleToggleFavourite(selectedSeries.rep.id)
         }}
-        seriesToolBusy={seriesToolBusy}
+        seriesToolBusy={seriesToolBusy || (seriesManualScrape.loadingMediaID ? 'match' : '')}
         onBack={clearSelectedSeries}
         onSmartScrape={handleSeriesSmartScrape}
-        onManualScrape={() => setManualSeriesScrapeOpen(true)}
+        onManualScrape={() => { if (selectedSeries) void seriesManualScrape.open(selectedSeries) }}
         onMetadataEdit={() => setSeriesMetadataEditOpen(true)}
         onProbe={handleSeriesProbe}
         onNFO={handleSeriesNFO}
@@ -386,16 +392,15 @@ export function LibraryPage() {
       />
 
       <LibraryPageDialogs
-        manualSeriesScrapeOpen={manualSeriesScrapeOpen}
+        manualSeriesScrape={seriesManualScrape.target}
         seriesMetadataEditOpen={seriesMetadataEditOpen}
         manualMovie={manualMovie}
         movieDialog={movieDialog}
         selectedSeries={selectedSeries}
-        selectedSeriesScrapeMedia={selectedSeriesScrapeMedia}
         selectedSeriesMediaIDs={selectedSeriesMediaIDs}
         libraryType={library?.type}
         scrapeEpisodeArtwork={scrapeEpisodeArtwork}
-        onCloseManualSeriesScrape={() => setManualSeriesScrapeOpen(false)}
+        onCloseManualSeriesScrape={seriesManualScrape.close}
         onCloseSeriesMetadataEdit={() => setSeriesMetadataEditOpen(false)}
         onCloseManualMovie={() => setManualMovie(null)}
         onCloseMovieDialog={() => setMovieDialog(null)}
