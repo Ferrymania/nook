@@ -6,7 +6,7 @@ import { apiConfigsAPI, type APIConfig } from '../api/api_configs'
 import { confirmAction } from '../components/confirmAction'
 
 // APIConfigsPage manages third-party API keys (TMDb / Bangumi / TheTVDB /
-// Fanart / OpenAI / Douban). Plaintext keys are never returned by the
+// Fanart / OpenAI). Plaintext keys are never returned by the
 // backend — only a "abc1****wxyz" mask. The actual secret is encrypted
 // in PostgreSQL with AES-GCM keyed off the JWT secret.
 export function APIConfigsPage() {
@@ -30,7 +30,7 @@ export function APIConfigsPage() {
         <div>
           <h1 className="font-display text-3xl font-bold text-ink-600">外部 API 配置</h1>
           <p className="text-sm text-ink-50">
-            管理 TMDb / Bangumi / TheTVDB / Fanart / OpenAI / Douban 的密钥与源。
+            管理 TMDb / Bangumi / TheTVDB / Fanart / OpenAI 的密钥与源。
             后端使用 AES-GCM 加密存储,数据库泄漏时密钥仍然安全。
           </p>
         </div>

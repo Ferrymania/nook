@@ -8,7 +8,6 @@ export interface ManualSearchProvider {
 
 export const manualSearchProviders: ManualSearchProvider[] = [
   { value: 'tmdb', label: 'TMDb' },
-  { value: 'douban', label: '豆瓣' },
   { value: 'bangumi', label: 'Bangumi' },
   { value: 'thetvdb', label: 'TheTVDB' },
 ]
@@ -71,8 +70,6 @@ function providerFromQueryPrefix(query: string): string {
   switch (prefix) {
     case 'tmdb':
       return 'tmdb'
-    case 'douban':
-      return 'douban'
     case 'bangumi':
     case 'bgm':
       return 'bangumi'

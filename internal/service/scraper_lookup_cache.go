@@ -9,7 +9,7 @@ import (
 
 // A TV library scrapes one media row per episode, and every row in the same
 // show computes the same query candidate (the series folder title). Without a
-// cache each episode re-issues the identical TMDb/Douban/Bangumi/TheTVDB
+// cache each episode re-issues the identical TMDb/Bangumi/TheTVDB
 // search, so a 100-episode season costs 100x the network calls it needs.
 //
 // The cache lives on the ScraperService instance (not a package global) so that

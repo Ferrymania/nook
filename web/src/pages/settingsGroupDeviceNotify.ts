@@ -29,7 +29,7 @@ export const deviceNotifySettingsGroup: SettingGroup = {
       label: '启用防共享',
       type: 'toggle',
       defaultValue: 'false',
-      hint: '超出设备限制或警告上限会禁用账号。',
+      hint: '超出登录设备数或并发播放上限会禁用账号。',
     },
     {
       key: 'device.max_concurrent_play',
@@ -42,12 +42,6 @@ export const deviceNotifySettingsGroup: SettingGroup = {
       label: '单账号登录设备上限',
       type: 'number',
       defaultValue: '3',
-    },
-    {
-      key: 'device.warn_threshold',
-      label: '设备指纹警告上限',
-      type: 'number',
-      defaultValue: '2',
     },
     {
       key: 'device.play_window_seconds',

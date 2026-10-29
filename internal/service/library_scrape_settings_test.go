@@ -41,9 +41,7 @@ func newLibraryScrapeEnv(t *testing.T) (*ScraperService, *APIConfigService) {
 		t.Fatal(err)
 	}
 	s := NewScraperService(cfg, log, repo, NewTMDbProvider(cfg, log, api), NewBangumiProvider(cfg, log), NewTheTVDBProvider(cfg, log), NewFanartProvider(cfg, log), NewHub(log))
-	s.SetDouban(NewDoubanProvider(cfg, log))
 	s.bangumi.apiConfig = api
-	s.douban.apiConfig = api
 	s.thetvdb.apiConfig = api
 	s.fanart.apiConfig = api
 	return s, api
@@ -54,6 +52,61 @@ func setTestProvider(t *testing.T, api *APIConfigService, provider, key, base st
 		t.Fatal(err)
 	}
 }
+
+func TestLibraryScrapeSettingsExcludeRemovedProviders(t *testing.T) {
+	prefs := &model.LibraryScrapeSettings{
+		Providers: []string{"tmdb", "douban", "bangumi"}, Language: "ja-JP",
+		AutoOnScan: true, DelayMinMS: 1200, DelayMaxMS: 1500,
+	}
+	lib := &model.Library{ScrapeSettings: prefs}
+	got := libraryScrapeSettings(t.Context(), nil, lib)
+	if strings.Join(got.Providers, ",") != "tmdb,bangumi" || got.Language != "ja-JP" || !got.AutoOnScan || got.DelayMinMS != 1200 || got.DelayMaxMS != 1500 {
+		t.Fatalf("effective preferences = %#v", got)
+	}
+	if strings.Join(prefs.Providers, ",") != "tmdb,douban,bangumi" {
+		t.Fatal("reading preferences must not mutate stored library settings")
+	}
+	if err := validateLibraryScrapeSettings(got); err != nil {
+		t.Fatalf("effective preferences must remain editable: %v", err)
+	}
+	prefs.Providers = []string{"douban"}
+	if got := libraryScrapeSettings(t.Context(), nil, lib); len(got.Providers) != 0 {
+		t.Fatalf("removed-only selection must not silently enable other providers: %v", got.Providers)
+	}
+	if err := validateLibraryScrapeSettings(*prefs); err == nil {
+		t.Fatal("removed provider must not be accepted on save")
+	}
+	ctx := withLibraryScrapeSettings(t.Context(), *prefs)
+	if got := scrapeProviders(ctx); len(got) != 0 {
+		t.Fatalf("runtime provider chain still includes removed providers: %v", got)
+	}
+	for _, provider := range defaultScrapeProviders {
+		if provider == "douban" {
+			t.Fatal("removed provider must not be a default")
+		}
+	}
+}
+func TestLibraryScrapeSettingsExcludeRemovedGlobalProvider(t *testing.T) {
+	s, _ := newLibraryScrapeEnv(t)
+	for _, tc := range []struct{ stored, want string }{
+		{"douban", ""},
+		{"douban,tmdb", "tmdb"},
+		{"tmdb,douban,bangumi", "tmdb,bangumi"},
+	} {
+		if err := s.repo.Setting.Set(t.Context(), "scrape.providers", tc.stored); err != nil {
+			t.Fatal(err)
+		}
+		got := libraryScrapeSettings(t.Context(), s.repo, nil)
+		if strings.Join(got.Providers, ",") != tc.want {
+			t.Fatalf("stored=%q effective providers=%v, want %q", tc.stored, got.Providers, tc.want)
+		}
+		stored, err := s.repo.Setting.Get(t.Context(), "scrape.providers")
+		if err != nil || stored != tc.stored {
+			t.Fatalf("reading preferences changed stored providers: %q, %v", stored, err)
+		}
+	}
+}
+
 func TestLibraryScrapeSettingsPreserveLegacyAndIsolateLibraries(t *testing.T) {
 	s, _ := newLibraryScrapeEnv(t)
 	for k, v := range map[string]string{"scrape.auto_on_scan": "true", "scrape.language": "ja-JP", "scrape.providers": "bangumi,tmdb", "scrape.delay_min_ms": "1200", "scrape.delay_max_ms": "1500"} {
@@ -215,14 +268,8 @@ func TestMetadataProvidersUseSavedCredentialsAndGlobalSwitch(t *testing.T) {
 	if _, err := s.fanart.MovieArtwork(t.Context(), 7); err != nil {
 		t.Fatal(err)
 	}
-	req := httptest.NewRequest("GET", "https://movie.douban.com/", nil)
-	setTestProvider(t, api, "douban", "session=test", "", true)
-	s.douban.setHeaders(req)
-	if req.Header.Get("Cookie") != "session=test" {
-		t.Fatal("Douban ignored stored cookie")
-	}
 	before := calls.Load()
-	for _, p := range []string{"tmdb", "bangumi", "thetvdb", "fanart", "douban"} {
+	for _, p := range []string{"tmdb", "bangumi", "thetvdb", "fanart"} {
 		enabled := false
 		if _, err := api.Update(t.Context(), p, APIConfigPatch{Enabled: &enabled}); err != nil {
 			t.Fatal(err)
@@ -232,14 +279,13 @@ func TestMetadataProvidersUseSavedCredentialsAndGlobalSwitch(t *testing.T) {
 	s.cfg.Secrets.TMDbAPIKey = "file-key"
 	s.cfg.Secrets.TheTVDBAPIKey = "file-key"
 	s.cfg.Secrets.FanartAPIKey = "file-key"
-	if s.tmdb.Enabled() || s.bangumi.Enabled() || s.thetvdb.Enabled() || s.fanart.Enabled() || s.douban.Enabled() {
+	if s.tmdb.Enabled() || s.bangumi.Enabled() || s.thetvdb.Enabled() || s.fanart.Enabled() {
 		t.Fatal("global switch ignored")
 	}
 	_, _ = s.tmdb.SearchMovie(t.Context(), "Clock", 0)
 	_, _ = s.bangumi.GetSubject(t.Context(), 7)
 	_, _ = s.thetvdb.GetSeriesMatchByID(t.Context(), "7")
 	_, _ = s.fanart.MovieArtwork(t.Context(), 7)
-	_, _ = s.douban.GetMatchByID(t.Context(), "7")
 	if calls.Load() != before {
 		t.Fatal("disabled provider made a network request")
 	}

@@ -56,7 +56,6 @@ type Container struct {
 	ReleaseCheck     *ReleaseCheckService
 	Organizer        *OrganizerService
 	OrganizePipeline *OrganizePipelineService
-	Douban           *DoubanProvider
 	Token            *TokenService
 	ApiConfig        *ApiConfigService
 	Device           *DeviceService

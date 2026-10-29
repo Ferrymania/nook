@@ -88,13 +88,6 @@ func (s *ScraperService) ManualSearch(ctx context.Context, media *model.Media, q
 			}
 		}
 	}
-	if providers.want("douban") {
-		for _, candidateQuery := range queries {
-			if match := s.manualDoubanMatch(ctx, candidateQuery); match != nil {
-				add("douban", normalizeMediaType(mediaType, candidateQuery, ""), match)
-			}
-		}
-	}
 	if providers.want("bangumi") {
 		for _, candidateQuery := range queries {
 			if match := s.manualBangumiMatch(ctx, candidateQuery); match != nil {

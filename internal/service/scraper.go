@@ -1,7 +1,7 @@
 // Package service — scraper orchestrator.
 //
 // ScraperService takes a Media row and tries to enrich it with metadata from
-// local NFO first, then TMDb -> Douban -> Bangumi -> TheTVDB. Fanart.tv is
+// local NFO first, then TMDb -> Bangumi -> TheTVDB. Fanart.tv is
 // artwork-only and upgrades poster/backdrop after a metadata match.
 package service
 

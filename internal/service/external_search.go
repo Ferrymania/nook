@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 )
 
@@ -38,10 +37,10 @@ type ExternalMediaResult struct {
 	NSFW               bool     `json:"nsfw,omitempty"`
 }
 
-// SearchExternalMedia fans out one normalized search intent to TMDb, Douban
+// SearchExternalMedia fans out one normalized search intent to TMDb
 // and Bangumi. This keeps a clean separation of "metadata discovery"
 // from later tracker searching/downloading, but keeps our Go service small.
-func SearchExternalMedia(ctx context.Context, query string, year int, mediaType string, tmdb *TMDbProvider, douban *DoubanProvider, bangumi *BangumiProvider) []ExternalMediaResult {
+func SearchExternalMedia(ctx context.Context, query string, year int, mediaType string, tmdb *TMDbProvider, bangumi *BangumiProvider) []ExternalMediaResult {
 	query = strings.TrimSpace(query)
 	if query == "" {
 		return []ExternalMediaResult{}
@@ -98,24 +97,6 @@ func SearchExternalMedia(ctx context.Context, query string, year int, mediaType 
 		}
 	}
 
-	if douban != nil {
-		if m, err := douban.Search(ctx, query); err == nil && m != nil {
-			yearValue, _ := strconv.Atoi(m.Year)
-			typ := normalizeDoubanType(m.Type, mediaType)
-			results = append(results, ExternalMediaResult{
-				Source:           "douban",
-				MediaType:        typ,
-				Title:            m.Title,
-				PosterURL:        m.Img,
-				Year:             yearValue,
-				Rating:           m.Rating,
-				DoubanID:         m.DoubanID,
-				SubscribeKeyword: buildSubscribeKeyword(m.Title, yearValue),
-				SubscribeAliases: buildSubscribeAliases(m.Title, "", yearValue),
-			})
-		}
-	}
-
 	return dedupeExternalMedia(results)
 }
 
@@ -138,20 +119,6 @@ func buildSubscribeAliases(title, originalName string, year int) []string {
 		buildSubscribeKeyword(originalName, year),
 	}
 	return compactUniqueStrings(values...)
-}
-
-func normalizeDoubanType(doubanType, fallback string) string {
-	doubanType = strings.ToLower(strings.TrimSpace(doubanType))
-	switch doubanType {
-	case "movie":
-		return "movie"
-	case "tv", "tvshow", "drama":
-		return "tv"
-	}
-	if fallback != "" {
-		return fallback
-	}
-	return "movie"
 }
 
 func dedupeExternalMedia(in []ExternalMediaResult) []ExternalMediaResult {

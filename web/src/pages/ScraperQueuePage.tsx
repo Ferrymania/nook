@@ -264,7 +264,7 @@ export function ScraperQueuePage({
                 ))}
             </div>
             <p className="text-xs text-sand-500 mt-0.5">
-              媒体元数据在线识别与海报/剧照下载进度（TMDb / 豆瓣 / Bangumi / TheTVDB）
+              媒体元数据在线识别与海报/剧照下载进度（TMDb / Bangumi / TheTVDB）
             </p>
           </div>
         </div>

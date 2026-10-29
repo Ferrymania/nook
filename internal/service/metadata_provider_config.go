@@ -35,9 +35,6 @@ func (t *TMDbProvider) runtimeConfig(ctx context.Context) Resolved {
 func (b *BangumiProvider) runtimeConfig(ctx context.Context) Resolved {
 	return resolveMetadataProvider(ctx, b.apiConfig, "bangumi", b.cfg.Secrets.BangumiToken, b.base)
 }
-func (d *DoubanProvider) runtimeConfig(ctx context.Context) Resolved {
-	return resolveMetadataProvider(ctx, d.apiConfig, "douban", d.cfg.Secrets.DoubanCookie, "https://movie.douban.com")
-}
 func (t *TheTVDBProvider) runtimeConfig(ctx context.Context) Resolved {
 	return resolveMetadataProvider(ctx, t.apiConfig, "thetvdb", t.cfg.Secrets.TheTVDBAPIKey, "https://api4.thetvdb.com/v4")
 }

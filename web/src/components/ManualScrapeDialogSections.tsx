@@ -152,7 +152,7 @@ function ManualScrapeQueryBar({
           onChange={(event) => onQueryChange(event.target.value)}
           onKeyDown={(event) => { if (event.key === 'Enter') onSearch() }}
           className="h-11 w-full rounded-xl border border-sand-200 bg-white pl-9 pr-3 text-sm font-semibold text-ink-600 outline-hidden transition focus:border-brand-300 focus:ring-2 focus:ring-brand-100"
-          placeholder="输入标题或 TMDb / 豆瓣 / Bangumi / TheTVDB ID"
+          placeholder="输入标题或 TMDb / Bangumi / TheTVDB ID"
         />
       </div>
       <button type="button" onClick={onSearch} disabled={searching} className="btn-primary h-11 justify-center px-5">

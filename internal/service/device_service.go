@@ -19,8 +19,7 @@ import (
 // enforcement policies requested by the operator:
 //
 //	① 防共享: too many concurrent playbacks / logged-in clients disables the
-//	   account immediately; fingerprint mismatch is warning-based and disables
-//	   the account after the configured warning threshold.
+//	   account immediately. Device name changes do not trigger warnings or bans.
 //	② Mgo 保号规则: admins define one or more keep rules; a sweep deletes
 //	   accounts only when none of the enabled keep rules match.
 //
@@ -69,7 +68,7 @@ func (s *DeviceService) isProtected(ctx context.Context, u *model.User) bool {
 }
 
 // RecordLogin records (or refreshes) a login channel at authentication time and
-// runs the terminal-device + fingerprint anti-share checks. It is safe to call
+// runs the logged-in terminal count check. It is safe to call
 // on every Emby/Jellyfin AuthenticateByName request.
 func (s *DeviceService) RecordLogin(ctx context.Context, userID, deviceID, deviceName, client, ip string) {
 	if userID == "" {
@@ -90,7 +89,6 @@ func (s *DeviceService) RecordLogin(ctx context.Context, userID, deviceID, devic
 	now := s.now()
 
 	existing, _ := s.findTerminalDevice(ctx, userID, deviceID, fp)
-	mismatch := false
 	if existing == nil {
 		_ = s.repo.UserDevice.Create(ctx, &model.UserDevice{
 			UserID:      userID,
@@ -103,9 +101,6 @@ func (s *DeviceService) RecordLogin(ctx context.Context, userID, deviceID, devic
 			LastSeenAt:  now,
 		})
 	} else {
-		if existing.Fingerprint != "" && existing.Fingerprint != fp {
-			mismatch = true
-		}
 		existing.DeviceID = deviceID
 		existing.DeviceName = deviceName
 		existing.Client = client
@@ -122,10 +117,6 @@ func (s *DeviceService) RecordLogin(ctx context.Context, userID, deviceID, devic
 		return
 	}
 
-	if mismatch {
-		s.registerFingerprintWarning(ctx, userID, fmt.Sprintf("设备指纹变更（设备：%s）", deviceLabel(deviceName, client)), cfg)
-		return
-	}
 	since := now.Add(-time.Duration(cfg.ClientActiveDays) * 24 * time.Hour)
 	if n, err := s.repo.UserDevice.CountActiveClients(ctx, userID, since); err == nil && int(n) > cfg.MaxLoggedClients {
 		s.disableForPolicy(ctx, userID, fmt.Sprintf("同时登录终端设备 %d 台，超过上限 %d 台", n, cfg.MaxLoggedClients))
@@ -200,41 +191,6 @@ func (s *DeviceService) deleteStaleTerminalDeviceRows(ctx context.Context, userI
 			zap.String("fingerprint", fp),
 			zap.Error(err))
 	}
-}
-
-// registerFingerprintWarning increments the fingerprint warning counter for a
-// user and disables the account once warnings exceed the threshold. Violations
-// are debounced so a single burst counts at most once per minute.
-func (s *DeviceService) registerFingerprintWarning(ctx context.Context, userID, reason string, cfg botConfig) {
-	u, err := s.repo.User.FindByID(ctx, userID)
-	if err != nil || u == nil {
-		return
-	}
-	if s.isProtected(ctx, u) {
-		s.log.Info("anti-share: skipping protected account", zap.String("user", u.Username), zap.String("reason", reason))
-		return
-	}
-	now := s.now()
-	if u.LastShareWarnAt != nil && now.Sub(*u.LastShareWarnAt) < time.Minute {
-		return // debounce burst
-	}
-
-	warnings := u.ShareWarnings + 1
-	if warnings > cfg.WarnThreshold {
-		s.disableForPolicy(ctx, userID, fmt.Sprintf("多次设备指纹异常：%s", reason))
-		s.log.Warn("anti-share: disabling account after fingerprint warnings",
-			zap.String("user", u.Username), zap.Int("warnings", u.ShareWarnings), zap.String("reason", reason))
-		return
-	}
-	_ = s.repo.User.UpdateFields(ctx, userID, map[string]any{
-		"share_warnings":     warnings,
-		"last_share_warn_at": &now,
-	})
-	left := cfg.WarnThreshold + 1 - warnings
-	warnText := fmt.Sprintf("⚠️ 账号 <b>%s</b> 触发设备指纹警告：%s\n这是第 <b>%d</b> 次警告，再异常 <b>%d</b> 次将禁用账号。请在用户管理中检查该账号的设备。",
-		html.EscapeString(u.Username), html.EscapeString(reason), warnings, left)
-	s.notifyAdminMsg(ctx, warnText)
-	s.log.Info("anti-share: warning issued", zap.String("user", u.Username), zap.Int("warnings", warnings), zap.String("reason", reason))
 }
 
 func (s *DeviceService) disableForPolicy(ctx context.Context, userID, reason string) {

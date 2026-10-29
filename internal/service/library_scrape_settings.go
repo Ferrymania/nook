@@ -15,8 +15,8 @@ import (
 	"github.com/Ferrymania/nook/internal/repository"
 )
 
-var scrapeProviderNames = map[string]string{"tmdb": "TMDb", "douban": "豆瓣", "bangumi": "Bangumi", "thetvdb": "TheTVDB", "fanart": "Fanart"}
-var defaultScrapeProviders = []string{"tmdb", "douban", "bangumi", "thetvdb", "fanart"}
+var scrapeProviderNames = map[string]string{"tmdb": "TMDb", "bangumi": "Bangumi", "thetvdb": "TheTVDB", "fanart": "Fanart"}
+var defaultScrapeProviders = []string{"tmdb", "bangumi", "thetvdb", "fanart"}
 
 // The former global value is only a compatibility default for libraries that
 // have not saved the new preference. Explicit library values always win.
@@ -34,7 +34,9 @@ func librarySegmentPrewarmEnabled(ctx context.Context, repo *repository.Containe
 // preferences. Library-specific preferences never rewrite legacy defaults.
 func libraryScrapeSettings(ctx context.Context, repo *repository.Container, lib *model.Library) model.LibraryScrapeSettings {
 	if lib != nil && lib.ScrapeSettings != nil {
-		return *lib.ScrapeSettings
+		out := *lib.ScrapeSettings
+		out.Providers = supportedScrapeProviders(out.Providers)
+		return out
 	}
 	out := model.LibraryScrapeSettings{Providers: append([]string(nil), defaultScrapeProviders...), Language: "zh-CN", DelayMinMS: 250, DelayMaxMS: 500}
 	if repo == nil || repo.Setting == nil {
@@ -53,21 +55,23 @@ func libraryScrapeSettings(ctx context.Context, repo *repository.Container, lib 
 		out.Language = v
 	}
 	if v := values["scrape.providers"]; v != "" {
-		var providers []string
-		seen := map[string]bool{}
-		for _, p := range strings.Split(v, ",") {
-			p = strings.ToLower(strings.TrimSpace(p))
-			if scrapeProviderNames[p] != "" && !seen[p] {
-				providers = append(providers, p)
-				seen[p] = true
-			}
-		}
-		if len(providers) > 0 {
-			out.Providers = providers
-		}
+		out.Providers = supportedScrapeProviders(strings.Split(v, ","))
 	}
 	out.DelayMinMS = max(0, min(maxScrapeDelayMS, parseIntSettingDefault(values["scrape.delay_min_ms"], 250)))
 	out.DelayMaxMS = max(out.DelayMinMS, min(maxScrapeDelayMS, parseIntSettingDefault(values["scrape.delay_max_ms"], 500)))
+	return out
+}
+
+func supportedScrapeProviders(values []string) []string {
+	out := make([]string, 0, len(values))
+	seen := make(map[string]bool, len(values))
+	for _, p := range values {
+		p = strings.ToLower(strings.TrimSpace(p))
+		if scrapeProviderNames[p] != "" && !seen[p] {
+			out = append(out, p)
+			seen[p] = true
+		}
+	}
 	return out
 }
 
@@ -87,7 +91,7 @@ func chineseMetadataLanguage(ctx context.Context) bool {
 }
 func scrapeProviders(ctx context.Context) []string {
 	if settings, ok := ctx.Value(libraryScrapeContextKey{}).(model.LibraryScrapeSettings); ok {
-		return settings.Providers
+		return supportedScrapeProviders(settings.Providers)
 	}
 	return defaultScrapeProviders
 }
@@ -165,7 +169,7 @@ func (s *ScraperService) libraryScrapeSettingsView(ctx context.Context, lib *mod
 	view.Settings.SegmentPrewarmEnabled = &prewarmEnabled
 	for _, p := range defaultScrapeProviders {
 		cfg := s.scrapeProviderConfig(ctx, p)
-		optional := p == "bangumi" || p == "douban"
+		optional := p == "bangumi"
 		state := ScrapeProviderAvailability{ID: p, Name: scrapeProviderNames[p], Available: cfg.Enabled && (optional || cfg.APIKey != ""), Status: "已配置"}
 		switch {
 		case !cfg.Enabled:
@@ -220,10 +224,6 @@ func (s *ScraperService) scrapeProviderConfig(ctx context.Context, p string) Res
 		if s.bangumi != nil {
 			return s.bangumi.runtimeConfig(ctx)
 		}
-	case "douban":
-		if s.douban != nil {
-			return s.douban.runtimeConfig(ctx)
-		}
 	case "thetvdb":
 		if s.thetvdb != nil {
 			return s.thetvdb.runtimeConfig(ctx)
@@ -241,7 +241,7 @@ func (s *ScraperService) onlineScrapeAvailable(ctx context.Context) bool {
 			continue
 		}
 		cfg := s.scrapeProviderConfig(ctx, p)
-		if cfg.Enabled && (cfg.APIKey != "" || p == "bangumi" || p == "douban") {
+		if cfg.Enabled && (cfg.APIKey != "" || p == "bangumi") {
 			return true
 		}
 	}

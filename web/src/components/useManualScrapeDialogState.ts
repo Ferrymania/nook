@@ -198,7 +198,7 @@ async function searchManualScrapeCandidates({
   if (!media) return
   const text = query.trim()
   if (!text) {
-    toast.error('请输入标题或 TMDb/豆瓣/Bangumi/TheTVDB ID')
+    toast.error('请输入标题或 TMDb/Bangumi/TheTVDB ID')
     return
   }
   setSearching(true)

@@ -19,11 +19,10 @@ const (
 	SettingOpenRegLimit   = "telegram.openreg_limit"   // 本轮开注名额上限（0=不限）
 	SettingOpenRegUsed    = "telegram.openreg_used"    // 本轮已用名额
 
-	// 防共享（警告制：并发播放 / 登录终端 / 设备指纹）。
+	// 防共享：并发播放 / 登录终端数量限制。
 	SettingAntiShareEnabled  = "device.antishare_enabled"   // 总开关（默认关）
 	SettingMaxConcurrentPlay = "device.max_concurrent_play" // 最大并发播放设备
 	SettingMaxLoggedClients  = "device.max_logged_clients"  // 最大同时登录终端
-	SettingWarnThreshold     = "device.warn_threshold"      // 警告几次后禁用
 	SettingPlayWindowSeconds = "device.play_window_seconds" // 并发播放判定窗口（秒）
 	SettingClientActiveDays  = "device.client_active_days"  // 登录设备活跃天数窗口
 
@@ -41,7 +40,6 @@ type botConfig struct {
 	AntiShareEnabled  bool
 	MaxConcurrentPlay int
 	MaxLoggedClients  int
-	WarnThreshold     int
 	PlayWindowSeconds int
 	ClientActiveDays  int
 
@@ -77,7 +75,6 @@ func defaultBotConfig() botConfig {
 		AntiShareEnabled:  false, // 防共享默认关闭，需管理员显式开启
 		MaxConcurrentPlay: 3,
 		MaxLoggedClients:  3,
-		WarnThreshold:     2, // 两次警告后再犯禁用
 		PlayWindowSeconds: 90,
 		ClientActiveDays:  30,
 
@@ -102,7 +99,6 @@ func loadBotConfig(ctx context.Context, repo *repository.Container) botConfig {
 	cfg.AntiShareEnabled = parseBoolSetting(get(SettingAntiShareEnabled), cfg.AntiShareEnabled)
 	cfg.MaxConcurrentPlay = parseIntSettingDefault(get(SettingMaxConcurrentPlay), cfg.MaxConcurrentPlay)
 	cfg.MaxLoggedClients = parseIntSettingDefault(get(SettingMaxLoggedClients), cfg.MaxLoggedClients)
-	cfg.WarnThreshold = parseIntSettingDefault(get(SettingWarnThreshold), cfg.WarnThreshold)
 	cfg.PlayWindowSeconds = parseIntSettingDefault(get(SettingPlayWindowSeconds), cfg.PlayWindowSeconds)
 	cfg.ClientActiveDays = parseIntSettingDefault(get(SettingClientActiveDays), cfg.ClientActiveDays)
 	cfg.AccountCleanupEnabled = parseBoolSetting(get(SettingAccountCleanupEnabled), cfg.AccountCleanupEnabled)

@@ -164,25 +164,6 @@ func (s *ScraperService) manualTMDbMatchByIDForType(ctx context.Context, id int,
 	return nil
 }
 
-func (s *ScraperService) manualDoubanMatch(ctx context.Context, query string) *Match {
-	if s.douban == nil || !s.douban.Enabled() {
-		return nil
-	}
-	if id, ok := parseProviderIDString(query, "douban"); ok {
-		if match, err := s.douban.GetMatchByID(ctx, id); err == nil && match != nil {
-			return match
-		}
-	}
-	if providerIDHintMismatched(query, "douban") {
-		return nil
-	}
-	match, err := s.douban.SearchMatch(ctx, query)
-	if err != nil {
-		return nil
-	}
-	return match
-}
-
 func (s *ScraperService) manualBangumiMatch(ctx context.Context, query string) *Match {
 	if s.bangumi == nil || !s.bangumi.Enabled() {
 		return nil
