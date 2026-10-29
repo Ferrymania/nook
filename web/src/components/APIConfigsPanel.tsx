@@ -6,7 +6,7 @@ import { apiConfigsAPI, type APIConfig } from '../api/api_configs'
 import { confirmAction } from './confirmAction'
 
 const PROVIDER_NAMES: Record<string, string> = {
-  tmdb: 'TMDb', bangumi: 'Bangumi', douban: '豆瓣', fanart: 'Fanart.tv',
+  tmdb: 'TMDb', bangumi: 'Bangumi', fanart: 'Fanart.tv',
   openai: 'OpenAI 兼容', thetvdb: 'TheTVDB',
 }
 
@@ -19,7 +19,7 @@ export function APIConfigsPanel() {
   const refresh = () =>
     apiConfigsAPI
       .list()
-      .then(setItems)
+      .then(rows => setItems(rows.filter(item => Object.prototype.hasOwnProperty.call(PROVIDER_NAMES, item.provider))))
       .finally(() => setLoading(false))
 
   useEffect(() => {
@@ -73,7 +73,7 @@ export function APIConfigsPanel() {
                     <td className="px-4 py-3">
                       {!item.enabled ? (
                         <span className="rounded-full bg-sand-300/40 px-2 py-0.5 text-xs text-sand-500">全局已关闭</span>
-                      ) : !item.has_key && ['bangumi', 'douban'].includes(item.provider) ? (
+                      ) : !item.has_key && item.provider === 'bangumi' ? (
                         <span className="rounded-full bg-emerald-400/10 px-2 py-0.5 text-xs text-emerald-600">可匿名使用</span>
                       ) : item.has_key ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 px-2 py-0.5 text-xs text-emerald-400">
@@ -162,11 +162,11 @@ function EditingRow({
         <form onSubmit={submit} className="flex flex-wrap items-end gap-3">
           <span className="text-sm font-medium text-ink-600">{PROVIDER_NAMES[item.provider] ?? item.provider}</span>
           <label className="flex-1 text-xs text-ink-50">
-            {item.provider === 'bangumi' ? 'Access Token（可选）' : item.provider === 'douban' ? 'Cookie（可选）' : 'API Key'}
+            {item.provider === 'bangumi' ? 'Access Token（可选）' : 'API Key'}
             <input
               className="input-base mt-1"
               type="password"
-              placeholder={item.has_key ? '•••••••••••• (留空保留原值)' : ['bangumi', 'douban'].includes(item.provider) ? '留空匿名使用' : '输入密钥'}
+              placeholder={item.has_key ? '•••••••••••• (留空保留原值)' : item.provider === 'bangumi' ? '留空匿名使用' : '输入密钥'}
               value={apiKey}
               onChange={(e) => setAPIKey(e.target.value)}
             />

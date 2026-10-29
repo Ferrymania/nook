@@ -12,8 +12,8 @@ import (
 )
 
 // lookup runs the provider chain after local NFO has been considered:
-// TMDb -> Douban -> Bangumi -> TheTVDB. Douban and Bangumi do not require API
-// keys; providers that are unavailable or return an error are skipped.
+// TMDb -> Bangumi -> TheTVDB. Bangumi does not require an API key;
+// providers that are unavailable or return an error are skipped.
 //
 // Results are cached per (kind, theatrical, query, year, season) because every
 // episode of a show produces the same candidate; bypassCache forces a fresh
@@ -84,14 +84,6 @@ func (s *ScraperService) lookupUncached(ctx context.Context, kind string, isThea
 			match = s.lookupAutomaticTMDb(ctx, kind, query, year, season, failure)
 			if match == nil && !failure.ambiguous && isTheatrical {
 				match = s.lookupAutomaticTMDb(ctx, "tv", query, year, 0, failure)
-			}
-		case "douban":
-			if s.douban == nil || !s.douban.Enabled() {
-				continue
-			}
-			match, err = s.douban.SearchMatch(ctx, query)
-			if !metadataMatchCompatibleWithTheatrical(kind, isTheatrical, match) {
-				match = nil
 			}
 		case "bangumi":
 			if s.bangumi == nil || !s.bangumi.Enabled() {

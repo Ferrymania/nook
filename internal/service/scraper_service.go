@@ -19,7 +19,6 @@ type ScraperService struct {
 	tmdb    *TMDbProvider
 	bangumi *BangumiProvider
 	thetvdb *TheTVDBProvider
-	douban  *DoubanProvider
 	fanart  *FanartProvider
 	adult   *AdultProvider
 	hub     *Hub
@@ -63,10 +62,6 @@ func NewScraperService(
 	}
 }
 
-func (s *ScraperService) SetDouban(douban *DoubanProvider) {
-	s.douban = douban
-}
-
 func (s *ScraperService) SetRuntimeCache(cache *RuntimeCacheService) *ScraperService {
 	if s != nil {
 		s.cache = cache
@@ -108,9 +103,6 @@ func (s *ScraperService) AnyEnabled() bool {
 		return true
 	}
 	if s.adult != nil && s.adult.Enabled() {
-		return true
-	}
-	if s.douban != nil && s.douban.Enabled() {
 		return true
 	}
 	return false

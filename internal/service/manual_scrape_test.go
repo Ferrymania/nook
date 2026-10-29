@@ -22,7 +22,7 @@ import (
 func TestManualRequestMatchFallsBackToCandidatePayload(t *testing.T) {
 	scraper := &ScraperService{}
 	match, err := scraper.manualRequestMatch(t.Context(), ManualScrapeRequest{
-		Source:   "douban",
+		Source:   "bangumi",
 		Title:    "手动选择的电影",
 		DoubanID: "1234567",
 		Year:     2026,
@@ -32,6 +32,16 @@ func TestManualRequestMatchFallsBackToCandidatePayload(t *testing.T) {
 	}
 	if match.Title != "手动选择的电影" || match.DoubanID != "1234567" || match.Year != 2026 {
 		t.Fatalf("fallback match = %#v", match)
+	}
+}
+
+func TestManualRequestMatchRejectsRemovedProvider(t *testing.T) {
+	scraper := &ScraperService{}
+	match, err := scraper.manualRequestMatch(t.Context(), ManualScrapeRequest{
+		Source: "douban", Title: "旧候选", DoubanID: "1234567",
+	})
+	if err == nil || match != nil {
+		t.Fatalf("removed source must not fall back to applying its payload: match=%#v err=%v", match, err)
 	}
 }
 

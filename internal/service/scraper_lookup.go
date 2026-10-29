@@ -31,19 +31,6 @@ func (s *ScraperService) matchFromMediaExternalIDs(ctx context.Context, m *model
 			}
 		}
 	}
-	if scrapeProviderSelected(ctx, "douban") && strings.TrimSpace(m.DoubanID) != "" && s.douban != nil && s.douban.Enabled() {
-		if match, err := s.douban.GetMatchByID(ctx, strings.TrimSpace(m.DoubanID)); err == nil && match != nil {
-			if s.mediaExternalIDMatchTrusted(m, lib, match, "douban") {
-				match.Provider = "douban"
-				if chineseMetadataLanguage(ctx) {
-					preferExistingLocalizedEpisodeTitle(m, lib, match)
-				}
-				return match
-			}
-		} else if err != nil {
-			s.log.Debug("douban id lookup failed", zap.String("media_id", m.ID), zap.String("douban_id", m.DoubanID), zap.Error(err))
-		}
-	}
 	if scrapeProviderSelected(ctx, "bangumi") && m.BangumiID > 0 && s.bangumi != nil && s.bangumi.Enabled() {
 		if match, err := s.bangumi.GetSubject(ctx, m.BangumiID); err == nil && match != nil {
 			if s.mediaExternalIDMatchTrusted(m, lib, match, "bangumi") {
@@ -117,9 +104,6 @@ func mediaExternalIDSourceMatches(m *model.Media, match *Match, source string) b
 		return m.TMDbID > 0 && match.TMDbID == m.TMDbID
 	case "bangumi":
 		return m.BangumiID > 0 && match.BangumiID == m.BangumiID
-	case "douban":
-		return strings.TrimSpace(m.DoubanID) != "" &&
-			strings.TrimSpace(match.DoubanID) == strings.TrimSpace(m.DoubanID)
 	case "thetvdb":
 		return strings.TrimSpace(m.TheTVDBID) != "" &&
 			strings.TrimSpace(match.TheTVDBID) == strings.TrimSpace(m.TheTVDBID)
@@ -138,9 +122,6 @@ func mediaPathHintMatchesExternalID(m *model.Media, lib *model.Library, match *M
 		return hints.TMDbID > 0 && hints.TMDbID == match.TMDbID
 	case "bangumi":
 		return hints.BangumiID > 0 && hints.BangumiID == match.BangumiID
-	case "douban":
-		return strings.TrimSpace(hints.DoubanID) != "" &&
-			strings.TrimSpace(hints.DoubanID) == strings.TrimSpace(match.DoubanID)
 	case "thetvdb":
 		return strings.TrimSpace(hints.TheTVDBID) != "" &&
 			strings.TrimSpace(hints.TheTVDBID) == strings.TrimSpace(match.TheTVDBID)

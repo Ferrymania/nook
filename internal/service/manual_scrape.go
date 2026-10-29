@@ -102,6 +102,11 @@ func rebuildManualScrapeIdentity(media *model.Media, lib *model.Library, match *
 
 func (s *ScraperService) manualRequestMatch(ctx context.Context, req ManualScrapeRequest) (*Match, error) {
 	source := strings.ToLower(strings.TrimSpace(req.Source))
+	switch source {
+	case "", "manual", "tmdb", "bangumi", "thetvdb", "adult":
+	default:
+		return nil, errors.New("unsupported manual scrape source")
+	}
 	mediaType := normalizeMediaType(req.MediaType, req.Title, "")
 	fallback := func() (*Match, error) {
 		match := mergeManualRequestIntoMatch(&Match{}, req)
@@ -125,13 +130,6 @@ func (s *ScraperService) manualRequestMatch(ctx context.Context, req ManualScrap
 	case strings.TrimSpace(req.TheTVDBID) != "" && (source == "" || source == "thetvdb"):
 		if s.thetvdb != nil {
 			match, err := s.thetvdb.GetSeriesMatchByID(ctx, req.TheTVDBID)
-			if err == nil && match != nil {
-				return mergeManualRequestIntoMatch(match, req), nil
-			}
-		}
-	case strings.TrimSpace(req.DoubanID) != "" && (source == "" || source == "douban"):
-		if s.douban != nil {
-			match, err := s.douban.GetMatchByID(ctx, req.DoubanID)
 			if err == nil && match != nil {
 				return mergeManualRequestIntoMatch(match, req), nil
 			}

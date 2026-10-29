@@ -73,7 +73,7 @@ export function LibrarySeriesDetailHeader({
       </div>
 
       <div className="flex flex-col gap-6 sm:flex-row">
-        <div className="w-40 shrink-0 overflow-hidden rounded-xl bg-sand-200 shadow-card">
+        <div className="w-40 shrink-0 self-start overflow-hidden rounded-xl bg-sand-200 shadow-card">
           <ArtworkImage
             sources={artworkSources(series.rep, 'poster').map(source => imageURL(source, series.rep.updated_at, ARTWORK.posterDetail))}
             alt={series.rep.title}

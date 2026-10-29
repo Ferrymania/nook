@@ -53,7 +53,7 @@ func lookupDisplayMetadata(ctx context.Context, svc *service.Container, title, f
 	}
 	searchCtx, cancel := context.WithTimeout(ctx, 12*time.Second)
 	defer cancel()
-	results := service.SearchExternalMedia(searchCtx, query, year, searchType, svc.TMDb, svc.Douban, svc.Bangumi)
+	results := service.SearchExternalMedia(searchCtx, query, year, searchType, svc.TMDb, svc.Bangumi)
 	if len(results) == 0 {
 		displayMetadataCache.Store(cacheKey, cachedDisplayMetadata{expiresAt: time.Now().Add(30 * time.Minute)})
 		return displayMetadata{}
