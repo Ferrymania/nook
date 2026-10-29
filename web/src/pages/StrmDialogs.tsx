@@ -790,66 +790,65 @@ export function StrmSyncPathDialog({
         </div>
 
         <div className="space-y-1">
-          <div className="flex items-end gap-2">
-            <div className="flex-1">
-              <Field
-                label={isLocal ? '本地源目录' : '远端目录'}
-                hint={
-                  isLocal
-                    ? '扫描该目录下的视频生成 strm'
-                    : form.provider === 'cloud115'
-                      ? form.remote_path
-                        ? `115 目录 ID：${form.remote_path}（可通过右侧「浏览」选择更换）`
-                        : '可通过右侧「浏览」选择 115 目录，或直接粘贴目录 ID'
-                      : '远端路径（可通过浏览选择）'
+          <label htmlFor="strm-remote-path" className="block text-sm font-medium text-ink-100">
+            {isLocal ? '本地源目录' : '远端目录'}
+          </label>
+          <div className="flex items-stretch gap-2">
+            <input
+              id="strm-remote-path"
+              aria-describedby="strm-remote-path-hint"
+              className={`${inputCls} min-w-0 flex-1`}
+              value={remoteInputValue}
+              placeholder={isLocal ? 'D:\\movies' : form.provider === 'cloud115' ? '点击右侧「浏览」选择目录' : '/'}
+              onChange={(e) => setRemoteInputValue(e.target.value)}
+              onBlur={(e) => {
+                const value = e.target.value.trim()
+                if (isLocal) {
+                  set('remote_path', value)
+                  return
                 }
-              >
-                <input
-                  className={inputCls}
-                  value={remoteInputValue}
-                  placeholder={isLocal ? 'D:\\movies' : form.provider === 'cloud115' ? '点击右侧「浏览」选择目录' : '/'}
-                  onChange={(e) => setRemoteInputValue(e.target.value)}
-                  onBlur={(e) => {
-                    const value = e.target.value.trim()
-                    if (isLocal) {
-                      set('remote_path', value)
-                      return
-                    }
-                    if (form.provider === 'cloud115') {
-                      if (!value) {
-                        updateRemotePath('', '')
-                        return
-                      }
-                      // 若用户直接输入/粘贴纯数字目录 ID，触发反查并自动替换为完整路径
-                      if (/^\d+$/.test(value)) {
-                        updateRemotePath(value, '')
-                        if (form.account_id) resolveDisplayPath(form.account_id, value, true)
-                        return
-                      }
-                      // 若当前展示的是完整路径且未变动，不做处理
-                      if (value === form.remote_display_path) return
-                    } else {
-                      updateRemotePath(value)
-                    }
-                  }}
-                />
-              </Field>
-            </div>
+                if (form.provider === 'cloud115') {
+                  if (!value) {
+                    updateRemotePath('', '')
+                    return
+                  }
+                  // 若用户直接输入/粘贴纯数字目录 ID，触发反查并自动替换为完整路径
+                  if (/^\d+$/.test(value)) {
+                    updateRemotePath(value, '')
+                    if (form.account_id) resolveDisplayPath(form.account_id, value, true)
+                    return
+                  }
+                  // 若当前展示的是完整路径且未变动，不做处理
+                  if (value === form.remote_display_path) return
+                } else {
+                  updateRemotePath(value)
+                }
+              }}
+            />
             {isLocal && (
               <button
                 type="button"
                 onClick={() => setBrowsingLocal('remote_path')}
-                className="mb-1 rounded-xl border border-gray-200 px-3 py-2 text-sm font-semibold text-ink-100 hover:bg-gray-50"
+                className="shrink-0 rounded-xl border border-gray-200 px-3 text-sm font-semibold text-ink-100 hover:bg-gray-50"
               >
                 浏览
               </button>
             )}
             {!isLocal && form.account_id && (
-              <button type="button" onClick={() => setBrowsing(true)} className="mb-1 rounded-xl border border-gray-200 px-3 py-2 text-sm font-semibold text-ink-100 hover:bg-gray-50">
+              <button type="button" onClick={() => setBrowsing(true)} className="shrink-0 rounded-xl border border-gray-200 px-3 text-sm font-semibold text-ink-100 hover:bg-gray-50">
                 浏览
               </button>
             )}
           </div>
+          <p id="strm-remote-path-hint" className="text-xs text-ink-50">
+            {isLocal
+              ? '扫描该目录下的视频生成 strm'
+              : form.provider === 'cloud115'
+                ? form.remote_path
+                  ? `115 目录 ID：${form.remote_path}（可通过右侧「浏览」选择更换）`
+                  : '可通过右侧「浏览」选择 115 目录，或直接粘贴目录 ID'
+                : '远端路径（可通过浏览选择）'}
+          </p>
         </div>
 
         <div className="space-y-2">
