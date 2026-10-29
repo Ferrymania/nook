@@ -5,14 +5,12 @@ import {
   ArrowUp,
   ChevronRight,
   Cloud,
-  FolderPlus,
+  Folder,
   HardDrive,
   Loader2,
-  Pencil,
   Plus,
-  QrCode,
+  Save,
   Trash2,
-  Tv,
   X,
 } from 'lucide-react'
 
@@ -228,12 +226,6 @@ export function StrmAccountDialog({
         {!existing && (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {PROVIDER_OPTIONS.map((option) => {
-              const Icon =
-                option.provider === 'cloud115'
-                  ? QrCode
-                  : option.provider === 'emby_remote'
-                    ? Tv
-                    : FolderPlus
               const active = provider === option.provider
               return (
                 <button
@@ -245,7 +237,7 @@ export function StrmAccountDialog({
                     (active ? 'border-brand-400 bg-brand-50' : 'border-gray-100 bg-white hover:border-gray-200')
                   }
                 >
-                  <Icon size={20} className={active ? 'text-brand-500' : 'text-sand-500'} />
+                  <Cloud size={20} className={active ? 'text-brand-500' : 'text-sand-500'} />
                   <p className="mt-1.5 text-sm font-bold text-ink-600">{option.label}</p>
                   <p className="text-[11px] text-sand-500">{option.desc}</p>
                 </button>
@@ -472,7 +464,7 @@ export function StrmAccountDialog({
               取消
             </button>
             <button type="submit" disabled={saving} className="neon-button disabled:opacity-50">
-              {saving ? <Loader2 size={16} className="animate-spin" /> : <Cloud size={16} />}
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               保存
             </button>
           </div>
@@ -626,7 +618,6 @@ export function StrmSyncPathDialog({
   // prevRemoteTailRef 记录当前拼在本地输出目录末尾、由本弹窗管理的尾段。
   // 兼容两类历史数据：新版保存的 local_path 末段是目录名，旧版是目录 ID。
   const prevRemoteTailRef = useRef(existing ? initRemoteTail(existing) : '')
-  const localPathInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (existing) return
@@ -713,6 +704,10 @@ export function StrmSyncPathDialog({
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
+    if (!form.name.trim()) {
+      toast.error('请填写目录名称')
+      return
+    }
     setSaving(true)
     try {
       if (!existing) {
@@ -747,8 +742,8 @@ export function StrmSyncPathDialog({
       wide
     >
       <form onSubmit={submit} className="space-y-4">
-        <Field label="目录名称">
-          <input className={inputCls} value={form.name} placeholder="例如：电影库 115" onChange={(e) => set('name', e.target.value)} />
+        <Field label="目录名称（必填）">
+          <input className={inputCls} required value={form.name} placeholder="例如：115 华语电视剧" onChange={(e) => set('name', e.target.value)} />
         </Field>
 
         <div className="grid gap-3 md:grid-cols-2">
@@ -854,30 +849,16 @@ export function StrmSyncPathDialog({
         <div className="space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <label htmlFor="strm-local-output-path" className="text-sm font-medium text-ink-100">本地输出目录</label>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  localPathInputRef.current?.focus()
-                  localPathInputRef.current?.select()
-                }}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-ink-100 hover:bg-gray-50"
-              >
-                <Pencil size={14} />
-                手动输入
-              </button>
-              <button
-                type="button"
-                onClick={() => setBrowsingLocal('local_path')}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-ink-100 hover:bg-gray-50"
-              >
-                <FolderPlus size={14} />
-                浏览选择
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setBrowsingLocal('local_path')}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-ink-100 hover:bg-gray-50"
+            >
+              <Folder size={14} />
+              浏览选择
+            </button>
           </div>
           <input
-            ref={localPathInputRef}
             id="strm-local-output-path"
             aria-describedby="strm-local-output-hint"
             className={inputCls}
@@ -891,7 +872,7 @@ export function StrmSyncPathDialog({
             }}
           />
           <p id="strm-local-output-hint" className="text-xs text-ink-50">
-            新目录会在保存时自动创建。{!isLocal && remoteTail ? `将自动拼接远端末级目录「${remoteTail}」。` : ''}
+            可直接手动输入路径，新目录会在保存时自动创建。{!isLocal && remoteTail ? `将自动拼接远端末级目录「${remoteTail}」。` : ''}
           </p>
         </div>
 
@@ -956,7 +937,7 @@ export function StrmSyncPathDialog({
             取消
           </button>
           <button type="submit" disabled={saving} className="neon-button disabled:opacity-50">
-            {saving ? <Loader2 size={16} className="animate-spin" /> : <FolderPlus size={16} />}
+            {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             保存
           </button>
         </div>
@@ -1104,7 +1085,7 @@ function StrmDirBrowserDialog({
           ) : (
             <div className="space-y-1">
               {entries.map((entry) => {
-                const Icon = entry.is_dir ? FolderPlus : HardDrive
+                const Icon = entry.is_dir ? Folder : HardDrive
                 return (
                   <button
                     key={entry.id}

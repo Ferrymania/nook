@@ -98,7 +98,7 @@ type StrmService struct {
 
 	providerMu       sync.Mutex
 	provider115Cache map[string]cloud.Provider // account ID -> shared provider/OpenClient
-	syncPathMu       sync.Mutex                // 输出目录冲突检查与配置写入串行执行
+	syncPathMu       sync.Mutex                // 名称、输出目录冲突检查与配置写入串行执行
 
 	downloadSem115  chan struct{} // 115 换直链+下载并发上限（风控兜底）
 	downloadSemDAV  chan struct{} // WebDAV/OpenList 元数据下载并发上限
@@ -742,11 +742,11 @@ func (s *StrmService) ClearSyncRecords(ctx context.Context, pathID string) (int6
 func (s *StrmService) CreateSyncPath(ctx context.Context, p *model.StrmSyncPath) (*model.StrmSyncPath, error) {
 	s.syncPathMu.Lock()
 	defer s.syncPathMu.Unlock()
-	if err := s.validateSyncPath(ctx, p, ""); err != nil {
+	if err := s.prepareSyncPathName(ctx, p, nil); err != nil {
 		return nil, err
 	}
-	if strings.TrimSpace(p.Name) == "" {
-		p.Name = "同步目录 " + time.Now().Format("01-02 15:04")
+	if err := s.validateSyncPath(ctx, p, ""); err != nil {
+		return nil, err
 	}
 	if p.SyncMode == "" {
 		p.SyncMode = model.StrmSyncTypeIncremental
@@ -771,6 +771,9 @@ func (s *StrmService) UpdateSyncPath(ctx context.Context, id string, p *model.St
 	if s.IsSyncRunning(id) {
 		return nil, errors.New("该目录正在同步中，请先取消")
 	}
+	if err := s.prepareSyncPathName(ctx, p, existing); err != nil {
+		return nil, err
+	}
 	if err := s.validateSyncPath(ctx, p, id); err != nil {
 		return nil, err
 	}
@@ -792,6 +795,46 @@ func (s *StrmService) UpdateSyncPath(ctx context.Context, id string, p *model.St
 		return nil, err
 	}
 	return p, nil
+}
+
+// prepareSyncPathName 只检查新建或改名，不重命名旧记录，也不阻止旧重名任务修改其他设置。
+// 调用方持有 syncPathMu，使重名检查与写入在同一服务实例内串行执行。
+func (s *StrmService) prepareSyncPathName(ctx context.Context, p, existing *model.StrmSyncPath) error {
+	if strings.TrimSpace(p.Name) == "" {
+		return errors.New("请填写目录名称")
+	}
+	if existing != nil && p.Name == existing.Name {
+		return nil
+	}
+	paths, err := s.repo.StrmSyncPath.List(ctx)
+	if err != nil {
+		return fmt.Errorf("检查同步目录名称失败：%w", err)
+	}
+	name, err := resolveSyncPathName(p.Name, existing, paths)
+	if err != nil {
+		return err
+	}
+	p.Name = name
+	return nil
+}
+
+func resolveSyncPathName(requested string, existing *model.StrmSyncPath, paths []model.StrmSyncPath) (string, error) {
+	name := strings.TrimSpace(requested)
+	if name == "" {
+		return "", errors.New("请填写目录名称")
+	}
+	if existing != nil && requested == existing.Name {
+		return existing.Name, nil
+	}
+	for _, other := range paths {
+		if existing != nil && other.ID == existing.ID {
+			continue
+		}
+		if strings.EqualFold(strings.TrimSpace(other.Name), name) {
+			return "", fmt.Errorf("目录名称「%s」已存在，请使用其他名称", name)
+		}
+	}
+	return name, nil
 }
 
 // DeleteSyncPath 删除同步目录（运行中禁止删除）。

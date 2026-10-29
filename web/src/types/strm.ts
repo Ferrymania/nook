@@ -84,7 +84,7 @@ export interface StrmSyncPath {
 }
 
 export interface StrmSyncPathInput {
-  name?: string
+  name: string
   account_id?: string
   provider: StrmProvider
   remote_path: string

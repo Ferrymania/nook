@@ -130,7 +130,7 @@ func TestCreateSyncPathConcurrentOutputConflict(t *testing.T) {
 			defer wg.Done()
 			<-start
 			_, err := svc.CreateSyncPath(t.Context(), &model.StrmSyncPath{
-				Name: "concurrent", Provider: model.StrmProviderLocal, RemotePath: source, LocalPath: output,
+				Name: "concurrent " + filepath.Base(output), Provider: model.StrmProviderLocal, RemotePath: source, LocalPath: output,
 			})
 			results <- err
 		}()
