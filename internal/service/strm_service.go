@@ -323,6 +323,69 @@ func (s *StrmService) mergeStrmAccountConfig(existing string, config map[string]
 	return string(data), nil
 }
 
+// OpenList 保存配置时必须有 Token；省略 Token 的更新沿用已保存的凭据。
+func (s *StrmService) validateOpenListAccountToken(encoded string) error {
+	var cfg map[string]string
+	if err := json.Unmarshal([]byte(encoded), &cfg); err != nil {
+		return fmt.Errorf("decode account config: %w", err)
+	}
+	if strings.TrimSpace(s.crypto.Decrypt(cfg["token"])) == "" {
+		return cloud.ErrOpenListTokenRequired
+	}
+	return nil
+}
+
+// StrmAccountUsernameOf 只读取网盘 API 返回的用户名，与用户填写的备注和登录字段分开。
+func StrmAccountUsernameOf(acct *model.StrmAccount) string {
+	if acct == nil || (acct.Provider != model.StrmProvider115 && acct.Provider != model.StrmProviderOpenList) {
+		return ""
+	}
+	var cfg map[string]string
+	if json.Unmarshal([]byte(acct.Config), &cfg) != nil {
+		return ""
+	}
+	return strings.TrimSpace(cfg["user_name"])
+}
+
+// RefreshStrmAccountUsername 在保存或测试 OpenList 账号后补充用户名。
+// 查询失败不撤销已保存的账号；列表只读本地结果，不额外请求网盘。
+func (s *StrmService) RefreshStrmAccountUsername(ctx context.Context, acct *model.StrmAccount) *model.StrmAccount {
+	if acct == nil || acct.Provider != model.StrmProviderOpenList {
+		return acct
+	}
+	provider, err := s.providerFor(ctx, acct)
+	username := ""
+	if err == nil {
+		if source, ok := provider.(interface {
+			FetchUsername(context.Context) (string, error)
+		}); ok {
+			queryCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			username, err = source.FetchUsername(queryCtx)
+			cancel()
+		}
+	}
+	if err != nil && s.log != nil {
+		s.log.Warn("fetch openlist username failed", zap.String("account_id", acct.ID), zap.Error(err))
+	}
+	// 即使读取失败，也不把此前 Token 对应的用户名误显示为新 Token 的用户。
+	var cfg map[string]string
+	if json.Unmarshal([]byte(acct.Config), &cfg) != nil || cfg == nil {
+		return acct
+	}
+	cfg["user_name"] = username
+	updated, err := json.Marshal(cfg)
+	if err == nil {
+		err = s.repo.StrmAccount.UpdateConfigIfUnchanged(ctx, acct.ID, acct.Config, string(updated))
+	}
+	if err != nil && s.log != nil {
+		s.log.Warn("save openlist username failed", zap.String("account_id", acct.ID), zap.Error(err))
+	}
+	if fresh, err := s.repo.StrmAccount.FindByID(ctx, acct.ID); err == nil && fresh != nil {
+		return fresh
+	}
+	return acct
+}
+
 // StrmAccountConfigPreview 返回可安全回显给前端的非敏感配置字段。
 type StrmAccountConfigPreview struct {
 	URL         string `json:"url,omitempty"`
@@ -345,6 +408,10 @@ func (s *StrmService) StrmAccountConfigPreviewOf(acct *model.StrmAccount) StrmAc
 	}
 	out.URL = strings.TrimSpace(raw["url"])
 	out.Server = strings.TrimSpace(raw["server"])
+	if acct.Provider == model.StrmProviderOpenList {
+		out.HasToken = strings.TrimSpace(raw["token"]) != ""
+		return out
+	}
 	out.Username = strings.TrimSpace(raw["username"])
 	for _, k := range []string{"password", "token", "api_key"} {
 		if v, ok := raw[k]; ok && strings.TrimSpace(v) != "" {
@@ -368,7 +435,8 @@ func HasStrmAccountCredential(acct *model.StrmAccount) bool {
 		// 115 开放平台：已授权（含 access_token）才算配置完成
 		return strings.Contains(acct.Config, `"access_token"`)
 	case model.StrmProviderOpenList:
-		return strings.Contains(acct.Config, `"token"`) || strings.Contains(acct.Config, `"password"`)
+		var cfg map[string]string
+		return json.Unmarshal([]byte(acct.Config), &cfg) == nil && strings.TrimSpace(cfg["token"]) != ""
 	case model.StrmProviderEmbyRemote:
 		// 远程 Emby：接入线路 + (自动认证凭据 或 手动 api_key) 即视为已配置。
 		hasURL := strings.Contains(acct.Config, `"url"`) || strings.Contains(acct.Config, `"urls"`)
@@ -395,6 +463,11 @@ func (s *StrmService) CreateStrmAccount(ctx context.Context, name, provider stri
 	enc, err := s.strmAccountConfigJSON(config, true)
 	if err != nil {
 		return nil, err
+	}
+	if provider == model.StrmProviderOpenList {
+		if err := s.validateOpenListAccountToken(enc); err != nil {
+			return nil, err
+		}
 	}
 	acct := &model.StrmAccount{
 		Name:     strings.TrimSpace(name),
@@ -424,6 +497,11 @@ func (s *StrmService) UpdateStrmAccount(ctx context.Context, id, name string, en
 		enc, err := s.mergeStrmAccountConfig(acct.Config, config)
 		if err != nil {
 			return nil, err
+		}
+		if acct.Provider == model.StrmProviderOpenList {
+			if err := s.validateOpenListAccountToken(enc); err != nil {
+				return nil, err
+			}
 		}
 		acct.Config = enc
 	}
@@ -476,6 +554,7 @@ func (s *StrmService) TestStrmAccount(ctx context.Context, id string) *model.Str
 	} else {
 		result = "ok"
 		ok = true
+		acct = s.RefreshStrmAccountUsername(ctx, acct)
 	}
 	// Ping 期间 115 客户端可能刷新 access/refresh token，并通过
 	// OnTokenRefreshed 持久化新配置。这里只写测试结果字段，不能把请求开始时

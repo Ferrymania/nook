@@ -300,8 +300,8 @@ func (s *StrmService) processUploadTask(ctx context.Context, task *model.StrmUpl
 		return
 	}
 	cfg, err := s.strmAccountConfig(acct)
-	if err == nil && task.Provider == model.StrmProviderOpenList && cfg["token"] == "" && cfg["password"] == "" {
-		finish(model.StrmTaskFailed, "OpenList 账号需要配置 Token 或密码才能上传")
+	if err == nil && task.Provider == model.StrmProviderOpenList && strings.TrimSpace(cfg["token"]) == "" {
+		finish(model.StrmTaskFailed, "OpenList 账号需要配置 Token 才能上传")
 		return
 	}
 	provider, err := s.providerFor(ctx, acct)

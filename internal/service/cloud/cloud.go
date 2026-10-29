@@ -110,7 +110,11 @@ func New(typ string, cfg map[string]any, client *http.Client) (Provider, error) 
 		// 115 使用开放平台（openapi）驱动（QMediaSync 同款：授权/列目录/直链）。
 		return NewOpenAPI115(str(cfg["app_id"]), str(cfg["access_token"]), str(cfg["refresh_token"])), nil
 	case TypeOpenList:
-		return newOpenList(cfg, client), nil
+		provider := newOpenList(cfg, client)
+		if err := provider.validate(); err != nil {
+			return nil, err
+		}
+		return provider, nil
 	case TypeEmbyRemote:
 		return newEmby(cfg, client), nil
 	default:

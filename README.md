@@ -16,7 +16,7 @@
 | 刮削与整理 | TMDb、Bangumi 等元数据源，NFO、手动匹配与媒体规范命名整理 |
 | 播放 | 网页播放、HLS 转码、字幕、弹幕、继续观看与收藏 |
 | 第三方客户端 | 兼容 Emby/Jellyfin 客户端，使用 Nook 账号连接 |
-| 网盘与挂载 | OpenList、115、WebDAV、STRM 同步与远程 Emby 挂载 |
+| 网盘与挂载 | OpenList（Token 认证）、115、WebDAV、STRM 同步与远程 Emby 挂载 |
 | 管理 | 多用户权限、播放配置、任务队列、日志与系统设置 |
 
 ## 快速部署

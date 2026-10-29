@@ -16,6 +16,8 @@ export type EmbyRemoteLine = {
 export interface StrmAccount {
   id: string
   name: string
+  /** 网盘 API 返回的用户名，仅用于展示。 */
+  username?: string
   provider: StrmProvider
   enabled: boolean
   created_at: string

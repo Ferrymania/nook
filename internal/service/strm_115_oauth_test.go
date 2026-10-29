@@ -60,7 +60,7 @@ func Test115OAuthQRFlow(t *testing.T) {
 			}()
 
 			// 1. 创建空凭据 115 账号
-			acct, err := svc.CreateStrmAccount(context.Background(), "我的115", model.StrmProvider115, map[string]string{})
+			acct, err := svc.CreateStrmAccount(context.Background(), "115 家庭网盘", model.StrmProvider115, map[string]string{})
 			if err != nil {
 				t.Fatalf("create account: %v", err)
 			}
@@ -110,8 +110,11 @@ func Test115OAuthQRFlow(t *testing.T) {
 			if cfg["access_token"] != "open-at" || cfg["refresh_token"] != "open-rt" {
 				t.Fatalf("token not saved: %#v", cfg)
 			}
-			if cfg["user_name"] != "测试用户" && !strings.Contains(updated.Name, "115") && updated.Name != "测试用户" {
+			if cfg["user_name"] != "测试用户" {
 				t.Fatalf("user info not saved: %#v", cfg)
+			}
+			if updated.Name != acct.Name {
+				t.Fatalf("authorization overwrote account remark: %q -> %q", acct.Name, updated.Name)
 			}
 			if !HasStrmAccountCredential(updated) {
 				t.Fatal("credential should be present after auth")

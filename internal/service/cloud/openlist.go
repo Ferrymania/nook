@@ -2,33 +2,24 @@ package cloud
 
 import (
 	"context"
-	"encoding/base64"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
-	"sync"
-	"time"
 )
+
+var ErrOpenListTokenRequired = errors.New("OpenList 仅支持 Token，请编辑网盘账号并填写 Token")
 
 // openListProvider uses the OpenList API and its WebDAV endpoint.
 type openListProvider struct {
-	name     string
-	base     *url.URL
-	username string
-	password string
-	token    string // 配置的静态令牌（构造后只读）
-	ua       string
-	apiBase  *url.URL
-	client   *http.Client
-
-	// tokenMu / loginToken / loginTokenSeen 保护 OpenList 用户名密码登录的
-	// token 缓存：多 worker 并发时单飞登录，缓存有效期内直接复用，
-	// 401 时清缓存重登（见 openlist_api.go 的 openListAPIToken）。
-	tokenMu        sync.Mutex
-	loginToken     string
-	loginTokenSeen time.Time
+	name    string
+	base    *url.URL
+	token   string // 配置的静态令牌（构造后只读）
+	ua      string
+	apiBase *url.URL
+	client  *http.Client
 }
 
 func newOpenList(cfg map[string]any, client *http.Client) *openListProvider {
@@ -41,14 +32,12 @@ func newOpenList(cfg map[string]any, client *http.Client) *openListProvider {
 		ua = defaultUA
 	}
 	return &openListProvider{
-		name:     TypeOpenList,
-		base:     u,
-		username: str(cfg["username"]),
-		password: str(cfg["password"]),
-		token:    str(cfg["token"]),
-		ua:       ua,
-		apiBase:  apiBase,
-		client:   client,
+		name:    TypeOpenList,
+		base:    u,
+		token:   str(cfg["token"]),
+		ua:      ua,
+		apiBase: apiBase,
+		client:  client,
 	}
 }
 
@@ -80,17 +69,16 @@ func (p *openListProvider) Resolve(ctx context.Context, fileRef string) (*Direct
 	headers := map[string]string{
 		"User-Agent": p.ua,
 	}
-	if p.token != "" {
-		headers["Authorization"] = p.token
-	} else if p.username != "" {
-		headers["Authorization"] = "Basic " + base64.StdEncoding.EncodeToString([]byte(p.username+":"+p.password))
-	}
+	headers["Authorization"] = p.token
 	return &DirectLink{URL: p.urlFor(ref), Headers: headers, Proxy: true}, nil
 }
 
 func (p *openListProvider) validate() error {
 	if p.base == nil || p.base.Scheme == "" || p.base.Host == "" {
 		return fmt.Errorf("%s: missing WebDAV URL", p.name)
+	}
+	if p.token == "" {
+		return ErrOpenListTokenRequired
 	}
 	return nil
 }

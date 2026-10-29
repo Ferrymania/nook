@@ -4,50 +4,50 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 )
 
-// errOpenListAPITokenExpired 标记 OpenList 返回 401（登录 token 已失效）：
-// 调用方收到后应清缓存重登一次再重试原请求。
-var errOpenListAPITokenExpired = errors.New("openlist api token expired")
-
-// openListAPITokenCacheTTL 登录 token 缓存有效期（OpenList 默认签发 48h JWT，
-// 这里保守取 30 分钟，过期自动重新登录）。
-const openListAPITokenCacheTTL = 30 * time.Minute
-
-// doWithOpenListAPIToken 获取 OpenList API token 后执行 fn；若请求命中 401
-// （登录 token 失效）则清缓存重登一次并重试，避免一次 token 轮换导致整批请求失败。
-func doWithOpenListAPIToken[T any](ctx context.Context, p *openListProvider, fn func(token string) (T, error)) (T, error) {
-	var zero T
-	token, err := p.openListAPIToken(ctx)
+// FetchUsername 使用已配置的 Token 查询 OpenList 当前用户，不调用登录接口。
+func (p *openListProvider) FetchUsername(ctx context.Context) (string, error) {
+	if err := p.validate(); err != nil {
+		return "", err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.openListAPIURL("/api/me"), nil)
 	if err != nil {
-		return zero, err
+		return "", err
 	}
-	result, err := fn(token)
-	if err == nil || !errors.Is(err, errOpenListAPITokenExpired) {
-		return result, err
-	}
-	p.invalidateOpenListAPIToken()
-	token, err = p.openListAPIToken(ctx)
+	req.Header.Set("Authorization", p.token)
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", p.ua)
+	resp, err := p.client.Do(req)
 	if err != nil {
-		return zero, err
+		return "", decorateDAVTransportError(p.name, req.URL.String(), err)
 	}
-	return fn(token)
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", p.openListAPIStatusError("user info", "", resp.StatusCode)
+	}
+	var result struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+		Data    struct {
+			Username string `json:"username"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&result); err != nil {
+		return "", fmt.Errorf("openlist: decode user info: %w", err)
+	}
+	if result.Code != http.StatusOK || strings.TrimSpace(result.Data.Username) == "" {
+		return "", fmt.Errorf("openlist: 获取用户名失败：%s", firstNonEmpty(result.Message, "接口未返回用户名"))
+	}
+	return strings.TrimSpace(result.Data.Username), nil
 }
 
 func (p *openListProvider) listOpenListAPI(ctx context.Context, dir string) ([]FileEntry, error) {
-	return doWithOpenListAPIToken(ctx, p, func(token string) ([]FileEntry, error) {
-		return p.listOpenListAPIWithToken(ctx, dir, token)
-	})
-}
-
-func (p *openListProvider) listOpenListAPIWithToken(ctx context.Context, dir, token string) ([]FileEntry, error) {
 	const pageSize = 500
 	target := normalizeCloudDAVPath(dir)
 	out := make([]FileEntry, 0, pageSize)
@@ -67,9 +67,7 @@ func (p *openListProvider) listOpenListAPIWithToken(ctx context.Context, dir, to
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Accept", "application/json")
 		req.Header.Set("User-Agent", p.ua)
-		if token != "" {
-			req.Header.Set("Authorization", token)
-		}
+		req.Header.Set("Authorization", p.token)
 		resp, err := p.client.Do(req)
 		if err != nil {
 			return nil, decorateDAVTransportError(p.name, p.openListAPIURL("/api/fs/list"), err)
@@ -77,9 +75,6 @@ func (p *openListProvider) listOpenListAPIWithToken(ctx context.Context, dir, to
 		var decoded openListListResponse
 		decodeErr := json.NewDecoder(io.LimitReader(resp.Body, 32<<20)).Decode(&decoded)
 		resp.Body.Close()
-		if resp.StatusCode == http.StatusUnauthorized {
-			return nil, errOpenListAPITokenExpired
-		}
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			return nil, p.openListAPIStatusError("list", target, resp.StatusCode)
 		}
@@ -120,12 +115,6 @@ func (p *openListProvider) listOpenListAPIWithToken(ctx context.Context, dir, to
 }
 
 func (p *openListProvider) resolveOpenListAPIDirect(ctx context.Context, fileRef string) (*DirectLink, error) {
-	return doWithOpenListAPIToken(ctx, p, func(token string) (*DirectLink, error) {
-		return p.resolveOpenListAPIDirectWithToken(ctx, fileRef, token)
-	})
-}
-
-func (p *openListProvider) resolveOpenListAPIDirectWithToken(ctx context.Context, fileRef, token string) (*DirectLink, error) {
 	payload, _ := json.Marshal(map[string]string{"path": normalizeCloudDAVPath(fileRef), "password": ""})
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.openListAPIURL("/api/fs/get"), bytes.NewReader(payload))
 	if err != nil {
@@ -134,17 +123,12 @@ func (p *openListProvider) resolveOpenListAPIDirectWithToken(ctx context.Context
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", p.ua)
-	if token != "" {
-		req.Header.Set("Authorization", token)
-	}
+	req.Header.Set("Authorization", p.token)
 	resp, err := p.client.Do(req)
 	if err != nil {
 		return nil, decorateDAVTransportError(p.name, p.openListAPIURL("/api/fs/get"), err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode == http.StatusUnauthorized {
-		return nil, errOpenListAPITokenExpired
-	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, p.openListAPIStatusError("get", fileRef, resp.StatusCode)
 	}
@@ -194,85 +178,9 @@ func (p *openListProvider) resolveOpenListCDNRedirect(ctx context.Context, fileR
 
 func (p *openListProvider) openListAPIStatusError(action, target string, status int) error {
 	if status == http.StatusUnauthorized || status == http.StatusForbidden {
-		return fmt.Errorf("%s: api %s %s returned http %d；请检查 OpenList Token 或用户名密码，并确认填写的是 OpenList 服务地址而不是 /dav 地址", p.name, action, target, status)
+		return fmt.Errorf("%s: api %s %s returned http %d；请检查或更换 OpenList Token，并确认填写的是 OpenList 服务地址而不是 /dav 地址", p.name, action, target, status)
 	}
 	return fmt.Errorf("%s: api %s %s returned http %d", p.name, action, target, status)
-}
-
-func (p *openListProvider) hasOpenListAPICredentials() bool {
-	return strings.TrimSpace(p.token) != "" || (strings.TrimSpace(p.username) != "" && p.password != "")
-}
-
-// openListAPIToken 返回 OpenList API 访问令牌：
-//   - 配置了静态 token 时直接使用（构造后只读，无并发问题）；
-//   - 否则用用户名密码登录，并在缓存有效期内单飞复用——8 个同步 worker 并发时
-//     只会有一个 goroutine 真正执行登录，避免登录风暴；登录 token 的写入受 tokenMu 保护。
-func (p *openListProvider) openListAPIToken(ctx context.Context) (string, error) {
-	if token := strings.TrimSpace(p.token); token != "" {
-		return token, nil
-	}
-	if strings.TrimSpace(p.username) == "" || p.password == "" {
-		return "", nil
-	}
-	p.tokenMu.Lock()
-	defer p.tokenMu.Unlock()
-	if p.loginToken != "" && time.Since(p.loginTokenSeen) < openListAPITokenCacheTTL {
-		return p.loginToken, nil
-	}
-	token, err := p.openListAPILogin(ctx)
-	if err != nil {
-		return "", err
-	}
-	p.loginToken = token
-	p.loginTokenSeen = time.Now()
-	return token, nil
-}
-
-// invalidateOpenListAPIToken 清除登录 token 缓存（收到 401 时调用，下次请求重新登录）。
-func (p *openListProvider) invalidateOpenListAPIToken() {
-	p.tokenMu.Lock()
-	p.loginToken = ""
-	p.loginTokenSeen = time.Time{}
-	p.tokenMu.Unlock()
-}
-
-// openListAPILogin 调用 OpenList /api/auth/login 换取登录 token。
-func (p *openListProvider) openListAPILogin(ctx context.Context) (string, error) {
-	payload, _ := json.Marshal(map[string]string{
-		"username": p.username,
-		"password": p.password,
-	})
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.openListAPIURL("/api/auth/login"), bytes.NewReader(payload))
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", p.ua)
-	resp, err := p.client.Do(req)
-	if err != nil {
-		return "", decorateDAVTransportError(p.name, p.openListAPIURL("/api/auth/login"), err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", fmt.Errorf("%s: api login returned http %d", p.name, resp.StatusCode)
-	}
-	var decoded openListLoginResponse
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 4<<20)).Decode(&decoded); err != nil {
-		return "", fmt.Errorf("%s: decode api login: %w", p.name, err)
-	}
-	if decoded.Code != 0 && decoded.Code != 200 {
-		msg := strings.TrimSpace(decoded.Message)
-		if msg == "" {
-			msg = fmt.Sprintf("code %d", decoded.Code)
-		}
-		return "", fmt.Errorf("%s: api login failed: %s", p.name, msg)
-	}
-	token := strings.TrimSpace(decoded.Data.Token)
-	if token == "" {
-		return "", fmt.Errorf("%s: api login returned empty token", p.name)
-	}
-	return token, nil
 }
 
 func (p *openListProvider) resolveOpenListPlaybackURL(raw string) (string, error) {

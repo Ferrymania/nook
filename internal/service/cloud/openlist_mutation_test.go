@@ -2,65 +2,70 @@ package cloud
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
-func TestOpenListMutableProviderUsesWebDAVWithoutAPICredentials(t *testing.T) {
-	var mkcolSeen bool
-	var destinations []string
+func TestOpenListRequiresTokenBeforeMakingRequests(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == "MKCOL" && r.URL.Path == "/dav/TV":
-			mkcolSeen = true
-			w.WriteHeader(http.StatusCreated)
-		case r.Method == "MOVE" && r.URL.Path == "/dav/TV":
-			destinations = append(destinations, r.Header.Get("Destination"))
-			if r.Header.Get("Overwrite") != "F" {
-				t.Fatalf("Overwrite = %q, want F", r.Header.Get("Overwrite"))
-			}
-			w.WriteHeader(http.StatusCreated)
-		case r.Method == "MOVE" && r.URL.Path == "/dav/Inbox/Movie.mkv":
-			destinations = append(destinations, r.Header.Get("Destination"))
-			if r.Header.Get("Overwrite") != "F" {
-				t.Fatalf("Overwrite = %q, want F", r.Header.Get("Overwrite"))
-			}
-			w.WriteHeader(http.StatusCreated)
-		default:
-			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
-		}
+		t.Errorf("missing Token must not make a request: %s %s", r.Method, r.URL.Path)
+		w.WriteHeader(http.StatusUnauthorized)
 	}))
 	defer srv.Close()
+	for _, token := range []string{"", "  "} {
+		cfg := map[string]any{"server": srv.URL, "username": "legacy", "password": "secret", "token": token}
+		if _, err := New(TypeOpenList, cfg, srv.Client()); !errors.Is(err, ErrOpenListTokenRequired) {
+			t.Fatalf("construction error = %v, want Token required", err)
+		}
+		p := newOpenList(cfg, srv.Client())
+		ctx := context.Background()
+		operations := map[string]func() error{
+			"test":    func() error { return p.Ping(ctx) },
+			"list":    func() error { _, err := p.List(ctx, "/"); return err },
+			"resolve": func() error { _, err := p.Resolve(ctx, "/Movie.mkv"); return err },
+			"mkdir":   func() error { _, err := p.Mkdir(ctx, "/", "TV"); return err },
+			"rename":  func() error { _, err := p.Rename(ctx, "/TV", "Movies"); return err },
+			"move":    func() error { _, err := p.Move(ctx, "/TV", "/Movies", "TV"); return err },
+			"upload":  func() error { return p.PutFile(ctx, "/Movie.nfo", strings.NewReader("nfo")) },
+		}
+		for name, operation := range operations {
+			if err := operation(); !errors.Is(err, ErrOpenListTokenRequired) {
+				t.Errorf("%s error = %v, want Token required", name, err)
+			}
+		}
+	}
+}
 
-	p, err := New(TypeOpenList, map[string]any{"url": srv.URL + "/dav"}, srv.Client())
-	if err != nil {
+func TestOpenListUploadUsesOnlyConfiguredToken(t *testing.T) {
+	requests := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		if r.Method != http.MethodPut || r.URL.Path != "/api/fs/form" {
+			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		if r.Header.Get("Authorization") != "configured-token" {
+			t.Error("upload did not use configured Token")
+		}
+		if r.Header.Get("File-Path") != "Movie.nfo" {
+			t.Error("missing upload path")
+		}
+		if err := r.ParseMultipartForm(1024); err != nil {
+			t.Error(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"code":200}`))
+	}))
+	defer srv.Close()
+	p := newOpenList(map[string]any{"server": srv.URL, "token": "configured-token", "username": "legacy", "password": "ignored"}, srv.Client())
+	if err := p.PutFile(context.Background(), "/Movie.nfo", strings.NewReader("nfo")); err != nil {
 		t.Fatal(err)
 	}
-	mutable, ok := p.(MutableProvider)
-	if !ok {
-		t.Fatal("openlist should support mutable provider")
-	}
-	if _, err := mutable.Mkdir(context.Background(), "", "TV"); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-	if _, err := mutable.Rename(context.Background(), "/TV", "电视剧"); err != nil {
-		t.Fatalf("rename: %v", err)
-	}
-	moved, err := mutable.(MovableProvider).Move(context.Background(), "/Inbox/Movie.mkv", "/电影/欧美电影/Movie (2026)", "Movie (2026).mkv")
-	if err != nil {
-		t.Fatalf("move: %v", err)
-	}
-	if !mkcolSeen || len(destinations) != 2 {
-		t.Fatalf("mkcol=%v destinations=%#v, want mkdir and two MOVE calls", mkcolSeen, destinations)
-	}
-	if destinations[0] != srv.URL+"/dav/%E7%94%B5%E8%A7%86%E5%89%A7" {
-		t.Fatalf("rename Destination = %q", destinations[0])
-	}
-	if destinations[1] != srv.URL+"/dav/%E7%94%B5%E5%BD%B1/%E6%AC%A7%E7%BE%8E%E7%94%B5%E5%BD%B1/Movie%20%282026%29/Movie%20%282026%29.mkv" {
-		t.Fatalf("move Destination = %q", destinations[1])
-	}
-	if moved.ID != "/电影/欧美电影/Movie (2026)/Movie (2026).mkv" {
-		t.Fatalf("moved entry = %#v", moved)
+	if requests != 1 {
+		t.Fatalf("requests = %d, want only upload without login", requests)
 	}
 }

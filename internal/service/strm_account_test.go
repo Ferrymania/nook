@@ -3,6 +3,9 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"go.uber.org/zap"
@@ -14,102 +17,85 @@ import (
 	"github.com/Ferrymania/nook/internal/service/cloud115"
 )
 
-func TestStrmAccountConfigPreviewOf(t *testing.T) {
-	svc := testStrmService(t)
-	acct := &model.StrmAccount{
-		Provider: model.StrmProviderOpenList,
-		Config: mustJSON(map[string]string{
-			"server":   "https://list.example.com",
-			"username": "alice",
-			"password": svc.crypto.Encrypt("secret"),
-			"token":    svc.crypto.Encrypt("tok"),
-		}),
+func TestOpenListTokenValidationAndPreview(t *testing.T) {
+	svc := &StrmService{crypto: NewCryptoService("test-secret", zap.NewNop())}
+	encrypted := svc.crypto.Encrypt("saved-token")
+	legacy := mustJSON(map[string]string{
+		"server": "https://list.example.com", "username": "legacy", "password": svc.crypto.Encrypt("secret"), "token": encrypted,
+	})
+	account := &model.StrmAccount{Provider: model.StrmProviderOpenList, Config: legacy}
+	preview := svc.StrmAccountConfigPreviewOf(account)
+	if preview.Server != "https://list.example.com" || !preview.HasToken || preview.Username != "" || preview.HasPassword {
+		t.Fatalf("OpenList preview must only expose address and Token state: %#v", preview)
 	}
-
-	preview := svc.StrmAccountConfigPreviewOf(acct)
-	if preview.Server != "https://list.example.com" {
-		t.Fatalf("server = %q", preview.Server)
+	if err := svc.validateOpenListAccountToken(account.Config); err != nil {
+		t.Fatal(err)
 	}
-	if preview.Username != "alice" {
-		t.Fatalf("username = %q", preview.Username)
+	for _, token := range []string{"", "  ", svc.crypto.Encrypt("  ")} {
+		raw := mustJSON(map[string]string{"username": "legacy", "password": "secret", "token": token})
+		if err := svc.validateOpenListAccountToken(raw); !errors.Is(err, cloud.ErrOpenListTokenRequired) {
+			t.Fatalf("invalid Token validation = %v", err)
+		}
 	}
-	if !preview.HasPassword || !preview.HasToken {
-		t.Fatalf("expected secret flags, got %#v", preview)
+	for _, raw := range []string{`{"password":"secret"}`, `{"token":""}`, `{"token":"  "}`, `not-json`} {
+		if HasStrmAccountCredential(&model.StrmAccount{Provider: model.StrmProviderOpenList, Config: raw}) {
+			t.Error("missing Token counted as configured")
+		}
+	}
+	emby := &model.StrmAccount{Provider: model.StrmProviderEmbyRemote, Config: legacy}
+	embyPreview := svc.StrmAccountConfigPreviewOf(emby)
+	if embyPreview.Username != "legacy" || !embyPreview.HasPassword {
+		t.Error("Emby username/password preview changed")
 	}
 }
 
-func TestUpdateStrmAccountMergesConfigWithoutClearingSecrets(t *testing.T) {
+func TestUpdateOpenListTokenPreservesSavedToken(t *testing.T) {
 	svc := testStrmService(t)
 	ctx := context.Background()
-	acct, err := svc.CreateStrmAccount(ctx, "openlist", model.StrmProviderOpenList, map[string]string{
-		"server":   "https://list.example.com",
-		"username": "alice",
-		"password": "secret",
-		"token":    "tok",
-	})
-	if err != nil {
-		t.Fatalf("create account: %v", err)
+	for _, token := range []string{"", "  "} {
+		if _, err := svc.CreateStrmAccount(ctx, "password-only", model.StrmProviderOpenList, map[string]string{
+			"server": "https://list.example.com", "username": "alice", "password": "secret", "token": token,
+		}); !errors.Is(err, cloud.ErrOpenListTokenRequired) {
+			t.Fatalf("password-only create = %v", err)
+		}
 	}
-
-	updated, err := svc.UpdateStrmAccount(ctx, acct.ID, "openlist-renamed", nil, map[string]string{
-		"server":   "https://list.example.com",
-		"username": "alice",
-	})
-	if err != nil {
-		t.Fatalf("update account: %v", err)
-	}
-	if updated.Name != "openlist-renamed" {
-		t.Fatalf("name = %q", updated.Name)
-	}
-	cfg, err := svc.strmAccountConfig(updated)
-	if err != nil {
-		t.Fatalf("decode config: %v", err)
-	}
-	if cfg["password"] != "secret" {
-		t.Fatalf("password was cleared: %#v", cfg)
-	}
-	if cfg["token"] != "tok" {
-		t.Fatalf("token was cleared: %#v", cfg)
-	}
-}
-
-func TestUpdateOpenListAuthClearsInactiveCredentials(t *testing.T) {
-	svc := testStrmService(t)
-	ctx := context.Background()
 	acct, err := svc.CreateStrmAccount(ctx, "openlist", model.StrmProviderOpenList, map[string]string{
 		"server": "https://list.example.com", "token": "original-token",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	passwordAccount, err := svc.UpdateStrmAccount(ctx, acct.ID, "", nil, map[string]string{
-		"token": "", "username": "alice", "password": "secret",
-	})
+	updated, err := svc.UpdateStrmAccount(ctx, acct.ID, "renamed", nil, map[string]string{"server": "https://new.example.com"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := svc.strmAccountConfig(passwordAccount)
+	cfg, err := svc.strmAccountConfig(updated)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, exists := cfg["token"]; exists || cfg["username"] != "alice" || cfg["password"] != "secret" {
-		t.Fatal("switching to password must remove the saved Token")
+	if cfg["token"] != "original-token" || cfg["server"] != "https://new.example.com" || updated.Name != "renamed" {
+		t.Error("address-only save did not preserve Token")
 	}
-	tokenAccount, err := svc.UpdateStrmAccount(ctx, acct.ID, "", nil, map[string]string{
-		"token": "replacement-token", "username": "", "password": "",
-	})
+	if _, err := svc.UpdateStrmAccount(ctx, acct.ID, "", nil, map[string]string{"token": "", "username": "alice", "password": "secret"}); !errors.Is(err, cloud.ErrOpenListTokenRequired) {
+		t.Fatalf("switch to password = %v", err)
+	}
+	fresh, err := svc.repo.StrmAccount.FindByID(ctx, acct.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg, err = svc.strmAccountConfig(tokenAccount)
+	cfg, err = svc.strmAccountConfig(fresh)
+	if err != nil || cfg["token"] != "original-token" {
+		t.Fatal("failed save changed stored Token")
+	}
+	replaced, err := svc.UpdateStrmAccount(ctx, acct.ID, "", nil, map[string]string{"token": "replacement-token"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, hasUsername := cfg["username"]
-	_, hasPassword := cfg["password"]
-	if hasUsername || hasPassword || cfg["token"] != "replacement-token" || cfg["server"] != "https://list.example.com" {
-		t.Fatal("switching to Token must remove username/password and preserve the server")
+	cfg, err = svc.strmAccountConfig(replaced)
+	if err != nil || cfg["token"] != "replacement-token" {
+		t.Fatal("Token replacement failed")
 	}
+
 }
 
 func TestProviderForReuses115ClientUntilCredentialsChange(t *testing.T) {
@@ -383,4 +369,66 @@ func mustJSON(v any) string {
 		panic(err)
 	}
 	return string(data)
+}
+
+func TestStrmAccountUsernameIsSeparateFromRemarkAndCredentials(t *testing.T) {
+	for _, provider := range []string{model.StrmProvider115, model.StrmProviderOpenList} {
+		account := &model.StrmAccount{Name: "家庭网盘", Provider: provider, Config: `{"user_name":"网盘用户","username":"登录字段","token":"secret"}`}
+		if got := StrmAccountUsernameOf(account); got != "网盘用户" {
+			t.Errorf("username = %q", got)
+		}
+		if account.Name != "家庭网盘" {
+			t.Error("remark was overwritten")
+		}
+		account.Config = `{"username":"登录字段"}`
+		if got := StrmAccountUsernameOf(account); got != "" {
+			t.Error("login field was mistaken for API username")
+		}
+	}
+}
+
+func TestRefreshOpenListUsernamePreservesRemarkAndCredentials(t *testing.T) {
+	svc := testStrmService(t)
+	ctx := context.Background()
+	requests := 0
+	var duringFetch func()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		if r.Method != "GET" || r.URL.Path != "/api/me" {
+			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
+		}
+		if duringFetch != nil {
+			duringFetch()
+		}
+		_, _ = w.Write([]byte(`{"code":200,"data":{"username":"OpenList用户"}}`))
+	}))
+	defer srv.Close()
+	acct, err := svc.CreateStrmAccount(ctx, "家庭备注", model.StrmProviderOpenList, map[string]string{"server": srv.URL, "token": "original-token"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	first := svc.RefreshStrmAccountUsername(ctx, acct)
+	if first.Name != "家庭备注" || StrmAccountUsernameOf(first) != "OpenList用户" {
+		t.Fatal("remark and username were not kept separate")
+	}
+	cfg, err := svc.strmAccountConfig(first)
+	if err != nil || cfg["token"] != "original-token" {
+		t.Fatal("fetch username changed credentials")
+	}
+	before := requests
+	listed, err := svc.ListAccounts(ctx)
+	if err != nil || len(listed) != 1 || StrmAccountUsernameOf(&listed[0]) != "OpenList用户" || requests != before {
+		t.Fatal("listing should use locally stored username")
+	}
+	// A credential update during the API request must win over the stale response.
+	duringFetch = func() {
+		if _, err := svc.UpdateStrmAccount(ctx, acct.ID, "新备注", nil, map[string]string{"token": "new-token", "user_name": "新用户"}); err != nil {
+			t.Error(err)
+		}
+	}
+	fresh := svc.RefreshStrmAccountUsername(ctx, first)
+	cfg, err = svc.strmAccountConfig(fresh)
+	if err != nil || cfg["token"] != "new-token" || cfg["user_name"] != "新用户" || fresh.Name != "新备注" {
+		t.Fatal("stale user-info lookup overwrote concurrent account update")
+	}
 }
