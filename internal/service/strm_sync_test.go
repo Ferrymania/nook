@@ -90,7 +90,7 @@ func TestStrmVideoExtensionsUpgradeSavedDefault(t *testing.T) {
 func syncPathRecord(t *testing.T, svc *StrmService, provider, remote, local string, enabled bool) *model.StrmSyncPath {
 	t.Helper()
 	p, err := svc.CreateSyncPath(context.Background(), &model.StrmSyncPath{
-		Name:         "test",
+		Name:         "test " + filepath.Base(local),
 		Provider:     provider,
 		RemotePath:   remote,
 		LocalPath:    local,

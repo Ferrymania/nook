@@ -6,8 +6,7 @@ import {
   Ban,
   Cloud,
   Download,
-  FolderPlus,
-  HardDrive,
+  Folder,
   History,
   Loader2,
   Pencil,
@@ -16,14 +15,13 @@ import {
   RefreshCw,
   Settings,
   Trash2,
-  Tv,
   Upload,
 } from 'lucide-react'
 
 import { strmAPI } from '../api/strm'
 import { confirmAction } from '../components/confirmAction'
 import type { StrmAccount, StrmSyncPath, StrmSyncRecord, StrmSyncRecordPage } from '../types/strm'
-import { STRM_PROVIDER_LABELS, type StrmProvider } from '../types/strm'
+import { STRM_PROVIDER_LABELS } from '../types/strm'
 import { StrmAccountDialog, StrmSettingsDialog, StrmSyncPathDialog } from './StrmDialogs'
 
 type StrmDialogKey = 'account' | 'settings' | 'path' | null
@@ -51,21 +49,6 @@ const RECORD_STATUS_META: Record<string, { label: string; cls: string }> = {
 
 const iconButtonCls =
   'inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2 py-1 text-xs font-semibold text-ink-100 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50'
-
-export function providerIcon(provider: StrmProvider) {
-  switch (provider) {
-    case 'cloud115':
-      return Cloud
-    case 'openlist':
-      return FolderPlus
-    case 'local':
-      return HardDrive
-    case 'emby_remote':
-      return Tv
-    default:
-      return Cloud
-  }
-}
 
 export function StrmManagePage() {
   const [accounts, setAccounts] = useState<StrmAccount[]>([])
@@ -241,7 +224,7 @@ export function StrmManagePage() {
             STRM 设置
           </button>
           <button type="button" onClick={openAddPathDialog} className="neon-button">
-            <FolderPlus size={16} />
+            <Plus size={16} />
             添加同步目录
           </button>
         </div>
@@ -329,8 +312,8 @@ function AccountSection({
           <Cloud size={18} className="text-brand-500" />
           <h2 className="font-display text-lg font-semibold text-ink-600">网盘账号</h2>
         </div>
-        <button type="button" onClick={onAdd} className="text-sm font-semibold text-brand-500 hover:text-brand-600">
-          + 新建
+        <button type="button" onClick={onAdd} className="inline-flex items-center gap-1 text-sm font-semibold text-brand-500 hover:text-brand-600">
+          <Plus size={14} />新建
         </button>
       </div>
       {accounts.length === 0 ? (
@@ -340,7 +323,6 @@ function AccountSection({
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {accounts.map((account) => {
-            const Icon = providerIcon(account.provider)
             const testState = accountTests[account.id]
             const testing = testState?.pending ?? false
             const testError = testState?.error
@@ -349,7 +331,7 @@ function AccountSection({
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2.5">
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-500">
-                      <Icon size={18} />
+                      <Cloud size={18} />
                     </div>
                     <div>
                       <p className="font-semibold text-ink-600">{account.name}</p>
@@ -432,12 +414,12 @@ function SyncPathSection({
     <section className="glass-panel space-y-3 p-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <FolderPlus size={18} className="text-brand-500" />
+          <Folder size={18} className="text-brand-500" />
           <h2 className="font-display text-lg font-semibold text-ink-600">STRM 同步目录</h2>
           <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-sand-500">{paths.length}</span>
         </div>
-        <button type="button" onClick={onAdd} className="text-sm font-semibold text-brand-500 hover:text-brand-600">
-          + 新建
+        <button type="button" onClick={onAdd} className="inline-flex items-center gap-1 text-sm font-semibold text-brand-500 hover:text-brand-600">
+          <Plus size={14} />新建
         </button>
       </div>
       {paths.length === 0 ? (
@@ -449,13 +431,12 @@ function SyncPathSection({
           {paths.map((path) => {
             const status = STATUS_META[path.last_sync_status] ?? { label: '状态未知', cls: STATUS_META.idle.cls }
             const running = path.last_sync_status === 'running'
-            const PathIcon = providerIcon(path.provider)
             return (
               <div key={path.id} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-2.5">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-500">
-                      <PathIcon size={18} />
+                      <Folder size={18} />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
