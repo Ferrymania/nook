@@ -98,6 +98,7 @@ type StrmService struct {
 
 	providerMu       sync.Mutex
 	provider115Cache map[string]cloud.Provider // account ID -> shared provider/OpenClient
+	syncPathMu       sync.Mutex                // 输出目录冲突检查与配置写入串行执行
 
 	downloadSem115  chan struct{} // 115 换直链+下载并发上限（风控兜底）
 	downloadSemDAV  chan struct{} // WebDAV/OpenList 元数据下载并发上限
@@ -739,7 +740,9 @@ func (s *StrmService) ClearSyncRecords(ctx context.Context, pathID string) (int6
 
 // CreateSyncPath 校验并创建同步目录。
 func (s *StrmService) CreateSyncPath(ctx context.Context, p *model.StrmSyncPath) (*model.StrmSyncPath, error) {
-	if err := s.validateSyncPath(ctx, p); err != nil {
+	s.syncPathMu.Lock()
+	defer s.syncPathMu.Unlock()
+	if err := s.validateSyncPath(ctx, p, ""); err != nil {
 		return nil, err
 	}
 	if strings.TrimSpace(p.Name) == "" {
@@ -759,6 +762,8 @@ func (s *StrmService) CreateSyncPath(ctx context.Context, p *model.StrmSyncPath)
 
 // UpdateSyncPath 更新同步目录（运行中禁止修改），保留同步状态字段。
 func (s *StrmService) UpdateSyncPath(ctx context.Context, id string, p *model.StrmSyncPath) (*model.StrmSyncPath, error) {
+	s.syncPathMu.Lock()
+	defer s.syncPathMu.Unlock()
 	existing, err := s.repo.StrmSyncPath.FindByID(ctx, id)
 	if err != nil || existing == nil {
 		return nil, errNotFoundOr(err, "同步目录不存在")
@@ -766,7 +771,7 @@ func (s *StrmService) UpdateSyncPath(ctx context.Context, id string, p *model.St
 	if s.IsSyncRunning(id) {
 		return nil, errors.New("该目录正在同步中，请先取消")
 	}
-	if err := s.validateSyncPath(ctx, p); err != nil {
+	if err := s.validateSyncPath(ctx, p, id); err != nil {
 		return nil, err
 	}
 	p.ID = existing.ID
@@ -798,7 +803,7 @@ func (s *StrmService) DeleteSyncPath(ctx context.Context, id string) error {
 }
 
 // ─── 工具 ──────────────────────────────────────────────────────────────────────
-func (s *StrmService) validateSyncPath(ctx context.Context, p *model.StrmSyncPath) error {
+func (s *StrmService) validateSyncPath(ctx context.Context, p *model.StrmSyncPath, excludeID string) error {
 	p.Provider = strings.TrimSpace(p.Provider)
 	if p.Provider == "" {
 		return errors.New("请选择同步类型")
@@ -825,6 +830,9 @@ func (s *StrmService) validateSyncPath(ctx context.Context, p *model.StrmSyncPat
 	}
 	if strings.TrimSpace(p.LocalPath) == "" {
 		return errors.New("请填写本地输出目录")
+	}
+	if err := s.validateSyncOutputPath(ctx, p.LocalPath, excludeID); err != nil {
+		return err
 	}
 	if err := ensureLocalDir(p.LocalPath); err != nil {
 		return fmt.Errorf("本地输出目录不可用：%w", err)

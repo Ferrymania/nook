@@ -55,7 +55,7 @@ func TestRemovedStrmProviderIsRejected(t *testing.T) {
 	if _, err := svc.CreateStrmAccount(context.Background(), "old provider", "clouddrive2", nil); err == nil {
 		t.Fatal("removed provider should not accept new accounts")
 	}
-	if err := svc.validateSyncPath(context.Background(), &model.StrmSyncPath{Provider: "clouddrive2"}); err == nil {
+	if err := svc.validateSyncPath(context.Background(), &model.StrmSyncPath{Provider: "clouddrive2"}, ""); err == nil {
 		t.Fatal("removed provider should not accept sync paths")
 	}
 	if _, err := svc.ResolvePlay(context.Background(), "clouddrive2", nil); err == nil {
