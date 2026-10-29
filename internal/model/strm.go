@@ -18,7 +18,7 @@ const (
 // StrmAccount 是一个网盘账号（STRM 同步数据源凭据）。
 type StrmAccount struct {
 	Base
-	Name           string     `gorm:"size:128" json:"name"`             // 展示名
+	Name           string     `gorm:"size:128" json:"name"`             // 用户填写的账号备注
 	Provider       string     `gorm:"size:32;index" json:"provider"`    // StrmProvider*
 	Config         string     `gorm:"type:text" json:"-"`               // JSON：cookie / url / username / password / token
 	Enabled        bool       `gorm:"default:true" json:"enabled"`      // 是否启用（禁用后同步跳过）

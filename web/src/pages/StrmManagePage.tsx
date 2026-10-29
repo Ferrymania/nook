@@ -335,7 +335,9 @@ function AccountSection({
                     </div>
                     <div>
                       <p className="font-semibold text-ink-600">{account.name}</p>
-                      <p className="text-xs text-sand-500">{account.provider_label}</p>
+                      <p className="text-xs text-sand-500">
+                        {account.provider_label}{account.username ? ` · ${account.username}` : ''}
+                      </p>
                     </div>
                   </div>
                   <span
@@ -347,27 +349,22 @@ function AccountSection({
                     {account.enabled ? '已启用' : '已停用'}
                   </span>
                 </div>
-                <div className="mt-3 space-y-1 text-xs text-ink-50">
-                  <p>
-                    凭据：
-                    {account.has_credential ? (
-                      <span className="text-emerald-600">已配置</span>
-                    ) : (
-                      <span className="text-gray-400">未配置</span>
-                    )}
-                  </p>
-                  <div role="status" aria-live="polite" aria-atomic="true" className="wrap-anywhere">
-                    {testing ? (
-                      <p>正在测试连接，请稍候…</p>
-                    ) : testError ? (
-                      <p className="text-rose-500">测试未完成：{testError}</p>
-                    ) : account.last_test_at ? (
-                      <p className={account.last_test_ok ? 'text-emerald-600' : 'text-rose-500'}>
-                        最近测试：{account.last_test_ok ? '正常' : account.last_test_result}
-                      </p>
-                    ) : null}
+                {(!account.has_credential || testing || testError || account.last_test_at) && (
+                  <div className="mt-3 space-y-1 text-xs text-ink-50">
+                    {!account.has_credential && <p className="text-rose-500">未配置凭据</p>}
+                    <div role="status" aria-live="polite" aria-atomic="true" className="wrap-anywhere">
+                      {testing ? (
+                        <p>正在测试连接，请稍候…</p>
+                      ) : testError ? (
+                        <p className="text-rose-500">测试未完成：{testError}</p>
+                      ) : account.last_test_at ? (
+                        <p className={account.last_test_ok ? 'text-emerald-600' : 'text-rose-500'}>
+                          最近测试：{account.last_test_ok ? '正常' : account.last_test_result}
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
+                )}
                 <div className="mt-3 flex flex-wrap items-center gap-1.5">
                   <button type="button" disabled={testing} aria-busy={testing} onClick={() => onTest(account)} className={iconButtonCls}>
                     <RefreshCw size={14} className={testing ? 'animate-spin' : undefined} />

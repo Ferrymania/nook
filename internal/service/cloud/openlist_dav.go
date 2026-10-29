@@ -2,12 +2,9 @@ package cloud
 
 import (
 	"context"
-	"encoding/xml"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
-	"path"
 	"strings"
 )
 
@@ -15,55 +12,7 @@ func (p *openListProvider) List(ctx context.Context, dir string) ([]FileEntry, e
 	if err := p.validate(); err != nil {
 		return nil, err
 	}
-	if p.apiBase != nil && p.hasOpenListAPICredentials() {
-		return p.listOpenListAPI(ctx, dir)
-	}
-	target := normalizeCloudDAVPath(dir)
-	req, err := http.NewRequestWithContext(ctx, "PROPFIND", p.urlFor(target), strings.NewReader(cloudDAVPropfindBody))
-	if err != nil {
-		return nil, err
-	}
-	p.auth(req)
-	req.Header.Set("Depth", "1")
-	req.Header.Set("Content-Type", "application/xml; charset=utf-8")
-	req.Header.Set("Accept", "application/xml,text/xml,*/*")
-	resp, err := p.client.Do(req)
-	if err != nil {
-		return nil, decorateDAVTransportError(p.name, p.urlFor(target), err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, p.decorateDAVStatusError(resp, target)
-	}
-	// 流式解码：超大目录（如上万条目的网盘目录）响应可能远超旧 4MB 截断上限，
-	// 直接 xml.Unmarshal 会截断报错；这里用 LimitReader(64MB) + Decoder 边读边解
-	var multi cloudDAVMultiStatus
-	if err := xml.NewDecoder(io.LimitReader(resp.Body, 64<<20)).Decode(&multi); err != nil {
-		return nil, fmt.Errorf("%s: decode webdav: %w", p.name, err)
-	}
-	basePath := strings.TrimRight(p.base.EscapedPath(), "/")
-	currentID := normalizeCloudDAVPath(target)
-	out := make([]FileEntry, 0, len(multi.Responses))
-	for _, item := range multi.Responses {
-		entryPath, err := p.entryIDFromHref(item.Href, basePath)
-		if err != nil || entryPath == "" || sameCloudDAVPath(entryPath, currentID) {
-			continue
-		}
-		name := firstNonEmpty(item.PropStat.Prop.DisplayName, path.Base(strings.TrimRight(entryPath, "/")))
-		if decoded, err := url.PathUnescape(name); err == nil {
-			name = decoded
-		}
-		if name == "" || name == "." || name == "/" {
-			continue
-		}
-		out = append(out, FileEntry{
-			ID:    entryPath,
-			Name:  name,
-			IsDir: item.PropStat.Prop.ResourceType.Collection != nil || strings.HasSuffix(item.Href, "/"),
-			Size:  parseDAVSize(item.PropStat.Prop.ContentLength),
-		})
-	}
-	return out, nil
+	return p.listOpenListAPI(ctx, dir)
 }
 
 func (p *openListProvider) firstHTTPRedirectLocation(ctx context.Context, target string, headers map[string]string) (string, int, error) {
@@ -138,15 +87,4 @@ func resolveHTTPRedirectLocation(baseURL, rawLocation string) (string, error) {
 		return "", fmt.Errorf("invalid redirect base URL: %w", err)
 	}
 	return base.ResolveReference(location).String(), nil
-}
-
-func (p *openListProvider) auth(req *http.Request) {
-	req.Header.Set("User-Agent", p.ua)
-	if p.token != "" {
-		req.Header.Set("Authorization", p.token)
-		return
-	}
-	if p.username != "" {
-		req.SetBasicAuth(p.username, p.password)
-	}
 }

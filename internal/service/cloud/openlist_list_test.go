@@ -9,111 +9,48 @@ import (
 	"testing"
 )
 
-func TestOpenListWebDAVListAndResolve(t *testing.T) {
-	var gotPath, gotDepth string
+func TestOpenListListUsesConfiguredToken(t *testing.T) {
+	requests := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/auth/login" {
-			http.NotFound(w, r)
+		requests++
+		if r.Method != http.MethodPost || r.URL.Path != "/api/fs/list" {
+			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		if r.URL.Path == "/api/fs/get" {
-			http.NotFound(w, r)
-			return
+		if r.Header.Get("Authorization") != "configured-token" {
+			t.Error("configured Token was not used")
 		}
-		if r.Method != "PROPFIND" || r.URL.Path != "/dav" {
-			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
+		var body struct {
+			Path string `json:"path"`
 		}
-		gotPath = r.URL.Path
-		gotDepth = r.Header.Get("Depth")
-		w.Header().Set("Content-Type", "application/xml")
-		w.WriteHeader(http.StatusMultiStatus)
-		_, _ = w.Write([]byte(`<?xml version="1.0" encoding="utf-8"?>
-<d:multistatus xmlns:d="DAV:">
-  <d:response>
-    <d:href>/dav/</d:href>
-    <d:propstat><d:prop><d:resourcetype><d:collection/></d:resourcetype></d:prop></d:propstat>
-  </d:response>
-  <d:response>
-    <d:href>/dav/Cloud/Movie.mkv</d:href>
-    <d:propstat><d:prop><d:displayname>Movie.mkv</d:displayname><d:getcontentlength>1024</d:getcontentlength><d:resourcetype/></d:prop></d:propstat>
-  </d:response>
-</d:multistatus>`))
-	}))
-	defer srv.Close()
-
-	p, err := New(TypeOpenList, map[string]any{"url": srv.URL + "/dav"}, srv.Client())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if p.Type() != TypeOpenList {
-		t.Fatalf("type = %q, want %q", p.Type(), TypeOpenList)
-	}
-	entries, err := p.List(context.Background(), "")
-	if err != nil {
-		t.Fatalf("list: %v", err)
-	}
-	if gotPath != "/dav" {
-		t.Fatalf("path = %q, want /dav", gotPath)
-	}
-	if gotDepth != "1" {
-		t.Fatalf("Depth = %q, want 1", gotDepth)
-	}
-	if len(entries) != 1 || entries[0].ID != "/Cloud/Movie.mkv" || entries[0].Size != 1024 {
-		t.Fatalf("entries = %#v", entries)
-	}
-	// Video file: API fails → error (no WebDAV fallback for video)
-	_, err = p.Resolve(context.Background(), entries[0].ID)
-	if err == nil || !strings.Contains(err.Error(), "resolve download URL") || !strings.Contains(err.Error(), "via API failed") {
-		t.Fatalf("openlist video resolve should error on API failure, err=%v", err)
-	}
-}
-
-func TestOpenListListUsesAPIUsernamePasswordWithoutWebDAVFallback(t *testing.T) {
-	var loginSeen, listSeen, davSeen bool
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Error(err)
+		}
+		if body.Path != "/" {
+			t.Errorf("path = %q, want root", body.Path)
+		}
 		w.Header().Set("Content-Type", "application/json")
-		switch r.URL.Path {
-		case "/api/auth/login":
-			loginSeen = true
-			var body map[string]string
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				t.Fatalf("decode login body: %v", err)
-			}
-			if body["username"] != "alice" || body["password"] != "secret" {
-				t.Fatalf("login body = %#v", body)
-			}
-			_, _ = w.Write([]byte(`{"code":200,"data":{"token":"api-token"}}`))
-		case "/api/fs/list":
-			listSeen = true
-			if r.Header.Get("Authorization") != "api-token" {
-				t.Fatalf("Authorization = %q, want api-token", r.Header.Get("Authorization"))
-			}
-			_, _ = w.Write([]byte(`{"code":200,"data":{"content":[{"name":"Movies","is_dir":true,"size":0},{"name":"Movie.mkv","is_dir":false,"size":1024}],"total":2}}`))
-		case "/dav":
-			davSeen = true
-			w.WriteHeader(http.StatusMultiStatus)
-		default:
-			t.Fatalf("unexpected path %s", r.URL.Path)
-		}
+		_, _ = w.Write([]byte(`{"code":200,"data":{"content":[{"name":"Movies","is_dir":true}],"total":1}}`))
 	}))
 	defer srv.Close()
-
-	p, err := New(TypeOpenList, map[string]any{"server": srv.URL, "username": "alice", "password": "secret"}, srv.Client())
+	p, err := New(TypeOpenList, map[string]any{
+		"server": srv.URL, "token": " configured-token ", "username": "legacy", "password": "ignored",
+	}, srv.Client())
 	if err != nil {
 		t.Fatal(err)
 	}
-	entries, err := p.List(context.Background(), "")
-	if err != nil {
-		t.Fatalf("list: %v", err)
+	for range 2 {
+		entries, err := p.List(context.Background(), "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(entries) != 1 || entries[0].ID != "/Movies" {
+			t.Fatalf("entries = %#v", entries)
+		}
 	}
-	if !loginSeen || !listSeen {
-		t.Fatalf("expected api login/list, login=%v list=%v", loginSeen, listSeen)
-	}
-	if davSeen {
-		t.Fatal("openlist API credentials should not fall back to WebDAV")
-	}
-	if len(entries) != 2 || entries[0].ID != "/Movies" || !entries[0].IsDir || entries[1].ID != "/Movie.mkv" || entries[1].Size != 1024 {
-		t.Fatalf("entries = %#v", entries)
+	if requests != 2 {
+		t.Fatalf("requests = %d, want just two listing requests", requests)
 	}
 }
 
@@ -197,54 +134,29 @@ func TestOpenListMutableProviderUsesAPI(t *testing.T) {
 	}
 }
 
-func TestOpenListListAPIFailureDoesNotFallbackToWebDAV(t *testing.T) {
-	var davSeen bool
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/api/auth/login":
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(`{"code":500,"message":"bad password"}`))
-		case "/dav":
-			davSeen = true
-			w.WriteHeader(http.StatusMultiStatus)
-		default:
-			t.Fatalf("unexpected path %s", r.URL.Path)
-		}
-	}))
-	defer srv.Close()
-
-	p, err := New(TypeOpenList, map[string]any{"server": srv.URL, "username": "alice", "password": "bad"}, srv.Client())
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = p.List(context.Background(), "")
-	if err == nil || !strings.Contains(err.Error(), "api login failed") || !strings.Contains(err.Error(), "bad password") {
-		t.Fatalf("list error = %v, want api login failure", err)
-	}
-	if davSeen {
-		t.Fatal("openlist API failure fell back to WebDAV")
-	}
-}
-
-func TestOpenListRootURLDefaultsToDAV(t *testing.T) {
-	var gotPath string
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		gotPath = r.URL.Path
-		w.Header().Set("Content-Type", "application/xml")
-		w.WriteHeader(http.StatusMultiStatus)
-		_, _ = w.Write([]byte(`<?xml version="1.0" encoding="utf-8"?><d:multistatus xmlns:d="DAV:"><d:response><d:href>/dav/</d:href><d:propstat><d:prop><d:resourcetype><d:collection/></d:resourcetype></d:prop></d:propstat></d:response></d:multistatus>`))
-	}))
-	defer srv.Close()
-
-	p, err := New(TypeOpenList, map[string]any{"url": srv.URL + "/"}, srv.Client())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := p.List(context.Background(), ""); err != nil {
-		t.Fatalf("list: %v", err)
-	}
-	if gotPath != "/dav" {
-		t.Fatalf("path = %q, want /dav", gotPath)
+func TestOpenListInvalidTokenDoesNotLoginRetryOrUseWebDAV(t *testing.T) {
+	for _, status := range []int{http.StatusUnauthorized, http.StatusForbidden} {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			requests := 0
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				requests++
+				if r.URL.Path != "/api/fs/list" {
+					t.Errorf("unexpected fallback request: %s", r.URL.Path)
+				}
+				w.WriteHeader(status)
+			}))
+			defer srv.Close()
+			p, err := New(TypeOpenList, map[string]any{"server": srv.URL, "token": "bad", "username": "legacy", "password": "ignored"}, srv.Client())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := p.Ping(context.Background()); err == nil || !strings.Contains(err.Error(), "更换 OpenList Token") {
+				t.Fatalf("unexpected test result: %v", err)
+			}
+			if requests != 1 {
+				t.Fatalf("requests = %d, want one without login or retry", requests)
+			}
+		})
 	}
 }
 
@@ -260,22 +172,40 @@ func TestOpenListURLForKeepsNonASCIIPathSingleEncoded(t *testing.T) {
 	}
 }
 
-func TestOpenListDAVStatusErrorIncludesBodyHint(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		_, _ = w.Write([]byte("请先填写有效Cookie并保存"))
-	}))
-	defer srv.Close()
-
-	p, err := New(TypeOpenList, map[string]any{"url": srv.URL + "/dav"}, srv.Client())
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = p.List(context.Background(), "")
-	if err == nil {
-		t.Fatal("want error")
-	}
-	if !strings.Contains(err.Error(), "请先填写有效Cookie并保存") || !strings.Contains(err.Error(), "WebDAV 地址") {
-		t.Fatalf("unexpected error: %v", err)
+func TestOpenListFetchUsernameUsesToken(t *testing.T) {
+	for _, tc := range []struct {
+		name, body string
+		status     int
+		want       string
+	}{
+		{"username", `{"code":200,"data":{"id":1,"username":"  家庭用户  "}}`, 200, "家庭用户"},
+		{"expired token", `{"code":401,"message":"expired"}`, 401, ""},
+		{"business failure", `{"code":401,"message":"expired"}`, 200, ""},
+		{"missing username", `{"code":200,"data":{}}`, 200, ""},
+		{"invalid response", `not-json`, 200, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			requests := 0
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				requests++
+				if r.Method != "GET" || r.URL.Path != "/api/me" {
+					t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+				}
+				if r.Header.Get("Authorization") != "configured-token" {
+					t.Error("user info did not use saved Token")
+				}
+				w.WriteHeader(tc.status)
+				_, _ = w.Write([]byte(tc.body))
+			}))
+			defer srv.Close()
+			p := newOpenList(map[string]any{"server": srv.URL, "token": "configured-token"}, srv.Client())
+			username, err := p.FetchUsername(context.Background())
+			if username != tc.want || (err == nil) != (tc.want != "") {
+				t.Fatalf("username = %q, error = %v", username, err)
+			}
+			if requests != 1 {
+				t.Errorf("requests = %d, want only user-info lookup", requests)
+			}
+		})
 	}
 }

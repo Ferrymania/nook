@@ -30,6 +30,7 @@ type strmAccountView struct {
 	model.StrmAccount
 	HasCredential bool   `json:"has_credential"`
 	ProviderLabel string `json:"provider_label"`
+	Username      string `json:"username,omitempty"`
 	// ConfigPreview 非敏感配置字段，供编辑表单回显。
 	ConfigPreview service.StrmAccountConfigPreview `json:"config_preview,omitempty"`
 	// ProxyPlay 仅远程 Emby 挂载账号返回：播放流量是否经过 Nook 代理（编辑回显用）。
@@ -47,6 +48,7 @@ func strmAccountViews(svc *service.Container, accounts []model.StrmAccount) []st
 			StrmAccount:   a,
 			HasCredential: service.HasStrmAccountCredential(&a),
 			ProviderLabel: providerLabelOf(a.Provider),
+			Username:      service.StrmAccountUsernameOf(&a),
 		}
 		if svc != nil && svc.Strm != nil {
 			view.ConfigPreview = svc.Strm.StrmAccountConfigPreviewOf(&a)
@@ -96,6 +98,7 @@ func createStrmAccountHandler(svc *service.Container) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		acct = svc.Strm.RefreshStrmAccountUsername(c.Request.Context(), acct)
 		views := strmAccountViews(svc, []model.StrmAccount{*acct})
 		c.JSON(http.StatusOK, views[0])
 	}
@@ -114,6 +117,7 @@ func updateStrmAccountHandler(svc *service.Container) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		acct = svc.Strm.RefreshStrmAccountUsername(c.Request.Context(), acct)
 		views := strmAccountViews(svc, []model.StrmAccount{*acct})
 		c.JSON(http.StatusOK, views[0])
 	}

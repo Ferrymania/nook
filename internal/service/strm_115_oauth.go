@@ -148,9 +148,6 @@ func (s *StrmService) save115OAuthToken(ctx context.Context, session *strm115Aut
 		if info, err := client.FetchUserInfo(ctx); err == nil && info != nil {
 			cfg["user_id"] = info.UserId.String()
 			cfg["user_name"] = info.UserName
-			if strings.TrimSpace(acct.Name) == "" || strings.HasPrefix(acct.Name, "115") || acct.Name == providerLabel(model.StrmProvider115) {
-				acct.Name = firstNonEmpty(info.UserName, acct.Name)
-			}
 		}
 	}
 	enc, err := s.strmAccountConfigJSON(cfg, false)

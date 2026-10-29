@@ -22,7 +22,7 @@ import { STRM_PROVIDER_LABELS } from '../types/strm'
 import { apiErrorMessage } from './StrmManagePage'
 import { Strm115AuthPanel } from './strm-dialogs/Strm115AuthPanel'
 import { OpenListAuthFields } from './strm-dialogs/OpenListAuthFields'
-import { defaultOpenListAuthMode, openListAuthConfig, openListAuthError } from '../utils/openListAuth'
+import { openListAuthConfig, openListAuthError } from '../utils/openListAuth'
 import { LocalDirBrowserDialog } from '../components/LocalDirBrowserDialog'
 import {
   defaultEmbyRemoteLines,
@@ -140,12 +140,10 @@ export function StrmAccountDialog({
   const [proxyPlay, setProxyPlay] = useState(defaults.proxyPlay)
   const [hasPassword, setHasPassword] = useState(defaults.hasPassword)
   const [hasToken, setHasToken] = useState(defaults.hasToken)
-  const [openListAuthMode, setOpenListAuthMode] = useState(() => defaultOpenListAuthMode(existing?.config_preview))
   const [saving, setSaving] = useState(false)
 
   const openListAuth = {
-    mode: openListAuthMode, server, username, password, token,
-    hasPassword: Boolean(existing?.config_preview?.has_password),
+    server, token,
     hasToken: Boolean(existing?.config_preview?.has_token),
   }
 
@@ -217,7 +215,7 @@ export function StrmAccountDialog({
   return (
     <DialogShell
       title={existing ? '编辑网盘账号' : '添加网盘账号'}
-      subtitle="115 开放平台扫码授权；OpenList 填写服务地址与凭据"
+      subtitle="115 开放平台扫码授权；OpenList 填写服务地址与 Token"
       onClose={onClose}
       wide
     >
@@ -246,7 +244,7 @@ export function StrmAccountDialog({
           </div>
         )}
 
-        <Field label="账号名称">
+        <Field label={provider === 'emby_remote' ? '账号名称' : '账号备注'}>
           <input
             name="strm-account-label"
             autoComplete="off"
@@ -256,6 +254,13 @@ export function StrmAccountDialog({
             onChange={(e) => setName(e.target.value)}
           />
         </Field>
+
+        {(provider === 'cloud115' || provider === 'openlist') && existing?.username && (
+          <dl className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
+            <dt className="text-ink-100">网盘用户名</dt>
+            <dd className="min-w-0 break-all text-ink-600">{existing.username}</dd>
+          </dl>
+        )}
 
         {provider === 'cloud115' && (
           <Strm115AuthPanel
@@ -416,15 +421,8 @@ export function StrmAccountDialog({
 
         {provider === 'openlist' && (
           <OpenListAuthFields
-            mode={openListAuthMode}
-            onModeChange={setOpenListAuthMode}
-            username={username}
-            onUsernameChange={setUsername}
-            password={password}
-            onPasswordChange={setPassword}
             token={token}
             onTokenChange={setToken}
-            hasPassword={openListAuth.hasPassword}
             hasToken={openListAuth.hasToken}
           />
         )}
@@ -458,7 +456,7 @@ export function StrmAccountDialog({
           </label>
         )}
 
-        {provider !== 'cloud115' && (
+        {(provider !== 'cloud115' || existing) && (
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={onClose} className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-ink-100 hover:bg-gray-50">
               取消

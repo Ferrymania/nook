@@ -108,14 +108,6 @@ type openListGetResponse struct {
 	} `json:"data"`
 }
 
-type openListLoginResponse struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-	Data    struct {
-		Token string `json:"token"`
-	} `json:"data"`
-}
-
 func joinOpenListAPIPath(dir, name string) string {
 	dir = strings.TrimRight(normalizeCloudDAVPath(dir), "/")
 	name = strings.Trim(strings.ReplaceAll(name, "\\", "/"), "/")

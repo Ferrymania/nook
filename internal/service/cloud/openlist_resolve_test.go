@@ -2,7 +2,6 @@ package cloud
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -76,50 +75,6 @@ func TestOpenListResolveCollapsesHostedRawURLRedirectToCDN(t *testing.T) {
 	}
 	if link.URL != "https://cdn.example.test/movie.mkv?sign=cdn" || link.Proxy || len(link.Headers) != 0 {
 		t.Fatalf("link = %#v, want collapsed CDN 302 playback", link)
-	}
-}
-
-func TestOpenListResolveLogsInWithUsernamePasswordForAPIRawURL(t *testing.T) {
-	var loginSeen bool
-	var gotAuth string
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		switch r.URL.Path {
-		case "/api/auth/login":
-			loginSeen = true
-			var body map[string]string
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				t.Fatalf("decode login body: %v", err)
-			}
-			if body["username"] != "alice" || body["password"] != "secret" {
-				t.Fatalf("login body = %#v", body)
-			}
-			_, _ = w.Write([]byte(`{"code":200,"data":{"token":"api-token"}}`))
-		case "/api/fs/get":
-			gotAuth = r.Header.Get("Authorization")
-			_, _ = w.Write([]byte(`{"code":200,"data":{"raw_url":"https://cdn.example.test/movie.mkv?sign=1"}}`))
-		default:
-			t.Fatalf("unexpected path %s", r.URL.Path)
-		}
-	}))
-	defer srv.Close()
-
-	p, err := New(TypeOpenList, map[string]any{"server": srv.URL, "username": "alice", "password": "secret"}, srv.Client())
-	if err != nil {
-		t.Fatal(err)
-	}
-	link, err := p.Resolve(context.Background(), "/Cloud/Movie.mkv")
-	if err != nil {
-		t.Fatalf("resolve: %v", err)
-	}
-	if !loginSeen {
-		t.Fatalf("expected api login before fs/get")
-	}
-	if gotAuth != "api-token" {
-		t.Fatalf("Authorization = %q, want api-token", gotAuth)
-	}
-	if link.URL != "https://cdn.example.test/movie.mkv?sign=1" || link.Proxy {
-		t.Fatalf("link = %#v, want raw_url 302 playback", link)
 	}
 }
 

@@ -66,6 +66,13 @@ func (r *StrmAccountRepository) UpdateTestResult(ctx context.Context, id string,
 	}).Error
 }
 
+// UpdateConfigIfUnchanged 防止外部用户信息查询期间，覆盖并发保存的新凭据或备注。
+func (r *StrmAccountRepository) UpdateConfigIfUnchanged(ctx context.Context, id, previous, updated string) error {
+	return r.db.WithContext(ctx).Model(&model.StrmAccount{}).
+		Where("id = ? AND config = ?", id, previous).
+		Updates(map[string]any{"config": updated, "updated_at": time.Now()}).Error
+}
+
 func (r *StrmAccountRepository) Delete(ctx context.Context, id string) error {
 	return r.db.WithContext(ctx).Unscoped().Where("id = ?", id).Delete(&model.StrmAccount{}).Error
 }
