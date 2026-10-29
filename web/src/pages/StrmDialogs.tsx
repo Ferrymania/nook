@@ -8,6 +8,7 @@ import {
   FolderPlus,
   HardDrive,
   Loader2,
+  Pencil,
   Plus,
   QrCode,
   Trash2,
@@ -625,6 +626,7 @@ export function StrmSyncPathDialog({
   // prevRemoteTailRef 记录当前拼在本地输出目录末尾、由本弹窗管理的尾段。
   // 兼容两类历史数据：新版保存的 local_path 末段是目录名，旧版是目录 ID。
   const prevRemoteTailRef = useRef(existing ? initRemoteTail(existing) : '')
+  const localPathInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (existing) return
@@ -788,98 +790,109 @@ export function StrmSyncPathDialog({
         </div>
 
         <div className="space-y-1">
-          <div className="flex items-end gap-2">
-            <div className="flex-1">
-              <Field
-                label={isLocal ? '本地源目录' : '远端目录'}
-                hint={
-                  isLocal
-                    ? '扫描该目录下的视频生成 strm'
-                    : form.provider === 'cloud115'
-                      ? form.remote_path
-                        ? `115 目录 ID：${form.remote_path}（可通过右侧「浏览」选择更换）`
-                        : '可通过右侧「浏览」选择 115 目录，或直接粘贴目录 ID'
-                      : '远端路径（可通过浏览选择）'
+          <label htmlFor="strm-remote-path" className="block text-sm font-medium text-ink-100">
+            {isLocal ? '本地源目录' : '远端目录'}
+          </label>
+          <div className="flex items-stretch gap-2">
+            <input
+              id="strm-remote-path"
+              aria-describedby="strm-remote-path-hint"
+              className={`${inputCls} min-w-0 flex-1`}
+              value={remoteInputValue}
+              placeholder={isLocal ? 'D:\\movies' : form.provider === 'cloud115' ? '点击右侧「浏览」选择目录' : '/'}
+              onChange={(e) => setRemoteInputValue(e.target.value)}
+              onBlur={(e) => {
+                const value = e.target.value.trim()
+                if (isLocal) {
+                  set('remote_path', value)
+                  return
                 }
-              >
-                <input
-                  className={inputCls}
-                  value={remoteInputValue}
-                  placeholder={isLocal ? 'D:\\movies' : form.provider === 'cloud115' ? '点击右侧「浏览」选择目录' : '/'}
-                  onChange={(e) => setRemoteInputValue(e.target.value)}
-                  onBlur={(e) => {
-                    const value = e.target.value.trim()
-                    if (isLocal) {
-                      set('remote_path', value)
-                      return
-                    }
-                    if (form.provider === 'cloud115') {
-                      if (!value) {
-                        updateRemotePath('', '')
-                        return
-                      }
-                      // 若用户直接输入/粘贴纯数字目录 ID，触发反查并自动替换为完整路径
-                      if (/^\d+$/.test(value)) {
-                        updateRemotePath(value, '')
-                        if (form.account_id) resolveDisplayPath(form.account_id, value, true)
-                        return
-                      }
-                      // 若当前展示的是完整路径且未变动，不做处理
-                      if (value === form.remote_display_path) return
-                    } else {
-                      updateRemotePath(value)
-                    }
-                  }}
-                />
-              </Field>
-            </div>
+                if (form.provider === 'cloud115') {
+                  if (!value) {
+                    updateRemotePath('', '')
+                    return
+                  }
+                  // 若用户直接输入/粘贴纯数字目录 ID，触发反查并自动替换为完整路径
+                  if (/^\d+$/.test(value)) {
+                    updateRemotePath(value, '')
+                    if (form.account_id) resolveDisplayPath(form.account_id, value, true)
+                    return
+                  }
+                  // 若当前展示的是完整路径且未变动，不做处理
+                  if (value === form.remote_display_path) return
+                } else {
+                  updateRemotePath(value)
+                }
+              }}
+            />
             {isLocal && (
               <button
                 type="button"
                 onClick={() => setBrowsingLocal('remote_path')}
-                className="mb-1 rounded-xl border border-gray-200 px-3 py-2 text-sm font-semibold text-ink-100 hover:bg-gray-50"
+                className="shrink-0 rounded-xl border border-gray-200 px-3 text-sm font-semibold text-ink-100 hover:bg-gray-50"
               >
                 浏览
               </button>
             )}
             {!isLocal && form.account_id && (
-              <button type="button" onClick={() => setBrowsing(true)} className="mb-1 rounded-xl border border-gray-200 px-3 py-2 text-sm font-semibold text-ink-100 hover:bg-gray-50">
+              <button type="button" onClick={() => setBrowsing(true)} className="shrink-0 rounded-xl border border-gray-200 px-3 text-sm font-semibold text-ink-100 hover:bg-gray-50">
                 浏览
               </button>
             )}
           </div>
+          <p id="strm-remote-path-hint" className="text-xs text-ink-50">
+            {isLocal
+              ? '扫描该目录下的视频生成 strm'
+              : form.provider === 'cloud115'
+                ? form.remote_path
+                  ? `115 目录 ID：${form.remote_path}（可通过右侧「浏览」选择更换）`
+                  : '可通过右侧「浏览」选择 115 目录，或直接粘贴目录 ID'
+                : '远端路径（可通过浏览选择）'}
+          </p>
         </div>
 
-        <div className="space-y-1">
-          <div className="flex items-end gap-2">
-            <div className="flex-1">
-              <Field
-                label="本地输出目录"
-                hint={
-                  !isLocal && remoteTail
-                    ? `将自动拼接远端末级目录「${remoteTail}」`
-                    : '生成的 .strm 与下载的元数据写到这里的对应目录结构下'
-                }
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <label htmlFor="strm-local-output-path" className="text-sm font-medium text-ink-100">本地输出目录</label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  localPathInputRef.current?.focus()
+                  localPathInputRef.current?.select()
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-ink-100 hover:bg-gray-50"
               >
-                <input
-                  className={inputCls}
-                  value={form.local_path}
-                  placeholder="D:\\strm\\movies"
-                  onChange={(e) => set('local_path', e.target.value)}
-                  onBlur={(e) => {
-                    if (!isLocal) commitLocalPath(e.target.value)
-                  }}
-                />
-              </Field>
+                <Pencil size={14} />
+                手动输入
+              </button>
+              <button
+                type="button"
+                onClick={() => setBrowsingLocal('local_path')}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-ink-100 hover:bg-gray-50"
+              >
+                <FolderPlus size={14} />
+                浏览选择
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setBrowsingLocal('local_path')}
-              className="mb-1 rounded-xl border border-gray-200 px-3 py-2 text-sm font-semibold text-ink-100 hover:bg-gray-50"
-            >
-              浏览
-            </button>
           </div>
+          <input
+            ref={localPathInputRef}
+            id="strm-local-output-path"
+            aria-describedby="strm-local-output-hint"
+            className={inputCls}
+            value={form.local_path}
+            placeholder="直接输入路径，例如 /media/OpenList"
+            autoComplete="off"
+            spellCheck={false}
+            onChange={(e) => set('local_path', e.target.value)}
+            onBlur={(e) => {
+              if (!isLocal) commitLocalPath(e.target.value)
+            }}
+          />
+          <p id="strm-local-output-hint" className="text-xs text-ink-50">
+            新目录会在保存时自动创建。{!isLocal && remoteTail ? `将自动拼接远端末级目录「${remoteTail}」。` : ''}
+          </p>
         </div>
 
         <details className="rounded-2xl border border-gray-100 bg-gray-50/50 p-3">
