@@ -4,16 +4,16 @@ import { OrganizeMediaDialog } from '../components/OrganizeMediaDialog'
 import { MediaSegmentQueryDialog } from '../components/MediaSegmentQueryButton'
 import type { Media } from '../types'
 import { isTheatricalFeature, seriesTitle, type SeriesCard } from '../utils/groupSeries'
+import type { SeriesManualScrapeTarget } from '../utils/manualScrapeTargets'
 
 export type LibraryMovieDialog = { kind: 'metadata' | 'organize' | 'segments'; media: Media } | null
 
 type LibraryPageDialogsProps = {
-  manualSeriesScrapeOpen: boolean
+  manualSeriesScrape: SeriesManualScrapeTarget | null
   seriesMetadataEditOpen: boolean
   manualMovie: Media | null
   movieDialog: LibraryMovieDialog
   selectedSeries: SeriesCard | null
-  selectedSeriesScrapeMedia: Media | null
   selectedSeriesMediaIDs: string[]
   libraryType?: string
   scrapeEpisodeArtwork: boolean
@@ -25,12 +25,11 @@ type LibraryPageDialogsProps = {
 }
 
 export function LibraryPageDialogs({
-  manualSeriesScrapeOpen,
+  manualSeriesScrape,
   seriesMetadataEditOpen,
   manualMovie,
   movieDialog,
   selectedSeries,
-  selectedSeriesScrapeMedia,
   selectedSeriesMediaIDs,
   libraryType,
   scrapeEpisodeArtwork,
@@ -48,13 +47,13 @@ export function LibraryPageDialogs({
       {movieDialog?.kind === 'organize' && <OrganizeMediaDialog open media={movieDialog.media} onClose={onCloseMovieDialog} onOrganized={onApplied} />}
       {movieDialog?.kind === 'segments' && <MediaSegmentQueryDialog media={movieDialog.media} onClose={onCloseMovieDialog} />}
       <ManualScrapeDialog
-        open={manualSeriesScrapeOpen}
-        media={selectedSeriesScrapeMedia}
-        mediaIds={selectedSeriesMediaIDs}
-        defaultQuery={selectedSeriesTitle}
+        open={!!manualSeriesScrape}
+        media={manualSeriesScrape?.media ?? null}
+        mediaIds={manualSeriesScrape?.mediaIds ?? []}
+        defaultQuery={manualSeriesScrape?.title}
         mediaType="tv"
-        scopeLabel={selectedSeriesTitle || '当前剧集'}
-        sourcePath={selectedSeries?.rep.path}
+        scopeLabel={manualSeriesScrape?.title || '当前剧集'}
+        sourcePath={manualSeriesScrape?.sourcePath}
         episodeArtwork={scrapeEpisodeArtwork}
         onClose={onCloseManualSeriesScrape}
         onApplied={onApplied}

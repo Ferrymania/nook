@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { mediaAPI, type ManualScrapeCandidate } from '../api/library'
 import { useEpisodeArtworkPreference } from '../hooks/useEpisodeArtworkPreference'
 import type { Media } from '../types'
+import { applyManualScrapeTargets, manualScrapeTargetIds } from '../utils/manualScrapeTargets'
 import {
   candidateKey,
   manualSearchProvidersForSelection,
@@ -186,11 +187,6 @@ function useManualScrapeApplyAction({
   }), [includeEpisodeArtwork, media, onApplied, onClose, setApplyingKey, targetIds])
 }
 
-function manualScrapeTargetIds(media: Media | null, mediaIds?: string[]): string[] {
-  const ids = (mediaIds && mediaIds.length > 0 ? mediaIds : media ? [media.id] : []).filter(Boolean)
-  return Array.from(new Set(ids))
-}
-
 async function searchManualScrapeCandidates({
   media,
   mediaType,
@@ -240,11 +236,16 @@ async function applyManualScrapeCandidate({
   setApplyingKey(candidateKey(item))
   try {
     const options = { episode_images: includeEpisodeArtwork }
-    if (targetIds.length > 1) {
-      const result = await mediaAPI.applyManualScrapeBatch(targetIds, item, options)
+    const result = await applyManualScrapeTargets(
+      targetIds,
+      id => mediaAPI.applyManualScrape(id, item, options),
+      ids => mediaAPI.applyManualScrapeBatch(ids, item, options),
+    )
+    if (result.errors?.length) {
+      toast.error(`手动匹配：成功 ${result.applied}，失败 ${result.errors.length}\n${result.errors[0]}`, { duration: 8000 })
+    } else if (targetIds.length > 1) {
       toast.success(`已应用到 ${result.applied} 个媒体`)
     } else {
-      await mediaAPI.applyManualScrape(media.id, item, options)
       toast.success('已应用手动匹配')
     }
     onApplied?.()

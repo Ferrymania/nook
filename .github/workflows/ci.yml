@@ -106,6 +106,8 @@ jobs:
           node "$frontend_test_dir/utils/seriesNavigation.test.js"
           npx tsc src/utils/openListAuth.test.ts --module commonjs --target ES2020 --strict --skipLibCheck --rootDir src --outDir "$frontend_test_dir"
           node "$frontend_test_dir/utils/openListAuth.test.js"
+          npx tsc src/utils/manualScrapeTargets.test.ts --module commonjs --target ES2020 --strict --skipLibCheck --rootDir src --outDir "$frontend_test_dir"
+          node "$frontend_test_dir/utils/manualScrapeTargets.test.js"
           node src/pages/adminLibraryPanelModel.test.ts
           npx tsc src/utils/mediaTechnicalSummary.test.ts --module commonjs --target ES2020 --strict --skipLibCheck --outDir "$frontend_test_dir"
           node "$frontend_test_dir/utils/mediaTechnicalSummary.test.js"

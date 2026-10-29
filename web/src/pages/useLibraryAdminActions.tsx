@@ -20,7 +20,8 @@ type UseLibraryAdminActionsOptions = {
   selectedSeriesEpisodes: Media[]
   reloadCurrentLibrary: () => void
   clearSelectedSeries: () => void
-  setManualMovie: (media: Media | null) => void
+  onManualScrape: (media: Media) => void
+  manualScrapeLoadingID: string
   onMovieMetadataEdit: (media: Media) => void
   onMovieOrganize: (media: Media) => void
   onMovieQuerySegments: (media: Media) => void
@@ -34,7 +35,8 @@ export function useLibraryAdminActions({
   selectedSeriesEpisodes,
   reloadCurrentLibrary,
   clearSelectedSeries,
-  setManualMovie,
+  onManualScrape,
+  manualScrapeLoadingID,
   onMovieMetadataEdit,
   onMovieOrganize,
   onMovieQuerySegments,
@@ -168,9 +170,9 @@ export function useLibraryAdminActions({
     return (
       <LibraryMovieActions
         media={media}
-        busy={movieToolBusy.endsWith(`:${media.id}`)}
+        busy={movieToolBusy.endsWith(`:${media.id}`) || manualScrapeLoadingID === media.id}
         onSmartScrape={handleMovieSmartScrape}
-        onManualScrape={setManualMovie}
+        onManualScrape={onManualScrape}
         onMetadataEdit={onMovieMetadataEdit}
         onProbe={handleMovieProbe}
         onNFO={handleMovieNFO}
