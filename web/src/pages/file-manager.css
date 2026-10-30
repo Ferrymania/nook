@@ -1,0 +1,84 @@
+/* One sheet, full width: name = remainder, size = 100px, date = 180px,
+   actions = 64px. Mobile stacks the two metadata cells below the name. */
+.file-manager { display: grid; gap: 24px; color: var(--app-text); }
+.file-page-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 40px; }
+.file-page-heading h1 { font-size: 24px; font-weight: 650; letter-spacing: -.025em; }
+.file-browser { border: 1px solid var(--app-border); border-radius: 16px; background: var(--app-panel-elevated); }
+.file-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 16px; border-bottom: 1px solid var(--app-border); }
+.file-breadcrumbs, .file-crumb, .file-crumb-segment, .file-toolbar-actions { display: flex; align-items: center; gap: 8px; }
+.file-breadcrumbs { min-width: 0; flex: 1; flex-wrap: wrap; font-size: 14px; }
+.file-crumb { min-height: 36px; border-radius: 6px; white-space: nowrap; color: var(--app-muted); }
+.file-crumb:hover { color: var(--app-text); }
+.file-crumb-segment { min-width: 0; max-width: 100%; }
+.file-crumb-segment > svg { flex: none; color: var(--app-muted); }
+.file-crumb-segment > span { overflow-wrap: anywhere; }
+.file-crumb-segment [aria-current] { font-weight: 500; }
+.file-toolbar-actions { flex: none; gap: 12px; }
+.file-recursive { display: flex; min-height: 36px; align-items: center; gap: 8px; white-space: nowrap; font-size: 13px; color: var(--app-muted); cursor: pointer; }
+.file-recursive input { width: 15px; height: 15px; accent-color: var(--app-text); }
+.file-button, .file-icon-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background-color .15s; }
+.file-button { border: 1px solid var(--app-border); padding: 8px 14px; background: var(--app-panel-elevated); color: var(--app-text); }
+.file-icon-button { width: 36px; min-height: 36px; flex: none; color: var(--app-muted); }
+.file-button:hover, .file-icon-button:hover { background: var(--app-hover); }
+.file-button-primary { border-color: transparent; background: var(--app-command-bg); color: var(--app-command-text); }
+.file-button-primary:hover { background: var(--app-command-bg); opacity: .85; }
+.file-button:disabled, .file-icon-button:disabled { opacity: .5; cursor: not-allowed; }
+.file-manager button:focus-visible, .file-operation-dialog button:focus-visible { outline: 2px solid var(--app-text); outline-offset: 2px; }
+.file-entries { width: 100%; table-layout: fixed; border-collapse: collapse; text-align: left; font-size: 14px; }
+.file-entries th { font-size: 12px; font-weight: 400; color: var(--app-muted); height: 40px; }
+.file-entries :is(td, th) { padding: 0 16px; }
+.file-entries :is(td, th):first-child { padding-left: 24px; }
+.file-entries th:last-child { width: 64px; }
+.file-entries tbody tr { border-top: 1px solid var(--app-border); height: 56px; }
+.file-entries tbody tr:hover, .file-entries .file-entry-selected { background: var(--app-panel-soft); }
+.file-name > :is(button, div) { display: flex; align-items: center; gap: 12px; width: 100%; min-width: 0; min-height: 44px; text-align: left; }
+.file-name > button { cursor: pointer; }
+.file-name svg { flex: none; color: var(--app-muted); }
+.file-entry-label { display: grid; min-width: 0; gap: 2px; }
+.file-entry-label > * { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.file-entry-label small { font-size: 12px; color: var(--app-muted); }
+.file-folder-icon { color: var(--app-brand-text) !important; flex: none; }
+.file-entries .file-size { width: 100px; text-align: right; font-variant-numeric: tabular-nums; color: var(--app-muted); white-space: nowrap; }
+.file-entries .file-modified { width: 180px; text-align: right; font-variant-numeric: tabular-nums; color: var(--app-muted); white-space: nowrap; }
+.file-row-actions { text-align: right; }
+.file-list-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; border-top: 1px solid var(--app-border); padding: 12px 24px; font-size: 12px; color: var(--app-muted); }
+.file-list-state { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; padding: 40px 24px; font-size: 14px; color: var(--app-muted); }
+.file-roots { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); padding: 8px; gap: 4px; }
+.file-root { display: flex; align-items: center; gap: 12px; padding: 16px; min-width: 0; border-radius: 8px; text-align: left; cursor: pointer; }
+.file-root:hover { background: var(--app-hover); }
+.file-root p + p { margin-top: 4px; }
+.file-entry-menu { position: fixed; z-index: 90; width: 180px; padding: 6px; border: 1px solid var(--app-border); border-radius: 12px; background: var(--app-panel-elevated); color: var(--app-text); box-shadow: 0 8px 24px var(--app-shadow); }
+.file-entry-menu button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; border-radius: 6px; padding: 8px 12px; font-size: 14px; text-align: left; cursor: pointer; }
+.file-entry-menu button:hover, .file-entry-menu button:focus-visible { background: var(--app-hover); }
+.file-entry-menu button:focus-visible { outline: none; }
+.file-entry-menu .file-danger { color: var(--app-danger-text); }
+.file-menu-divider { border-top: 1px solid var(--app-border); margin: 4px 6px; }
+.file-operation-dialog { margin: auto; width: calc(100% - 32px); max-width: 440px; max-height: calc(100dvh - 32px); overflow: auto; border: 1px solid var(--app-border); border-radius: 16px; padding: 0; background: var(--app-panel-elevated); color: var(--app-text); box-shadow: 0 16px 48px #0002; }
+.file-operation-dialog::backdrop { background: #0006; }
+.file-dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px 0; }
+.file-dialog-heading h2 { font-size: 18px; font-weight: 600; }
+.file-dialog-fields { display: grid; gap: 20px; padding: 8px 24px 24px; }
+.file-dialog-path { overflow-wrap: anywhere; font-size: 12px; line-height: 1.6; color: var(--app-muted); }
+.file-field { display: grid; gap: 8px; font-size: 14px; font-weight: 500; }
+.file-field input, .file-field select { font-weight: 400; }
+.file-dialog-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 24px; border-top: 1px solid var(--app-border); }
+@media (max-width: 640px) {
+  .file-manager { gap: 16px; }
+  .file-page-heading h1 { font-size: 22px; }
+  .file-toolbar { flex-wrap: wrap; gap: 8px; padding: 12px; }
+  .file-breadcrumbs { flex-basis: 100%; }
+  .file-toolbar-actions { width: 100%; justify-content: space-between; }
+  .file-icon-button, .file-button, .file-recursive { min-height: 44px; }
+  .file-icon-button { width: 44px; }
+  .file-entries, .file-entries tbody { display: block; }
+  .file-entries thead { display: none; }
+  .file-entries tbody tr { display: grid; grid-template-columns: auto minmax(0, 1fr) 44px; grid-template-areas: 'name name actions' 'size date actions'; align-items: center; column-gap: 12px; height: auto; min-height: 80px; padding: 8px 12px; }
+  .file-entries :is(td, th), .file-entries :is(td, th):first-child { padding: 0; }
+  .file-entries .file-name { grid-area: name; min-width: 0; }
+  .file-name > :is(button, div) { min-height: 36px; }
+  .file-entries .file-size { grid-area: size; width: auto; text-align: left; font-size: 12px; }
+  .file-entries .file-modified { grid-area: date; width: auto; text-align: left; font-size: 12px; }
+  .file-entries .file-row-actions { grid-area: actions; }
+  .file-list-footer { padding: 12px 16px; }
+  .file-entry-menu button { min-height: 44px; }
+}

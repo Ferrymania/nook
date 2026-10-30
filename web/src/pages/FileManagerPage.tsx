@@ -1,127 +1,81 @@
-import { useCallback, useEffect, useState } from 'react'
-import { ChevronUp, Home } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Loader2, Plus } from 'lucide-react'
 
 import { filesAPI, type FileEntry, type FileListing } from '../api/files'
 import { FileBrowserRoots } from './FileBrowserRoots'
 import { FileEntriesTable } from './FileEntriesTable'
 import { FileManagerToolbar } from './FileManagerToolbar'
-import { FileOperationsPanel } from './FileOperationsPanel'
+import { FileOperationDialog, type FileOperation } from './FileOperationDialog'
+import type { FileEntryAction } from './FileEntryMenu'
 import { useFileOperations } from './useFileOperations'
+import './file-manager.css'
 
-// FileManagerPage provides a focused local storage view:
-// browse allowed roots, optionally recurse, and perform safe local operations.
 export function FileManagerPage() {
   const [path, setPath] = useState('')
   const [data, setData] = useState<FileListing | null>(null)
+  const [loadedPath, setLoadedPath] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [recursive, setRecursive] = useState(false)
+  const [action, setAction] = useState<FileOperation | null>(null)
+  const requestID = useRef(0)
   const currentDir = data?.path || path
 
   const refresh = useCallback(() => {
+    const request = ++requestID.current
     setLoading(true)
     setError('')
-    filesAPI
-      .list(path, recursive ? 5000 : 1000, recursive)
-      .then(setData)
+    filesAPI.list(path, recursive ? 5000 : 1000, recursive)
+      .then(result => { if (request === requestID.current) { setData(result); setLoadedPath(path) } })
       .catch((err: unknown) => {
-        const msg =
-          (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-          '加载失败'
-        setError(msg)
+        if (request !== requestID.current) return
+        setError((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? '加载失败')
       })
-      .finally(() => setLoading(false))
+      .finally(() => { if (request === requestID.current) setLoading(false) })
   }, [path, recursive])
 
   useEffect(() => {
     refresh()
+    const requests = requestID
+    return () => { requests.current++ }
   }, [refresh])
 
-  const fileOperations = useFileOperations({ currentDir, path, refresh })
-
-  const enter = (e: FileEntry) => {
-    if (e.is_dir) setPath(e.path)
+  const operations = useFileOperations({ currentDir, path, refresh })
+  const navigate = (next: string) => { if (next !== path) setLoading(true); setAction(null); setPath(next) }
+  const closeDialog = () => { setAction(null); operations.clearSelection() }
+  const operate = (entry: FileEntry, next: FileEntryAction) => {
+    if (next === 'delete') { void operations.deleteSelected(entry); return }
+    operations.choose(entry)
+    setAction(next)
   }
+  const entries = data?.entries ?? []
+  const visible = data && loadedPath === path
 
-  return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="font-display text-3xl font-bold text-ink-600">文件管理</h1>
-      </header>
+  return <div className="file-manager">
+    <header className="file-page-heading">
+      <h1>文件管理</h1>
+      {visible && data?.path && <button type="button" className="file-button file-button-primary" disabled={loading || Boolean(error) || Boolean(operations.busy)}
+        onClick={() => { operations.setFolderName(''); operations.setError(''); setAction('mkdir') }}><Plus size={17} />新建目录</button>}
+    </header>
 
-      <FileManagerToolbar
-        currentPath={data?.path}
-        recursive={recursive}
-        onRefresh={refresh}
-        onRecursiveChange={setRecursive}
-      />
+    <section className="file-browser" aria-label="本地文件浏览">
+      <FileManagerToolbar currentPath={path} parent={data?.parent} roots={data?.roots} recursive={recursive}
+        loading={loading || Boolean(operations.busy)} onNavigate={navigate} onRefresh={refresh} onRecursiveChange={setRecursive} />
 
-      {data?.path && (
-        <FileOperationsPanel
-          selected={fileOperations.selected}
-          folderName={fileOperations.folderName}
-          renameTo={fileOperations.renameTo}
-          destPath={fileOperations.destPath}
-          transferMode={fileOperations.transferMode}
-          busy={fileOperations.busy}
-          onFolderNameChange={fileOperations.setFolderName}
-          onRenameToChange={fileOperations.setRenameTo}
-          onDestPathChange={fileOperations.setDestPath}
-          onTransferModeChange={fileOperations.setTransferMode}
-          onCreateFolder={fileOperations.createFolder}
-          onRenameSelected={fileOperations.renameSelected}
-          onDeleteSelected={fileOperations.deleteSelected}
-          onTransferSelected={fileOperations.transferSelected}
-        />
-      )}
-
-      {loading && <p className="text-sand-500">加载中…</p>}
-      {error && <div className="glass-panel border-red-400/40! text-red-400">{error}</div>}
-
-      {!loading && data && !data.path && data.roots && (
-        <FileBrowserRoots roots={data.roots} onOpen={setPath} />
-      )}
-
-      {!loading && data?.path && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-(--app-border) bg-(--app-surface) px-3 py-2 shadow-xs">
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              className="inline-flex h-9 items-center gap-2 rounded-lg border border-(--app-border) bg-(--app-surface-strong) px-3 text-sm font-medium text-(--app-text) transition hover:border-primary-400/50 hover:text-primary-500"
-              onClick={() => setPath('')}
-              title="返回根列表"
-            >
-              <Home size={16} />
-              根
-            </button>
-            {data.parent && (
-              <button
-                className="inline-flex h-9 items-center gap-2 rounded-lg border border-(--app-border) bg-(--app-surface-strong) px-3 text-sm font-medium text-(--app-text) transition hover:border-primary-400/50 hover:text-primary-500"
-                onClick={() => setPath(data.parent || '')}
-                title="返回上级目录"
-              >
-                <ChevronUp size={16} />
-                上一级
-              </button>
-            )}
-          </div>
-          <span className="min-w-0 flex-1 truncate text-right font-mono text-xs text-(--app-muted)" title={data.path}>
-            {data.path}
-          </span>
-        </div>
-      )}
-
-      {!loading && data?.entries && data.entries.length > 0 && (
-        <FileEntriesTable
-          basePath={data.path || ''}
-          entries={data.entries}
-          recursive={recursive}
-          selectedPath={fileOperations.selected?.path}
-          onEnter={enter}
-          onChoose={fileOperations.choose}
-        />
-      )}
-
-      {!loading && data?.entries && data.entries.length === 0 && <p className="text-ink-50">空目录。</p>}
-    </div>
-  )
+      {error ? <div className="file-list-state" role="alert"><span>{error}</span><button type="button" className="file-button" onClick={refresh}>重试</button></div>
+        : !visible ? <div className="file-list-state" role="status"><Loader2 size={18} className="animate-spin" />加载中…</div>
+          : !data.path ? <FileBrowserRoots roots={data.roots ?? []} onOpen={navigate} />
+            : <div aria-busy={loading}>
+              {entries.length > 0 ? <FileEntriesTable basePath={data.path} entries={entries} recursive={recursive}
+                disabled={loading || Boolean(operations.busy)} selectedPath={operations.selected?.path}
+                onEnter={entry => navigate(entry.path)} onAction={operate} />
+                : <p className="file-list-state">此目录为空</p>}
+              <footer className="file-list-footer" role="status">
+                {loading ? '正在刷新…' : `${entries.length} 项`}
+                {!loading && entries.length >= (recursive ? 5000 : 1000) && <span>已达显示上限，请进入子目录查看</span>}
+              </footer>
+            </div>}
+    </section>
+    {action && <FileOperationDialog action={action} currentDir={currentDir} operations={operations} onClose={closeDialog} />}
+  </div>
 }

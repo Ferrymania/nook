@@ -11,18 +11,19 @@ type FileBrowserRootsProps = {
 }
 
 export function FileBrowserRoots({ roots, onOpen }: FileBrowserRootsProps) {
+  if (roots.length === 0) return <p className="file-list-state">暂无可访问的目录</p>
   return (
-    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+    <div className="file-roots">
       {roots.map((root) => (
         <button
           key={root.path}
           onClick={() => onOpen(root.path)}
-          className="glass-panel flex items-center gap-3 text-left transition hover:border-primary-400/40"
+          className="file-root"
         >
-          <FolderOpen size={20} className="text-brand-500" />
-          <div>
-            <p className="font-mono text-sm text-ink-600">{root.label}</p>
-            <p className="font-mono text-xs text-ink-50">{root.path}</p>
+          <FolderOpen size={20} className="file-folder-icon" />
+          <div className="min-w-0">
+            <p className="truncate text-sm text-(--app-text)" title={root.label}>{root.label.startsWith('library:') ? root.path.split(/[\\/]/).filter(Boolean).pop() : root.label}</p>
+            <p className="truncate text-xs text-(--app-muted)" title={root.path}>{root.path}</p>
           </div>
         </button>
       ))}
