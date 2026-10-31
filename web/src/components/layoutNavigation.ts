@@ -149,11 +149,7 @@ export function resolveHeaderBack(pathname: string): HeaderBackTarget | null {
   if (pathname === '/strm/downloads' || pathname === '/strm/uploads') {
     return { to: '/strm', label: 'STRM 管理' }
   }
-  if (
-    pathname === '/profile' ||
-    pathname === '/dlna' ||
-    pathname === '/poster-wall'
-  ) {
+  if (pathname === '/profile' || pathname === '/poster-wall') {
     return { to: '/', label: '首页' }
   }
   if (

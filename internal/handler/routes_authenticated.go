@@ -20,13 +20,11 @@ func registerAuthenticatedRoutes(api *gin.RouterGroup, cfg *config.Config, svc *
 	registerAuthedPlaybackAndProxyRoutes(authed, svc)
 	registerAuthedCollectionRoutes(authed, svc)
 	registerAuthedFileRoutes(authed, svc)
-	registerAuthedDLNARoutes(authed, svc)
 	registerAuthedRealtimeRoutes(authed, svc)
 	registerAuthedUISurfaceRoutes(authed, svc)
 	registerAuthedSearchRoutes(authed, svc)
 	registerAuthedStatsExtraRoutes(authed, svc)
 	registerAuthedPlaylistExtraRoutes(authed, svc)
-	registerAuthedDLNAControlRoutes(authed, svc)
 	registerAuthedFavoriteAndMediaActionRoutes(authed, svc)
 	registerAuthedPlaybackExtraRoutes(authed, svc)
 }

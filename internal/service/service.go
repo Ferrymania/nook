@@ -46,7 +46,6 @@ type Container struct {
 	APIConfig        *APIConfigService
 	Crypto           *CryptoService
 	FileManager      *FileManagerService
-	DLNA             *DLNAService
 	Scheduler        *SchedulerService
 	Storage          *StorageService
 	Emby             *EmbyService

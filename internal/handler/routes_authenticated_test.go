@@ -128,3 +128,31 @@ func TestRetiredReadingAPIsAreUnavailable(t *testing.T) {
 		}
 	}
 }
+
+func TestRetiredDLNAAPIsAreUnavailable(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	Register(router, &config.Config{
+		Secrets: config.SecretsConfig{JWTSecret: "test-secret"},
+	}, zap.NewNop(), &service.Container{Log: zap.NewNop()})
+
+	for _, route := range router.Routes() {
+		if route.Path == "/api/dlna" || strings.HasPrefix(route.Path, "/api/dlna/") {
+			t.Errorf("retired route still registered: %s %s", route.Method, route.Path)
+		}
+	}
+	for _, request := range []struct{ method, path string }{
+		{http.MethodGet, "/api/dlna/devices"},
+		{http.MethodPost, "/api/dlna/cast"},
+		{http.MethodPost, "/api/dlna/device-1/play"},
+		{http.MethodPost, "/api/dlna/device-1/pause"},
+		{http.MethodPost, "/api/dlna/device-1/stop"},
+		{http.MethodGet, "/api/dlna/device-1/status"},
+	} {
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, httptest.NewRequest(request.method, request.path, nil))
+		if response.Code != http.StatusNotFound {
+			t.Errorf("%s %s = %d, want 404", request.method, request.path, response.Code)
+		}
+	}
+}

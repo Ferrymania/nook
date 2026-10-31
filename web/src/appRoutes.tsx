@@ -26,7 +26,6 @@ const MediaDetailPage = lazy(MediaDetailPageLoader)
 const PlayerPage = lazy(PlayerPageLoader)
 const AdminPage = lazy(() => import('./pages/AdminPage').then((m) => ({ default: m.AdminPage })))
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then((m) => ({ default: m.ProfilePage })))
-const DlnaPage = lazy(() => import('./pages/DlnaPage').then((m) => ({ default: m.DlnaPage })))
 const FileManagerPage = lazy(() =>
   import('./pages/FileManagerPage').then((m) => ({ default: m.FileManagerPage })),
 )
@@ -102,7 +101,6 @@ export const appRoutes: AppRoute[] = [
   { path: 'media/:id', element: <MediaDetailPage /> },
   { path: 'play/:id', element: <PlayerPage /> },
   { path: 'profile', element: <ProfilePage /> },
-  { path: 'dlna', element: <DlnaPage /> },
   { path: 'history', element: <WatchHistoryPage /> },
   { path: 'history/stats', element: <WatchStatsPage /> },
   { path: 'poster-wall', element: <PosterWallPage /> },
