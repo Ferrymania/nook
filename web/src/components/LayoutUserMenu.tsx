@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useLocation } from 'react-router-dom'
-import { Cast, ChevronDown, LogOut, Settings, Tv, User } from 'lucide-react'
+import { ChevronDown, LogOut, Settings, Tv, User } from 'lucide-react'
 
 import { LayoutThemeToggle } from './LayoutThemeToggle'
 import { TemporaryPasswordDialog } from './TemporaryPasswordDialog'
@@ -105,7 +105,6 @@ export function LayoutUserMenu({
             onPointerDown={(event) => event.stopPropagation()}
           >
             <UserMenuLink to="/profile" icon={<User size={16} />} label="个人主页" onNavigate={onClose} />
-	            <UserMenuLink to="/dlna" icon={<Cast size={16} />} label="DLNA投屏" onNavigate={onClose} />
 	            <button
 	              type="button"
 	              onClick={() => {

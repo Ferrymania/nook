@@ -115,7 +115,6 @@ func (b *serviceContainerBuilder) initContentServices() {
 	b.c.Watcher = NewWatcherService(b.log, b.repos, b.c.Scan)
 	b.c.NFO = NewNFOService(b.log, b.repos)
 	b.c.FileManager = NewFileManagerService(b.cfg, b.log, b.repos)
-	b.c.DLNA = NewDLNAService(b.log)
 	b.c.Storage = NewStorageService(b.log, b.repos)
 	b.c.Emby = NewEmbyService(b.cfg, b.log, b.repos).SetTMDbProvider(b.c.TMDb)
 	b.c.Scraper.onSeriesMetadataChanged = b.c.Emby.invalidateSeriesMetadata

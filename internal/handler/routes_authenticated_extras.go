@@ -43,13 +43,6 @@ func registerAuthedPlaylistExtraRoutes(authed *gin.RouterGroup, svc *service.Con
 	authed.DELETE("/playlists/:id/items/by-id/:item_id", deletePlaylistItemByIDHandler(svc))
 }
 
-func registerAuthedDLNAControlRoutes(authed *gin.RouterGroup, svc *service.Container) {
-	authed.POST("/dlna/:uuid/play", dlnaPlayHandler(svc))
-	authed.POST("/dlna/:uuid/pause", dlnaPauseHandler(svc))
-	authed.POST("/dlna/:uuid/stop", dlnaStopHandler(svc))
-	authed.GET("/dlna/:uuid/status", dlnaStatusHandler(svc))
-}
-
 func registerAuthedFavoriteAndMediaActionRoutes(authed *gin.RouterGroup, svc *service.Container) {
 	authed.GET("/favorites", listFavoritesAliasHandler(svc))
 	authed.POST("/media/:id/favorite", addMediaFavoriteHandler(svc))

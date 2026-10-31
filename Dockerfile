@@ -52,7 +52,6 @@ ARG WITH_VAAPI=false
 # NVENC requires the proprietary NVIDIA Container Toolkit on the host only.
 RUN apk add --no-cache \
         ffmpeg \
-        docker-cli \
         tzdata \
         ca-certificates \
         su-exec \
