@@ -17,7 +17,7 @@
 推送到 `main` 会自动运行 **Build & Publish**，生成：
 
 - `ghcr.io/ferrymania/nook:latest` 与对应版本标签的 amd64/arm64 镜像。
-- GitHub Release，以及 Linux amd64/arm64、Windows amd64 和 macOS arm64 安装包。
+- GitHub Release 版本记录和更新说明，不再发布独立二进制安装包。
 
 版本号沿用现有 `version` 分支管理方式，每次 main 发布递增 patch；fork 首次从 `0.0.1` 开始。自动发布不连接服务器部署。
 

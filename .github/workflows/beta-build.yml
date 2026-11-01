@@ -1,16 +1,3 @@
-# Beta 分支自动构建流水线
-#
-# 触发：push 到 beta 分支 / PR 到 beta / 手动触发。
-# 产出：
-#   1. 前端 + 后端编译验证（go vet / go test / go build）
-#   2. 多平台可执行二进制 artifact（linux/amd64、linux/arm64、windows/amd64）
-#   3. ghcr.io/{owner}/nook 多架构 Docker 镜像（linux/amd64 + linux/arm64），
-#      标签：beta（滚动）+ {基版本}-beta.{短 SHA}（本次构建，只增不改）
-#
-# 与 main 分支发布流（Auto-docker-publish.yml）的关系：镜像的构建方式、标签策略
-# 和基版本号来源（version 分支）与发布流保持一致，区别是 beta 不做版本递增、
-# 不打 release tag、不发布 GitHub Release、不部署服务器。
-
 name: Beta Build
 
 on:
@@ -25,11 +12,14 @@ permissions:
   packages: write
 
 jobs:
-  # ─────────────────────────────────────────────────────────────────────────────
-  # 1) 编译验证 + 多平台二进制产物
-  # ─────────────────────────────────────────────────────────────────────────────
-  test-and-build:
-    name: Test & build artifacts
+  verify:
+    name: CI
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
+  resolve-version:
+    needs: [verify]
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -37,85 +27,41 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 0
-
-      # 基版本号与发布流同源：读 version 分支上由 main 发布流水线维护的 VERSION。
-      # beta 只读不自增，避免与 main 的发布流程争抢版本号。
+          ref: ${{ github.sha }}
+      # Beta reads the main release version without incrementing it.
       - name: Resolve beta version
         id: version
         run: |
-          git fetch origin version || true
-          BASE_VERSION=$(git show FETCH_HEAD:VERSION 2>/dev/null || echo "0.0.0")
+          git fetch origin version
+          BASE_VERSION=$(git show origin/version:VERSION)
           SHA_SHORT=${GITHUB_SHA:0:7}
           echo "version=${BASE_VERSION}-beta.${SHA_SHORT}" >> "$GITHUB_OUTPUT"
           echo "binary_version=nook-v${BASE_VERSION}-beta.${SHA_SHORT}" >> "$GITHUB_OUTPUT"
 
-      # The binary embeds the SPA (web/dist) via go:embed, so dist must exist
-      # before the Go toolchain touches the web package.
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-          cache-dependency-path: web/package-lock.json
-      - name: Build SPA
-        working-directory: web
-        run: |
-          npm ci
-          npm run build
-
-      - uses: actions/setup-go@v7
-        with:
-          go-version: '1.26'
-          cache: true
-          cache-dependency-path: go.sum
-
-      - name: go vet
-        run: go vet ./...
-
-      - name: go test
-        run: go test ./...
-
-      - name: go build (host)
-        run: go build ./...
-
-      # 多平台可执行文件（嵌入刚构建的 web/dist），版本号写入口径与发布流一致
-      - name: Build linux/amd64
-        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w -X main.version=${{ steps.version.outputs.binary_version }}" -o dist/nook-beta-linux-amd64 ./cmd/server
-      - name: Build linux/arm64
-        run: CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w -X main.version=${{ steps.version.outputs.binary_version }}" -o dist/nook-beta-linux-arm64 ./cmd/server
-      - name: Build windows/amd64
-        run: CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-s -w -H=windowsgui -X main.version=${{ steps.version.outputs.binary_version }}" -o dist/nook-beta-windows-amd64.exe ./cmd/server
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: nook-beta-binaries
-          path: dist/*
-          if-no-files-found: error
-
-  # ─────────────────────────────────────────────────────────────────────────────
-  # 2) Beta Docker 镜像（ghcr.io/{owner}/nook:beta + :{基版本}-beta.{短 SHA}）
-  #    构建步骤与 Auto-docker-publish.yml 的 build-image 一致，只是不带 deploy。
-  # ─────────────────────────────────────────────────────────────────────────────
   docker-beta:
     name: Build & push beta Docker image
-    needs: test-and-build
+    needs: [verify, resolve-version]
     runs-on: ubuntu-latest
-    # PR 事件不推送镜像，仅 push beta / 手动触发时推送
     if: github.event_name != 'pull_request'
     steps:
       - uses: actions/checkout@v7
-
+        with:
+          ref: ${{ github.sha }}
+      - name: Download tested SPA
+        uses: actions/download-artifact@v8
+        with:
+          artifact-ids: ${{ needs.verify.outputs.frontend-artifact-id }}
+          path: ${{ runner.temp }}/nook-frontend/app/web/dist
+      - name: Validate tested SPA
+        run: test -s "$RUNNER_TEMP/nook-frontend/app/web/dist/index.html"
       - uses: docker/setup-qemu-action@v4
       - uses: docker/setup-buildx-action@v4
-
       - name: Log in to GHCR
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Extract image metadata
         id: meta
         uses: docker/metadata-action@v6
@@ -123,12 +69,13 @@ jobs:
           images: ghcr.io/${{ github.repository }}
           tags: |
             type=raw,value=beta
-            type=raw,value=${{ needs.test-and-build.outputs.version }}
-
+            type=raw,value=${{ needs.resolve-version.outputs.version }}
       - name: Build & push
         uses: docker/build-push-action@v7
         with:
           context: .
+          build-contexts: |
+            frontend=${{ runner.temp }}/nook-frontend
           platforms: linux/amd64,linux/arm64
           push: true
           provenance: false
@@ -136,6 +83,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            VERSION=${{ needs.test-and-build.outputs.binary_version }}
+            VERSION=${{ needs.resolve-version.outputs.binary_version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

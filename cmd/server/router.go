@@ -36,10 +36,8 @@ func buildRouter(cfg *config.Config, logger *zap.Logger, embyCompatLogger *zap.L
 
 	handler.Register(r, cfg, logger, svc)
 
-	// Prefer a directory on disk when configured explicitly (e.g. the Docker image
-	// mounts web/dist from the build stage, or an operator overrides app.web_dir
-	// with a custom skin). Otherwise fall back to the SPA embedded into the binary,
-	// which is what makes the cross-platform single-file artifacts work.
+	// Serve the tested SPA embedded in the container's server binary. An explicit
+	// app.web_dir can still override it with a mounted directory.
 	uiFS := webui.DistFS()
 	if dir := cfg.App.WebDir; dir != "" {
 		disk := os.DirFS(dir)

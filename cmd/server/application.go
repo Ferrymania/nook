@@ -16,9 +16,7 @@ import (
 	"github.com/Ferrymania/nook/internal/service"
 )
 
-// application owns the long-running Nook server and all resources created
-// during startup. Platform entry points decide how the application is
-// controlled: a console signal loop or a Windows notification-area icon.
+// application owns the long-running Nook server and its startup resources.
 type application struct {
 	cfg              *config.Config
 	logger           *zap.Logger
@@ -133,8 +131,7 @@ func (a *application) start() error {
 	return nil
 }
 
-// Shutdown is idempotent and safe to call from both the tray handler and the
-// systray exit callback.
+// Shutdown is idempotent so repeated container stop signals are safe.
 func (a *application) Shutdown() error {
 	a.shutdown.Do(func() {
 		a.logger.Info("shutdown requested")
@@ -179,15 +176,4 @@ func (a *application) closeLoggers() {
 	for i := len(closers) - 1; i >= 0; i-- {
 		closers[i]()
 	}
-}
-
-func (a *application) localURL() string {
-	config.RuntimeMu.RLock()
-	scheme := "http"
-	if a.cfg.App.HTTPSEnabled {
-		scheme = "https"
-	}
-	port := a.cfg.App.Port
-	config.RuntimeMu.RUnlock()
-	return fmt.Sprintf("%s://127.0.0.1:%d", scheme, port)
 }

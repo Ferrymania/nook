@@ -5,7 +5,7 @@
 //
 //	Frontend: React 18 + Vite + Tailwind + Zustand + HLS.js
 //
-// The binary embeds the SPA build artifacts at /app/web/dist and serves them
+// The binary embeds the SPA build artifacts from web/dist and serves them
 // alongside the JSON REST API at /api/* and the WebSocket hub at /api/ws.
 package main
 

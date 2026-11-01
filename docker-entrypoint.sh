@@ -3,7 +3,6 @@ set -eu
 
 export NOOK_APP_PORT="${NOOK_APP_PORT:-8080}"
 export NOOK_APP_DATA_DIR="${NOOK_APP_DATA_DIR:-/data}"
-export NOOK_APP_WEB_DIR="${NOOK_APP_WEB_DIR:-/app/web/dist}"
 export NOOK_CACHE_CACHE_DIR="${NOOK_CACHE_CACHE_DIR:-/cache}"
 export NOOK_LOGGING_LEVEL="${NOOK_LOGGING_LEVEL:-info}"
 

@@ -53,7 +53,7 @@ func blockedBy(w workflow, jobID, gate string) bool {
 		return true
 	}
 	job, ok := w.Jobs[jobID]
-	if !ok || (job.If != "" && job.If != "success()") {
+	if !ok || (job.If != "" && job.If != "success()" && job.If != "github.event_name != 'pull_request'") {
 		return false
 	}
 	var needs []string
@@ -79,8 +79,9 @@ func TestReleaseWorkflowsRequireSuccessfulCIForTestedCommit(t *testing.T) {
 		ref     string
 		publish []string
 	}{
-		{"Auto-docker-publish.yml", "${{ github.sha }}", []string{"prepare-version", "build-image", "publish-create-release", "build-binaries"}},
+		{"Auto-docker-publish.yml", "${{ github.sha }}", []string{"prepare-version", "build-image", "publish-create-release"}},
 		{"docker-publish.yml", "${{ needs.resolve-ref.outputs.sha }}", []string{"docker"}},
+		{"beta-build.yml", "${{ github.sha }}", []string{"resolve-version", "docker-beta"}},
 	} {
 		t.Run(tc.file, func(t *testing.T) {
 			w := readWorkflow(t, tc.file)
@@ -161,7 +162,7 @@ func TestTestedFrontendArtifactIsReused(t *testing.T) {
 
 	for _, tc := range []struct{ file, job string }{
 		{"Auto-docker-publish.yml", "build-image"},
-		{"Auto-docker-publish.yml", "build-binaries"},
+		{"beta-build.yml", "docker-beta"},
 		{"docker-publish.yml", "docker"},
 	} {
 		t.Run(tc.file+"/"+tc.job, func(t *testing.T) {
@@ -176,12 +177,6 @@ func TestTestedFrontendArtifactIsReused(t *testing.T) {
 					t.Fatal("publisher must not rebuild the SPA")
 				}
 			}
-			if tc.job == "build-binaries" {
-				if download.With["path"] != "web/dist" {
-					t.Fatal("binary must embed the downloaded SPA")
-				}
-				return
-			}
 			build := actionStep(t, job, "docker/build-push-action")
 			root := strings.TrimSuffix(download.With["path"], "/app/web/dist")
 			if root == download.With["path"] || strings.TrimSpace(build.With["build-contexts"]) != "frontend="+root {
@@ -194,29 +189,24 @@ func TestTestedFrontendArtifactIsReused(t *testing.T) {
 	}
 }
 
-func TestReleaseImageAndBinaryBuildsAreIndependent(t *testing.T) {
+func TestDockerOnlyReleases(t *testing.T) {
 	w := readWorkflow(t, "Auto-docker-publish.yml")
-	for _, id := range []string{"build-image", "build-binaries"} {
-		if !blockedBy(w, id, "prepare-version") {
-			t.Errorf("%s must wait for the shared version", id)
+	if !blockedBy(w, "build-image", "prepare-version") || !blockedBy(w, "publish-create-release", "build-image") {
+		t.Fatal("Release must wait for the versioned Docker image")
+	}
+	for _, name := range []string{"Auto-docker-publish.yml", "docker-publish.yml", "beta-build.yml"} {
+		w := readWorkflow(t, name)
+		for id, job := range w.Jobs {
+			for _, step := range job.Steps {
+				if strings.HasPrefix(step.Uses, "docker/build-push-action@") && step.With["platforms"] != "linux/amd64,linux/arm64" {
+					t.Errorf("%s/%s must retain both Linux image architectures", name, id)
+				}
+				if strings.Contains(step.Run, "GOOS=") || strings.Contains(step.Run, "gh release upload") || strings.Contains(step.With["name"], "binary-packages") {
+					t.Errorf("%s/%s still packages standalone binaries", name, id)
+				}
+			}
 		}
 	}
-	if blockedBy(w, "build-image", "build-binaries") || blockedBy(w, "build-binaries", "build-image") || blockedBy(w, "build-binaries", "publish-create-release") {
-		t.Fatal("image and binary compilation must be able to run concurrently")
-	}
-	for _, id := range []string{"build-image", "build-binaries"} {
-		if !blockedBy(w, "publish-create-release", id) {
-			t.Errorf("Release must wait for all %s results", id)
-		}
-	}
-	build := w.Jobs["build-binaries"]
-	actionStep(t, build, "actions/upload-artifact")
-	for _, step := range build.Steps {
-		if strings.Contains(step.Run, "gh release") {
-			t.Fatal("binary compilation must stage packages without requiring an existing Release")
-		}
-	}
-	actionStep(t, w.Jobs["publish-create-release"], "actions/download-artifact")
 }
 
 func TestReusableCIIncludesDatabaseTestsAndSmokeCheck(t *testing.T) {

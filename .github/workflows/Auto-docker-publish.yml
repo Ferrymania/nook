@@ -3,8 +3,8 @@ name: Build & Publish
 # 版本策略（version 分支托管，main 零污染）：
 # - VERSION 文件单独存放在 version 分支，CI 构建时读取并自增写回 version 分支，
 #   main 分支不再出现任何 CI 提交，本地推送永不与远程冲突。
-# - push 到 main：先通过完整 CI，再自动 patch+1，发布 latest + 版本镜像、GitHub Release、
-#   多平台单文件二进制。服务器部署单独进行。
+# - push 到 main：先通过完整 CI，再自动 patch+1，发布 latest + 版本镜像和 GitHub Release。
+#   不再发布独立二进制包。服务器部署单独进行。
 # - push tag v* / 手动触发：同样先通过 CI，失败时不递增版本、不推送任何产物。
 # - 所有步骤固定使用 github.sha，测试与发布始终对应同一个提交。
 # - tag 版本号取 tag 名；其他事件读取 version 分支并自增。
@@ -17,7 +17,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write  # 读写 version 分支、发布 Release 与上传二进制需要
+  contents: write  # 读写 version 分支与发布更新说明
   packages: write
 
 concurrency:
@@ -93,7 +93,7 @@ jobs:
           ref: ${{ github.sha }}
 
       # Override the Dockerfile frontend stage with the SPA tested by CI.
-      # Keep its /app/web/dist layout so both COPY --from=frontend stay unchanged.
+      # Keep /app/web/dist for embedding the tested SPA into the server binary.
       - name: Download tested SPA
         uses: actions/download-artifact@v8
         with:
@@ -142,10 +142,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Binary compilation runs alongside the image build. A single publisher waits
-  # for both before creating the Release and uploading the finished packages.
+  # Publish version notes after the tested multi-architecture image is ready.
   publish-create-release:
-    needs: [prepare-version, build-image, build-binaries]
+    needs: [prepare-version, build-image]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -158,12 +157,6 @@ jobs:
         env:
           RELEASE_TAG: ${{ needs.prepare-version.outputs.release_tag }}
         run: python3 scripts/release-notes.py --tag "$RELEASE_TAG" > "$RUNNER_TEMP/release-notes.md"
-      - name: Download binary packages
-        uses: actions/download-artifact@v8
-        with:
-          pattern: binary-*
-          merge-multiple: true
-          path: release-assets
       - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -183,86 +176,3 @@ jobs:
           else
             gh release edit "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md"
           fi
-
-      - name: Upload to GitHub Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ needs.prepare-version.outputs.release_tag }}
-        run: |
-          set -eu
-          for archive in release-assets/nook_*; do
-            [ -f "$archive" ] || { echo "::error::No binary packages found"; exit 1; }
-            ok=0
-            for attempt in 1 2 3; do
-              if gh release upload "$RELEASE_TAG" "$archive" --clobber; then ok=1; break; fi
-              sleep 5
-            done
-            [ "$ok" = "1" ] || exit 1
-          done
-
-  # All platforms embed the same tested SPA; their compilation does not depend
-  # on the image or Release being available yet.
-  build-binaries:
-    needs: [verify, prepare-version]
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - goos: linux
-            goarch: amd64
-            ext: ""
-          - goos: linux
-            goarch: arm64
-            ext: ""
-          - goos: windows
-            goarch: amd64
-            ext: .exe
-          - goos: darwin
-            goarch: arm64
-            ext: ""
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.sha }}
-      - uses: actions/setup-go@v7
-        with:
-          go-version: '1.26'
-          cache: true
-          cache-dependency-path: go.sum
-      - name: Download web/dist
-        uses: actions/download-artifact@v8
-        with:
-          artifact-ids: ${{ needs.verify.outputs.frontend-artifact-id }}
-          path: web/dist
-      - name: Build binary
-        run: |
-          LDFLAGS="-s -w -X main.version=${{ needs.prepare-version.outputs.release_tag }}"
-          if [ "${{ matrix.goos }}" = "windows" ]; then
-            LDFLAGS="$LDFLAGS -H=windowsgui"
-          fi
-          CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
-            go build -trimpath -ldflags="$LDFLAGS" \
-            -o "dist/nook-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}" ./cmd/server
-      - name: Package
-        id: package
-        run: |
-          mkdir -p package/nook
-          cp "dist/nook-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}" package/nook/nook${{ matrix.ext }}
-          cp README.md package/nook/ 2>/dev/null || true
-          if [ "${{ matrix.goos }}" = "windows" ]; then
-            archive="nook_${{ matrix.goos }}_${{ matrix.goarch }}.zip"
-            (cd package && zip -r "../$archive" nook)
-          else
-            archive="nook_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz"
-            tar -czf "$archive" -C package nook
-          fi
-          echo "archive=$archive" >> "$GITHUB_OUTPUT"
-      - name: Upload binary package
-        uses: actions/upload-artifact@v7
-        with:
-          name: binary-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: ${{ steps.package.outputs.archive }}
-          if-no-files-found: error
-          compression-level: 0
-          retention-days: 1

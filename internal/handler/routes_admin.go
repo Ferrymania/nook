@@ -26,10 +26,9 @@ func registerAdminRoutes(api *gin.RouterGroup, cfg *config.Config, svc *service.
 	registerAdminSegmentRoutes(admin, svc)
 	registerAdminDatabaseRoutes(admin, svc)
 
-	// FFmpeg/FFprobe 工具：状态查询 + 一键下载安装（自动匹配当前平台）。
+	// FFmpeg/FFprobe 工具：当前状态和本地路径检测。
 	admin.GET("/tools/ffmpeg/status", ffToolsStatusHandler(svc))
 	admin.GET("/tools/ffmpeg/detect", ffToolsDetectHandler(svc))
-	admin.POST("/tools/ffmpeg/install", ffToolsInstallHandler(svc))
 }
 
 func registerAdminScraperRoutes(admin *gin.RouterGroup, svc *service.Container) {
