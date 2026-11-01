@@ -5,6 +5,7 @@ import { appRoutes, type AppRoute } from './appRoutes'
 import { Layout } from './components/Layout'
 import { RequireAdmin, RequireAuth } from './components/RequireAuth'
 const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })))
+const ChangeInitialPasswordPage = lazy(() => import('./pages/ChangeInitialPasswordPage').then((m) => ({ default: m.ChangeInitialPasswordPage })))
 
 const Loading = () => <p className="px-6 py-8 text-sand-500">加载中…</p>
 
@@ -62,6 +63,7 @@ export default function App() {
       <Suspense fallback={<Loading />}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/change-password" element={<RequireAuth><ChangeInitialPasswordPage /></RequireAuth>} />
           <Route
             path="/"
             element={

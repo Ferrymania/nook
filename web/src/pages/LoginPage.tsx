@@ -21,8 +21,8 @@ export function LoginPage() {
     try {
       const data = await authAPI.login(username, password)
       setSession(data.tokens.access_token, data.tokens.refresh_token, data.user)
-      toast.success(`欢迎回来, ${data.user.username}`)
-      navigate('/')
+      if (!data.user.force_password_reset) toast.success(`欢迎回来, ${data.user.username}`)
+      navigate(data.user.force_password_reset ? '/change-password' : '/', { replace: true })
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? '登录失败'
       toast.error(msg)

@@ -120,6 +120,7 @@ func changePasswordHandler(svc *service.Container) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		clearAccessTokenCookie(c)
 		c.Status(http.StatusNoContent)
 	}
 }

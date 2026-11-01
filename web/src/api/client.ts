@@ -62,6 +62,15 @@ api.interceptors.response.use(
   async (err: AxiosError) => {
     const originalRequest = err.config as InternalAxiosRequestConfig & { _retry?: boolean }
 
+    if (err.response?.status === 403 && (err.response.data as { code?: number })?.code === 40305) {
+      const { user, setUser } = useAuthStore.getState()
+      if (user) setUser({ ...user, force_password_reset: true })
+      if (typeof window !== 'undefined' && window.location.pathname !== '/change-password') {
+        window.location.replace('/change-password')
+      }
+      return Promise.reject(err)
+    }
+
     // If 401 and not already retried
     if (
       err.response?.status === 401 &&

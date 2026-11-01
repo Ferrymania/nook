@@ -41,6 +41,10 @@ func AuthRequired(secret string) gin.HandlerFunc {
 			return
 		}
 		if !scopedTokenAllowedForRequest(c, claims) {
+			if claims.Purpose == "password_reset" {
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"code": 40305, "message": "请先在 Nook 网页修改初始密码"})
+				return
+			}
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"code": 40304, "message": "token scope denied"})
 			return
 		}
@@ -101,8 +105,24 @@ func scopedTokenAllowedForRequest(c *gin.Context, claims *Claims) bool {
 		return true
 	}
 	switch strings.TrimSpace(claims.Purpose) {
+	case "password_reset":
+		return PasswordResetRequestAllowed(c)
 	case "external_play":
 		return externalPlaybackTokenAllowedPath(c, strings.TrimSpace(claims.MediaID))
+	default:
+		return false
+	}
+}
+
+// PasswordResetRequestAllowed is an exact method/path allowlist. Profile
+// updates, OTP generation and administrator operations are deliberately absent.
+func PasswordResetRequestAllowed(c *gin.Context) bool {
+	if c == nil || c.Request == nil {
+		return false
+	}
+	switch c.Request.Method + " " + c.Request.URL.Path {
+	case "GET /api/me", "POST /api/me/password", "POST /api/me/logout":
+		return true
 	default:
 		return false
 	}

@@ -225,7 +225,7 @@ func (s *TokenService) refreshOnce(ctx context.Context, tokenHash string) (*Toke
 			// 也可能是「刚轮换完但从未落库」的令牌（同上，行本身不存在），
 			// 宽限期内同样幂等复用。
 			if pair, reused := s.reusedRotation(tokenHash, ""); reused {
-				return pair, nil
+				return s.validateReusedRefreshPair(ctx, pair, "")
 			}
 			return nil, ErrInvalidRefreshToken
 		}
@@ -241,7 +241,7 @@ func (s *TokenService) refreshOnce(ctx context.Context, tokenHash string) (*Toke
 		// 刚被轮换过的 token 在宽限期内允许幂等复用，避免并发/重试的
 		// 客户端拿到 revoked 401 后清空整个会话。
 		if pair, ok := s.reusedRotation(tokenHash, rt.UserID); ok {
-			return pair, nil
+			return s.validateReusedRefreshPair(ctx, pair, rt.UserID)
 		}
 		return nil, ErrTokenRevoked
 	}
@@ -265,6 +265,9 @@ func (s *TokenService) refreshOnce(ctx context.Context, tokenHash string) (*Toke
 	if user.ExpiredAt != nil && s.currentTime().After(*user.ExpiredAt) {
 		return nil, ErrUserExpired
 	}
+	if user.ForcePasswordReset {
+		return nil, ErrPasswordResetRequired
+	}
 
 	// 撤销旧的 Refresh Token（包括可能仍在后台补写队列里的副本）。
 	if err := s.repo.RefreshToken.Revoke(ctx, tokenHash); err != nil {
@@ -280,6 +283,35 @@ func (s *TokenService) refreshOnce(ctx context.Context, tokenHash string) (*Toke
 	// 必须在结束 flight 之前记住本次轮换：否则等待中的请求会在 flight 与
 	// 复用表之间的空档里查不到记录，把并发刷新误判为 revoked。
 	s.rememberRotation(tokenHash, user.ID, pair)
+	return pair, nil
+}
+
+// Reused rotations must respect an account restriction added since the first
+// refresh, just like the ordinary database-backed refresh path.
+func (s *TokenService) validateReusedRefreshPair(ctx context.Context, pair *TokenPair, userID string) (*TokenPair, error) {
+	if userID == "" {
+		claims, err := s.ValidateAccessToken(pair.AccessToken)
+		if err != nil {
+			return nil, ErrInvalidRefreshToken
+		}
+		userID = claims.UserID
+	}
+	u, err := s.repo.User.FindByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if u == nil {
+		return nil, ErrInvalidRefreshToken
+	}
+	if !u.IsActive {
+		return nil, ErrUserInactive
+	}
+	if u.ExpiredAt != nil && s.currentTime().After(*u.ExpiredAt) {
+		return nil, ErrUserExpired
+	}
+	if u.ForcePasswordReset {
+		return nil, ErrPasswordResetRequired
+	}
 	return pair, nil
 }
 

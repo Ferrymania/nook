@@ -94,6 +94,7 @@ func TestFFToolsOnlySettingsSavePersistsAndAppliesDownloadedPaths(t *testing.T) 
 	}
 	cfg := &config.Config{App: config.AppConfig{DataDir: dataDir, FFmpegPath: filepath.Join(oldDir, "ffmpeg"), FFprobePath: filepath.Join(oldDir, "ffprobe")}, Secrets: config.SecretsConfig{JWTSecret: "ff-tools-test"}}
 	svc := &service.Container{Cfg: cfg, Repo: repos, Log: zap.NewNop(), FFTools: service.NewFFmpegToolsService(cfg, zap.NewNop())}
+	addAdminRouteTestUser(t, svc, "operator")
 	router := gin.New()
 	registerAdminRoutes(router.Group("/api"), cfg, svc)
 	for _, endpoint := range []struct{ method, path string }{{"GET", "/api/admin/tools/ffmpeg/detect"}, {"POST", "/api/admin/tools/ffmpeg/install"}} {
