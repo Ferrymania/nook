@@ -26,11 +26,9 @@ func activeUserRequired(svc *service.Container) gin.HandlerFunc {
 		}
 		u, err := svc.Repo.User.FindByID(c.Request.Context(), userID)
 		if err != nil {
-			if service.IsTransientDatabaseLock(err) {
-				c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"code": 50301, "message": "unable to verify account state"})
-				return
-			}
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": 40101, "message": "user not found"})
+			// A missing user is returned as (nil, nil). Query failures must not be
+			// treated as rejected credentials and trigger a browser token refresh.
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"code": 50301, "message": "unable to verify account state"})
 			return
 		}
 		if u == nil {

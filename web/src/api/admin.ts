@@ -4,31 +4,14 @@ import type { AccessLog, Setting, User } from '../types'
 export interface DatabaseStatus {
   type: 'postgres'
   dsn?: string
+  connected: boolean
+  error?: string
+  counts_error?: string
   open_conns: number
   in_use: number
   idle: number
   max_open_conns: number
   table_counts?: Record<string, number>
-}
-
-export interface PostgresTestResult {
-  success: boolean
-  latency_ms?: number
-  version?: string
-  message?: string
-  error?: string
-}
-
-
-export interface DatabaseConnectionPayload {
-  type?: string
-  dsn?: string
-  host?: string
-  port?: number
-  user?: string
-  password?: string
-  dbname?: string
-  sslmode?: string
 }
 
 export interface UserListResponse {
@@ -94,14 +77,6 @@ export const adminAPI = {
 
   recentLogs: () => api.get<AccessLog[]>('/admin/logs').then((r) => r.data),
 
-	  getDatabaseStatus: () =>
-	    api.get<DatabaseStatus>('/admin/database/status').then((r) => r.data),
-
-	  testDatabaseConnection: (payload: DatabaseConnectionPayload) =>
-	    api.post<PostgresTestResult>('/admin/database/test', payload).then((r) => r.data),
-
-
-
-	  saveDatabaseConfig: (payload: DatabaseConnectionPayload) =>
-	    api.post<{ message: string; type: string }>('/admin/database/save-config', payload).then((r) => r.data),
-	}
+  getDatabaseStatus: (signal?: AbortSignal) =>
+    api.get<DatabaseStatus>('/admin/database/status', { signal, timeout: 8000 }).then((r) => r.data),
+}

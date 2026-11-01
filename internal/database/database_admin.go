@@ -2,14 +2,11 @@ package database
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"strings"
 	"time"
 
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 
 	"github.com/Ferrymania/nook/internal/config"
 	"github.com/Ferrymania/nook/internal/model"
@@ -19,6 +16,9 @@ import (
 type DatabaseStatus struct {
 	Type         string           `json:"type"`
 	DSN          string           `json:"dsn,omitempty"`
+	Connected    bool             `json:"connected"`
+	Error        string           `json:"error,omitempty"`
+	CountsError  string           `json:"counts_error,omitempty"`
 	OpenConns    int              `json:"open_conns"`
 	InUse        int              `json:"in_use"`
 	Idle         int              `json:"idle"`
@@ -26,101 +26,55 @@ type DatabaseStatus struct {
 	TableCounts  map[string]int64 `json:"table_counts"`
 }
 
-// PostgresTestResult returns latency and version info after testing connection.
-type PostgresTestResult struct {
-	Success   bool   `json:"success"`
-	LatencyMS int64  `json:"latency_ms"`
-	Version   string `json:"version,omitempty"`
-	Message   string `json:"message,omitempty"`
-	Error     string `json:"error,omitempty"`
-}
-
 // InspectDatabaseStatus queries the currently active database for metrics and table rows.
-func InspectDatabaseStatus(db *gorm.DB, cfg *config.Config) *DatabaseStatus {
+func InspectDatabaseStatus(ctx context.Context, db *gorm.DB, cfg *config.Config) *DatabaseStatus {
 	st := &DatabaseStatus{
 		Type:        "postgres",
+		Error:       "无法连接 PostgreSQL，请检查数据库服务及连接配置。",
 		TableCounts: make(map[string]int64),
 	}
 	if cfg != nil {
 		st.DSN = MaskDSN(cfg.Database.DSN)
 	}
 
-	if db != nil {
-		if sqlDB, err := db.DB(); err == nil {
-			stats := sqlDB.Stats()
-			st.OpenConns = stats.OpenConnections
-			st.InUse = stats.InUse
-			st.Idle = stats.Idle
-			st.MaxOpenConns = stats.MaxOpenConnections
-		}
+	if db == nil {
+		return st
+	}
+	sqlDB, err := db.DB()
+	if err != nil {
+		return st
+	}
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	if err := sqlDB.PingContext(ctx); err != nil {
+		return st
+	}
 
-		// Count rows for major model tables
-		for _, m := range model.AllModels() {
-			if tbl, err := modelTableName(db, m); err == nil {
-				if db.Migrator().HasTable(tbl) {
-					var count int64
-					if err := db.Raw("SELECT COUNT(1) FROM " + quoteIdent(tbl)).Scan(&count).Error; err == nil {
-						st.TableCounts[tbl] = count
-					}
-				}
-			}
+	st.Connected = true
+	st.Error = ""
+	stats := sqlDB.Stats()
+	st.OpenConns = stats.OpenConnections
+	st.InUse = stats.InUse
+	st.Idle = stats.Idle
+	st.MaxOpenConns = stats.MaxOpenConnections
+
+	// Failed counts stay absent, so callers can distinguish them from real zeroes.
+	for _, table := range []struct {
+		name  string
+		model any
+	}{
+		{"media", &model.Media{}},
+		{"users", &model.User{}},
+		{"playback_histories", &model.PlaybackHistory{}},
+	} {
+		var count int64
+		if err := db.WithContext(ctx).Unscoped().Model(table.model).Count(&count).Error; err != nil {
+			st.CountsError = "部分记录统计获取失败。"
+			continue
 		}
+		st.TableCounts[table.name] = count
 	}
 	return st
-}
-
-// TestPostgres establishes a temporary connection to verify reachability and permissions.
-func TestPostgres(dsn string) (*PostgresTestResult, error) {
-	dsn = strings.TrimSpace(dsn)
-	if dsn == "" {
-		return &PostgresTestResult{
-			Success: false,
-			Error:   "PostgreSQL DSN 不能为空",
-		}, nil
-	}
-
-	start := time.Now()
-	testDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	})
-	if err != nil {
-		return &PostgresTestResult{
-			Success: false,
-			Error:   fmt.Sprintf("连接失败: %v", err),
-		}, nil
-	}
-
-	sqlDB, err := testDB.DB()
-	if err != nil {
-		return &PostgresTestResult{
-			Success: false,
-			Error:   fmt.Sprintf("获取底层连接失败: %v", err),
-		}, nil
-	}
-	defer sqlDB.Close()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := sqlDB.PingContext(ctx); err != nil {
-		return &PostgresTestResult{
-			Success: false,
-			Error:   fmt.Sprintf("Ping 超时或失败: %v", err),
-		}, nil
-	}
-
-	var version string
-	if err := testDB.WithContext(ctx).Raw("SELECT version()").Scan(&version).Error; err != nil {
-		version = "PostgreSQL (unknown version)"
-	}
-
-	latency := time.Since(start).Milliseconds()
-	return &PostgresTestResult{
-		Success:   true,
-		LatencyMS: latency,
-		Version:   version,
-		Message:   "连接成功",
-	}, nil
 }
 
 // MaskDSN masks the password in a connection string for safe API responses.
