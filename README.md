@@ -31,7 +31,7 @@ docker compose up -d
 ```
 
 - 访问地址：`http://服务器IP:18080`
-- 初始账号：`admin` / `admin123`，首次登录后修改密码。
+- 初始账号：`admin` / `admin123`。使用默认密码登录后必须先修改密码，才能进入系统或使用 Emby 客户端。
 - 镜像：`ghcr.io/ferrymania/nook:latest`，支持 `linux/amd64` 和 `linux/arm64`。
 - 已有 PostgreSQL：查看 [部署指南](https://github.com/Ferrymania/nook/wiki/Deployment)。
 

@@ -20,6 +20,7 @@ func TestSystemReleaseCheckRequiresAdmin(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	svc := &service.Container{Log: zap.NewNop()}
+	addAdminRouteTestUser(t, svc, "release-user")
 	registerAdminRoutes(router.Group("/api"), &config.Config{Secrets: config.SecretsConfig{JWTSecret: "release-test"}}, svc)
 	for _, tc := range []struct {
 		role string

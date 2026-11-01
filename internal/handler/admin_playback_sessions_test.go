@@ -58,6 +58,7 @@ func TestAdminPlaybackSessionsPermissionsAndDisplayMetadata(t *testing.T) {
 	svc.Sessions.RecordPlayback(t.Context(), "u1", "", "d2", "iPhone", "Lenna", "", "m1", 0, 0, false)
 	svc.Sessions.RecordLogin(t.Context(), "u2", "idle", "d3", "Web", "Web", "")
 	router := gin.New()
+	addAdminRouteTestUser(t, svc, "operator")
 	registerAdminRoutes(router.Group("/api"), &config.Config{Secrets: config.SecretsConfig{JWTSecret: "test-secret"}}, svc)
 	for _, role := range []string{"", "user", "admin"} {
 		req := httptest.NewRequest(http.MethodGet, "/api/admin/playback-sessions", nil)

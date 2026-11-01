@@ -14,6 +14,9 @@ import (
 
 // IssueToken signs a JWT for the given user (60min validity, includes tier).
 func (s *AuthService) IssueToken(u *model.User) (string, error) {
+	if u.ForcePasswordReset {
+		return "", ErrPasswordResetRequired
+	}
 	claims := Claims{
 		UserID: u.ID,
 		Role:   u.Role,
@@ -27,6 +30,27 @@ func (s *AuthService) IssueToken(u *model.User) (string, error) {
 	}
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return t.SignedString([]byte(s.cfg.Secrets.JWTSecret))
+}
+
+const PasswordResetTokenPurpose = "password_reset"
+
+// The initial login grants only access to the password form, with no refresh
+// credential. Clearing the database flag cannot turn this into a normal token.
+func (s *AuthService) issuePasswordResetToken(u *model.User) (*TokenPair, error) {
+	const ttl = 15 * time.Minute
+	claims := Claims{
+		UserID: u.ID, Role: u.Role, Tier: u.Tier, Purpose: PasswordResetTokenPurpose,
+		RegisteredClaims: jwt.RegisteredClaims{
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(ttl)),
+			Issuer:    "nook", Subject: u.ID,
+		},
+	}
+	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(s.cfg.Secrets.JWTSecret))
+	if err != nil {
+		return nil, err
+	}
+	return &TokenPair{AccessToken: token, ExpiresIn: int64(ttl.Seconds()), TokenType: "Bearer"}, nil
 }
 
 const (
@@ -55,6 +79,9 @@ func ExternalPlaybackTokenDurationForMedia(durationSec int) time.Duration {
 // that are handed to third-party players. It must not be accepted as a
 // reusable account/session token for arbitrary media playback.
 func (s *AuthService) IssueExternalPlaybackToken(u *model.User, mediaID string, durationSec int) (string, error) {
+	if u.ForcePasswordReset {
+		return "", ErrPasswordResetRequired
+	}
 	mediaID = strings.TrimSpace(mediaID)
 	if mediaID == "" {
 		return "", errors.New("media id required")
@@ -88,6 +115,9 @@ const EmbyTokenDuration = 30 * 24 * time.Hour
 // JWT。它与普通 access token 使用相同的密钥与 Claims，因此沿用现有的
 // EmbyAuthRequired 校验逻辑，只是有效期更长。
 func (s *AuthService) IssueEmbyToken(u *model.User) (string, error) {
+	if u.ForcePasswordReset {
+		return "", ErrPasswordResetRequired
+	}
 	claims := Claims{
 		UserID: u.ID,
 		Role:   u.Role,

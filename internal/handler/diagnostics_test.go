@@ -27,7 +27,9 @@ func diagnosticsRouter(t *testing.T) (*gin.Engine, *service.DiagnosticsService) 
 	s := service.NewDiagnosticsService()
 	router := gin.New()
 	api := router.Group("/api", middleware.GzipAPI())
-	registerAdminRoutes(api, cfg, &service.Container{Cfg: cfg, Log: zap.NewNop(), Diagnostics: s})
+	svc := &service.Container{Cfg: cfg, Log: zap.NewNop(), Diagnostics: s}
+	addAdminRouteTestUser(t, svc, "operator")
+	registerAdminRoutes(api, cfg, svc)
 	t.Cleanup(func() { s.Disable() })
 	return router, s
 }

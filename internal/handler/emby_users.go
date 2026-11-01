@@ -47,6 +47,10 @@ func embyAuthByNameHandler(svc *service.Container) gin.HandlerFunc {
 			embyError(c, http.StatusUnauthorized, err.Error())
 			return
 		}
+		if resp.User.ForcePasswordReset {
+			embyError(c, http.StatusForbidden, service.ErrPasswordResetRequired.Error())
+			return
+		}
 		// 记录登录设备会话并执行防共享检测（登录客户端数 / 设备指纹）。
 		clientInfo := embyClientInfoFromRequest(c)
 		if svc.Sessions != nil {

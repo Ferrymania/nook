@@ -53,12 +53,15 @@ func NewAuthService(cfg *config.Config, log *zap.Logger, repo *repository.Contai
 
 // Common service-level errors.
 var (
-	ErrInvalidCredentials = errors.New("invalid username or password")
-	ErrUsernameTaken      = errors.New("username already taken")
-	ErrUserInactive       = errors.New("user account is inactive")
-	ErrUserLimitReached   = errors.New("user limit reached")
-	ErrUserExpired        = errors.New("user account has expired")
+	ErrInvalidCredentials    = errors.New("invalid username or password")
+	ErrUsernameTaken         = errors.New("username already taken")
+	ErrUserInactive          = errors.New("user account is inactive")
+	ErrUserLimitReached      = errors.New("user limit reached")
+	ErrUserExpired           = errors.New("user account has expired")
+	ErrPasswordResetRequired = errors.New("请先在 Nook 网页修改初始密码")
 )
+
+const DefaultAdminPassword = "admin123"
 
 // MaxUsers is kept for tests that seed up to the default cap.
 const MaxUsers = DefaultMaxUsers
@@ -72,11 +75,20 @@ func (s *AuthService) SeedAdmin(ctx context.Context) error {
 		return err
 	}
 	if n > 0 {
+		// The protected administrator may have been renamed. Check its hash,
+		// rather than its username, without changing its password or preferences.
+		u, err := s.repo.User.FirstAdmin(ctx)
+		if err != nil || u == nil {
+			return err
+		}
+		if !u.ForcePasswordReset && bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(DefaultAdminPassword)) == nil {
+			return s.requirePasswordReset(ctx, u)
+		}
 		return nil
 	}
 	pwd := os.Getenv("ADMIN_INITIAL_PASSWORD")
 	if pwd == "" {
-		pwd = "admin123"
+		pwd = DefaultAdminPassword
 	}
 	hash, err := hashPassword(pwd)
 	if err != nil {
@@ -88,7 +100,7 @@ func (s *AuthService) SeedAdmin(ctx context.Context) error {
 		Role:               "admin",
 		Tier:               "plus",
 		HideAdult:          true,
-		ForcePasswordReset: pwd == "admin123",
+		ForcePasswordReset: pwd == DefaultAdminPassword,
 	}
 	if err := s.repo.User.Create(ctx, user); err != nil {
 		return err
@@ -135,11 +147,12 @@ func (s *AuthService) Register(ctx context.Context, username, password string) (
 		role = "admin"
 	}
 	u := &model.User{
-		Username:     username,
-		PasswordHash: hash,
-		Role:         role,
-		Tier:         "free",
-		HideAdult:    true,
+		Username:           username,
+		PasswordHash:       hash,
+		Role:               role,
+		Tier:               "free",
+		HideAdult:          true,
+		ForcePasswordReset: role == "admin" && password == DefaultAdminPassword,
 	}
 	if err := s.repo.User.Create(ctx, u); err != nil {
 		return nil, nil, err
@@ -147,7 +160,7 @@ func (s *AuthService) Register(ctx context.Context, username, password string) (
 	// 自动为新用户创建默认权限
 	_, _ = s.permissionSvc.EnsureForUser(ctx, u.ID)
 	// 签发令牌对
-	tokens, err := s.tokenSvc.IssuePair(ctx, u.ID, u.Role, u.Tier)
+	tokens, err := s.loginTokens(ctx, u, false)
 	if err != nil {
 		return u, nil, nil // 用户已创建，令牌签发失败不影响注册成功
 	}
@@ -180,13 +193,42 @@ func (s *AuthService) Login(ctx context.Context, username, password string) (*Lo
 	if err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)); err != nil {
 		return nil, ErrInvalidCredentials
 	}
+	if u.Role == "admin" && password == DefaultAdminPassword && !u.ForcePasswordReset {
+		if err := s.requirePasswordReset(ctx, u); err != nil {
+			return nil, err
+		}
+	}
 	// 签发令牌对
-	tokens, err := s.tokenSvc.IssuePairBestEffort(ctx, u.ID, u.Role, u.Tier)
+	tokens, err := s.loginTokens(ctx, u, true)
 	if err != nil {
 		return nil, err
 	}
 	s.touchLoginBestEffort(u.ID)
 	return &LoginResponse{User: u, Tokens: tokens}, nil
+}
+
+func (s *AuthService) requirePasswordReset(ctx context.Context, u *model.User) error {
+	result := s.repo.DB.WithContext(ctx).Model(&model.User{}).
+		Where("id = ? AND password_hash = ?", u.ID, u.PasswordHash).
+		Update("force_password_reset", true)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected != 1 {
+		return ErrInvalidCredentials
+	}
+	u.ForcePasswordReset = true
+	return nil
+}
+
+func (s *AuthService) loginTokens(ctx context.Context, u *model.User, bestEffort bool) (*TokenPair, error) {
+	if u.ForcePasswordReset {
+		return s.issuePasswordResetToken(u)
+	}
+	if bestEffort {
+		return s.tokenSvc.IssuePairBestEffort(ctx, u.ID, u.Role, u.Tier)
+	}
+	return s.tokenSvc.IssuePair(ctx, u.ID, u.Role, u.Tier)
 }
 
 func (s *AuthService) touchLoginBestEffort(userID string) {
@@ -219,9 +261,22 @@ func (s *AuthService) ChangePassword(ctx context.Context, userID, oldPwd, newPwd
 	if err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(oldPwd)); err != nil {
 		return ErrInvalidCredentials
 	}
+	if newPwd == DefaultAdminPassword {
+		return errors.New("新密码不能使用默认密码 admin123")
+	}
+	if bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(newPwd)) == nil {
+		return errors.New("新密码不能与当前密码相同")
+	}
 	hash, err := hashPassword(newPwd)
 	if err != nil {
 		return err
+	}
+	if u.ForcePasswordReset {
+		// A reset login itself has no refresh token. Revoke any older refresh
+		// credentials before lifting the account restriction.
+		if err := s.tokenSvc.RevokeAll(ctx, userID); err != nil {
+			return err
+		}
 	}
 	return s.repo.User.UpdatePassword(ctx, userID, hash)
 }
@@ -234,6 +289,9 @@ func (s *AuthService) ResetPassword(ctx context.Context, userID, newPwd string) 
 	}
 	if strings.TrimSpace(newPwd) == "" || len(newPwd) < 6 {
 		return errors.New("new password must be at least 6 characters")
+	}
+	if newPwd == DefaultAdminPassword {
+		return errors.New("新密码不能使用默认密码 admin123")
 	}
 	u, err := s.repo.User.FindByID(ctx, userID)
 	if err != nil {
@@ -292,6 +350,9 @@ func (s *AuthService) CreateTemporaryPassword(ctx context.Context, userID string
 	if user.ExpiredAt != nil && time.Now().After(*user.ExpiredAt) {
 		return "", 0, ErrUserExpired
 	}
+	if user.ForcePasswordReset {
+		return "", 0, ErrPasswordResetRequired
+	}
 
 	n, err := rand.Int(rand.Reader, big.NewInt(900000))
 	if err != nil {
@@ -345,6 +406,9 @@ func (s *AuthService) VerifyAndConsumeTemporaryPassword(ctx context.Context, use
 		return nil, false
 	}
 	if user.ExpiredAt != nil && time.Now().After(*user.ExpiredAt) {
+		return nil, false
+	}
+	if user.ForcePasswordReset {
 		return nil, false
 	}
 	return user, true
