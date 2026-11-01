@@ -6,7 +6,7 @@
 
 面向 NAS 与家庭影音场景的自托管媒体中心，统一管理本地媒体、网盘 STRM 和远程 Emby 媒体库。
 
-[使用文档](https://github.com/Ferrymania/nook/wiki) · [版本下载](https://github.com/Ferrymania/nook/releases) · [问题反馈](https://github.com/Ferrymania/nook/issues) · [English](README_EN.md)
+[使用文档](https://github.com/Ferrymania/nook/wiki) · [版本记录](https://github.com/Ferrymania/nook/releases) · [问题反馈](https://github.com/Ferrymania/nook/issues) · [English](README_EN.md)
 
 ## 核心功能
 
@@ -21,7 +21,7 @@
 
 ## 快速部署
 
-推荐使用 Docker Compose。以下模板会同时启动 Nook 和 PostgreSQL：
+仅提供 Linux Docker 镜像，支持 amd64/arm64；Windows 可通过 Docker Desktop 的 Linux 容器运行。以下 Compose 模板会同时启动 Nook 和 PostgreSQL：
 
 ```bash
 mkdir -p nook && cd nook
@@ -35,20 +35,22 @@ docker compose up -d
 - 镜像：`ghcr.io/ferrymania/nook:latest`，支持 `linux/amd64` 和 `linux/arm64`。
 - 已有 PostgreSQL：查看 [部署指南](https://github.com/Ferrymania/nook/wiki/Deployment)。
 
+镜像内置 FFmpeg/FFprobe，随镜像更新；设置中保留工具检测与程序路径配置。
+
 升级前保留现有数据库连接参数和数据挂载。部署、更新与备份步骤见下方文档。
 
 ## 使用文档
 
 | 文档 | 内容 |
 | --- | --- |
-| [部署指南](https://github.com/Ferrymania/nook/wiki/Deployment) | Compose 模板、已有 PostgreSQL 与二进制部署 |
+| [部署指南](https://github.com/Ferrymania/nook/wiki/Deployment) | Compose 模板与已有 PostgreSQL |
 | [路径与媒体库](https://github.com/Ferrymania/nook/wiki/Paths-and-Libraries) | Docker 路径映射、下载目录与媒体库目录迁移 |
 | [首次使用](https://github.com/Ferrymania/nook/wiki/Getting-Started) | 添加媒体、刮削、播放设置与第三方客户端 |
 | [更新与备份](https://github.com/Ferrymania/nook/wiki/Updates-and-Backups) | 版本检查、更新镜像、数据备份与旧安装升级 |
 | [常见问题](https://github.com/Ferrymania/nook/wiki/Troubleshooting) | 扫库、整理、硬链接、日志与客户端连接排查 |
 | [Telegram 通知](docs/telegram-notifications.md) | 入库海报通知、STRM 同步控制与发送规则 |
 | [运行诊断](docs/runtime-diagnostics.md) | 临时开启 pprof、下载内存与 CPU 分析文件 |
-| [开发与构建](https://github.com/Ferrymania/nook/wiki/Development) | 本地开发、数据库测试、二进制构建与发布流程 |
+| [开发与构建](https://github.com/Ferrymania/nook/wiki/Development) | 本地开发、数据库测试、镜像构建与发布流程 |
 
 ## 贡献与致谢
 

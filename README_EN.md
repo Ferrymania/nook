@@ -21,7 +21,7 @@ A self-hosted media center for NAS and home theaters, bringing local media, clou
 
 ## Quick Start
 
-Use Docker Compose. This template starts Nook and PostgreSQL together:
+Nook ships Linux Docker images for amd64/arm64. Windows hosts can use Linux containers in Docker Desktop. This Compose template starts Nook and PostgreSQL together:
 
 ```bash
 mkdir -p nook && cd nook
@@ -35,13 +35,15 @@ docker compose up -d
 - Image: `ghcr.io/ferrymania/nook:latest`, available for `linux/amd64` and `linux/arm64`.
 - For an existing PostgreSQL instance, see the [deployment guide](https://github.com/Ferrymania/nook/wiki/Deployment).
 
+FFmpeg/FFprobe are bundled and updated with the image. Tool detection and executable paths remain available in settings.
+
 Keep existing database credentials and data mounts when upgrading. Detailed setup and maintenance instructions are in the Wiki below (in Chinese).
 
 ## Documentation
 
 | Guide | Covers |
 | --- | --- |
-| [Deployment](https://github.com/Ferrymania/nook/wiki/Deployment) | Compose templates, external PostgreSQL, and binary deployment |
+| [Deployment](https://github.com/Ferrymania/nook/wiki/Deployment) | Compose templates and external PostgreSQL |
 | [Paths and libraries](https://github.com/Ferrymania/nook/wiki/Paths-and-Libraries) | Docker mounts, download paths, and library directory migration |
 | [First-time setup](https://github.com/Ferrymania/nook/wiki/Getting-Started) | Media, metadata, playback settings, and clients |
 | [Updates and backups](https://github.com/Ferrymania/nook/wiki/Updates-and-Backups) | Version checks, image updates, backups, and legacy installations |

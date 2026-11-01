@@ -78,19 +78,6 @@ export interface FFmpegToolPair {
   ffprobe?: FFmpegToolInfo
 }
 
-export interface FFmpegToolsStatus {
-  installing?: boolean
-  message?: string
-  error?: string
-  started_at?: string
-  finished_at?: string
-  install_dir?: string
-  target?: { os?: string; arch?: string; label?: string }
-  ffmpeg?: FFmpegToolInfo
-  ffprobe?: FFmpegToolInfo
-  downloaded?: FFmpegToolPair
-}
-
 export const toolsAPI = {
   organizeMedia: (mediaID: string, opts?: OrganizeOverrides) =>
     api
@@ -126,16 +113,12 @@ export const toolsAPI = {
       .post<{ message: string }>('/admin/notify/test', { title, body })
       .then((r) => r.data),
 
-  // ffToolsStatus 查询 ffmpeg/ffprobe 的安装状态（路径/版本/是否正在安装）。
+  // ffToolsStatus 查询当前工具的可用性、路径和版本。
   ffToolsStatus: (signal?: AbortSignal) =>
-    api.get<FFmpegToolsStatus>('/admin/tools/ffmpeg/status', { signal }).then((r) => r.data),
+    api.get<FFmpegToolPair>('/admin/tools/ffmpeg/status', { signal }).then((r) => r.data),
 
   detectFFTools: (signal?: AbortSignal) =>
     api.get<FFmpegToolPair>('/admin/tools/ffmpeg/detect', { signal }).then((r) => r.data),
-
-  // installFFTools 触发后台下载安装 ffmpeg/ffprobe（自动匹配当前平台）。
-  installFFTools: (signal?: AbortSignal) =>
-    api.post<FFmpegToolsStatus>('/admin/tools/ffmpeg/install', undefined, { signal }).then((r) => r.data),
 
   // repairAndRescrapeAll 触发「全库修复+重刮」：先从媒体路径中的
   // {tmdb-N}/{bangumi-N} 占位符回填缺失/错误的外部 ID，再批量重刮整库。

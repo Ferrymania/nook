@@ -23,15 +23,3 @@ func TestBackupFilePathRejectsTraversal(t *testing.T) {
 		t.Fatalf("backupFilePath(valid) dir = %q", filepath.Dir(path))
 	}
 }
-
-func TestSafeZipTargetRejectsZipSlip(t *testing.T) {
-	root := t.TempDir()
-	for _, name := range []string{"../evil.exe", `..\evil.exe`, "/tmp/evil.exe"} {
-		if _, err := safeZipTarget(root, name); err == nil {
-			t.Fatalf("safeZipTarget(%q) allowed zip-slip path", name)
-		}
-	}
-	if _, err := safeZipTarget(root, "ffmpeg/bin/ffmpeg.exe"); err != nil {
-		t.Fatalf("safeZipTarget(valid) = %v", err)
-	}
-}

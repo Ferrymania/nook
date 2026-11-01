@@ -1,81 +1,73 @@
 package service
 
 import (
-	"context"
-	"runtime"
-	"strings"
+	"os"
+	"path/filepath"
 	"testing"
-
-	"go.uber.org/zap"
 
 	"github.com/Ferrymania/nook/internal/config"
 )
 
-func TestFFmpegTargetForPlatform(t *testing.T) {
-	target, err := ffmpegTargetForPlatform()
-	switch runtime.GOOS {
-	case "windows", "linux", "darwin":
-		if err != nil {
-			t.Fatalf("supported platform %s/%s should resolve a target: %v", runtime.GOOS, runtime.GOARCH, err)
-		}
-		if target == nil || target.Label == "" || len(target.Archives) == 0 {
-			t.Fatalf("target incomplete: %#v", target)
-		}
-		if target.Kind != "zip" && target.Kind != "tar.xz" {
-			t.Fatalf("unexpected archive kind: %s", target.Kind)
-		}
-		for _, u := range target.Archives {
-			if !strings.HasPrefix(u, "https://") {
-				t.Fatalf("archive url not https: %s", u)
-			}
-		}
-	default:
-		if err == nil {
-			t.Fatalf("unsupported platform %s/%s should fail", runtime.GOOS, runtime.GOARCH)
-		}
+func ffDetectionTool(t *testing.T, dir, name string) string {
+	t.Helper()
+	path := filepath.Join(dir, name)
+	if err := os.WriteFile(path, []byte("#!/bin/sh\nprintf '%s\\n' '"+name+" version fixture'\n"), 0o755); err != nil {
+		t.Fatal(err)
 	}
+	return path
 }
 
-func TestSafeZipTargetRejectsTraversal(t *testing.T) {
-	root := t.TempDir()
-	for _, name := range []string{"../evil", "..\\evil", "/etc/passwd", "a/../../evil"} {
-		if _, err := safeZipTarget(root, name); err == nil {
-			t.Fatalf("expected traversal rejection for %q", name)
-		}
-	}
-	if _, err := safeZipTarget(root, "bin/ffmpeg.exe"); err != nil {
-		t.Fatalf("valid relative path should pass: %v", err)
-	}
-}
-
-func TestFFmpegToolsStatusNoPanic(t *testing.T) {
+func TestFFmpegToolsUnavailable(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
-	svc := NewFFmpegToolsService(&config.Config{}, zap.NewNop())
-	st := svc.Status(context.Background())
-	for _, key := range []string{"installing", "message", "error", "install_dir", "target", "ffmpeg", "ffprobe"} {
-		if _, ok := st[key]; !ok {
-			t.Fatalf("status missing key %q: %#v", key, st)
+	svc := NewFFmpegToolsService(&config.Config{})
+	for _, result := range []map[string]ffToolInfo{svc.Status(t.Context()), svc.Detect(t.Context())} {
+		if len(result) != 2 || result["ffmpeg"].Installed || result["ffprobe"].Installed {
+			t.Fatalf("missing tools should be unavailable: %+v", result)
 		}
-	}
-	ffmpeg, ok := st["ffmpeg"].(ffToolInfo)
-	if !ok {
-		t.Fatalf("ffmpeg field not ffToolInfo: %T", st["ffmpeg"])
-	}
-	if ffmpeg.Installed {
-		t.Fatalf("empty config should not report installed ffmpeg: %#v", st)
 	}
 }
 
-func TestStartInstallRejectsConcurrent(t *testing.T) {
-	svc := NewFFmpegToolsService(&config.Config{App: config.AppConfig{DataDir: t.TempDir()}}, zap.NewNop())
-	// 不真实运行：直接占用 running 标记模拟进行中的安装。
-	svc.mu.Lock()
-	svc.running = true
-	svc.mu.Unlock()
-	if err := svc.StartInstall(context.Background()); err == nil {
-		t.Fatalf("second install while running should be rejected")
+func TestFFToolsDetectDoesNotApplyPaths(t *testing.T) {
+	dir := t.TempDir()
+	configured := ffDetectionTool(t, dir, "ffmpeg")
+	bin := t.TempDir()
+	foundProbe := ffDetectionTool(t, bin, "ffprobe")
+	// An unrelated executable in the configured path must not mask the PATH tool.
+	badProbe := filepath.Join(dir, "bad-probe")
+	if err := os.WriteFile(badProbe, []byte("#!/bin/sh\nprintf 'unrelated program\\n'\n"), 0o755); err != nil {
+		t.Fatal(err)
 	}
-	svc.mu.Lock()
-	svc.running = false
-	svc.mu.Unlock()
+	cfg := &config.Config{App: config.AppConfig{FFmpegPath: configured, FFprobePath: badProbe}}
+	t.Setenv("PATH", bin)
+	svc := NewFFmpegToolsService(cfg)
+	got := svc.Detect(t.Context())
+	if got["ffmpeg"].Path != configured || got["ffprobe"].Path != foundProbe || !got["ffprobe"].Installed {
+		t.Fatalf("wrong discovery: %+v", got)
+	}
+	if cfg.App.FFmpegPath != configured || cfg.App.FFprobePath != badProbe {
+		t.Fatal("detection changed runtime configuration")
+	}
+	if svc.Status(t.Context())["ffprobe"].Installed {
+		t.Fatal("detection activated a different executable without saving")
+	}
+}
+
+func TestFFToolsConfiguredPathsAndPartialDetection(t *testing.T) {
+	bin := t.TempDir()
+	ffmpeg := ffDetectionTool(t, bin, "ffmpeg")
+	t.Setenv("PATH", bin)
+	cfg := &config.Config{}
+	svc := NewFFmpegToolsService(cfg)
+	got := svc.Detect(t.Context())
+	if got["ffmpeg"].Path != ffmpeg || got["ffprobe"].Installed {
+		t.Fatalf("wrong partial detection: %+v", got)
+	}
+	// Explicit paths outside PATH continue to work, regardless of installation source.
+	probe := ffDetectionTool(t, t.TempDir(), "ffprobe")
+	cfg.App.FFprobePath = probe
+	for _, result := range []map[string]ffToolInfo{svc.Status(t.Context()), svc.Detect(t.Context())} {
+		if result["ffprobe"].Path != probe || !result["ffprobe"].Installed || result["ffmpeg"].Path != ffmpeg {
+			t.Fatalf("configured tools not retained: %+v", result)
+		}
+	}
 }

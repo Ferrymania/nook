@@ -69,12 +69,11 @@ RUN addgroup -S nook && adduser -S nook -G nook
 
 WORKDIR /app
 COPY --from=backend /app/nook /usr/local/bin/nook
-COPY --from=frontend /app/web/dist /app/web/dist
 
 RUN mkdir -p /data /cache /media \
     && chown -R nook:nook /data /cache /media
 
-# Entrypoint supplies defaults after resolving new and legacy variables.
+# Entrypoint supplies container defaults and UID/GID handling.
 ENV TZ=Asia/Shanghai
 
 EXPOSE 8080

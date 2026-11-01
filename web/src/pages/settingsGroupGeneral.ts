@@ -65,14 +65,14 @@ export const generalSettingsGroup: SettingGroup = {
       label: 'FFmpeg 路径',
       type: 'text',
       placeholder: 'ffmpeg',
-      hint: '留空时使用系统 PATH 中的 ffmpeg；也可点击上方「下载并安装」自动下载到 data 目录并自动填入，无需手动填写',
+      hint: '留空使用系统 PATH 中的 ffmpeg，也可填写容器内的程序路径',
     },
     {
       key: 'ffprobe.path',
       label: 'FFprobe 路径',
       type: 'text',
       placeholder: 'ffprobe',
-      hint: '留空时使用系统 PATH 中的 ffprobe；也可点击上方「下载并安装」自动下载到 data 目录并自动填入',
+      hint: '留空使用系统 PATH 中的 ffprobe，也可填写容器内的程序路径',
     },
     {
       key: 'ffprobe.max_concurrent',
