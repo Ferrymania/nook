@@ -7,6 +7,8 @@ import "testing"
 // and "web" used to be unconditional noise/boundary tokens, which turned
 // "Mad Max" into "mad" and "Web Therapy" into an empty query.
 func TestCleanQueryKeepsCommonEnglishTitleWords(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		in        string
 		wantTitle string
@@ -31,6 +33,8 @@ func TestCleanQueryKeepsCommonEnglishTitleWords(t *testing.T) {
 // A title consisting only of an ambiguous tag plus a release tail must not be
 // truncated to nothing; the tag stays so the query still has a chance.
 func TestCleanQueryDoesNotTruncateAmbiguousTagToNothing(t *testing.T) {
+	t.Parallel()
+
 	for _, in := range []string{"Web.1080p.WEB-DL.mkv", "BD.720p.mkv"} {
 		title, _ := CleanQuery(in)
 		if title == "" {
@@ -42,6 +46,8 @@ func TestCleanQueryDoesNotTruncateAmbiguousTagToNothing(t *testing.T) {
 // A year-prefixed filename must keep its title: the year arms weak-tag
 // truncation but must not discard the real title words that follow it.
 func TestCleanQueryKeepsTitleAfterYearPrefix(t *testing.T) {
+	t.Parallel()
+
 	cases := map[string]string{
 		"2019.Avatar.1080p.BluRay.mkv":     "Avatar",
 		"2024.Dune.Part.Two.2160p.WEB.mkv": "Dune Part Two",
@@ -60,6 +66,8 @@ func TestCleanQueryKeepsTitleAfterYearPrefix(t *testing.T) {
 // extracted year, resolution or codec) has been seen, so tags after it are
 // dropped as before.
 func TestCleanQueryStillDropsTagsAfterReleaseSignal(t *testing.T) {
+	t.Parallel()
+
 	cases := map[string]string{
 		"复仇者联盟4.2019.BD.1080p.mkv":               "复仇者联盟4",
 		"The.Matrix.1999.1080p.WEB-DL.H265.mp4":  "The Matrix",

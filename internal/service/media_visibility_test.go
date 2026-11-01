@@ -12,6 +12,8 @@ import (
 )
 
 func TestMediaVisibilityFiltersNSFWAndLibraries(t *testing.T) {
+	t.Parallel()
+
 	db := newServiceTestDB(t, &model.Library{}, &model.Media{}, &model.Setting{})
 	repos := repository.New(db)
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos)
@@ -83,6 +85,8 @@ func TestMediaVisibilityFiltersNSFWAndLibraries(t *testing.T) {
 }
 
 func TestConfiguredAdultLibrariesDoNotHideSafeLibraryWithNSFWItems(t *testing.T) {
+	t.Parallel()
+
 	db := newServiceTestDB(t, &model.User{}, &model.Library{}, &model.Media{}, &model.Setting{})
 	repos := repository.New(db)
 
@@ -128,6 +132,8 @@ func TestConfiguredAdultLibrariesDoNotHideSafeLibraryWithNSFWItems(t *testing.T)
 }
 
 func TestSearchMediaVisibleHonorsLargePosterWallLimit(t *testing.T) {
+	t.Parallel()
+
 	db := newServiceTestDB(t, &model.Library{}, &model.Media{})
 	repos := repository.New(db)
 	lib := model.Library{Name: "海报墙", Path: "/media/all", Type: "tv", Enabled: true}
@@ -157,6 +163,8 @@ func TestSearchMediaVisibleHonorsLargePosterWallLimit(t *testing.T) {
 }
 
 func TestSearchMediaVisibleCanReturnHugeLibraryResultsWhenRequested(t *testing.T) {
+	t.Parallel()
+
 	db := newServiceTestDB(t, &model.Library{}, &model.Media{})
 	repos := repository.New(db)
 	lib := model.Library{Name: "海量剧集", Path: "/media/huge", Type: "tv", Enabled: true}

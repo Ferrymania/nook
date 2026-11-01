@@ -8,6 +8,8 @@ import (
 )
 
 func TestEmbyRootItemsExposeLibraries(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	for _, lib := range []model.Library{
 		{Name: "电影", Path: `F:\downloads\电影`, Type: "movie", Enabled: true},
@@ -35,6 +37,8 @@ func TestEmbyRootItemsExposeLibraries(t *testing.T) {
 }
 
 func TestEmbyFolderItemQueryExposesLibrariesForHome(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "电影", Path: `/media/movies`, Type: "movie", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
@@ -61,6 +65,8 @@ func TestEmbyFolderItemQueryExposesLibrariesForHome(t *testing.T) {
 }
 
 func TestEmbyUnsupportedItemTypesDoNotLeakAllMedia(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "电影", Path: `/media/movies`, Type: "movie", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
@@ -90,6 +96,8 @@ func TestEmbyUnsupportedItemTypesDoNotLeakAllMedia(t *testing.T) {
 }
 
 func TestEmbyItemsFiltersFavorites(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	viewer := &model.User{Base: model.Base{ID: "user-1"}, Username: "viewer", Role: "user", Tier: "free", IsActive: true}
 	if err := svc.repo.User.Create(t.Context(), viewer); err != nil {
@@ -134,6 +142,8 @@ func TestEmbyItemsFiltersFavorites(t *testing.T) {
 }
 
 func TestEmbyItemsFiltersResumableForHome(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	viewer := &model.User{Base: model.Base{ID: "user-1"}, Username: "viewer", Role: "user", Tier: "free", IsActive: true}
 	if err := svc.repo.User.Create(t.Context(), viewer); err != nil {
@@ -184,6 +194,8 @@ func TestEmbyItemsFiltersResumableForHome(t *testing.T) {
 }
 
 func TestEmbyUserPolicyDisablesDownloadsForViewers(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	viewer := &model.User{Username: "viewer", Role: "user", Tier: "free", IsActive: true}
 	admin := &model.User{Username: "admin", Role: "admin", Tier: "plus", IsActive: true}
@@ -218,6 +230,8 @@ func TestEmbyUserPolicyDisablesDownloadsForViewers(t *testing.T) {
 }
 
 func TestEmbyHidesAdultLibrariesForUserLock(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	viewer := &model.User{Username: "viewer", Role: "user", Tier: "free", IsActive: true, HideAdult: true}
 	if err := svc.repo.User.Create(t.Context(), viewer); err != nil {
@@ -259,6 +273,8 @@ func TestEmbyHidesAdultLibrariesForUserLock(t *testing.T) {
 }
 
 func TestEmbyPlaybackInfoRespectsDirectPlayOnly(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "电影", Path: `/media/movies`, Type: "movie", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {

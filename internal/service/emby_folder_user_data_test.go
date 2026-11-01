@@ -38,6 +38,8 @@ func assertEmbyFolderCounts(t *testing.T, item map[string]any, total, unplayed i
 }
 
 func TestEmbyFolderCountsAcrossEndpointsAndWarmCaches(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	svc.cache = newRuntimeCacheForTest(t, 8)
 	libID := seedDiscoveryLibrary(t, svc.repo, "tv")
@@ -170,6 +172,8 @@ func TestEmbyFolderCountsAcrossEndpointsAndWarmCaches(t *testing.T) {
 }
 
 func TestEmbyFolderCountsUseFullVirtualSeriesOutsideLatestWindow(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	svc.cache = newRuntimeCacheForTest(t, 8)
 	libID := seedDiscoveryLibrary(t, svc.repo, "tv")
@@ -203,6 +207,8 @@ func TestEmbyFolderCountsUseFullVirtualSeriesOutsideLatestWindow(t *testing.T) {
 }
 
 func TestEmbyFolderCountsRespectVisibilitySpecialsAndDeletedMedia(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	libID := seedDiscoveryLibrary(t, svc.repo, "anime")
 	hidden := seedDiscoveryLibrary(t, svc.repo, "anime")
@@ -252,6 +258,8 @@ func TestEmbyFolderCountsRespectVisibilitySpecialsAndDeletedMedia(t *testing.T) 
 }
 
 func TestEmbyFolderCountsDoNotMutateSharedPayloadsOrRemoteItems(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	libID := seedDiscoveryLibrary(t, svc.repo, "tv")
 	seedDiscoveryMedia(t, svc.repo, &model.Media{Base: model.Base{ID: "shared-ep"}, LibraryID: libID, SeriesID: "shared-show", Title: "Shared", SeasonNum: 1, EpisodeNum: 1, Path: "/media/shared/S01E01.strm"})

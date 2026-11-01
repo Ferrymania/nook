@@ -17,6 +17,8 @@ import (
 )
 
 func TestSeriesPreviewMatchesCompleteLibraryCards(t *testing.T) {
+	t.Parallel()
+
 	db := newServiceTestDB(t)
 	repos := repository.New(db)
 	lib := model.Library{Name: "番剧", Path: "/media/anime", Type: "anime", Enabled: true}

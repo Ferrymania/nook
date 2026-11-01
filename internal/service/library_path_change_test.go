@@ -84,6 +84,8 @@ func assertPathChangeFile(t *testing.T, name, want string) {
 }
 
 func TestLibraryPathMigrationPreservesIdentityAndRelatedRecords(t *testing.T) {
+	t.Parallel()
+
 	f := newPathChangeFixture(t)
 	m := f.media(t, f.root, "影片/电影.mkv", "media")
 	legacy := f.media(t, f.root, "旧记录.mkv", "legacy")
@@ -163,6 +165,8 @@ func TestLibraryPathMigrationPreservesIdentityAndRelatedRecords(t *testing.T) {
 }
 
 func TestLibraryPathReplacementClearsOnlySelectedIndexAndLeavesFiles(t *testing.T) {
+	t.Parallel()
+
 	f := newPathChangeFixture(t)
 	old := f.media(t, f.root, "电影.mkv", "old")
 	legacy := f.media(t, f.root, "旧无来源.mkv", "legacy")
@@ -207,6 +211,8 @@ func TestLibraryPathReplacementClearsOnlySelectedIndexAndLeavesFiles(t *testing.
 }
 
 func TestLibraryPathMigrationBlocksMissingConflictingAndChangedFiles(t *testing.T) {
+	t.Parallel()
+
 	for _, scenario := range []string{"missing", "size", "occupied", "relative_escape", "strm", "overlapping_root"} {
 		t.Run(scenario, func(t *testing.T) {
 			f := newPathChangeFixture(t)
@@ -249,6 +255,8 @@ func TestLibraryPathMigrationBlocksMissingConflictingAndChangedFiles(t *testing.
 }
 
 func TestLibraryPathConfirmationRejectsStalePreviewAndScanRace(t *testing.T) {
+	t.Parallel()
+
 	f := newPathChangeFixture(t)
 	m := f.media(t, f.root, "电影.mkv", "old")
 	writePathChangeFile(t, f.newDir, "电影.mkv", "old")
@@ -274,6 +282,8 @@ func TestLibraryPathConfirmationRejectsStalePreviewAndScanRace(t *testing.T) {
 }
 
 func TestLibraryPathMigrationWithOfflineOldRootAndSTRMRemoteSize(t *testing.T) {
+	t.Parallel()
+
 	f := newPathChangeFixture(t)
 	// The old filesystem no longer exists, as happens after moving a native
 	// installation into Docker. Saved relative paths and metadata remain usable.
@@ -298,6 +308,8 @@ func TestLibraryPathMigrationWithOfflineOldRootAndSTRMRemoteSize(t *testing.T) {
 }
 
 func TestLibraryPathConfirmationRechecksFilesAndRunningScrapes(t *testing.T) {
+	t.Parallel()
+
 	f := newPathChangeFixture(t)
 	m := f.media(t, f.root, "电影.mkv", "old")
 	writePathChangeFile(t, f.newDir, "电影.mkv", "old")
@@ -317,6 +329,8 @@ func TestLibraryPathConfirmationRechecksFilesAndRunningScrapes(t *testing.T) {
 }
 
 func TestLibraryPathReplacementKeepsLegacyRecordsFromNestedSource(t *testing.T) {
+	t.Parallel()
+
 	f := newPathChangeFixture(t)
 	nested := filepath.Join(f.oldDir, "nested")
 	if err := os.Mkdir(nested, 0o755); err != nil {
@@ -341,6 +355,8 @@ func TestLibraryPathReplacementKeepsLegacyRecordsFromNestedSource(t *testing.T) 
 }
 
 func TestLibraryPathChangeRollsBackMediaAndRootTogether(t *testing.T) {
+	t.Parallel()
+
 	for _, mode := range []string{LibraryPathMigrate, LibraryPathReplace} {
 		t.Run(mode, func(t *testing.T) {
 			f := newPathChangeFixture(t)
@@ -380,6 +396,8 @@ func TestLibraryPathChangeRollsBackMediaAndRootTogether(t *testing.T) {
 }
 
 func TestLibraryPathReplacementRejectsForeignIndexInNewDirectory(t *testing.T) {
+	t.Parallel()
+
 	f := newPathChangeFixture(t)
 	if err := f.repos.DB.Create(&model.Media{LibraryID: "another-library", Path: filepath.Join(f.newDir, "foreign.mkv"), Title: "foreign"}).Error; err != nil {
 		t.Fatal(err)
@@ -391,6 +409,8 @@ func TestLibraryPathReplacementRejectsForeignIndexInNewDirectory(t *testing.T) {
 }
 
 func TestLibraryPathRelativePathsSupportBinaryMigration(t *testing.T) {
+	t.Parallel()
+
 	for _, tc := range []struct {
 		root, media, relative string
 		valid                 bool

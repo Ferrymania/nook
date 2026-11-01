@@ -12,6 +12,8 @@ import (
 )
 
 func TestEmbyItemsExposeSeriesSeasonEpisodeHierarchy(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "番剧", Path: `F:\downloads\日番`, Type: "anime", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
@@ -102,6 +104,8 @@ func TestEmbyItemsExposeSeriesSeasonEpisodeHierarchy(t *testing.T) {
 }
 
 func TestEmbySeriesGroupingPaginatesAfterFullLibraryGrouping(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "国漫", Path: `/media/anime`, Type: "anime", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
@@ -159,12 +163,16 @@ func TestEmbySeriesGroupingPaginatesAfterFullLibraryGrouping(t *testing.T) {
 }
 
 func TestEmbyLatestSeriesRowLimitCoversGroupedFixture(t *testing.T) {
+	t.Parallel()
+
 	if got := embyLatestSeriesRowLimit(25); got < 25*40 {
 		t.Fatalf("latest window %d is smaller than the 25x40 fixture", got)
 	}
 }
 
 func TestEmbyItemsKeepSpecialsInSeasonZero(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "番剧", Path: `F:\downloads\日番`, Type: "anime", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
@@ -218,6 +226,8 @@ func TestEmbyItemsKeepSpecialsInSeasonZero(t *testing.T) {
 }
 
 func TestEmbySeparatesOVAAndOADFromSeasonOne(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "动漫", Path: `/media/影视库/动漫`, Type: "anime", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
@@ -314,6 +324,8 @@ func TestEmbySeparatesOVAAndOADFromSeasonOne(t *testing.T) {
 }
 
 func TestEmbySeasonSortOrderMatchesWeb(t *testing.T) {
+	t.Parallel()
+
 	seasons := []int{
 		embySeasonNCED,
 		embySeasonOAD,
@@ -343,6 +355,8 @@ func TestEmbySeasonSortOrderMatchesWeb(t *testing.T) {
 }
 
 func TestEmbySeasonCandidatesCoverPersistedSpecialNumbers(t *testing.T) {
+	t.Parallel()
+
 	for _, persisted := range []int{0, -1} {
 		candidates := embySeasonCandidates(persisted)
 		found := map[int]bool{}
@@ -359,6 +373,8 @@ func TestEmbySeasonCandidatesCoverPersistedSpecialNumbers(t *testing.T) {
 }
 
 func TestEmbyEpisodeStillIsPrimaryImageNotArt(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "剧集", Path: `/media/tv`, Type: "tv", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
@@ -402,6 +418,8 @@ func TestEmbyEpisodeStillIsPrimaryImageNotArt(t *testing.T) {
 }
 
 func TestEmbyVirtualSeriesArtworkUsesListCache(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "番剧", Path: `/media/anime`, Type: "anime", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
@@ -446,6 +464,8 @@ func TestEmbyVirtualSeriesArtworkUsesListCache(t *testing.T) {
 }
 
 func TestEmbyVirtualSeriesArtworkRebuildsAfterMemoryDrop(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	svc.cache = NewRuntimeCacheService(nil)
 	lib := model.Library{Name: "番剧", Path: `/media/anime`, Type: "anime", Enabled: true}
@@ -511,6 +531,8 @@ func TestEmbyVirtualSeriesArtworkRebuildsAfterMemoryDrop(t *testing.T) {
 }
 
 func TestEmbyCloudAnimeUsesSeriesNameFromChineseSeasonFolder(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "OpenList · 国漫", Path: `cloud://openlist/国漫`, Type: "anime", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
@@ -550,6 +572,8 @@ func TestEmbyCloudAnimeUsesSeriesNameFromChineseSeasonFolder(t *testing.T) {
 }
 
 func TestEmbySeriesGroupingWithPrefixedSeasonFolders(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "动漫", Path: `/media/动漫`, Type: "anime", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
@@ -614,6 +638,8 @@ func TestEmbySeriesGroupingWithPrefixedSeasonFolders(t *testing.T) {
 }
 
 func TestInferSeriesNameFromPath(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		path string
 		want string
@@ -652,6 +678,8 @@ func TestInferSeriesNameFromPath(t *testing.T) {
 }
 
 func TestEmbySeriesSortByDateLastMediaAdded(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "测试剧库", Path: `/media/tv`, Type: "tv", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
@@ -729,6 +757,8 @@ func TestEmbySeriesSortByDateLastMediaAdded(t *testing.T) {
 }
 
 func TestEmbySeriesLibraryListUsesRuntimeCache(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	svc.cache = NewRuntimeCacheService(nil)
 	lib := model.Library{Name: "番剧", Path: `/media/anime`, Type: "anime", Enabled: true}

@@ -34,6 +34,8 @@ func newDeviceServiceForTest(t *testing.T) (*DeviceService, *repository.Containe
 
 // 移除个人通知后，设备记录和踢下线仍应可用。
 func TestDeviceServiceRecordsAndKicksDevices(t *testing.T) {
+	t.Parallel()
+
 	svc, _, userID := newDeviceServiceForTest(t)
 	svc.RecordLogin(context.Background(), userID, "dev-1", "Phone", "Infuse", "1.2.3.4")
 	devices, err := svc.ListDevices(t.Context(), userID)
@@ -49,6 +51,8 @@ func TestDeviceServiceRecordsAndKicksDevices(t *testing.T) {
 }
 
 func TestDeviceRenameDoesNotWarnOrDisable(t *testing.T) {
+	t.Parallel()
+
 	for _, warnings := range []int{0, 3} {
 		t.Run(fmt.Sprintf("historical_warnings_%d", warnings), func(t *testing.T) {
 			svc, repos, userID := newDeviceServiceForTest(t)
@@ -98,6 +102,8 @@ func TestDeviceRenameDoesNotWarnOrDisable(t *testing.T) {
 }
 
 func TestLoginDeviceLimitStillAppliesAfterRename(t *testing.T) {
+	t.Parallel()
+
 	svc, repos, userID := newDeviceServiceForTest(t)
 	ctx := t.Context()
 	// Record two terminals before enabling the device limit.
@@ -122,6 +128,8 @@ func TestLoginDeviceLimitStillAppliesAfterRename(t *testing.T) {
 }
 
 func TestConcurrentPlaybackLimitStillApplies(t *testing.T) {
+	t.Parallel()
+
 	for _, enabled := range []bool{false, true} {
 		t.Run(fmt.Sprintf("enabled_%v", enabled), func(t *testing.T) {
 			svc, repos, userID := newDeviceServiceForTest(t)
@@ -153,6 +161,8 @@ func TestConcurrentPlaybackLimitStillApplies(t *testing.T) {
 
 // 账号因设备策略被禁用时，管理员也必须收到告警。
 func TestPolicyDisableNotifiesAdmin(t *testing.T) {
+	t.Parallel()
+
 	svc, repos, userID := newDeviceServiceForTest(t)
 
 	// 启用防共享策略，设置最大并发客户端为 1

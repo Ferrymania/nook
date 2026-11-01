@@ -19,6 +19,8 @@ import (
 // 回归：挂载的远程 Emby 剧集里，只看了几秒就退出的那一集必须仍是 NextUp 的结果。
 // 客户端（Yamby 等）剧集详情页的「继续播放」直接取 NextUp 第一条，跳集会播错集。
 func TestMountedRemoteNextUpKeepsPartiallyWatchedEpisode(t *testing.T) {
+	t.Parallel()
+
 	episode := func(id string, index int) map[string]any {
 		return map[string]any{
 			"Id":                id,
@@ -135,6 +137,8 @@ func TestMountedRemoteNextUpKeepsPartiallyWatchedEpisode(t *testing.T) {
 
 // 远程剧集已看完当前一集时，NextUp 仍要指向下一集。
 func TestMountedRemoteNextUpAfterCompletedEpisode(t *testing.T) {
+	t.Parallel()
+
 	episode := func(id string, index int) map[string]any {
 		return map[string]any{
 			"Id":                id,

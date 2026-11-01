@@ -39,6 +39,8 @@ func newAuthTestServices(t *testing.T) (*repository.Container, *AuthService, *Pr
 }
 
 func TestRegisterRejectsMoreThanTwentyUsers(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	repos, auth, _, _ := newAuthTestServices(t)
 	for i := 0; i < MaxUsers; i++ {
@@ -59,6 +61,8 @@ func TestRegisterRejectsMoreThanTwentyUsers(t *testing.T) {
 }
 
 func TestRegisterDefaultsAdultLibrariesHidden(t *testing.T) {
+	t.Parallel()
+
 	_, auth, _, _ := newAuthTestServices(t)
 	user, _, err := auth.Register(context.Background(), "viewer", "password")
 	if err != nil {
@@ -70,6 +74,8 @@ func TestRegisterDefaultsAdultLibrariesHidden(t *testing.T) {
 }
 
 func TestDeletedUserCanBeRecreatedWithSameUsername(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	repos, auth, _, _ := newAuthTestServices(t)
 	user, _, err := auth.Register(ctx, "viewer", "old-password")
@@ -93,6 +99,8 @@ func TestDeletedUserCanBeRecreatedWithSameUsername(t *testing.T) {
 }
 
 func TestRegisterReleasesLegacySoftDeletedUsername(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	repos, auth, _, _ := newAuthTestServices(t)
 	if err := repos.User.Create(ctx, &model.User{
@@ -117,6 +125,8 @@ func TestRegisterReleasesLegacySoftDeletedUsername(t *testing.T) {
 }
 
 func TestAdminResetPasswordAllowsLoginWithNewPassword(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	_, auth, _, _ := newAuthTestServices(t)
 	user, _, err := auth.Register(ctx, "viewer", "old-password")
@@ -136,6 +146,8 @@ func TestAdminResetPasswordAllowsLoginWithNewPassword(t *testing.T) {
 }
 
 func TestLoginAcceptsUsernameCaseVariant(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	_, auth, _, _ := newAuthTestServices(t)
 	if _, _, err := auth.Register(ctx, "viewer", "password"); err != nil {
@@ -147,6 +159,8 @@ func TestLoginAcceptsUsernameCaseVariant(t *testing.T) {
 }
 
 func TestLoginKeepsOnlyConfiguredActiveRefreshTokens(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	repos, auth, _, _ := newAuthTestServices(t)
 	user, _, err := auth.Register(ctx, "viewer", "password")
@@ -175,6 +189,8 @@ func TestLoginKeepsOnlyConfiguredActiveRefreshTokens(t *testing.T) {
 }
 
 func TestLoginRetriesTransientRowLock(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	cfg := &config.Config{}
 	cfg.App.DataDir = t.TempDir()
@@ -233,6 +249,8 @@ func TestLoginRetriesTransientRowLock(t *testing.T) {
 }
 
 func TestLoginSurvivesOneReservedPostgresConnection(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	cfg := &config.Config{}
 	cfg.App.DataDir = t.TempDir()
@@ -283,6 +301,8 @@ func TestLoginSurvivesOneReservedPostgresConnection(t *testing.T) {
 }
 
 func TestLoginReturnsTokensWhenPostgresRowLockPersists(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	cfg := &config.Config{}
 	cfg.App.DataDir = t.TempDir()
@@ -353,6 +373,8 @@ func TestLoginReturnsTokensWhenPostgresRowLockPersists(t *testing.T) {
 }
 
 func TestDefaultPermissionsAreViewerOnly(t *testing.T) {
+	t.Parallel()
+
 	perms := DefaultPermissions("user-1")
 	if !perms.CanViewDashboard || !perms.CanPlayMedia || !perms.CanExternalPlayer {
 		t.Fatal("viewer defaults must allow library viewing, playback, and external players")
@@ -365,6 +387,8 @@ func TestDefaultPermissionsAreViewerOnly(t *testing.T) {
 }
 
 func TestAdminEffectivePermissionsAreAllGranted(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	repos, _, _, permissions := newAuthTestServices(t)
 	admin := &model.User{Username: "admin", PasswordHash: "hash", Role: "admin", Tier: "plus"}
@@ -383,6 +407,8 @@ func TestAdminEffectivePermissionsAreAllGranted(t *testing.T) {
 }
 
 func TestDefaultAdminCannotBeDemoted(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 	repos, _, profile, _ := newAuthTestServices(t)
 	admin := &model.User{Username: "admin", PasswordHash: "hash", Role: "admin", Tier: "plus"}
@@ -401,6 +427,8 @@ func TestDefaultAdminCannotBeDemoted(t *testing.T) {
 // so a short token caused them to drop login / fail playback hourly), parses
 // with the JWT secret, and carries the user's identity/role/tier.
 func TestIssueEmbyTokenIsLongLived(t *testing.T) {
+	t.Parallel()
+
 	_, auth, _, _ := newAuthTestServices(t)
 	u := &model.User{Base: model.Base{ID: "u-emby"}, Username: "emby", Role: "user", Tier: "plus"}
 

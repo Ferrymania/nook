@@ -124,6 +124,8 @@ func telegramLocalSyncPath(t *testing.T, f *telegramControlFixture, name string)
 }
 
 func TestTelegramLegacyBindCommandsIgnored(t *testing.T) {
+	t.Parallel()
+
 	f := newTelegramControlFixture(t)
 	for _, command := range []string{"/bind ABCDEF", "/bind@NookBot ABCDEF"} {
 		for _, chatID := range []int64{9, testTelegramAdminID} {
@@ -138,6 +140,8 @@ func TestTelegramLegacyBindCommandsIgnored(t *testing.T) {
 }
 
 func TestTelegramStartOnlyExplainsAdminSetup(t *testing.T) {
+	t.Parallel()
+
 	f := newTelegramControlFixture(t)
 	update := telegramAdminMessage("/start")
 	update.Message.Chat.ID, update.Message.From.ID = 9, 9
@@ -156,6 +160,8 @@ func TestTelegramStartOnlyExplainsAdminSetup(t *testing.T) {
 }
 
 func TestTelegramControlRejectsUntrustedChatsAndRevokedConfig(t *testing.T) {
+	t.Parallel()
+
 	for _, test := range []string{"other-user", "forged-sender", "group", "disabled", "new-token", "group-admin-id"} {
 		t.Run(test, func(t *testing.T) {
 			f := newTelegramControlFixture(t)
@@ -193,6 +199,8 @@ func TestTelegramControlRejectsUntrustedChatsAndRevokedConfig(t *testing.T) {
 }
 
 func TestTelegramAdminMenuRegistrationIsScopedAndRotates(t *testing.T) {
+	t.Parallel()
+
 	f := newTelegramControlFixture(t)
 	cfg := f.bot.config(t.Context())
 	if err := f.bot.registerAdminCommands(t.Context(), cfg, "old-token", "654321"); err != nil {
@@ -220,6 +228,8 @@ func TestTelegramAdminMenuRegistrationIsScopedAndRotates(t *testing.T) {
 }
 
 func TestTelegramDirectoryButtonsPaginateAndRecheckDisabledPaths(t *testing.T) {
+	t.Parallel()
+
 	f := newTelegramControlFixture(t)
 	var last *model.StrmSyncPath
 	for i := 0; i < 10; i++ {
@@ -248,6 +258,8 @@ func TestTelegramDirectoryButtonsPaginateAndRecheckDisabledPaths(t *testing.T) {
 }
 
 func TestTelegramIncrementalSyncUsesRealEngineAndReportsResults(t *testing.T) {
+	t.Parallel()
+
 	f := newTelegramControlFixture(t)
 	a := telegramLocalSyncPath(t, f, "电影&lt;&gt;")
 	b := telegramLocalSyncPath(t, f, "电视剧")
@@ -287,6 +299,8 @@ func TestTelegramIncrementalSyncUsesRealEngineAndReportsResults(t *testing.T) {
 }
 
 func TestTelegramCancelBatchStopsRunningDirectoryAndPendingOnes(t *testing.T) {
+	t.Parallel()
+
 	f := newTelegramControlFixture(t)
 	queued := telegramLocalSyncPath(t, f, "待执行")
 	entered := make(chan struct{}, 1)
@@ -336,6 +350,8 @@ func TestTelegramCancelBatchStopsRunningDirectoryAndPendingOnes(t *testing.T) {
 }
 
 func TestTelegramPollingDropsBacklogAndRequestsCallbacks(t *testing.T) {
+	t.Parallel()
+
 	f := newTelegramControlFixture(t)
 	telegramLocalSyncPath(t, f, "电影")
 	ctx, cancel := context.WithCancel(t.Context())
@@ -391,6 +407,8 @@ func TestTelegramPollingDropsBacklogAndRequestsCallbacks(t *testing.T) {
 }
 
 func TestTelegramReplyRevocationAndFailureEscaping(t *testing.T) {
+	t.Parallel()
+
 	f := newTelegramControlFixture(t)
 	text := telegramSyncResult(model.StrmSyncPath{Name: "<电影>"}, model.StrmSyncRecord{Status: model.StrmSyncRecordFailed, Message: "api_key=secret <bad>"})
 	if strings.Contains(text, "secret") || strings.Contains(text, "<bad>") || !strings.Contains(text, "&lt;电影&gt;") {
@@ -411,6 +429,8 @@ func TestTelegramReplyRevocationAndFailureEscaping(t *testing.T) {
 }
 
 func TestTelegramBatchContinuesPastFailedAndAlreadyRunningDirectories(t *testing.T) {
+	t.Parallel()
+
 	f := newTelegramControlFixture(t)
 	good := telegramLocalSyncPath(t, f, "可同步目录")
 	bad := telegramLocalSyncPath(t, f, "错误源目录")

@@ -11,6 +11,8 @@ import (
 )
 
 func TestMediaSidecarBaseIgnoresKeepExt(t *testing.T) {
+	t.Parallel()
+
 	cases := map[string]string{
 		"/media/竞女01.mkv.strm":        "竞女01",
 		"/media/竞女01.mp4.strm":        "竞女01",
@@ -27,6 +29,8 @@ func TestMediaSidecarBaseIgnoresKeepExt(t *testing.T) {
 }
 
 func TestNFOPathUsesSharedStemForKeepExt(t *testing.T) {
+	t.Parallel()
+
 	got := nfoPath("/strm/竞女01.mkv.strm")
 	want := filepath.Join("/strm", "竞女01.nfo")
 	if got != want {
@@ -38,6 +42,8 @@ func TestNFOPathUsesSharedStemForKeepExt(t *testing.T) {
 }
 
 func TestFindMovieNFOMatchesSharedStemBesideKeepExtStrm(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	media := filepath.Join(dir, "竞女01.mkv.strm")
 	nfo := filepath.Join(dir, "竞女01.nfo")
@@ -57,6 +63,8 @@ func TestFindMovieNFOMatchesSharedStemBesideKeepExtStrm(t *testing.T) {
 }
 
 func TestLocalPosterCandidatesIncludeSharedStem(t *testing.T) {
+	t.Parallel()
+
 	cands := localPosterCandidates("/strm/竞女01.mkv.strm")
 	found := false
 	for _, name := range cands {
@@ -71,6 +79,8 @@ func TestLocalPosterCandidatesIncludeSharedStem(t *testing.T) {
 }
 
 func TestSubtitleDiscoveryMatchesSharedStemBesideKeepExt(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	mediaPath := filepath.Join(dir, "竞女01.mkv.strm")
 	subPath := filepath.Join(dir, "竞女01.zh.srt")

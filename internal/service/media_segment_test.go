@@ -38,6 +38,8 @@ func writeJSONBody(body string) http.HandlerFunc {
 // 剧集必须用「剧集级」TMDb id 查询，而 Media.TMDbID 存的是单集自己的 id：
 // 刮削写的是 episode 的 tmdb id（见 local_metadata_test.go 的约束）。
 func TestQueryIDsUsesSeriesTMDbForEpisodes(t *testing.T) {
+	t.Parallel()
+
 	repos := repository.New(newServiceTestDB(t))
 	svc := NewMediaSegmentService(zap.NewNop(), repos)
 	ctx := t.Context()
@@ -64,6 +66,8 @@ func TestQueryIDsUsesSeriesTMDbForEpisodes(t *testing.T) {
 }
 
 func TestQueryIDsForMovieUsesOwnTMDb(t *testing.T) {
+	t.Parallel()
+
 	repos := repository.New(newServiceTestDB(t))
 	svc := NewMediaSegmentService(zap.NewNop(), repos)
 
@@ -76,6 +80,8 @@ func TestQueryIDsForMovieUsesOwnTMDb(t *testing.T) {
 }
 
 func TestQueryIDsIsNotResolvableBeforeScrape(t *testing.T) {
+	t.Parallel()
+
 	repos := repository.New(newServiceTestDB(t))
 	svc := NewMediaSegmentService(zap.NewNop(), repos)
 	ctx := t.Context()
@@ -96,6 +102,8 @@ func TestQueryIDsIsNotResolvableBeforeScrape(t *testing.T) {
 // TMDb id 直接写在 Media.TMDbID 上：同一剧名下各集共用同一个 id。
 // 原先这类行一律解析不出 id，整个动漫库等于查不到任何片段。
 func TestQueryIDsFallsBackToMediaTMDbWhenSiblingsShareIt(t *testing.T) {
+	t.Parallel()
+
 	repos := repository.New(newServiceTestDB(t))
 	svc := NewMediaSegmentService(zap.NewNop(), repos)
 	ctx := t.Context()
@@ -119,6 +127,8 @@ func TestQueryIDsFallsBackToMediaTMDbWhenSiblingsShareIt(t *testing.T) {
 // 反例（重要）：另一些刮削路径把「单集自己的」id 写在 Media.TMDbID 上，
 // 每集都不同。这种 id 不能当剧集 id 用——拿它去查会命中完全不相干的片子。
 func TestQueryIDsRejectsPerEpisodeTMDbWithoutSiblings(t *testing.T) {
+	t.Parallel()
+
 	repos := repository.New(newServiceTestDB(t))
 	svc := NewMediaSegmentService(zap.NewNop(), repos)
 	ctx := t.Context()
@@ -140,6 +150,8 @@ func TestQueryIDsRejectsPerEpisodeTMDbWithoutSiblings(t *testing.T) {
 
 // Series 行存在时永远优先，哪怕 Media.TMDbID 看起来也像个共用 id。
 func TestQueryIDsPrefersSeriesTMDbOverSharedMediaTMDb(t *testing.T) {
+	t.Parallel()
+
 	repos := repository.New(newServiceTestDB(t))
 	svc := NewMediaSegmentService(zap.NewNop(), repos)
 	ctx := t.Context()
@@ -166,6 +178,8 @@ func TestQueryIDsPrefersSeriesTMDbOverSharedMediaTMDb(t *testing.T) {
 
 // 关联了 Series 但那条 Series 没刮到 id 时，仍然走 Media.TMDbID 兜底。
 func TestQueryIDsFallsBackWhenSeriesHasNoTMDb(t *testing.T) {
+	t.Parallel()
+
 	repos := repository.New(newServiceTestDB(t))
 	svc := NewMediaSegmentService(zap.NewNop(), repos)
 	ctx := t.Context()
@@ -191,6 +205,8 @@ func TestQueryIDsFallsBackWhenSeriesHasNoTMDb(t *testing.T) {
 }
 
 func TestListForPlaybackQueriesEpisodesWithSharedSeriesTMDb(t *testing.T) {
+	t.Parallel()
+
 	svc, repos, calls := newSegmentServiceFixture(t, writeJSONBody(introDBTVPayload))
 	ctx := t.Context()
 	episodes := []*model.Media{
@@ -218,6 +234,8 @@ func TestListForPlaybackQueriesEpisodesWithSharedSeriesTMDb(t *testing.T) {
 }
 
 func TestListForPlaybackFetchesOnceThenServesCache(t *testing.T) {
+	t.Parallel()
+
 	svc, repos, calls := newSegmentServiceFixture(t, writeJSONBody(introDBMoviePayload))
 	ctx := t.Context()
 	m := &model.Media{Base: model.Base{ID: "mv-1"}, Path: "/movies/inception.mkv", TMDbID: 27205}
@@ -250,6 +268,8 @@ func TestListForPlaybackFetchesOnceThenServesCache(t *testing.T) {
 }
 
 func TestListForPlaybackCachesMisses(t *testing.T) {
+	t.Parallel()
+
 	svc, repos, calls := newSegmentServiceFixture(t, func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	})
@@ -282,6 +302,8 @@ func TestListForPlaybackCachesMisses(t *testing.T) {
 }
 
 func TestListForPlaybackSkipsProviderWithoutExternalID(t *testing.T) {
+	t.Parallel()
+
 	svc, repos, calls := newSegmentServiceFixture(t, writeJSONBody(introDBMoviePayload))
 	ctx := t.Context()
 	m := &model.Media{Base: model.Base{ID: "mv-3"}, Path: "/movies/unscraped.mkv"}
@@ -306,6 +328,8 @@ func TestListForPlaybackSkipsProviderWithoutExternalID(t *testing.T) {
 }
 
 func TestListForPlaybackKeepsCacheWhenProviderFails(t *testing.T) {
+	t.Parallel()
+
 	var calls int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		if atomic.AddInt32(&calls, 1) == 1 {
@@ -345,6 +369,8 @@ func TestListForPlaybackKeepsCacheWhenProviderFails(t *testing.T) {
 }
 
 func TestListForPlaybackRespectsCallerDeadline(t *testing.T) {
+	t.Parallel()
+
 	// 第三方客户端（Emby）会在起播路径上同步请求片段，它给的超时必须生效，
 	// 不能被一次外网抓取拖住；同时超时不能变成「负缓存」，否则就再也补不上了。
 	svc, repos, calls := newSegmentServiceFixture(t, func(w http.ResponseWriter, _ *http.Request) {
@@ -386,6 +412,8 @@ func TestListForPlaybackRespectsCallerDeadline(t *testing.T) {
 }
 
 func TestPreferSegmentsBySourcePrefersManualThenIntroDBThenPropagated(t *testing.T) {
+	t.Parallel()
+
 	rows := []model.MediaSegment{
 		{Kind: model.SegmentKindIntro, StartMs: 1, EndMs: 2, Source: SegmentSourcePropagated},
 		{Kind: model.SegmentKindIntro, StartMs: 10, EndMs: 20, Source: IntroDBSource},
@@ -406,6 +434,8 @@ func TestPreferSegmentsBySourcePrefersManualThenIntroDBThenPropagated(t *testing
 }
 
 func TestListForPlaybackPropagatesIntroToSeasonSiblings(t *testing.T) {
+	t.Parallel()
+
 	svc, repos, _ := newSegmentServiceFixture(t, writeJSONBody(introDBTVPayload))
 	svc.SetPrewarmGap(0)
 	ctx := t.Context()
@@ -456,6 +486,8 @@ func TestListForPlaybackPropagatesIntroToSeasonSiblings(t *testing.T) {
 }
 
 func TestPrewarmFetchesStaleMissesPreferringRecentPlays(t *testing.T) {
+	t.Parallel()
+
 	svc, repos, calls := newSegmentServiceFixture(t, writeJSONBody(introDBMoviePayload))
 	svc.SetPrewarmGap(0)
 	ctx := t.Context()
@@ -503,6 +535,8 @@ func TestPrewarmFetchesStaleMissesPreferringRecentPlays(t *testing.T) {
 }
 
 func TestLedgerFreshUsesLongerTTLWhenDataWasFound(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	found := &model.MediaSegmentFetch{FetchedAt: now.Add(-segmentMissingTTL), Found: true}
 	if !ledgerFresh(found) {

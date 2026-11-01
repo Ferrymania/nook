@@ -8,6 +8,8 @@ import (
 )
 
 func TestNFOGenresStaySeparateFromTagsAndStudios(t *testing.T) {
+	t.Parallel()
+
 	for _, kind := range []string{"movie", "tvshow", "episodedetails"} {
 		t.Run(kind, func(t *testing.T) {
 			root := t.TempDir()
@@ -34,6 +36,8 @@ func TestNFOGenresStaySeparateFromTagsAndStudios(t *testing.T) {
 }
 
 func TestSeriesEpisodeGenreFallbackIgnoresShowTags(t *testing.T) {
+	t.Parallel()
+
 	root := t.TempDir()
 	path := filepath.Join(root, "show-S01E01.mkv")
 	if err := os.WriteFile(filepath.Join(root, "tvshow.nfo"), []byte(`<tvshow><title>整剧</title><tag>整剧标签</tag><studio>片商</studio></tvshow>`), 0o600); err != nil {
@@ -49,6 +53,8 @@ func TestSeriesEpisodeGenreFallbackIgnoresShowTags(t *testing.T) {
 }
 
 func TestCountGenresCountsEachMediaOnce(t *testing.T) {
+	t.Parallel()
+
 	got := countGenres([]string{"Action，action;剧情、剧情,我的类型", "action；我的类型", "", "Drama"})
 	if len(got) != 3 || findGenre(got, "动作") != 2 || findGenre(got, "剧情") != 2 || findGenre(got, "我的类型") != 2 {
 		t.Fatalf("genres = %+v", got)
@@ -56,6 +62,8 @@ func TestCountGenresCountsEachMediaOnce(t *testing.T) {
 }
 
 func TestGenreCountsExposeKnownAliases(t *testing.T) {
+	t.Parallel()
+
 	got := countGenres([]string{"27,Horror,恐怖", "27", "MY Genre,my genre"})
 	if len(got) != 2 || findGenre(got, "恐怖") != 2 || findGenre(got, "MY Genre") != 1 {
 		t.Fatalf("genres = %+v", got)

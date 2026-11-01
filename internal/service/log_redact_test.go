@@ -8,6 +8,8 @@ import (
 )
 
 func TestRedactSensitiveURL(t *testing.T) {
+	t.Parallel()
+
 	raw := "https://user:secret@media.example/emby/Items/1/Images/primary?api_key=abc123&X-Emby-Token=xyz&X-Amz-Signature=sig123&quality=90"
 	got := redactSensitiveURL(raw)
 	for _, secret := range []string{"secret", "abc123", "xyz", "sig123"} {
@@ -21,6 +23,8 @@ func TestRedactSensitiveURL(t *testing.T) {
 }
 
 func TestRedactSensitiveTextCoversJSONAndHeaders(t *testing.T) {
+	t.Parallel()
+
 	raw := `{"AccessToken":"json-token","quality":"90"} Authorization: Bearer bearer-token; X-Emby-Token=header-token`
 	got := redactSensitiveText(raw)
 	for _, secret := range []string{"json-token", "bearer-token", "header-token"} {
@@ -34,6 +38,8 @@ func TestRedactSensitiveTextCoversJSONAndHeaders(t *testing.T) {
 }
 
 func TestRedactSensitiveErrorPreservesWrapping(t *testing.T) {
+	t.Parallel()
+
 	base := errors.New(`Get "https://media.example/item?token=secret&quality=90": context canceled`)
 	err := redactSensitiveError(context.Canceled)
 	if !errors.Is(err, context.Canceled) {

@@ -3,6 +3,8 @@ package service
 import "testing"
 
 func TestParseEpisode(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		in           string
 		wantS, wantE int
@@ -56,6 +58,8 @@ func TestParseEpisode(t *testing.T) {
 }
 
 func TestEpisodeRefsFromTitleParsesRanges(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		want []episodeRef
@@ -83,6 +87,8 @@ func TestEpisodeRefsFromTitleParsesRanges(t *testing.T) {
 }
 
 func TestOnlineEpisodeIdentityFromPathMapsAnimeEpisodeZeroToSpecials(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		path        string
 		wantSeason  int
@@ -103,6 +109,8 @@ func TestOnlineEpisodeIdentityFromPathMapsAnimeEpisodeZeroToSpecials(t *testing.
 }
 
 func TestResolutionEpisodeArtifact(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		path        string
 		wantSeason  int
@@ -124,6 +132,8 @@ func TestResolutionEpisodeArtifact(t *testing.T) {
 }
 
 func TestDropResolutionArtifactEpisodeIdentity(t *testing.T) {
+	t.Parallel()
+
 	// 分辨率伪集号被剔除，并从生成的「第 N 集」标题里清掉。
 	polluted := &LocalMetadata{SeasonNum: 20, EpisodeNum: 108, EpisodeTitle: "第 108 集"}
 	dropResolutionArtifactEpisodeIdentity(polluted, "[G][Show][01][BDRIP 1920x1080 x].strm")
@@ -156,6 +166,8 @@ func TestDropResolutionArtifactEpisodeIdentity(t *testing.T) {
 // S01E11.5 这类「半集」要保留小数部分，才能和真正的第 11 集区分开；
 // 同时不能把 S01E11.1080p / S01E05.10bit 这类分辨率、位深读成小数集号。
 func TestParseEpisodePartsReadsHalfEpisodes(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name         string
 		path         string
@@ -189,6 +201,8 @@ func TestParseEpisodePartsReadsHalfEpisodes(t *testing.T) {
 }
 
 func TestOnlineEpisodeFractionFromPath(t *testing.T) {
+	t.Parallel()
+
 	if got := onlineEpisodeFractionFromPath(`动漫/三月的狮子/3月的狮子 S01E11.5.mkv.strm`); got != 0.5 {
 		t.Fatalf("half episode fraction = %v, want 0.5", got)
 	}
@@ -202,6 +216,8 @@ func TestOnlineEpisodeFractionFromPath(t *testing.T) {
 }
 
 func TestFormatEpisodeNumber(t *testing.T) {
+	t.Parallel()
+
 	if got := FormatEpisodeNumber(11, 0.5); got != "11.5" {
 		t.Fatalf("FormatEpisodeNumber(11, 0.5) = %q, want 11.5", got)
 	}

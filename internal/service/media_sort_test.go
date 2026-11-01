@@ -8,6 +8,8 @@ import (
 )
 
 func TestSortMediaItemsTitleAscEmptyLast(t *testing.T) {
+	t.Parallel()
+
 	items := []MediaItem{
 		{Media: model.Media{Base: model.Base{ID: "b"}, Title: "Beta"}},
 		{Media: model.Media{Base: model.Base{ID: "empty"}}},
@@ -20,6 +22,8 @@ func TestSortMediaItemsTitleAscEmptyLast(t *testing.T) {
 }
 
 func TestSortMediaItemsReleaseDescEmptyLast(t *testing.T) {
+	t.Parallel()
+
 	items := []MediaItem{
 		{Media: model.Media{Base: model.Base{ID: "old"}, ReleaseDate: "2020-01-01"}},
 		{Media: model.Media{Base: model.Base{ID: "empty"}}},
@@ -32,6 +36,8 @@ func TestSortMediaItemsReleaseDescEmptyLast(t *testing.T) {
 }
 
 func TestSortSeriesCardsTitleAsc(t *testing.T) {
+	t.Parallel()
+
 	cards := []SeriesCard{
 		{Key: "b", Rep: model.Media{Base: model.Base{ID: "b"}, Title: "Beta"}},
 		{Key: "a", Rep: model.Media{Base: model.Base{ID: "a"}, Title: "alpha"}},
@@ -43,6 +49,8 @@ func TestSortSeriesCardsTitleAsc(t *testing.T) {
 }
 
 func TestSortSeriesCardsUpdatedAtDoesNotFallbackToMediaDate(t *testing.T) {
+	t.Parallel()
+
 	olderMediaDate := time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC)
 	newerMediaDate := time.Date(2025, time.January, 1, 0, 0, 0, 0, time.UTC)
 	cards := []SeriesCard{
@@ -71,6 +79,8 @@ func TestSortSeriesCardsUpdatedAtDoesNotFallbackToMediaDate(t *testing.T) {
 }
 
 func TestSortSeriesCardsUpdatedAtSortsKnownLastEpisodeDates(t *testing.T) {
+	t.Parallel()
+
 	older := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
 	newer := time.Date(2025, time.January, 1, 0, 0, 0, 0, time.UTC)
 	cards := []SeriesCard{

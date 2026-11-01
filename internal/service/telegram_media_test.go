@@ -103,6 +103,8 @@ func (f *telegramMediaFixture) step(t *testing.T, now time.Time) bool {
 }
 
 func TestTelegramMediaOnlyNewRowsAndDurableCursor(t *testing.T) {
+	t.Parallel()
+
 	f := newTelegramMediaFixture(t)
 	f.baseline(t)
 	if f.step(t, f.now) || len(f.snapshot()) != 0 {
@@ -135,6 +137,8 @@ func TestTelegramMediaOnlyNewRowsAndDurableCursor(t *testing.T) {
 }
 
 func TestTelegramMediaWaitsForMetadataAndFallsBackAfterDeadline(t *testing.T) {
+	t.Parallel()
+
 	f := newTelegramMediaFixture(t)
 	f.baseline(t)
 	m := f.add(t, "pending", "pending", f.now.Add(-time.Minute))
@@ -157,6 +161,8 @@ func TestTelegramMediaWaitsForMetadataAndFallsBackAfterDeadline(t *testing.T) {
 }
 
 func TestTelegramMediaDisabledAndRecipientChangesSkipBacklog(t *testing.T) {
+	t.Parallel()
+
 	f := newTelegramMediaFixture(t)
 	f.baseline(t)
 	f.add(t, "disabled", "matched", f.now.Add(-time.Minute))
@@ -186,6 +192,8 @@ func TestTelegramMediaDisabledAndRecipientChangesSkipBacklog(t *testing.T) {
 }
 
 func TestTelegramMediaSendFailureKeepsCheckpoint(t *testing.T) {
+	t.Parallel()
+
 	f := newTelegramMediaFixture(t)
 	f.baseline(t)
 	f.add(t, "retry", "matched", f.now.Add(-time.Minute))
@@ -205,6 +213,8 @@ func TestTelegramMediaSendFailureKeepsCheckpoint(t *testing.T) {
 }
 
 func TestTelegramMediaPhotoAndTextFallback(t *testing.T) {
+	t.Parallel()
+
 	for _, photoStatus := range []int{200, 400, 429, 503} {
 		t.Run(http.StatusText(photoStatus), func(t *testing.T) {
 			f := newTelegramMediaFixture(t)
@@ -248,6 +258,8 @@ func TestTelegramMediaPhotoAndTextFallback(t *testing.T) {
 }
 
 func TestTelegramMediaRecipientChangeDuringPreparationDoesNotSend(t *testing.T) {
+	t.Parallel()
+
 	f := newTelegramMediaFixture(t)
 	f.baseline(t)
 	f.add(t, "changing-recipient", "matched", f.now.Add(-time.Minute))
@@ -280,6 +292,8 @@ func (f *telegramMediaFixture) setPhotoStatus(status int) {
 }
 
 func TestTelegramMediaDatabaseOperationsHaveBoundedContexts(t *testing.T) {
+	t.Parallel()
+
 	f := newTelegramMediaFixture(t)
 	interrupted := errors.New("stop before database query")
 	var remaining time.Duration
@@ -328,6 +342,8 @@ func (f *telegramMediaFixture) addEpisode(t *testing.T, id, series string, episo
 }
 
 func TestTelegramMediaGroupsInterleavedEpisodesAcrossRestart(t *testing.T) {
+	t.Parallel()
+
 	f := newTelegramMediaFixture(t)
 	f.baseline(t)
 	when := f.now.Add(-time.Minute)
@@ -370,6 +386,8 @@ func TestTelegramMediaGroupsInterleavedEpisodesAcrossRestart(t *testing.T) {
 }
 
 func TestTelegramMediaGroupQuietTimeAndLaterBatch(t *testing.T) {
+	t.Parallel()
+
 	f := newTelegramMediaFixture(t)
 	f.baseline(t)
 	f.addEpisode(t, "first", "series", 11, f.now.Add(-20*time.Second))
@@ -399,6 +417,8 @@ func TestTelegramMediaGroupQuietTimeAndLaterBatch(t *testing.T) {
 }
 
 func TestTelegramMediaGroupFailureDoesNotAcknowledgeEpisodes(t *testing.T) {
+	t.Parallel()
+
 	f := newTelegramMediaFixture(t)
 	f.baseline(t)
 	when := f.now.Add(-time.Minute)

@@ -47,6 +47,8 @@ func testRemoteImageConfig() *EmbyRemoteConfig {
 // TestMapRemoteItemToMediaCarriesImageTags 下发的图片 URL 必须带上远端图片
 // 标签，否则远端换图后磁盘/客户端缓存永远不会失效。
 func TestMapRemoteItemToMediaCarriesImageTags(t *testing.T) {
+	t.Parallel()
+
 	svc, mount, acct := newImageTagTestService(t)
 
 	media := svc.MapRemoteItemToMedia(t.Context(), mount, acct, testRemoteImageConfig(), map[string]any{
@@ -70,6 +72,8 @@ func TestMapRemoteItemToMediaCarriesImageTags(t *testing.T) {
 // TestMapRemoteItemToMediaCarriesImageTagsAfterRewrite 载荷先经过 ID 伪装
 // （tag 变成 embyremote~...~tag）时仍要还原出原始 tag。
 func TestMapRemoteItemToMediaCarriesImageTagsAfterRewrite(t *testing.T) {
+	t.Parallel()
+
 	svc, mount, acct := newImageTagTestService(t)
 
 	item := map[string]any{
@@ -94,6 +98,8 @@ func TestMapRemoteItemToMediaCarriesImageTagsAfterRewrite(t *testing.T) {
 // TestRemoteImageURLCacheKeyFollowsImageTag 远端换图（tag 变化）后，图片 URL
 // 必须随之变化，缓存键才会失效。
 func TestRemoteImageURLCacheKeyFollowsImageTag(t *testing.T) {
+	t.Parallel()
+
 	svc, mount, acct := newImageTagTestService(t)
 
 	first := svc.MapRemoteItemToMedia(t.Context(), mount, acct, testRemoteImageConfig(), map[string]any{
@@ -120,6 +126,8 @@ func TestRemoteImageURLCacheKeyFollowsImageTag(t *testing.T) {
 // TestMapRemoteItemToMediaWithoutImageTagsKeepsURLTagFree 没有标签时保持原样
 // （不追加空 tag 参数）。
 func TestMapRemoteItemToMediaWithoutImageTagsKeepsURLTagFree(t *testing.T) {
+	t.Parallel()
+
 	svc, mount, acct := newImageTagTestService(t)
 
 	media := svc.MapRemoteItemToMedia(t.Context(), mount, acct, testRemoteImageConfig(), map[string]any{
@@ -151,6 +159,8 @@ func TestMapRemoteItemToMediaWithoutImageTagsKeepsURLTagFree(t *testing.T) {
 // TestRemoteImageURLIncludesRememberedTag 兼容层（/emby/Items/{id}/Images/...）
 // 复用同一份标签映射。
 func TestRemoteImageURLIncludesRememberedTag(t *testing.T) {
+	t.Parallel()
+
 	svc, mount, acct := newImageTagTestService(t)
 
 	svc.rememberRemoteImageTags(acct.ID, map[string]any{

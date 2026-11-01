@@ -10,6 +10,8 @@ import (
 // 小幻影视（RodelPlayer）2.2610 会把电影条目的 "SeasonId": "" 原样传进播放准备
 // 逻辑并抛 ArgumentException（Parameter 'seasonId'），导致整个起播失败。
 func TestEmbyMovieItemOmitsEmptySeasonAndSeriesFields(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "小姐姐", Path: `/media/小姐姐`, Type: "movie", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
@@ -40,6 +42,8 @@ func TestEmbyMovieItemOmitsEmptySeasonAndSeriesFields(t *testing.T) {
 
 // 剧集的季/剧归属是真实存在的，不能被一起删掉。
 func TestEmbyEpisodeItemKeepsSeasonAndSeriesFields(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "剧集", Path: `/media/tv`, Type: "tv", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
@@ -70,6 +74,8 @@ func TestEmbyEpisodeItemKeepsSeasonAndSeriesFields(t *testing.T) {
 }
 
 func TestDropEmptyStringFields(t *testing.T) {
+	t.Parallel()
+
 	item := map[string]any{
 		"SeasonId":    "",
 		"SeriesId":    "   ",

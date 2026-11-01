@@ -21,6 +21,8 @@ func newTokenTestRepo(t *testing.T) *repository.Container {
 // 落库的 refresh token（仍在后台补写队列中）在刷新时被接受，而不是把用户
 // 踢回登录页（历史上「经常登录报错」的来源之一）。
 func TestRefreshAcceptsPendingDelayedToken(t *testing.T) {
+	t.Parallel()
+
 	repos := newTokenTestRepo(t)
 	cfg := &config.Config{}
 	cfg.Secrets.JWTSecret = "test-secret"
@@ -62,6 +64,8 @@ func TestRefreshAcceptsPendingDelayedToken(t *testing.T) {
 // TestRefreshRejectsRotatedTokenAfterGraceWindow 验证宽限期结束后，
 // 旧令牌仍按已撤销处理（token 复用检测语义不变）。
 func TestRefreshRejectsRotatedTokenAfterGraceWindow(t *testing.T) {
+	t.Parallel()
+
 	repos := newTokenTestRepo(t)
 	cfg := &config.Config{}
 	cfg.Secrets.JWTSecret = "test-secret"
@@ -89,6 +93,8 @@ func TestRefreshRejectsRotatedTokenAfterGraceWindow(t *testing.T) {
 
 // TestRefreshRejectsExpiredPendingToken 验证过期的待落库令牌不会被接受。
 func TestRefreshRejectsExpiredPendingToken(t *testing.T) {
+	t.Parallel()
+
 	repos := newTokenTestRepo(t)
 	cfg := &config.Config{}
 	cfg.Secrets.JWTSecret = "test-secret"

@@ -55,6 +55,8 @@ func newTestSubtitleService(t *testing.T, svc *EmbyService) *SubtitleService {
 }
 
 func TestEmbyMediaStreamsAttachSameNameSubtitle(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "电影", Path: `/media/movies`, Type: "movie", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
@@ -112,6 +114,8 @@ func TestEmbyMediaStreamsAttachSameNameSubtitle(t *testing.T) {
 }
 
 func TestEmbyMediaStreamsSubtitleDisplayTitleFriendly(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "电影", Path: `/media/movies`, Type: "movie", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
@@ -134,6 +138,8 @@ func TestEmbyMediaStreamsSubtitleDisplayTitleFriendly(t *testing.T) {
 }
 
 func TestEmbyServeSubtitleStreamServesRawSource(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "电影", Path: `/media/movies`, Type: "movie", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
@@ -156,6 +162,8 @@ func TestEmbyServeSubtitleStreamServesRawSource(t *testing.T) {
 }
 
 func TestEmbyServeSubtitleStreamBadIndexNotFound(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "电影", Path: `/media/movies`, Type: "movie", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
@@ -171,6 +179,8 @@ func TestEmbyServeSubtitleStreamBadIndexNotFound(t *testing.T) {
 }
 
 func TestEmbyMediaStreamsNoSubtitleServiceKeepsVideoAudio(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "电影", Path: `/media/movies`, Type: "movie", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {

@@ -9,6 +9,8 @@ import (
 // 系列路径的筛选在内存里复现 SQL 语义，必须与仓储侧一致，否则会出现
 // 「电影库能筛、剧集库筛不动」的行为差异。
 func TestMediaRowMatchesFilters(t *testing.T) {
+	t.Parallel()
+
 	row := &model.Media{
 		Base:   model.Base{ID: "m1"},
 		Title:  "片",
@@ -51,6 +53,8 @@ func TestMediaRowMatchesFilters(t *testing.T) {
 }
 
 func TestSeriesGenreAliasMatching(t *testing.T) {
+	t.Parallel()
+
 	for _, tc := range []struct {
 		raw, query string
 		want       bool
@@ -86,6 +90,8 @@ func TestSeriesGenreAliasMatching(t *testing.T) {
 
 // 多词类型（如 "Science Fiction"）在内存筛选中必须整词命中。
 func TestMediaRowMatchesFiltersMultiWordGenre(t *testing.T) {
+	t.Parallel()
+
 	row := &model.Media{
 		Base:   model.Base{ID: "m2"},
 		Title:  "科幻片",
@@ -111,6 +117,8 @@ func TestMediaRowMatchesFiltersMultiWordGenre(t *testing.T) {
 
 // 无筛选时 empty() 为真，调用方据此走带缓存的原路径。
 func TestMediaListFiltersEmpty(t *testing.T) {
+	t.Parallel()
+
 	if !(MediaListFilters{}).empty() {
 		t.Fatal("zero filters must be reported as empty")
 	}

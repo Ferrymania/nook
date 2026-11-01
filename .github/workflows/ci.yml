@@ -62,7 +62,7 @@ jobs:
         run: docker exec ${{ job.services.postgres.id }} psql -U postgres -d nook_test -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public'
 
       - name: go test
-        run: go test ./...
+        run: go test -parallel=4 ./...
 
   frontend:
     name: Frontend (Node)

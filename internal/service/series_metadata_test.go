@@ -17,6 +17,8 @@ import (
 )
 
 func TestSeriesMetadataSeparatesEpisodeArtworkAndPreservesIdentity(t *testing.T) {
+	t.Parallel()
+
 	scraper, repo, closeServer := newTestScraper(t)
 	defer closeServer()
 	lib := model.Library{Name: "番剧", Type: "tv", Path: t.TempDir(), Enabled: true}
@@ -83,6 +85,8 @@ func TestSeriesMetadataSeparatesEpisodeArtworkAndPreservesIdentity(t *testing.T)
 }
 
 func TestSeriesMetadataBackfillFetchesEachShowOnceWithoutTouchingEpisodes(t *testing.T) {
+	t.Parallel()
+
 	requests := []string{}
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests = append(requests, r.URL.Path)
@@ -134,6 +138,8 @@ func TestSeriesMetadataBackfillFetchesEachShowOnceWithoutTouchingEpisodes(t *tes
 }
 
 func TestEmbySenPlayerMixedTypesIncludeMoviesAndSeries(t *testing.T) {
+	t.Parallel()
+
 	e := newTestEmbyService(t)
 	movies := model.Library{Name: "Movies", Type: "movie", Path: "/media/movies", Enabled: true}
 	tv := model.Library{Name: "TV", Type: "tv", Path: "/media/tv", Enabled: true}

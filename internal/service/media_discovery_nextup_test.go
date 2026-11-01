@@ -77,6 +77,8 @@ func episodeLabel(m model.Media) string {
 }
 
 func TestNextUpPicksNextEpisode(t *testing.T) {
+	t.Parallel()
+
 	repos := newDiscoveryTestDB(t)
 	libID := seedDiscoveryLibrary(t, repos, "tv")
 	watchedAt := time.Now().Add(-time.Hour)
@@ -95,6 +97,8 @@ func TestNextUpPicksNextEpisode(t *testing.T) {
 // 回归：只播了几秒就退出（未看完）时，「接下来该看的一集」仍是这一集本身。
 // 客户端（Yamby 等）剧集详情页的「继续播放」直接取 NextUp 第一条，跳集会播错集。
 func TestNextUpKeepsPartiallyWatchedEpisode(t *testing.T) {
+	t.Parallel()
+
 	repos := newDiscoveryTestDB(t)
 	libID := seedDiscoveryLibrary(t, repos, "tv")
 	watchedAt := time.Now().Add(-time.Minute)
@@ -112,6 +116,8 @@ func TestNextUpKeepsPartiallyWatchedEpisode(t *testing.T) {
 
 // 未看完的是这部剧的最后一集时也要返回它，不能因为「后面没有集了」而返回空。
 func TestNextUpKeepsPartiallyWatchedFinalEpisode(t *testing.T) {
+	t.Parallel()
+
 	repos := newDiscoveryTestDB(t)
 	libID := seedDiscoveryLibrary(t, repos, "tv")
 	watchedAt := time.Now().Add(-time.Minute)
@@ -128,6 +134,8 @@ func TestNextUpKeepsPartiallyWatchedFinalEpisode(t *testing.T) {
 
 // 电影不进 NextUp：NextUp 的语义是「下一集」，电影由 Resume 接口负责。
 func TestNextUpSkipsMovies(t *testing.T) {
+	t.Parallel()
+
 	repos := newDiscoveryTestDB(t)
 	libID := seedDiscoveryLibrary(t, repos, "movie")
 	watchedAt := time.Now().Add(-time.Hour)
@@ -146,6 +154,8 @@ func TestNextUpSkipsMovies(t *testing.T) {
 // 最近那一集（S1E2）本身还没看完，所以它就是「接下来该看的一集」；
 // S1E1 只是更早的中间进度，不能据此跳到 S1E3。
 func TestNextUpOneEntryPerSeries(t *testing.T) {
+	t.Parallel()
+
 	repos := newDiscoveryTestDB(t)
 	libID := seedDiscoveryLibrary(t, repos, "tv")
 	older := time.Now().Add(-48 * time.Hour)
@@ -164,6 +174,8 @@ func TestNextUpOneEntryPerSeries(t *testing.T) {
 
 // 跨季时下一集应是下一季的第一集。
 func TestNextUpCrossesSeason(t *testing.T) {
+	t.Parallel()
+
 	repos := newDiscoveryTestDB(t)
 	libID := seedDiscoveryLibrary(t, repos, "tv")
 	watchedAt := time.Now().Add(-time.Hour)
@@ -181,6 +193,8 @@ func TestNextUpCrossesSeason(t *testing.T) {
 
 // 已标记看完的下一集要跳过。
 func TestNextUpSkipsCompletedEpisode(t *testing.T) {
+	t.Parallel()
+
 	repos := newDiscoveryTestDB(t)
 	libID := seedDiscoveryLibrary(t, repos, "tv")
 	watchedAt := time.Now().Add(-time.Hour)
@@ -198,6 +212,8 @@ func TestNextUpSkipsCompletedEpisode(t *testing.T) {
 
 // 追到最后一集且已看完时没有下一集，结果为空而不是重复返回最后一集。
 func TestNextUpEmptyAtSeriesEnd(t *testing.T) {
+	t.Parallel()
+
 	repos := newDiscoveryTestDB(t)
 	libID := seedDiscoveryLibrary(t, repos, "tv")
 	watchedAt := time.Now().Add(-time.Hour)
@@ -212,6 +228,8 @@ func TestNextUpEmptyAtSeriesEnd(t *testing.T) {
 
 // 不可见媒体库里的下一集不能被推荐出去。
 func TestNextUpRespectsVisibility(t *testing.T) {
+	t.Parallel()
+
 	repos := newDiscoveryTestDB(t)
 	visibleLib := seedDiscoveryLibrary(t, repos, "tv")
 	hiddenLib := seedDiscoveryLibrary(t, repos, "tv")
@@ -230,6 +248,8 @@ func TestNextUpRespectsVisibility(t *testing.T) {
 // 最后一集看完（completed=true）后，下一部剧仍应出现在 NextUp 中，
 // 而不是因为没有 completed=false 的历史而消失（bug 1 回归测试）。
 func TestNextUpAfterCompletedEpisode(t *testing.T) {
+	t.Parallel()
+
 	repos := newDiscoveryTestDB(t)
 	libID := seedDiscoveryLibrary(t, repos, "tv")
 	watchedAt := time.Now().Add(-time.Hour)
@@ -248,6 +268,8 @@ func TestNextUpAfterCompletedEpisode(t *testing.T) {
 
 // 整部剧看完（所有集都 completed=true）时不应出现在 NextUp（没有下一集）。
 func TestNextUpSeriesFullyWatchedIsEmpty(t *testing.T) {
+	t.Parallel()
+
 	repos := newDiscoveryTestDB(t)
 	libID := seedDiscoveryLibrary(t, repos, "tv")
 	watchedAt := time.Now().Add(-time.Hour)
@@ -263,6 +285,8 @@ func TestNextUpSeriesFullyWatchedIsEmpty(t *testing.T) {
 
 // 多部剧时按最近观看时间排序。
 func TestNextUpOrdersByRecency(t *testing.T) {
+	t.Parallel()
+
 	repos := newDiscoveryTestDB(t)
 	libID := seedDiscoveryLibrary(t, repos, "tv")
 	older := time.Now().Add(-24 * time.Hour)

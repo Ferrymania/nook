@@ -54,6 +54,8 @@ func setTestProvider(t *testing.T, api *APIConfigService, provider, key, base st
 }
 
 func TestLibraryScrapeSettingsExcludeRemovedProviders(t *testing.T) {
+	t.Parallel()
+
 	prefs := &model.LibraryScrapeSettings{
 		Providers: []string{"tmdb", "douban", "bangumi"}, Language: "ja-JP",
 		AutoOnScan: true, DelayMinMS: 1200, DelayMaxMS: 1500,
@@ -87,6 +89,8 @@ func TestLibraryScrapeSettingsExcludeRemovedProviders(t *testing.T) {
 	}
 }
 func TestLibraryScrapeSettingsExcludeRemovedGlobalProvider(t *testing.T) {
+	t.Parallel()
+
 	s, _ := newLibraryScrapeEnv(t)
 	for _, tc := range []struct{ stored, want string }{
 		{"douban", ""},
@@ -108,6 +112,8 @@ func TestLibraryScrapeSettingsExcludeRemovedGlobalProvider(t *testing.T) {
 }
 
 func TestLibraryScrapeSettingsPreserveLegacyAndIsolateLibraries(t *testing.T) {
+	t.Parallel()
+
 	s, _ := newLibraryScrapeEnv(t)
 	for k, v := range map[string]string{"scrape.auto_on_scan": "true", "scrape.language": "ja-JP", "scrape.providers": "bangumi,tmdb", "scrape.delay_min_ms": "1200", "scrape.delay_max_ms": "1500"} {
 		if err := s.repo.Setting.Set(t.Context(), k, v); err != nil {
@@ -163,6 +169,8 @@ func TestLibraryScrapeSettingsPreserveLegacyAndIsolateLibraries(t *testing.T) {
 }
 
 func TestLibrarySegmentPrewarmPreferencePreservesLegacyAndIsolatesLibraries(t *testing.T) {
+	t.Parallel()
+
 	s, _ := newLibraryScrapeEnv(t)
 	ctx := t.Context()
 	prefs := model.LibraryScrapeSettings{Providers: []string{"tmdb"}, Language: "zh-CN"}
@@ -217,6 +225,8 @@ func TestLibrarySegmentPrewarmPreferencePreservesLegacyAndIsolatesLibraries(t *t
 }
 
 func TestMetadataProvidersUseSavedCredentialsAndGlobalSwitch(t *testing.T) {
+	t.Parallel()
+
 	s, api := newLibraryScrapeEnv(t)
 	var calls atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -292,6 +302,8 @@ func TestMetadataProvidersUseSavedCredentialsAndGlobalSwitch(t *testing.T) {
 }
 
 func TestLibraryScrapePriorityLanguageAndCacheIsolation(t *testing.T) {
+	t.Parallel()
+
 	s, api := newLibraryScrapeEnv(t)
 	var tmdbCalls, bangumiCalls atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -359,6 +371,8 @@ func TestLibraryScrapePriorityLanguageAndCacheIsolation(t *testing.T) {
 }
 
 func TestLibraryScrapePacingSharedAndCancelable(t *testing.T) {
+	t.Parallel()
+
 	s, _ := newLibraryScrapeEnv(t)
 	ctx := withLibraryScrapeSettings(t.Context(), model.LibraryScrapeSettings{DelayMinMS: 60, DelayMaxMS: 60})
 	if err := s.waitScrapeTurn(ctx); err != nil {
@@ -379,6 +393,8 @@ func TestLibraryScrapePacingSharedAndCancelable(t *testing.T) {
 }
 
 func TestLibraryScrapeUnavailableProviderDoesNotReportOldMatchAsSuccess(t *testing.T) {
+	t.Parallel()
+
 	s, api := newLibraryScrapeEnv(t)
 	setTestProvider(t, api, "tmdb", "", "", false)
 	settings := model.LibraryScrapeSettings{Providers: []string{"tmdb"}, Language: "zh-CN"}
@@ -401,6 +417,8 @@ func TestLibraryScrapeUnavailableProviderDoesNotReportOldMatchAsSuccess(t *testi
 }
 
 func TestLibraryScrapeIncrementalIngestUsesLibrarySwitchAndDeduplicates(t *testing.T) {
+	t.Parallel()
+
 	s, _ := newLibraryScrapeEnv(t)
 	scanner := NewScannerService(s.cfg, s.log, s.repo, s.hub, nil, s)
 	for _, enabled := range []bool{false, true} {

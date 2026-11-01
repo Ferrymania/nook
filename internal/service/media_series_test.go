@@ -13,6 +13,8 @@ import (
 )
 
 func TestListRecentSeriesCardsCountsAllEpisodesInSeries(t *testing.T) {
+	t.Parallel()
+
 	db := newServiceTestDB(t, &model.Library{}, &model.Media{})
 	repos := repository.New(db)
 	lib := model.Library{Name: "国漫", Path: "/media/anime", Type: "anime", Enabled: true}
@@ -57,6 +59,8 @@ func TestListRecentSeriesCardsCountsAllEpisodesInSeries(t *testing.T) {
 }
 
 func TestMediaSeriesKeyCollapsesNestedSpecialFolders(t *testing.T) {
+	t.Parallel()
+
 	main := model.Media{
 		LibraryID:  "lib-tv",
 		Path:       `cloud://openlist/动漫/国漫/示例剧/Season 01/示例剧.S01E01.mkv`,
@@ -79,6 +83,8 @@ func TestMediaSeriesKeyCollapsesNestedSpecialFolders(t *testing.T) {
 }
 
 func TestGroupMediaSeriesCardsSortsByLatestEpisodeTime(t *testing.T) {
+	t.Parallel()
+
 	now := time.Date(2026, 7, 2, 12, 0, 0, 0, time.UTC)
 	newerFirstEpisode := model.Media{
 		Base:       model.Base{CreatedAt: now.Add(-72 * time.Hour), UpdatedAt: now.Add(-72 * time.Hour)},
@@ -118,6 +124,8 @@ func TestGroupMediaSeriesCardsSortsByLatestEpisodeTime(t *testing.T) {
 }
 
 func TestMediaSeriesKeyCollapsesSpecialTitleSuffix(t *testing.T) {
+	t.Parallel()
+
 	main := model.Media{
 		LibraryID:  "lib-tv",
 		Path:       `cloud://openlist/电视剧/欧美剧/Example Show/Season 01/Example.Show.S01E01.mkv`,
@@ -152,6 +160,8 @@ func TestMediaSeriesKeyCollapsesSpecialTitleSuffix(t *testing.T) {
 }
 
 func TestMediaSeriesKeyCollapsesSeasonZeroAndSpecialAliases(t *testing.T) {
+	t.Parallel()
+
 	main := model.Media{
 		LibraryID:  "lib-anime",
 		Path:       `cloud://openlist/动漫/日番/宝可梦 (1997) {tmdb-60572}/Season 1/宝可梦.S01E01.mkv`,
@@ -190,6 +200,8 @@ func TestMediaSeriesKeyCollapsesSeasonZeroAndSpecialAliases(t *testing.T) {
 }
 
 func TestMediaSeriesKeyCollapsesNumberedSpecialSuffixes(t *testing.T) {
+	t.Parallel()
+
 	main := model.Media{
 		LibraryID:  "lib-tv",
 		Path:       `F:\media\电视剧\欧美剧\Example Show\Season 01\Example Show - S01E01.mkv`,
@@ -261,6 +273,8 @@ func TestMediaSeriesKeyCollapsesNumberedSpecialSuffixes(t *testing.T) {
 }
 
 func TestMediaSeriesKeyCleansReleaseNoiseFolders(t *testing.T) {
+	t.Parallel()
+
 	clean := model.Media{
 		LibraryID:  "lib-variety",
 		Path:       `F:\media\电视剧\综艺\Hntv Spring Festival Gala S01e (2026)\Season 1\Hntv Spring Festival Gala S01e - S01E202.ts`,
@@ -295,6 +309,8 @@ func TestMediaSeriesKeyCleansReleaseNoiseFolders(t *testing.T) {
 }
 
 func TestMediaSeriesKeyTreatsDomesticTelevisionFolderAsSeries(t *testing.T) {
+	t.Parallel()
+
 	main := model.Media{
 		LibraryID:  "lib-domestic-tv",
 		Path:       `/media/国产电视剧/人世间 (2022) [TMDBID-156568]/人世间.S01E01.mkv`,
@@ -330,6 +346,8 @@ func TestMediaSeriesKeyTreatsDomesticTelevisionFolderAsSeries(t *testing.T) {
 }
 
 func TestMediaSeriesKeyUsesSeriesDirectoryExternalID(t *testing.T) {
+	t.Parallel()
+
 	episodeIDOnly := model.Media{
 		LibraryID:  "lib-domestic-tv",
 		Path:       `/media/电视剧/国产剧/人世间 (2022)/Season 01/人世间.S01E03.{tmdb-7129826}.mkv`,
@@ -350,6 +368,8 @@ func TestMediaSeriesKeyUsesSeriesDirectoryExternalID(t *testing.T) {
 }
 
 func TestGroupMediaSeriesCardsMergesPollutedEpisodeFoldersBySharedShowID(t *testing.T) {
+	t.Parallel()
+
 	items := []model.Media{
 		{
 			LibraryID:    "lib-variety",
@@ -378,6 +398,8 @@ func TestGroupMediaSeriesCardsMergesPollutedEpisodeFoldersBySharedShowID(t *test
 }
 
 func TestGroupMediaSeriesCardsKeepsMixedTitlesInSameEpisodicDirectoryTogether(t *testing.T) {
+	t.Parallel()
+
 	items := []model.Media{
 		{
 			Base:         model.Base{ID: "main-1"},
@@ -423,6 +445,8 @@ func TestGroupMediaSeriesCardsKeepsMixedTitlesInSameEpisodicDirectoryTogether(t 
 }
 
 func TestGroupMediaSeriesCardsKeepsMovieVersionsAsOneMovie(t *testing.T) {
+	t.Parallel()
+
 	items := []model.Media{
 		{
 			Base:      model.Base{ID: "movie-copy-a"},
@@ -450,6 +474,8 @@ func TestGroupMediaSeriesCardsKeepsMovieVersionsAsOneMovie(t *testing.T) {
 }
 
 func TestGroupMediaSeriesCardsKeepsTheatricalMovieWithTVSeries(t *testing.T) {
+	t.Parallel()
+
 	episode := model.Media{
 		Base:       model.Base{ID: "episode"},
 		LibraryID:  "anime",
@@ -486,6 +512,8 @@ func TestGroupMediaSeriesCardsKeepsTheatricalMovieWithTVSeries(t *testing.T) {
 }
 
 func TestGroupMediaSeriesCardsDoesNotCollideMovieAndTVExternalIDs(t *testing.T) {
+	t.Parallel()
+
 	movie := model.Media{
 		Base:      model.Base{ID: "movie"},
 		LibraryID: "movies",
@@ -510,6 +538,8 @@ func TestGroupMediaSeriesCardsDoesNotCollideMovieAndTVExternalIDs(t *testing.T) 
 }
 
 func TestMediaSeriesKeyDoesNotUseGenericLibraryFolderAsSeriesTitle(t *testing.T) {
+	t.Parallel()
+
 	items := []model.Media{
 		{LibraryID: "tv", Path: `/media/电视剧/Alpha Show.S01E01.mkv`, SeasonNum: 1, EpisodeNum: 1},
 		{LibraryID: "tv", Path: `/media/电视剧/Beta Show.S01E01.mkv`, SeasonNum: 1, EpisodeNum: 1},
@@ -521,6 +551,8 @@ func TestMediaSeriesKeyDoesNotUseGenericLibraryFolderAsSeriesTitle(t *testing.T)
 }
 
 func TestGroupMediaSeriesCardsBridgesReleaseFoldersByMatchedSeriesTitle(t *testing.T) {
+	t.Parallel()
+
 	items := []model.Media{
 		{LibraryID: "tv", Title: "同一部剧", ScrapeStatus: "matched", Path: `/media/电视剧/同一部剧 版本甲/Season 01/ep1.mkv`, SeasonNum: 1, EpisodeNum: 1},
 		{LibraryID: "tv", Title: "同一部剧", ScrapeStatus: "matched", Path: `/media/电视剧/同一部剧 版本乙/Season 01/ep2.mkv`, SeasonNum: 1, EpisodeNum: 2},
@@ -532,6 +564,8 @@ func TestGroupMediaSeriesCardsBridgesReleaseFoldersByMatchedSeriesTitle(t *testi
 }
 
 func TestGroupMediaSeriesCardsKeepsIndependentMoviesSeparateInSharedSubdirectory(t *testing.T) {
+	t.Parallel()
+
 	// 同一分类子目录下存放多部不同标题的独立电影，不应被强制折叠成 1 部
 	items := []model.Media{
 		{LibraryID: "movies", Title: "老师2024偷窥篇", Path: `/media/小姐姐/国产/nana/老师2024偷窥篇.strm`},
@@ -555,6 +589,8 @@ func TestGroupMediaSeriesCardsKeepsIndependentMoviesSeparateInSharedSubdirectory
 }
 
 func TestListMediaEpisodesKeepsIndependentMoviesSeparate(t *testing.T) {
+	t.Parallel()
+
 	db := newServiceTestDB(t, &model.Library{}, &model.Media{})
 	repos := repository.New(db)
 	lib := model.Library{Base: model.Base{ID: "lib-movies"}, Name: "电影", Type: "movies", Enabled: true}
@@ -595,6 +631,8 @@ func TestListMediaEpisodesKeepsIndependentMoviesSeparate(t *testing.T) {
 }
 
 func TestListMediaEpisodesMovieTypeSkipsFullLibraryIndex(t *testing.T) {
+	t.Parallel()
+
 	db := newServiceTestDB(t, &model.Library{}, &model.Media{})
 	repos := repository.New(db)
 	lib := model.Library{Base: model.Base{ID: "lib-movie-fast"}, Name: "电影", Type: "movie", Enabled: true}
@@ -626,6 +664,8 @@ func TestListMediaEpisodesMovieTypeSkipsFullLibraryIndex(t *testing.T) {
 }
 
 func TestListMediaEpisodesUsesSeriesIDFastPath(t *testing.T) {
+	t.Parallel()
+
 	db := newServiceTestDB(t, &model.Library{}, &model.Media{})
 	repos := repository.New(db)
 	lib := model.Library{Base: model.Base{ID: "lib-series-fast"}, Name: "剧集", Type: "tv", Enabled: true}
@@ -678,6 +718,8 @@ func TestListMediaEpisodesUsesSeriesIDFastPath(t *testing.T) {
 }
 
 func TestListLibrarySeriesCardsCachesPrecomputedCards(t *testing.T) {
+	t.Parallel()
+
 	db := newServiceTestDB(t, &model.Library{}, &model.Media{})
 	repos := repository.New(db)
 	lib := model.Library{Name: "动画", Path: "/media/anime", Type: "anime", Enabled: true}

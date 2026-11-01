@@ -50,6 +50,8 @@ func containsTitle(items []string, want string) bool {
 
 // 相似推荐必须排除自己，也要排除同剧的其他集（否则详情页会推荐本剧的其它集）。
 func TestSimilarExcludesSelfAndSameSeries(t *testing.T) {
+	t.Parallel()
+
 	repos := newDiscoveryTestDB(t)
 	libID := seedDiscoveryLibrary(t, repos, "tv")
 
@@ -91,6 +93,8 @@ func TestSimilarExcludesSelfAndSameSeries(t *testing.T) {
 
 // 类型重合度高的条目要排在前面。
 func TestSimilarPrefersGenreOverlap(t *testing.T) {
+	t.Parallel()
+
 	repos := newDiscoveryTestDB(t)
 	libID := seedDiscoveryLibrary(t, repos, "movie")
 
@@ -111,6 +115,8 @@ func TestSimilarPrefersGenreOverlap(t *testing.T) {
 
 // 不可见媒体库的条目不能被推荐。
 func TestSimilarRespectsVisibility(t *testing.T) {
+	t.Parallel()
+
 	repos := newDiscoveryTestDB(t)
 	sourceLib := seedDiscoveryLibrary(t, repos, "movie")
 	hiddenLib := seedDiscoveryLibrary(t, repos, "movie")
@@ -128,6 +134,8 @@ func TestSimilarRespectsVisibility(t *testing.T) {
 
 // 源条目不可见或不存在时返回空，不报错：客户端不该因此看到 500。
 func TestSimilarUnknownSourceReturnsEmpty(t *testing.T) {
+	t.Parallel()
+
 	repos := newDiscoveryTestDB(t)
 	svc := NewMediaDiscoveryService(zap.NewNop(), repos)
 
@@ -142,6 +150,8 @@ func TestSimilarUnknownSourceReturnsEmpty(t *testing.T) {
 
 // limit 生效，且不返回重复条目。
 func TestSimilarHonoursLimit(t *testing.T) {
+	t.Parallel()
+
 	repos := newDiscoveryTestDB(t)
 	libID := seedDiscoveryLibrary(t, repos, "movie")
 	source := seedSimilarMedia(t, repos, libID, "源片", "Action", 2010, 7)

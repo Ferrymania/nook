@@ -14,6 +14,8 @@ import (
 )
 
 func TestGroupMediaVersionsMergesEpisodeByExternalIDAcrossLibraries(t *testing.T) {
+	t.Parallel()
+
 	local := model.Media{
 		LibraryID:  "local-tv",
 		Title:      "折腰",
@@ -51,6 +53,8 @@ func TestGroupMediaVersionsMergesEpisodeByExternalIDAcrossLibraries(t *testing.T
 }
 
 func TestGroupEpisodeVersionsForDisplayMergesAndKeepsEpisodeOrder(t *testing.T) {
+	t.Parallel()
+
 	rows := []model.Media{
 		{Base: model.Base{ID: "ep2"}, LibraryID: "tv", Title: "Show", SeasonNum: 1, EpisodeNum: 2, TMDbID: 99, Path: "/show/s01e02.mkv"},
 		{Base: model.Base{ID: "ep1-small"}, LibraryID: "tv", Title: "Show", SeasonNum: 1, EpisodeNum: 1, TMDbID: 99, Path: "/show/s01e01.mp4", SizeBytes: 100},
@@ -73,6 +77,8 @@ func TestGroupEpisodeVersionsForDisplayMergesAndKeepsEpisodeOrder(t *testing.T) 
 }
 
 func TestGroupMediaVersionsSeparatesAnimeSpecialKindsAndNumbers(t *testing.T) {
+	t.Parallel()
+
 	rows := []model.Media{
 		{
 			Base:      model.Base{ID: "movie"},
@@ -116,6 +122,8 @@ func TestGroupMediaVersionsSeparatesAnimeSpecialKindsAndNumbers(t *testing.T) {
 }
 
 func TestGroupMediaVersionsKeepsBracketNumberedEpisodesSeparate(t *testing.T) {
+	t.Parallel()
+
 	// UHA-WINGS 命名：[组名][标题][01][BDRIP 1920x1080 ...].strm。
 	// 曾因 1920x1080 被解析成 S20E108，12 集全部折叠成一集的多个版本。
 	rows := make([]model.Media, 0, 12)
@@ -151,6 +159,8 @@ func TestGroupMediaVersionsKeepsBracketNumberedEpisodesSeparate(t *testing.T) {
 }
 
 func TestGroupMediaVersionsMergesSameNumberedOVAEncodes(t *testing.T) {
+	t.Parallel()
+
 	rows := []model.Media{
 		{
 			Base:      model.Base{ID: "ova-1-hd"},
@@ -175,6 +185,8 @@ func TestGroupMediaVersionsMergesSameNumberedOVAEncodes(t *testing.T) {
 }
 
 func TestGroupMediaVersionsMergesMovieEncodingVariants(t *testing.T) {
+	t.Parallel()
+
 	hd := model.Media{
 		LibraryID:    "movies",
 		Title:        "Inception 2010 1080p BluRay x264",
@@ -207,6 +219,8 @@ func TestGroupMediaVersionsMergesMovieEncodingVariants(t *testing.T) {
 }
 
 func TestGroupMediaVersionsCleansCodecPunctuation(t *testing.T) {
+	t.Parallel()
+
 	web := model.Media{
 		LibraryID:    "movies",
 		Title:        "Everything Everywhere All at Once 2022 WEB-DL H.265 DDP5.1",
@@ -237,6 +251,8 @@ func TestGroupMediaVersionsCleansCodecPunctuation(t *testing.T) {
 }
 
 func TestListMediaVisibleGroupedPaginatesAfterVersionGrouping(t *testing.T) {
+	t.Parallel()
+
 	db := newServiceTestDB(t, &model.Library{}, &model.Media{})
 	repos := repository.New(db)
 	lib := model.Library{Name: "电影", Path: "/media/movies", Type: "movie", Enabled: true}
@@ -310,6 +326,8 @@ func TestListMediaVisibleGroupedPaginatesAfterVersionGrouping(t *testing.T) {
 }
 
 func TestSearchMediaVisiblePageGroupedPaginatesAfterVersionGrouping(t *testing.T) {
+	t.Parallel()
+
 	db := newServiceTestDB(t, &model.Media{})
 	repos := repository.New(db)
 	now := time.Now()
@@ -358,6 +376,8 @@ func TestSearchMediaVisiblePageGroupedPaginatesAfterVersionGrouping(t *testing.T
 }
 
 func TestGroupMediaVersionsDoesNotMergeDifferentRemoteSeries(t *testing.T) {
+	t.Parallel()
+
 	// 模拟来自两个不同挂载库（如 00 新番连载 与 2018 动漫）的同名剧集《碧蓝之海》
 	season1 := model.Media{
 		Base:        model.Base{ID: EncodeEmbyRemoteID("mount-1", "156019")},
@@ -384,6 +404,8 @@ func TestGroupMediaVersionsDoesNotMergeDifferentRemoteSeries(t *testing.T) {
 }
 
 func TestGroupMediaVersionsDoesNotMergeAcrossDifferentLibrariesForMovies(t *testing.T) {
+	t.Parallel()
+
 	movieLib1 := model.Media{
 		Base:      model.Base{ID: "m-1"},
 		LibraryID: "lib-1",
@@ -404,6 +426,8 @@ func TestGroupMediaVersionsDoesNotMergeAcrossDifferentLibrariesForMovies(t *test
 }
 
 func TestGroupMediaVersionsMergesKeepExtStrmVariants(t *testing.T) {
+	t.Parallel()
+
 	mkv := model.Media{
 		LibraryID: "movies",
 		Title:     "竞女01",
@@ -431,6 +455,8 @@ func TestGroupMediaVersionsMergesKeepExtStrmVariants(t *testing.T) {
 }
 
 func TestMediaVersionLabelUsesContainerAndSize(t *testing.T) {
+	t.Parallel()
+
 	label := MediaVersionLabel(model.Media{
 		Title:     "竞女01",
 		Path:      "/strm/竞女01.mkv.strm",
@@ -444,6 +470,8 @@ func TestMediaVersionLabelUsesContainerAndSize(t *testing.T) {
 }
 
 func TestMediaPartNumberFromPath(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		path string
 		want int
@@ -466,6 +494,8 @@ func TestMediaPartNumberFromPath(t *testing.T) {
 }
 
 func TestGroupMediaVersionsSortsPartsAscending(t *testing.T) {
+	t.Parallel()
+
 	rows := []model.Media{
 		{
 			Base:      model.Base{ID: "p3"},
@@ -511,6 +541,8 @@ func TestGroupMediaVersionsSortsPartsAscending(t *testing.T) {
 }
 
 func TestMediaVersionLabelFallsBackToFilenameWhenIndistinct(t *testing.T) {
+	t.Parallel()
+
 	label := MediaVersionLabel(model.Media{
 		Title:     "SIVR-270-【VR】河北彩花",
 		Path:      "/media/云下载/sivr-270/sivr-270-1.strm",
@@ -528,6 +560,8 @@ func TestMediaVersionLabelFallsBackToFilenameWhenIndistinct(t *testing.T) {
 // douban_id/thetvdb_id），另一部分只从本地 NFO 拿到标题（没有外部 ID）。
 // 按外部 ID 分组会把它们裂成两张标题完全相同的卡，必须按番号折成一张。
 func TestGroupMediaVersionsMergesAdultPartsAcrossMetadataSources(t *testing.T) {
+	t.Parallel()
+
 	online := model.Media{
 		Base:         model.Base{ID: "sivr-270-2"},
 		LibraryID:    "cloud",
@@ -566,6 +600,8 @@ func TestGroupMediaVersionsMergesAdultPartsAcrossMetadataSources(t *testing.T) {
 }
 
 func TestGroupMediaVersionsKeepsDifferentAdultCodesSeparate(t *testing.T) {
+	t.Parallel()
+
 	rows := []model.Media{
 		{
 			Base:      model.Base{ID: "sivr-270"},
@@ -592,6 +628,8 @@ func TestGroupMediaVersionsKeepsDifferentAdultCodesSeparate(t *testing.T) {
 
 // 同一部片的两种写法：路径里的 IPVR-00192 与刮削回来的 IPVR-192 必须归一。
 func TestGroupMediaVersionsMergesAdultCodesIgnoringZeroPadding(t *testing.T) {
+	t.Parallel()
+
 	scraped := model.Media{
 		Base:         model.Base{ID: "ipvr-192-part2"},
 		LibraryID:    "cloud",
@@ -619,6 +657,8 @@ func TestGroupMediaVersionsMergesAdultCodesIgnoringZeroPadding(t *testing.T) {
 }
 
 func TestGroupMediaVersionsMergesAdultPartsWithBorrowedLegacyIDs(t *testing.T) {
+	t.Parallel()
+
 	// 刮削的（番号/provider 被借用进 douban_id/thetvdb_id），part1 只有本地
 	// NFO 身份、两个字段为空。旧逻辑按外部 ID 分组会裂成两张卡。
 	part1 := model.Media{
@@ -652,6 +692,8 @@ func TestGroupMediaVersionsMergesAdultPartsWithBorrowedLegacyIDs(t *testing.T) {
 }
 
 func TestGetMediaItemListsAdultVersionsAcrossMetadataSources(t *testing.T) {
+	t.Parallel()
+
 	db := newServiceTestDB(t, &model.Library{}, &model.Media{})
 	repos := repository.New(db)
 	lib := model.Library{Name: "云下载", Path: "/media/云下载", Type: "movie", Enabled: true}
@@ -700,6 +742,8 @@ func TestGetMediaItemListsAdultVersionsAcrossMetadataSources(t *testing.T) {
 }
 
 func TestMediaAdultGroupCodeRequiresNSFW(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name string
 		m    model.Media
@@ -739,6 +783,8 @@ func TestMediaAdultGroupCodeRequiresNSFW(t *testing.T) {
 // 且 11.5 排在 11 之后、12 之前。这是「第一季分集加载不出来」那次的根因：
 // 两条同季同集的记录被折成一条，计数与返回条目对不上。
 func TestGroupEpisodeVersionsForDisplayKeepsHalfEpisodeSeparate(t *testing.T) {
+	t.Parallel()
+
 	rows := []model.Media{
 		{Base: model.Base{ID: "ep12"}, LibraryID: "anime", Title: "三月的狮子", SeasonNum: 1, EpisodeNum: 12, TMDbID: 65336, Path: "/anime/三月的狮子/3月的狮子 S01E12.mkv"},
 		{Base: model.Base{ID: "ep11"}, LibraryID: "anime", Title: "三月的狮子", SeasonNum: 1, EpisodeNum: 11, TMDbID: 65336, Path: "/anime/三月的狮子/3月的狮子 S01E11.mkv"},
@@ -764,6 +810,8 @@ func TestGroupEpisodeVersionsForDisplayKeepsHalfEpisodeSeparate(t *testing.T) {
 
 // 版本身份键必须区分 11 与 11.5，同时保持没有小数时的历史键不变。
 func TestMediaVersionGroupKeyDistinguishesHalfEpisode(t *testing.T) {
+	t.Parallel()
+
 	base := model.Media{LibraryID: "anime", Title: "三月的狮子", SeasonNum: 1, EpisodeNum: 11}
 	plain := base
 	half := base

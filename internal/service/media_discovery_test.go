@@ -42,6 +42,8 @@ func findGenre(genres []GenreCount, name string) int {
 }
 
 func TestAggregateGenresSplitsAndCounts(t *testing.T) {
+	t.Parallel()
+
 	repos := newDiscoveryTestDB(t)
 	libID := seedDiscoveryLibrary(t, repos, "movie")
 
@@ -69,6 +71,8 @@ func TestAggregateGenresSplitsAndCounts(t *testing.T) {
 
 // 中文全角逗号在刮削结果里同样常见，必须一并切分。
 func TestAggregateGenresHandlesFullWidthComma(t *testing.T) {
+	t.Parallel()
+
 	repos := newDiscoveryTestDB(t)
 	libID := seedDiscoveryLibrary(t, repos, "movie")
 	seedDiscoveryMedia(t, repos, &model.Media{
@@ -87,6 +91,8 @@ func TestAggregateGenresHandlesFullWidthComma(t *testing.T) {
 
 // libraryID 非空时只统计该库，供媒体库页面的筛选项使用。
 func TestAggregateGenresScopedToLibrary(t *testing.T) {
+	t.Parallel()
+
 	repos := newDiscoveryTestDB(t)
 	movieLib := seedDiscoveryLibrary(t, repos, "movie")
 	tvLib := seedDiscoveryLibrary(t, repos, "tv")
@@ -113,6 +119,8 @@ func TestAggregateGenresScopedToLibrary(t *testing.T) {
 
 // 可见性过滤必须生效：不可见的库不应泄漏类型统计。
 func TestAggregateGenresRespectsVisibility(t *testing.T) {
+	t.Parallel()
+
 	repos := newDiscoveryTestDB(t)
 	allowedLib := seedDiscoveryLibrary(t, repos, "movie")
 	otherLib := seedDiscoveryLibrary(t, repos, "movie")

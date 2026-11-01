@@ -9,6 +9,8 @@ import (
 )
 
 func TestPlaybackSettingsPersistPerUserAndNarrowAdminAccess(t *testing.T) {
+	t.Parallel()
+
 	db := newServiceTestDB(t)
 	repos := repository.New(db)
 	svc := NewProfileService(zap.NewNop(), repos)
@@ -53,6 +55,8 @@ func TestPlaybackSettingsPersistPerUserAndNarrowAdminAccess(t *testing.T) {
 }
 
 func TestEmbyUserConfigurationUsesAccountPlaybackSettings(t *testing.T) {
+	t.Parallel()
+
 	user := &model.User{PlaybackSettings: `{"preferred_audio_lang":"ja","preferred_subtitle_lang":"zh-CN","autoplay_next":false}`}
 	configuration := (&EmbyService{}).userPayload(user)["Configuration"].(map[string]any)
 	if configuration["EnableNextEpisodeAutoPlay"] != false || configuration["AudioLanguagePreference"] != "ja" || configuration["SubtitleLanguagePreference"] != "zh-CN" {

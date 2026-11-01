@@ -8,6 +8,8 @@ import (
 )
 
 func TestEmbyMovieLibrarySeasonNumbersStayMovies(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "动画电影", Path: `/media/movies/animation`, Type: "Movie", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
@@ -77,6 +79,8 @@ func TestEmbyMovieLibrarySeasonNumbersStayMovies(t *testing.T) {
 }
 
 func TestEmbyMovieLibraryFiltersMisplacedSeriesPaths(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "电影", Path: `/media/movies`, Type: "movie", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
@@ -126,6 +130,8 @@ func TestEmbyMovieLibraryFiltersMisplacedSeriesPaths(t *testing.T) {
 // 在常规浏览(未指定 IncludeItemTypes)时应聚成 Series 卡片, 而不是以散装单集
 // (Episode)漏出; 同库里真正的电影仍按 Movie 显示。两类并存于同一电影库视图。
 func TestEmbyMovieLibraryGroupsEpisodicContentIntoSeries(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "动画电影", Path: `/media/动画电影`, Type: "movie", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {

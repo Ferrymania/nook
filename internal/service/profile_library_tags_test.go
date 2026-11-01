@@ -12,6 +12,8 @@ import (
 )
 
 func TestProfileLibraryTagsFiltersInaccessibleAndKeepsOneTagPerLibrary(t *testing.T) {
+	t.Parallel()
+
 	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
@@ -75,6 +77,8 @@ func TestProfileLibraryTagsFiltersInaccessibleAndKeepsOneTagPerLibrary(t *testin
 }
 
 func TestProfileLibraryTagsKeepsEmptyTagAndMountedEmby(t *testing.T) {
+	t.Parallel()
+
 	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
@@ -127,6 +131,8 @@ func TestProfileLibraryTagsKeepsEmptyTagAndMountedEmby(t *testing.T) {
 }
 
 func TestProfileLibraryTagsEmptyStateReturnsEmptySlice(t *testing.T) {
+	t.Parallel()
+
 	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)

@@ -14,6 +14,8 @@ import (
 )
 
 func TestRemoteEmbyImageTokenForHostUnknownHost(t *testing.T) {
+	t.Parallel()
+
 	svc, _, _ := newImageTagTestService(t)
 
 	if token, ok := svc.RemoteEmbyImageTokenForHost(t.Context(), "nope.example"); ok || token != "" {
@@ -22,6 +24,8 @@ func TestRemoteEmbyImageTokenForHostUnknownHost(t *testing.T) {
 }
 
 func TestRemoteEmbyImageTokenForHostMatchesConfiguredLine(t *testing.T) {
+	t.Parallel()
+
 	svc, _, _ := newImageTagTestService(t)
 
 	token, ok := svc.RemoteEmbyImageTokenForHost(t.Context(), "emby.test")
@@ -31,6 +35,8 @@ func TestRemoteEmbyImageTokenForHostMatchesConfiguredLine(t *testing.T) {
 }
 
 func TestRefreshRemoteEmbyImageTokenForHostRequiresCredentials(t *testing.T) {
+	t.Parallel()
+
 	svc, _, _ := newImageTagTestService(t)
 
 	// The account carries only an api_key — there is nothing to re-authenticate with.
@@ -42,6 +48,8 @@ func TestRefreshRemoteEmbyImageTokenForHostRequiresCredentials(t *testing.T) {
 // TestRefreshRemoteEmbyImageTokenForHostRelogins 覆盖「token 被撤销后自动恢复」：
 // 用用户名/密码重新登录拿到新 token，并持久化，后续请求不再重复登录。
 func TestRefreshRemoteEmbyImageTokenForHostRelogins(t *testing.T) {
+	t.Parallel()
+
 	const fresh = "fresh-token"
 	logins := 0
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

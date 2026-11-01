@@ -14,6 +14,8 @@ import (
 )
 
 func TestParseResizeVariantSuffixRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	opts := imageResizeOptions{MaxWidth: 480, MaxHeight: 600, Quality: 80}
 	name := "abc123." + opts.resizeVariantSuffix() + ".img"
 
@@ -33,6 +35,8 @@ func TestParseResizeVariantSuffixRoundTrip(t *testing.T) {
 }
 
 func TestLargerCachedVariantPicksSmallestCoveringVariant(t *testing.T) {
+	t.Parallel()
+
 	proxy := &ImageProxy{cacheDir: filepath.Join(t.TempDir(), "cache"), log: zap.NewNop()}
 	dir := filepath.Join(proxy.cacheDir, imageResizeCacheSubdir)
 	if err := os.MkdirAll(dir, 0o750); err != nil {
@@ -76,6 +80,8 @@ func TestLargerCachedVariantPicksSmallestCoveringVariant(t *testing.T) {
 // （缓存键不变，但原图已无法解码）。若小图请求仍能返回正确的缩略图，就说明它
 // 是从缓存档位派生的；否则只能退回原图直出（此处会失败，因为原图已不是图片）。
 func TestServeResizedDerivesSmallVariantFromCachedCard(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	source := filepath.Join(dir, "poster.png")
 	original := encodeTestPNG(t, 1200, 1800, 255)
@@ -133,6 +139,8 @@ func TestServeResizedDerivesSmallVariantFromCachedCard(t *testing.T) {
 // TestPrefetchCardVariantWarmsResizeCache 刮削预取要顺带生成卡片档位，
 // 首个海报墙请求即可命中缩放缓存。
 func TestPrefetchCardVariantWarmsResizeCache(t *testing.T) {
+	t.Parallel()
+
 	payload := encodeTestPNG(t, 1200, 1800, 255)
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/png")
@@ -171,6 +179,8 @@ func TestPrefetchCardVariantWarmsResizeCache(t *testing.T) {
 // TestPrefetchCardVariantSurvivesUnresizableImage 上游返回的图无法缩放时，
 // 预取仍视为成功（图片可达即可），不能因此让刮削回退到旧图。
 func TestPrefetchCardVariantSurvivesUnresizableImage(t *testing.T) {
+	t.Parallel()
+
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/jpeg")
 		_, _ = w.Write(testJPEG)

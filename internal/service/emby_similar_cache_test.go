@@ -28,6 +28,8 @@ func totalRecordCount(t *testing.T, out map[string]any) int {
 // 相似推荐的结果要缓存：详情页每次打开都会请求它，重建要走「取候选池 + 内存打分」
 // （实测冷 340ms / 热 70ms）。
 func TestSimilarItemsServesCachedPayload(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	repos := svc.repo
 	svc.SetRuntimeCache(NewRuntimeCacheService(&config.Config{}))
@@ -72,6 +74,8 @@ func TestSimilarItemsServesCachedPayload(t *testing.T) {
 
 // limit 不同必须分开缓存，否则一次小 limit 请求会污染后续更大的请求。
 func TestSimilarItemsCacheSeparatesLimit(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	repos := svc.repo
 	svc.SetRuntimeCache(NewRuntimeCacheService(&config.Config{}))
@@ -101,6 +105,8 @@ func TestSimilarItemsCacheSeparatesLimit(t *testing.T) {
 
 // 没有注入缓存时（测试/精简部署）也必须正常工作。
 func TestSimilarItemsWithoutCacheStillWorks(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	libID := seedDiscoveryLibrary(t, svc.repo, "movie")
 	source := seedSimilarMedia(t, svc.repo, libID, "源片", "Action", 2010, 7)

@@ -23,6 +23,8 @@ func similarResponseItems(t *testing.T, out map[string]any) []map[string]any {
 }
 
 func TestSimilarSeriesReturnsWholeShowsWithPostersAndSeasons(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	libID := seedDiscoveryLibrary(t, svc.repo, "tv")
 	for _, id := range []string{"source", "widows-bay", "hostage"} {
@@ -79,6 +81,8 @@ func TestSimilarSeriesReturnsWholeShowsWithPostersAndSeasons(t *testing.T) {
 }
 
 func TestSimilarSeriesExpandsAfterDeduplication(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	local := seedDiscoveryLibrary(t, svc.repo, "tv")
 	other := seedDiscoveryLibrary(t, svc.repo, "tv")
@@ -118,6 +122,8 @@ func TestSimilarSeriesExpandsAfterDeduplication(t *testing.T) {
 }
 
 func TestSimilarVirtualSeriesCacheRetainsWholeShowArtwork(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	svc.SetRuntimeCache(NewRuntimeCacheService(&config.Config{}))
 	libID := seedDiscoveryLibrary(t, svc.repo, "tv")
@@ -168,6 +174,8 @@ func TestSimilarVirtualSeriesCacheRetainsWholeShowArtwork(t *testing.T) {
 }
 
 func TestSimilarSeriesHydrationRespectsLibraryPermissions(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	visible := seedDiscoveryLibrary(t, svc.repo, "tv")
 	hidden := seedDiscoveryLibrary(t, svc.repo, "tv")

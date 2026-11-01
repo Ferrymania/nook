@@ -38,6 +38,8 @@ func assertEmbyGenres(t *testing.T, item map[string]any, names ...string) {
 }
 
 func TestEmbyGenreOfficialShapeAndNormalization(t *testing.T) {
+	t.Parallel()
+
 	item := map[string]any{}
 	setEmbyGenres(item, []string{"28, Action，剧情;18;action ", "剧情、喜剧；35", ""})
 	assertEmbyGenres(t, item, "动作", "剧情", "喜剧")
@@ -61,6 +63,8 @@ func TestEmbyGenreOfficialShapeAndNormalization(t *testing.T) {
 }
 
 func TestEmbyGenreMetadataAcrossMovieEndpointsAndCache(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	svc.cache = newRuntimeCacheForTest(t, 8)
 	libID := seedDiscoveryLibrary(t, svc.repo, "movie")
@@ -95,6 +99,8 @@ func TestEmbyGenreMetadataAcrossMovieEndpointsAndCache(t *testing.T) {
 }
 
 func TestEmbySeriesSeasonEpisodeGenresAndVisibility(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	svc.cache = newRuntimeCacheForTest(t, 8)
 	libID := seedDiscoveryLibrary(t, svc.repo, "tv")
@@ -163,6 +169,8 @@ func TestEmbySeriesSeasonEpisodeGenresAndVisibility(t *testing.T) {
 }
 
 func TestEmbyGenreFallbackVirtualSeriesAndSharedPayloads(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	libID := seedDiscoveryLibrary(t, svc.repo, "tv")
 	rows := []model.Media{
@@ -200,6 +208,8 @@ func TestEmbyGenreFallbackVirtualSeriesAndSharedPayloads(t *testing.T) {
 }
 
 func TestRemoteSeriesFallbackRetainsGenreItems(t *testing.T) {
+	t.Parallel()
+
 	entries := []any{map[string]any{"Name": "剧情", "Id": 123}}
 	item := remoteSeriesPayloadFromEpisode(nil, map[string]any{"SeriesName": "远端剧", "GenreItems": entries}, "remote-series")
 	if !reflect.DeepEqual(item["GenreItems"], entries) {

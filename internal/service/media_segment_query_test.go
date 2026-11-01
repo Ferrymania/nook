@@ -10,6 +10,8 @@ import (
 )
 
 func TestManualSegmentQueryRefreshesCachedResultAndPreservesOnFailure(t *testing.T) {
+	t.Parallel()
+
 	var status atomic.Int32
 	status.Store(http.StatusOK)
 	s, repos, calls := newSegmentServiceFixture(t, func(w http.ResponseWriter, _ *http.Request) {
@@ -52,6 +54,8 @@ func TestManualSegmentQueryRefreshesCachedResultAndPreservesOnFailure(t *testing
 }
 
 func TestManualSegmentQueryRejectsMissingMetadataWithoutRequest(t *testing.T) {
+	t.Parallel()
+
 	s, _, calls := newSegmentServiceFixture(t, writeJSONBody(introDBMoviePayload))
 	for _, m := range []*model.Media{nil, {Base: model.Base{ID: "missing"}}, {Base: model.Base{ID: "episode"}, SeasonNum: 1}} {
 		if _, err := s.QueryForMedia(t.Context(), m); !errors.Is(err, ErrSegmentMetadataMissing) {
@@ -64,6 +68,8 @@ func TestManualSegmentQueryRejectsMissingMetadataWithoutRequest(t *testing.T) {
 }
 
 func TestManualSegmentQueryRollsBackWhenLedgerWriteFails(t *testing.T) {
+	t.Parallel()
+
 	s, repos, _ := newSegmentServiceFixture(t, writeJSONBody(introDBMoviePayload))
 	m := &model.Media{Base: model.Base{ID: "rollback"}, Path: "/never-read.strm", TMDbID: 27205}
 	if err := repos.DB.Create(m).Error; err != nil {

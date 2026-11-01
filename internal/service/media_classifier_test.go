@@ -3,6 +3,8 @@ package service
 import "testing"
 
 func TestClassifyMediaCategoryMatchesSmartRules(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input mediaClassifyInput
@@ -363,6 +365,8 @@ func TestClassifyMediaCategoryMatchesSmartRules(t *testing.T) {
 }
 
 func TestNormalizeMediaTypeAcceptsChineseLibraryTypes(t *testing.T) {
+	t.Parallel()
+
 	tests := map[string]string{
 		"华语电影": "movie",
 		"欧美剧":  "tv",
@@ -380,6 +384,8 @@ func TestNormalizeMediaTypeAcceptsChineseLibraryTypes(t *testing.T) {
 }
 
 func TestMergeLocalClassificationMetadataKeepsScraperRegionWhenNFOIsSparse(t *testing.T) {
+	t.Parallel()
+
 	input := mediaClassifyInput{
 		MediaType: "tv",
 		Title:     "SPY FAMILY",
@@ -401,6 +407,8 @@ func TestMergeLocalClassificationMetadataKeepsScraperRegionWhenNFOIsSparse(t *te
 }
 
 func TestReconcileOrganizeCategoryMediaTypeKeepsAmbiguousDocumentaryMovie(t *testing.T) {
+	t.Parallel()
+
 	if got := reconcileOrganizeCategoryMediaType("movie", "tv"); got != "movie" {
 		t.Fatalf("ambiguous documentary type=%q, want movie", got)
 	}
@@ -413,6 +421,8 @@ func TestReconcileOrganizeCategoryMediaTypeKeepsAmbiguousDocumentaryMovie(t *tes
 }
 
 func TestNormalizeMediaTypeDoesNotTreatReleaseTokensAsTV(t *testing.T) {
+	t.Parallel()
+
 	tests := []string{
 		"They Will Kill You 2026 1080p HDTV x264",
 		"Some Movie 2026 2160p AppleTV WEB-DL",

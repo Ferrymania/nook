@@ -21,6 +21,8 @@ func newCleanupTestContainer(t *testing.T) (*Container, *gorm.DB) {
 }
 
 func TestShowDirFromEpisodePath(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct{ in, want string }{
 		{`/tv/国漫/遮天 (2023)/Season 01/遮天 - S01E01.mkv`, `/tv/国漫/遮天 (2023)`},
 		{`cloud://drive/国漫/武神主宰 (2020)/S01/武神主宰 - S01E05.mkv`, `cloud://drive/国漫/武神主宰 (2020)`},
@@ -38,6 +40,8 @@ func TestShowDirFromEpisodePath(t *testing.T) {
 // TestNormalizePollutedEpisodeMetadata 验证: 被单集 id/名污染的剧组被清洗,
 // 干净的剧组不动, 且迁移幂等(写入标记后再跑不重复处理)。
 func TestNormalizePollutedEpisodeMetadata(t *testing.T) {
+	t.Parallel()
+
 	container, db := newCleanupTestContainer(t)
 
 	rows := []model.Media{

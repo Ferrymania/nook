@@ -10,6 +10,8 @@ import (
 )
 
 func TestCloud115QualityOptionsDefault1080AndTranscode(t *testing.T) {
+	t.Parallel()
+
 	media := &model.Media{Height: 1080}
 	data := &cloud115.VideoPlayData{
 		DefinitionListNew: map[string]string{"3": "超清"},
@@ -38,6 +40,8 @@ func TestCloud115QualityOptionsDefault1080AndTranscode(t *testing.T) {
 }
 
 func TestCloud115QualityOptionsListsAvailableOnlyOnce(t *testing.T) {
+	t.Parallel()
+
 	media := &model.Media{Height: 2160}
 	data := &cloud115.VideoPlayData{
 		DefinitionListNew: map[string]string{"4": "1080P", "5": "4K"},
@@ -60,6 +64,8 @@ func TestCloud115QualityOptionsListsAvailableOnlyOnce(t *testing.T) {
 }
 
 func TestLocalQualityOptionsFollowSourceHeight(t *testing.T) {
+	t.Parallel()
+
 	media := &model.Media{Height: 720}
 	options := LocalQualityOptions(media, true)
 	if _, ok := findPlaybackQuality(options, "1080"); ok {
@@ -83,6 +89,8 @@ func TestLocalQualityOptionsFollowSourceHeight(t *testing.T) {
 // as available: the player would request /api/hls/... and take a guaranteed 500
 // before falling back to direct play.
 func TestLocalQualityOptionsMarkUnavailableWithoutTranscoder(t *testing.T) {
+	t.Parallel()
+
 	media := &model.Media{Height: 1080}
 	for _, id := range []string{"source", "1080", "720", "480"} {
 		for _, available := range []bool{true, false} {
@@ -101,6 +109,8 @@ func TestLocalQualityOptionsMarkUnavailableWithoutTranscoder(t *testing.T) {
 }
 
 func TestLocalHLSQualityFFmpegArgs(t *testing.T) {
+	t.Parallel()
+
 	cfg := &config.Config{}
 	cfg.Transcoder.MaxHeight = 720
 	cfg.Transcoder.SegmentSeconds = 4
