@@ -11,8 +11,7 @@ export interface ReleaseCheckStatus {
   checked_at: string
 }
 
-// systemAPI wraps the read-only /system/* metadata endpoints used by the
-// React shell (footer, admin dashboard, scheduler page).
+// systemAPI wraps the read-only metadata and release checks shown in About.
 export const systemAPI = {
   release: (refresh = false, signal?: AbortSignal) =>
     api.get<ReleaseCheckStatus>('/admin/system/release', {
@@ -32,25 +31,5 @@ export const systemAPI = {
         cache_dir: string
         direct_play_only?: boolean
       }>('/system/info')
-      .then((r) => r.data),
-
-  status: () =>
-    api
-      .get<{
-        uptime_seconds: number
-        goroutines: number
-        cpu_percent?: number
-        memory_used?: number
-        memory_total?: number
-        disk_used?: number
-        disk_total?: number
-      }>('/system/status')
-      .then((r) => r.data),
-
-  scheduler: () =>
-    api
-      .get<{ jobs: { name: string; cron: string; next_run?: string; last_run?: string }[] }>(
-        '/system/scheduler',
-      )
       .then((r) => r.data),
 }

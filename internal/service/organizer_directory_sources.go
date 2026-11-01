@@ -5,46 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 )
-
-// OrganizeSourceCandidate is a selectable organize source directory surfaced to
-// the UI so operators can organize an arbitrary directory (such as the download
-// directory) and not only registered libraries.
-type OrganizeSourceCandidate struct {
-	Label string `json:"label"`
-	Path  string `json:"path"`
-	Kind  string `json:"kind"` // "download" | "media"
-}
-
-// OrganizeSourceCandidates returns the configured directories that are valid
-// organize sources (download dir + media dir). It uses the container-visible
-// paths; in NAS direct-read mode those equal the host paths the operator sees.
-func (o *OrganizerService) OrganizeSourceCandidates(ctx context.Context) []OrganizeSourceCandidate {
-	out := []OrganizeSourceCandidate{}
-	seen := map[string]struct{}{}
-	add := func(label, path, kind string) {
-		path = strings.TrimSpace(path)
-		if path == "" || path == "." || strings.HasPrefix(path, ".") {
-			return
-		}
-		clean := filepath.Clean(path)
-		if !isAccessibleDir(clean) {
-			return
-		}
-		if _, ok := seen[clean]; ok {
-			return
-		}
-		seen[clean] = struct{}{}
-		out = append(out, OrganizeSourceCandidate{Label: label, Path: clean, Kind: kind})
-	}
-	add("默认整理源", o.settingValue(ctx, "organize.source_dir"), "source")
-	add("下载器保存目录", o.downloaderSavepath(ctx), "download")
-	add("下载目录", envOrDefault("NOOK_DOWNLOAD_CONTAINER_DIR", "/downloads"), "download")
-	add("媒体目录", envOrDefault("NOOK_MEDIA_CONTAINER_DIR", "/media"), "media")
-	return out
-}
 
 func (o *OrganizerService) settingValue(ctx context.Context, key string) string {
 	if o.repo == nil || o.repo.Setting == nil {

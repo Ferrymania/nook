@@ -2,26 +2,15 @@ package config
 
 // Config 是根配置聚合。
 type Config struct {
-	App          AppConfig          `mapstructure:"app"`
-	Database     DatabaseConfig     `mapstructure:"database"`
-	Secrets      SecretsConfig      `mapstructure:"secrets"`
-	Logging      LoggingConfig      `mapstructure:"logging"`
-	Cache        CacheConfig        `mapstructure:"cache"`
-	Media        MediaConfig        `mapstructure:"media"`
-	Transcoder   TranscoderConfig   `mapstructure:"transcoder"`
-	AI           AIConfig           `mapstructure:"ai"`
-	FlareSolverr FlareSolverrConfig `mapstructure:"flaresolverr"`
-	ApiConfig    ApiConfigConfig    `mapstructure:"api_config"`
-	Organizer    OrganizerConfig    `mapstructure:"organizer"`
-	License      LicenseConfig      `mapstructure:"license"`
-}
-
-// ApiConfigConfig API 配置相关设置。
-type ApiConfigConfig struct {
-	// AutoEncrypt 是否自动加密敏感字段
-	AutoEncrypt bool `mapstructure:"auto_encrypt"`
-	// DefaultTimeout 默认请求超时（秒）
-	DefaultTimeout int `mapstructure:"default_timeout"`
+	App        AppConfig        `mapstructure:"app"`
+	Database   DatabaseConfig   `mapstructure:"database"`
+	Secrets    SecretsConfig    `mapstructure:"secrets"`
+	Logging    LoggingConfig    `mapstructure:"logging"`
+	Cache      CacheConfig      `mapstructure:"cache"`
+	Media      MediaConfig      `mapstructure:"media"`
+	Transcoder TranscoderConfig `mapstructure:"transcoder"`
+	AI         AIConfig         `mapstructure:"ai"`
+	Organizer  OrganizerConfig  `mapstructure:"organizer"`
 }
 
 // TranscoderConfig 控制 HLS / ffmpeg 后端。
@@ -65,14 +54,11 @@ type AppConfig struct {
 	// FFprobeMaxConcurrent limits concurrent ffprobe/ffmpeg metadata probes.
 	// NAS devices can become unresponsive when a scan starts many probe
 	// processes at once, so the default is deliberately conservative.
-	FFprobeMaxConcurrent int `mapstructure:"ffprobe_max_concurrent"`
-	// CloudScanMaxConcurrent limits concurrent cloud directory list requests
-	// inside one mounted cloud library scan.
-	CloudScanMaxConcurrent int      `mapstructure:"cloud_scan_max_concurrent"`
-	MaxCPUThreads          int      `mapstructure:"max_cpu_threads"`
-	VAAPIDevice            string   `mapstructure:"vaapi_device"`
-	CORSOrigins            []string `mapstructure:"cors_origins"`
-	ServerURL              string   `mapstructure:"server_url"`
+	FFprobeMaxConcurrent int      `mapstructure:"ffprobe_max_concurrent"`
+	MaxCPUThreads        int      `mapstructure:"max_cpu_threads"`
+	VAAPIDevice          string   `mapstructure:"vaapi_device"`
+	CORSOrigins          []string `mapstructure:"cors_origins"`
+	ServerURL            string   `mapstructure:"server_url"`
 }
 
 // DatabaseConfig configures the required PostgreSQL database.
@@ -95,8 +81,6 @@ type SecretsConfig struct {
 	BangumiToken   string `mapstructure:"bangumi_access_token"`
 	TheTVDBAPIKey  string `mapstructure:"thetvdb_api_key"`
 	FanartAPIKey   string `mapstructure:"fanart_tv_api_key"`
-	// 用于加密的密钥，如果为空则使用 JWTSecret
-	EncryptionKey string `mapstructure:"encryption_key"`
 }
 
 // LoggingConfig 配置 Zap。
@@ -148,24 +132,8 @@ type AIConfig struct {
 	MaxConcurrent int    `mapstructure:"max_concurrent"`
 }
 
-// LicenseConfig configures the optional Nook license server bridge.
-type LicenseConfig struct {
-	ServerURL  string `mapstructure:"server_url"`
-	HMACSecret string `mapstructure:"hmac_secret"`
-	PublicKey  string `mapstructure:"public_key"`
-}
-
 // OrganizerConfig 配置媒体文件智能分类整理。
 type OrganizerConfig struct {
-	SmartClassify     bool              `mapstructure:"smart_classify"`
-	AutoAfterDownload bool              `mapstructure:"auto_after_download"`
-	Categories        map[string]string `mapstructure:"categories"`
-}
-
-// FlareSolverrConfig 配置 FlareSolverr 服务（用于绕过 Cloudflare/WAF）。
-type FlareSolverrConfig struct {
-	Enabled bool   `mapstructure:"enabled"`
-	URL     string `mapstructure:"url"`
-	Session string `mapstructure:"session"`
-	Timeout int    `mapstructure:"timeout"`
+	SmartClassify bool              `mapstructure:"smart_classify"`
+	Categories    map[string]string `mapstructure:"categories"`
 }

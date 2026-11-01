@@ -72,9 +72,6 @@ func (b *serviceContainerBuilder) startRealtimeServices() {
 	b.c.Tasks = NewTaskTrackerService(b.log, b.c.WSHub)
 	b.c.ReleaseCheck = NewReleaseCheckService(b.version)
 	b.c.Diagnostics = NewDiagnosticsService()
-
-	b.c.SSEHub = NewSSEHub(b.log)
-	helper.Go(b.log, "sse.hub", b.c.SSEHub.Run)
 }
 
 func (b *serviceContainerBuilder) initProviderServices() {

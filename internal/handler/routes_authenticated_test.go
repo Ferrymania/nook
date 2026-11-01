@@ -39,7 +39,6 @@ func TestAuthenticatedRouteSurfacesAreRegistered(t *testing.T) {
 		"GET /api/storage",
 		"GET /api/watch-history",
 		"PATCH /api/watch-history/:id/played",
-		"GET /api/events",
 		"GET /api/ws",
 		"GET /api/playback/:id/info",
 		"GET /api/playback/:id/segments",
@@ -61,6 +60,9 @@ func TestRetiredSystemCompatibilityAPIsAreUnavailable(t *testing.T) {
 		"/api/system/config",
 		"/api/settings/schema",
 		"/api/system/events/ticket",
+		"/api/events",
+		"/api/public/ui-config",
+		"/api/admin/organize/sources",
 	}
 	for _, route := range router.Routes() {
 		for _, path := range retiredPaths {
@@ -89,7 +91,7 @@ func TestRealtimeAPIsRequireAuthentication(t *testing.T) {
 		Secrets: config.SecretsConfig{JWTSecret: "test-secret"},
 	}, zap.NewNop(), &service.Container{Log: zap.NewNop()})
 
-	for _, path := range []string{"/api/events", "/api/ws"} {
+	for _, path := range []string{"/api/ws"} {
 		response := httptest.NewRecorder()
 		router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, path, nil))
 		if response.Code != http.StatusUnauthorized {
