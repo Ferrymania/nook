@@ -15,6 +15,8 @@ import (
 )
 
 func TestMediaDetailUsesSavedVideoMetadataWithoutProbing(t *testing.T) {
+	t.Parallel()
+
 	_, repos, m := newProbeFixture(t)
 	var requests atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -67,6 +69,8 @@ func TestMediaDetailUsesSavedVideoMetadataWithoutProbing(t *testing.T) {
 }
 
 func TestMediaDetailMissingProbeHidesPointerSize(t *testing.T) {
+	t.Parallel()
+
 	_, repos, m := newProbeFixture(t)
 	m.Path, m.STRMURL, m.SizeBytes = "/media/movie.strm", "https://example.invalid/movie.mkv", 123
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos)
@@ -77,6 +81,8 @@ func TestMediaDetailMissingProbeHidesPointerSize(t *testing.T) {
 }
 
 func TestMediaVideoFrameRatesRejectInvalidValues(t *testing.T) {
+	t.Parallel()
+
 	for _, value := range []string{"0/0", "NaN", "+Inf", "-2", ""} {
 		if rate := positiveFrameRate(value); rate != 0 {
 			t.Fatalf("%q accepted as %f", value, rate)
@@ -88,6 +94,8 @@ func TestMediaVideoFrameRatesRejectInvalidValues(t *testing.T) {
 }
 
 func TestRemoteMediaDetailPreservesOfficialVideoMetadata(t *testing.T) {
+	t.Parallel()
+
 	r := &EmbyRemoteService{}
 	for _, sourceOnly := range []bool{false, true} {
 		stream := map[string]any{"Type": "Video", "AverageFrameRate": 23.976, "ExtendedVideoType": "DolbyVision", "ExtendedVideoSubType": "DoviProfile81"}

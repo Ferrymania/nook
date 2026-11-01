@@ -5,6 +5,8 @@ import (
 )
 
 func TestDanmakuEpisodeNumber(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		in   string
 		want string
@@ -26,6 +28,8 @@ func TestDanmakuEpisodeNumber(t *testing.T) {
 }
 
 func TestDanmakuEpisodeSubtitle(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		in   string
 		want string
@@ -46,6 +50,8 @@ func TestDanmakuEpisodeSubtitle(t *testing.T) {
 // 刮削信息匹配：优先使用本地已刮削的年份、集数和集标题，不能再被同名续作
 // 或缺少集标题的平台源抢走。
 func TestMatchScrapedDanmakuEpisodesUsesYearAndEpisodeTitle(t *testing.T) {
+	t.Parallel()
+
 	candidates := []DanmakuAnime{
 		{AnimeID: 1, AnimeTitle: "命运石之门 0(2018)【TV动画】from dandan&animeko", Episodes: []DanmakuEpisode{
 			{EpisodeID: 10299, EpisodeTitle: "【dandan&animeko】 第1话 零化域的缺失之环-Absolute Zero-"},
@@ -70,6 +76,8 @@ func TestMatchScrapedDanmakuEpisodesUsesYearAndEpisodeTitle(t *testing.T) {
 // 真实数据形态：官方 match 给出的剧名+集数在配置源里会命中多季/多版本，
 // 且顺序不可靠。必须靠副标题选中正确的那一集。
 func TestPickDanmakuEpisodeIDDisambiguatesBySubtitle(t *testing.T) {
+	t.Parallel()
+
 	// 实测样本：官方 match「命运石之门 第18话 自己相似的两性同体-…」，
 	// 配置源首条却是《命运石之门 0》的同一集号。
 	candidates := []DanmakuAnime{
@@ -92,6 +100,8 @@ func TestPickDanmakuEpisodeIDDisambiguatesBySubtitle(t *testing.T) {
 // 目标带副标题但没有任何候选的副标题对得上时，必须放弃而不是退回第一条，
 // 否则会给用户播放另一部番的弹幕。
 func TestPickDanmakuEpisodeIDRejectsWhenSubtitleNotFound(t *testing.T) {
+	t.Parallel()
+
 	candidates := []DanmakuAnime{
 		{AnimeID: 1, AnimeTitle: "某番 第一季", Episodes: []DanmakuEpisode{
 			{EpisodeID: 111, EpisodeTitle: "第3话 完全不同的标题"},
@@ -104,6 +114,8 @@ func TestPickDanmakuEpisodeIDRejectsWhenSubtitleNotFound(t *testing.T) {
 
 // 目标没有副标题（如「第11话」）时，退而要求集数一致；集数对不上同样放弃。
 func TestPickDanmakuEpisodeIDNumberOnlyFallback(t *testing.T) {
+	t.Parallel()
+
 	candidates := []DanmakuAnime{
 		{AnimeID: 1, AnimeTitle: "86 第二季", Episodes: []DanmakuEpisode{
 			// 该源对第二季采用绝对集号，第 11 集记作第 22 话。
@@ -126,6 +138,8 @@ func TestPickDanmakuEpisodeIDNumberOnlyFallback(t *testing.T) {
 }
 
 func TestPickDanmakuEpisodeIDSkipsInvalidIDs(t *testing.T) {
+	t.Parallel()
+
 	candidates := []DanmakuAnime{
 		{AnimeID: 1, AnimeTitle: "某番", Episodes: []DanmakuEpisode{
 			{EpisodeID: 0, EpisodeTitle: "第1话 目标"},

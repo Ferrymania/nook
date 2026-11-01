@@ -14,6 +14,8 @@ func hdrTestDV(profile, compatibility, rpu int) ProbeVideoSideData {
 }
 
 func TestEmbyExtendedVideoTypesUseOfficialEnums(t *testing.T) {
+	t.Parallel()
+
 	for _, c := range []struct {
 		name             string
 		stream           ProbeStream
@@ -59,6 +61,8 @@ func TestEmbyExtendedVideoTypesUseOfficialEnums(t *testing.T) {
 }
 
 func TestEmbyHDRMetadataPersistsAndAppearsInDetailAndPlaybackInfo(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	for i, s := range []ProbeStream{
 		{Type: "video", Codec: "hevc", PixFmt: "yuv420p10le", ColorTransfer: "smpte2084", ColorPrimaries: "bt2020", ColorSpace: "bt2020nc", BitDepth: 10},
@@ -99,6 +103,8 @@ func TestEmbyHDRMetadataPersistsAndAppearsInDetailAndPlaybackInfo(t *testing.T) 
 }
 
 func TestLegacyProbeRemainsSettledWithoutInventingHDR(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	m := model.Media{Base: model.Base{ID: "legacy-hdr"}, Title: "DV HDR10 Main 10", Path: "/media/legacy.strm", Container: "strm"}
 	if err := svc.repo.DB.Create(&m).Error; err != nil {

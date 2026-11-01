@@ -223,12 +223,12 @@ func TestReusableCIIncludesDatabaseTestsAndSmokeCheck(t *testing.T) {
 	}
 	fullTests := false
 	for _, step := range backend.Steps {
-		if strings.TrimSpace(step.Run) == "go test ./..." {
+		if strings.TrimSpace(step.Run) == "go test -parallel=4 ./..." {
 			fullTests = true
 		}
 	}
 	if !fullTests {
-		t.Fatal("release CI must include the full Go test suite")
+		t.Fatal("release CI must include the full Go test suite with bounded test parallelism")
 	}
 	for _, id := range []string{"backend", "frontend", "smoke"} {
 		if !blockedBy(w, "ci-success", id) {

@@ -11,6 +11,8 @@ import (
 // 修复前：已刮削的分片走「番号」分组、其余落到「标题」分组，7 个分片会裂成两张卡
 // （一张只有第 4 个，另一张是其余 6 个）。
 func TestGroupMediaVersionsKeepsUnscrapedPartsWithScrapedSibling(t *testing.T) {
+	t.Parallel()
+
 	const libID = "lib-1"
 	const dir = "/media/云下载/sivr-270/"
 
@@ -55,6 +57,8 @@ func TestGroupMediaVersionsKeepsUnscrapedPartsWithScrapedSibling(t *testing.T) {
 // 反向保护：没有任何分片被确认为成人内容时，不能仅凭文件名里的番号形态折叠，
 // 否则普通媒体也可能被误并进同一张卡。
 func TestGroupMediaVersionsIgnoresUnvouchedAdultCode(t *testing.T) {
+	t.Parallel()
+
 	items := []model.Media{
 		{LibraryID: "lib-2", Title: "Alpha Movie", Path: "/media/movies/Alpha Movie/ABC-123-1080p.mkv"},
 		{LibraryID: "lib-2", Title: "Beta Movie", Path: "/media/movies/Beta Movie/ABC-123-2160p.mkv"},

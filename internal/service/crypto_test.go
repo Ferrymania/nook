@@ -8,6 +8,8 @@ import (
 )
 
 func TestCryptoRoundtrip(t *testing.T) {
+	t.Parallel()
+
 	c := NewCryptoService("super-secret-key-1234567890", zap.NewNop())
 	cases := []string{
 		"",
@@ -39,6 +41,8 @@ func TestCryptoRoundtrip(t *testing.T) {
 }
 
 func TestCryptoNoSecret(t *testing.T) {
+	t.Parallel()
+
 	c := NewCryptoService("", zap.NewNop())
 	if c.Encrypt("x") != "x" {
 		t.Fatal("empty-secret crypto should be a pass-through")
@@ -49,6 +53,8 @@ func TestCryptoNoSecret(t *testing.T) {
 }
 
 func TestCryptoLegacyPlaintext(t *testing.T) {
+	t.Parallel()
+
 	c := NewCryptoService("k", zap.NewNop())
 	// Decrypt a value that has no enc:v1: prefix — should pass through.
 	if got := c.Decrypt("legacy-plain"); got != "legacy-plain" {
@@ -57,6 +63,8 @@ func TestCryptoLegacyPlaintext(t *testing.T) {
 }
 
 func TestMaskAPIKey(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct{ in, want string }{
 		{"", "****"},
 		{"abc", "****"},

@@ -12,6 +12,8 @@ import (
 )
 
 func TestSyncUserFavoriteWritesLocalForRemoteID(t *testing.T) {
+	t.Parallel()
+
 	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
@@ -47,6 +49,8 @@ func TestSyncUserFavoriteWritesLocalForRemoteID(t *testing.T) {
 }
 
 func TestFavoriteItemsIncludesRemoteFavourites(t *testing.T) {
+	t.Parallel()
+
 	db := newServiceTestDB(t, &model.User{}, &model.Library{}, &model.Media{}, &model.Favorite{})
 	repos := repository.New(db)
 	viewer := &model.User{Username: "viewer", PasswordHash: "hash", Role: "user"}

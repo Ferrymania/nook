@@ -13,6 +13,8 @@ import (
 )
 
 func TestListLibrariesWithPreview(t *testing.T) {
+	t.Parallel()
+
 	db := newServiceTestDB(t, &model.Library{}, &model.Media{})
 	repos := repository.New(db)
 
@@ -94,6 +96,8 @@ func TestListLibrariesWithPreview(t *testing.T) {
 }
 
 func TestListLibrariesWithPreviewLongSeriesCompletion(t *testing.T) {
+	t.Parallel()
+
 	db := newServiceTestDB(t, &model.Library{}, &model.Media{})
 	repos := repository.New(db)
 
@@ -157,6 +161,8 @@ func TestListLibrariesWithPreviewLongSeriesCompletion(t *testing.T) {
 }
 
 func TestListLibraryPreviewsSkipsTotals(t *testing.T) {
+	t.Parallel()
+
 	db := newServiceTestDB(t, &model.Library{}, &model.Media{})
 	repos := repository.New(db)
 	lib := model.Library{Name: "电影", Path: "/media/movies", Type: "movie", Enabled: true}
@@ -182,6 +188,8 @@ func TestListLibraryPreviewsSkipsTotals(t *testing.T) {
 }
 
 func TestListLibraryPreviewsCachesEachLibraryIndependently(t *testing.T) {
+	t.Parallel()
+
 	db := newServiceTestDB(t, &model.Library{}, &model.Media{})
 	repos := repository.New(db)
 	lib := model.Library{Name: "电影", Path: "/media/movies", Type: "movie", Enabled: true}
@@ -211,6 +219,8 @@ func TestListLibraryPreviewsCachesEachLibraryIndependently(t *testing.T) {
 }
 
 func TestLibraryPreviewsOrderByLastAddedTime(t *testing.T) {
+	t.Parallel()
+
 	db := newServiceTestDB(t, &model.Library{}, &model.Media{})
 	repos := repository.New(db)
 	movies := model.Library{Name: "电影", Path: "/movies", Type: "movie", Enabled: true}

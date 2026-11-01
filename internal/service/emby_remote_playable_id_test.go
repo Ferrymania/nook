@@ -65,6 +65,8 @@ func playableIDTestEpisode(id string, index, sources int) map[string]any {
 // （Unable to cast 'Series' to 'IHasMediaSources'）。这条用例保证我们会换成第一集，
 // 而不是把这种 ID 直接交给远程。
 func TestPlayableRemoteIDResolvesContainerToFirstEpisode(t *testing.T) {
+	t.Parallel()
+
 	var itemsCalls int64
 	remote, acct := newPlayableIDTestService(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -110,6 +112,8 @@ func TestPlayableRemoteIDResolvesContainerToFirstEpisode(t *testing.T) {
 
 // 本身带媒体源的条目（电影/单集）必须原样返回，不能被改写。
 func TestPlayableRemoteIDKeepsPlayableItem(t *testing.T) {
+	t.Parallel()
+
 	var queries int64
 	remote, acct := newPlayableIDTestService(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		atomic.AddInt64(&queries, 1)
@@ -130,6 +134,8 @@ func TestPlayableRemoteIDKeepsPlayableItem(t *testing.T) {
 
 // 远程不可用/查不到条目时保持原 ID：让原有流程去报错，别把播放地址改成空。
 func TestPlayableRemoteIDKeepsOriginalOnFailure(t *testing.T) {
+	t.Parallel()
+
 	remote, acct := newPlayableIDTestService(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
@@ -141,6 +147,8 @@ func TestPlayableRemoteIDKeepsOriginalOnFailure(t *testing.T) {
 
 // 容器下没有任何带媒体源的子条目时同样返回原 ID（下一层会给友好报错）。
 func TestPlayableRemoteIDKeepsContainerWithoutPlayableChild(t *testing.T) {
+	t.Parallel()
+
 	remote, acct := newPlayableIDTestService(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if r.URL.Path == "/emby/Users/uid-1/Items" {

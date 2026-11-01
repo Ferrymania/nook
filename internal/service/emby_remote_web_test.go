@@ -19,6 +19,8 @@ import (
 )
 
 func TestMapRemoteItemToMediaSortingFields(t *testing.T) {
+	t.Parallel()
+
 	svc := &EmbyRemoteService{}
 	mount := &model.EmbyMount{Base: model.Base{ID: "mount-1"}}
 	acct := &model.StrmAccount{Base: model.Base{ID: "acct-1"}}
@@ -55,6 +57,8 @@ func TestMapRemoteItemToMediaSortingFields(t *testing.T) {
 }
 
 func TestMapRemoteItemToMediaCriticRatingFallback(t *testing.T) {
+	t.Parallel()
+
 	svc := &EmbyRemoteService{}
 	mount := &model.EmbyMount{Base: model.Base{ID: "mount-1"}}
 	acct := &model.StrmAccount{Base: model.Base{ID: "acct-1"}}
@@ -77,6 +81,8 @@ func TestMapRemoteItemToMediaCriticRatingFallback(t *testing.T) {
 }
 
 func TestMapRemoteItemToMediaDateLastMediaAdded(t *testing.T) {
+	t.Parallel()
+
 	svc := &EmbyRemoteService{}
 	mount := &model.EmbyMount{Base: model.Base{ID: "mount-1"}}
 	acct := &model.StrmAccount{Base: model.Base{ID: "acct-1"}}
@@ -101,6 +107,8 @@ func TestMapRemoteItemToMediaDateLastMediaAdded(t *testing.T) {
 }
 
 func TestRemoteSeriesCardsAutoAuthOnFirstBrowse(t *testing.T) {
+	t.Parallel()
+
 	// 模拟远程 Emby：未认证兜底用户 ID "0" 被拒绝（与真实服务器一致），
 	// 只有认证拿到的真实用户 GUID 才能浏览。
 	var zeroUserHits atomic.Int32
@@ -218,6 +226,8 @@ func TestRemoteSeriesCardsAutoAuthOnFirstBrowse(t *testing.T) {
 }
 
 func TestRemoteSeriesCardsResolveUserIDFromAPIKey(t *testing.T) {
+	t.Parallel()
+
 	// api_key 直连场景：账号只填了 token（无用户名/密码），从未回写过
 	// remote_user_id。首次浏览应通过 /Users 列表解析出真实用户 GUID。
 	var zeroUserHits atomic.Int32
@@ -304,6 +314,8 @@ func TestRemoteSeriesCardsResolveUserIDFromAPIKey(t *testing.T) {
 }
 
 func TestRemoteSearchMedia(t *testing.T) {
+	t.Parallel()
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
 		if q.Get("SearchTerm") == "碧蓝之海" {
@@ -413,6 +425,8 @@ func TestRemoteSearchMedia(t *testing.T) {
 }
 
 func TestRemoteLatestCardsTvShowsYearAndPoster(t *testing.T) {
+	t.Parallel()
+
 	var requestedFields string
 	var requestedIncludeItemTypes string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -491,6 +505,8 @@ func TestRemoteLatestCardsTvShowsYearAndPoster(t *testing.T) {
 }
 
 func TestRemoteLatestCardsTvShowsGroupsEpisodeFallbackBySeries(t *testing.T) {
+	t.Parallel()
+
 	var seriesQueryCalled atomic.Bool
 	var latestCalled atomic.Bool
 	var requestedSeriesType atomic.Value
@@ -597,6 +613,8 @@ func TestRemoteLatestCardsTvShowsGroupsEpisodeFallbackBySeries(t *testing.T) {
 }
 
 func TestEmbyLatestItemsRemoteTvShowsUseSeriesIDs(t *testing.T) {
+	t.Parallel()
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch strings.TrimPrefix(r.URL.Path, "/emby") {
@@ -679,6 +697,8 @@ func TestEmbyLatestItemsRemoteTvShowsUseSeriesIDs(t *testing.T) {
 // 远程剧集库分页拉全量：超过一页时必须继续翻页，否则第 201 条之后的剧集
 // 既不会出现在媒体库列表里，首页深链过来的 ?series= 也无从命中。
 func TestRemoteSeriesCardsFetchAllPages(t *testing.T) {
+	t.Parallel()
+
 	const totalSeries = remoteSeriesPageSize*2 + 50
 	var requests atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -757,6 +777,8 @@ func TestRemoteSeriesCardsFetchAllPages(t *testing.T) {
 
 // 与 Emby 客户端一致：Recursive=true 拉全库 Series，并过滤 anime 等中间容器。
 func TestRemoteSeriesCardsRecursiveFiltersAnimeContainers(t *testing.T) {
+	t.Parallel()
+
 	var sawRecursive atomic.Bool
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -836,6 +858,8 @@ func TestRemoteSeriesCardsRecursiveFiltersAnimeContainers(t *testing.T) {
 // 首页「最新条目」卡片 key 必须与媒体库剧集列表的 key 一致，否则点击后
 // 媒体库页找不到目标剧集，只能退回整库列表。
 func TestRemoteLatestCardsKeyMatchesSeriesList(t *testing.T) {
+	t.Parallel()
+
 	var seriesQueryCalls atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -924,6 +948,8 @@ func TestRemoteLatestCardsKeyMatchesSeriesList(t *testing.T) {
 }
 
 func TestRemoteLatestFields(t *testing.T) {
+	t.Parallel()
+
 	var requestedFields string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestedFields = r.URL.Query().Get("Fields")

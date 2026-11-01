@@ -15,6 +15,8 @@ import (
 // one — which made TestRuntimeCacheSetMaxSizeEvictsImmediately fail intermittently
 // in a full-package run.
 func TestRuntimeCacheEvictionBreaksTimestampTiesDeterministically(t *testing.T) {
+	t.Parallel()
+
 	// Repeat because the bug only showed up for some map iteration orders.
 	for attempt := 0; attempt < 50; attempt++ {
 		cache := newRuntimeCacheForTest(t, 128)
@@ -40,6 +42,8 @@ func TestRuntimeCacheEvictionBreaksTimestampTiesDeterministically(t *testing.T) 
 // Accessing an entry refreshes its recency even when it lands in the same tick as
 // the write of a competing entry.
 func TestRuntimeCacheAccessRefreshesEvictionOrder(t *testing.T) {
+	t.Parallel()
+
 	cache := newRuntimeCacheForTest(t, 128)
 	const perEntry = 700 << 10
 
@@ -62,6 +66,8 @@ func TestRuntimeCacheAccessRefreshesEvictionOrder(t *testing.T) {
 
 // Eviction picks the oldest across the byte cache and the object cache together.
 func TestRuntimeCacheEvictionComparesBothCaches(t *testing.T) {
+	t.Parallel()
+
 	cache := newRuntimeCacheForTest(t, 128)
 	const perEntry = 700 << 10
 
@@ -84,6 +90,8 @@ func TestRuntimeCacheEvictionComparesBothCaches(t *testing.T) {
 // The sequence counter must hand out strictly increasing values, otherwise ties
 // would resolve randomly again.
 func TestRuntimeCacheSequenceIsMonotonic(t *testing.T) {
+	t.Parallel()
+
 	cache := newRuntimeCacheForTest(t, 16)
 	seen := map[uint64]bool{}
 	cache.mu.Lock()

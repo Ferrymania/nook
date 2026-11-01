@@ -14,6 +14,8 @@ import (
 )
 
 func TestLibraryCreationSettingsAndExplicitCreate(t *testing.T) {
+	t.Parallel()
+
 	db := newServiceTestDB(t)
 	repos := repository.New(db)
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos)
@@ -54,6 +56,8 @@ func TestLibraryCreationSettingsAndExplicitCreate(t *testing.T) {
 }
 
 func TestLibraryCreationBatchRollsBackConflictAndSavesSettings(t *testing.T) {
+	t.Parallel()
+
 	db := newServiceTestDB(t)
 	repos := repository.New(db)
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos)

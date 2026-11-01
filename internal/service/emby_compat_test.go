@@ -26,6 +26,8 @@ func newTestEmbyService(t *testing.T) *EmbyService {
 }
 
 func TestEmbyLatestItemsOrderByReleaseDate(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "电影", Path: `/media/movies`, Type: "movie", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
@@ -74,6 +76,8 @@ func TestEmbyLatestItemsOrderByReleaseDate(t *testing.T) {
 // series_id values and virtual msgo-series-* IDs), so SimilarItems always
 // returned empty for series detail pages.
 func TestEmbyServiceSimilarItemsSeriesID(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	svc.SetDiscovery(NewMediaDiscoveryService(zap.NewNop(), svc.repo))
 
@@ -135,6 +139,8 @@ func TestEmbyServiceSimilarItemsSeriesID(t *testing.T) {
 // SimilarItems with a virtual series ID (msgo-series-*) must also work.
 // Virtual IDs are generated for episodes that have no series_id set.
 func TestEmbyServiceSimilarItemsVirtualSeriesID(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	svc.SetDiscovery(NewMediaDiscoveryService(zap.NewNop(), svc.repo))
 

@@ -15,6 +15,8 @@ func telegramEpisodeFixture(id string, season, episode int, when time.Time) mode
 }
 
 func TestTelegramEpisodeSummary(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name  string
 		media []model.Media
@@ -39,6 +41,8 @@ func TestTelegramEpisodeSummary(t *testing.T) {
 }
 
 func TestTelegramMediaGroupIdentityBoundaries(t *testing.T) {
+	t.Parallel()
+
 	lib := model.Library{Type: "tv"}
 	m := telegramEpisodeFixture("a", 1, 11, time.Now())
 	key := telegramMediaSeriesKey(m, lib)
@@ -80,6 +84,8 @@ func TestTelegramMediaGroupIdentityBoundaries(t *testing.T) {
 }
 
 func TestTelegramMediaGroupWaitsForQuietWindowAndMetadata(t *testing.T) {
+	t.Parallel()
+
 	start := time.Now().UTC().Truncate(time.Second)
 	first := telegramEpisodeFixture("a", 1, 11, start)
 	second := telegramEpisodeFixture("c", 1, 12, start.Add(20*time.Second))
@@ -107,6 +113,8 @@ func TestTelegramMediaGroupWaitsForQuietWindowAndMetadata(t *testing.T) {
 }
 
 func TestTelegramMediaCursorDoesNotSkipInterleavedRows(t *testing.T) {
+	t.Parallel()
+
 	when := time.Now().UTC().Truncate(time.Second)
 	rows := []model.Media{
 		telegramEpisodeFixture("a", 1, 11, when),
@@ -142,6 +150,8 @@ func TestTelegramMediaCursorDoesNotSkipInterleavedRows(t *testing.T) {
 }
 
 func TestTelegramGroupedCaptionShowsOneRange(t *testing.T) {
+	t.Parallel()
+
 	when := time.Now()
 	first := telegramEpisodeFixture("a", 1, 11, when)
 	second := telegramEpisodeFixture("b", 1, 12, when)
@@ -153,6 +163,8 @@ func TestTelegramGroupedCaptionShowsOneRange(t *testing.T) {
 }
 
 func TestTelegramGroupedCaptionHonorsLimit(t *testing.T) {
+	t.Parallel()
+
 	first := telegramEpisodeFixture("first", 1, 1, time.Now())
 	first.Title, first.Overview, first.Genres = strings.Repeat("长剧名", 80), strings.Repeat("剧情😀<&>", 500), strings.Repeat("类型", 100)
 	var episodes []model.Media

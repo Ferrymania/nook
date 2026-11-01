@@ -30,6 +30,8 @@ func encodeTestPNG(t *testing.T, w, h int, alpha uint8) []byte {
 }
 
 func TestParseImageResizeOptionsReadsEmbyParams(t *testing.T) {
+	t.Parallel()
+
 	r := httptest.NewRequest("GET", "/emby/Items/x/Images/Primary?maxWidth=400&maxHeight=600&quality=80", nil)
 	o := parseImageResizeOptions(r)
 	if o.MaxWidth != 400 || o.MaxHeight != 600 || o.Quality != 80 {
@@ -41,6 +43,8 @@ func TestParseImageResizeOptionsReadsEmbyParams(t *testing.T) {
 }
 
 func TestParseImageResizeOptionsIsCaseInsensitive(t *testing.T) {
+	t.Parallel()
+
 	r := httptest.NewRequest("GET", "/x?MaxWidth=250&QUALITY=70", nil)
 	o := parseImageResizeOptions(r)
 	if o.MaxWidth != 250 {
@@ -52,6 +56,8 @@ func TestParseImageResizeOptionsIsCaseInsensitive(t *testing.T) {
 }
 
 func TestParseImageResizeOptionsAcceptsWidthAndHeightAliases(t *testing.T) {
+	t.Parallel()
+
 	r := httptest.NewRequest("GET", "/x?width=320&height=180", nil)
 	o := parseImageResizeOptions(r)
 	if o.MaxWidth != 320 || o.MaxHeight != 180 {
@@ -60,6 +66,8 @@ func TestParseImageResizeOptionsAcceptsWidthAndHeightAliases(t *testing.T) {
 }
 
 func TestParseImageResizeOptionsInactiveWithoutDimensions(t *testing.T) {
+	t.Parallel()
+
 	r := httptest.NewRequest("GET", "/x?quality=90&tag=abc", nil)
 	o := parseImageResizeOptions(r)
 	if o.active() {
@@ -68,6 +76,8 @@ func TestParseImageResizeOptionsInactiveWithoutDimensions(t *testing.T) {
 }
 
 func TestFitSizePreservesAspectAndNeverUpscales(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name                   string
 		srcW, srcH, maxW, maxH int
@@ -91,6 +101,8 @@ func TestFitSizePreservesAspectAndNeverUpscales(t *testing.T) {
 }
 
 func TestResizeImageDataScalesDownAndReencodesAsJPEG(t *testing.T) {
+	t.Parallel()
+
 	data := encodeTestPNG(t, 529, 911, 255)
 	out, ctype, unchanged, err := resizeImageData(data, imageResizeOptions{MaxWidth: 400, Quality: 90})
 	if err != nil {
@@ -124,6 +136,8 @@ func TestResizeImageDataScalesDownAndReencodesAsJPEG(t *testing.T) {
 }
 
 func TestResizeImageDataLeavesImagesWithinBoundsUntouched(t *testing.T) {
+	t.Parallel()
+
 	data := encodeTestPNG(t, 200, 300, 255)
 	out, _, unchanged, err := resizeImageData(data, imageResizeOptions{MaxWidth: 400, MaxHeight: 600})
 	if err != nil {
@@ -138,6 +152,8 @@ func TestResizeImageDataLeavesImagesWithinBoundsUntouched(t *testing.T) {
 }
 
 func TestResizeImageDataKeepsTransparencyAsPNG(t *testing.T) {
+	t.Parallel()
+
 	data := encodeTestPNG(t, 600, 900, 128)
 	out, ctype, unchanged, err := resizeImageData(data, imageResizeOptions{MaxWidth: 300, Quality: 90})
 	if err != nil {
@@ -162,6 +178,8 @@ func TestResizeImageDataKeepsTransparencyAsPNG(t *testing.T) {
 }
 
 func TestImageResizeOptionsCacheKeyVariesWithParametersAndSource(t *testing.T) {
+	t.Parallel()
+
 	stat, err := os.Stat("image_resize_test.go")
 	if err != nil {
 		t.Fatalf("stat: %v", err)
@@ -182,6 +200,8 @@ func TestImageResizeOptionsCacheKeyVariesWithParametersAndSource(t *testing.T) {
 }
 
 func TestImageResizeOptionsEncodingQualityFallsBackToDefault(t *testing.T) {
+	t.Parallel()
+
 	for _, tc := range []struct {
 		in   int
 		want int
@@ -200,6 +220,8 @@ func TestImageResizeOptionsEncodingQualityFallsBackToDefault(t *testing.T) {
 }
 
 func TestServeResizedFromFileCachesScaledResult(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	mediaDir := dir + string(os.PathSeparator) + "media"
 	if err := os.MkdirAll(mediaDir, 0o755); err != nil {
@@ -235,6 +257,8 @@ func TestServeResizedFromFileCachesScaledResult(t *testing.T) {
 }
 
 func TestServeResizedFromFileUsesCacheBeforeDecodingSource(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	mediaDir := dir + string(os.PathSeparator) + "media"
 	if err := os.MkdirAll(mediaDir, 0o755); err != nil {
@@ -279,6 +303,8 @@ func TestServeResizedFromFileUsesCacheBeforeDecodingSource(t *testing.T) {
 }
 
 func TestServeResizedFromFileSkipsDecodeForCompactJPEG(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	src := dir + string(os.PathSeparator) + "poster.jpg"
 	var buf bytes.Buffer
@@ -303,6 +329,8 @@ func TestServeResizedFromFileSkipsDecodeForCompactJPEG(t *testing.T) {
 }
 
 func TestServeResizedFromFileDoesNotQueueWhenResizeBusy(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	src := dir + string(os.PathSeparator) + "backdrop.jpg"
 	data := make([]byte, compactImageSkipBytes+1024)

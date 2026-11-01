@@ -79,6 +79,8 @@ PR 应该尽量小而清晰。一次 PR 聚焦一个问题或一组强相关改�
 
 数据库集成测试交给 CI：流水线自动启动独立 PostgreSQL 测试实例、配置 `NOOK_TEST_POSTGRES_DSN` 并初始化 `pg_trgm` 扩展。每个测试使用独立 schema，结束后自动清理；测试失败会阻止后续发布。本地如需排查数据库问题，也可显式指定独立测试库，不能使用生产数据库地址。
 
+独立的 service 测试在函数开头调用 `t.Parallel()`，CI 将每个测试包的并行用例上限设为 4。测试须独享数据库 schema、临时目录、配置和服务实例；修改环境变量、工作目录或包级全局变量的测试保持串行。新增并行用例后，在配置了独立测试数据库的环境中运行 `go test -race -shuffle=on -count=2 -parallel=4 ./internal/service`，检查竞态及顺序依赖。测量耗时时使用 `-count=1`，避免命中测试结果缓存。
+
 ```bash
 npm --prefix web run build
 npm --prefix web run lint

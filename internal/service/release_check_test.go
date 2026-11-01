@@ -22,6 +22,8 @@ func releaseCheckResponse(code int, body string) *http.Response {
 }
 
 func TestReleaseCheckPreservesBuildVersion(t *testing.T) {
+	t.Parallel()
+
 	for _, tc := range []struct{ input, want string }{
 		{"Nook-v0.0.99", "Nook-v0.0.99"},
 		{"  v0.0.99 \n", "v0.0.99"},
@@ -41,6 +43,8 @@ func TestReleaseCheckPreservesBuildVersion(t *testing.T) {
 }
 
 func TestReleaseCheckVersionComparison(t *testing.T) {
+	t.Parallel()
+
 	for _, tc := range []struct{ current, latest, want string }{
 		{"nook-v0.0.9", "nook-v0.0.10", "update_available"},
 		{"nook-v0.0.26", "v0.0.26", "up_to_date"},
@@ -82,6 +86,8 @@ func TestReleaseCheckVersionComparison(t *testing.T) {
 }
 
 func TestReleaseCheckFailuresNeverReportLatest(t *testing.T) {
+	t.Parallel()
+
 	for _, tc := range []struct {
 		name string
 		code int
@@ -115,6 +121,8 @@ func TestReleaseCheckFailuresNeverReportLatest(t *testing.T) {
 }
 
 func TestReleaseCheckCacheRefreshAndConcurrentRequests(t *testing.T) {
+	t.Parallel()
+
 	s := NewReleaseCheckService("v0.0.26")
 	now := time.Date(2026, 10, 19, 8, 0, 0, 0, time.UTC)
 	s.now = func() time.Time { return now }
@@ -149,6 +157,8 @@ func TestReleaseCheckCacheRefreshAndConcurrentRequests(t *testing.T) {
 }
 
 func TestReleaseCheckFailureRetryAndCancellation(t *testing.T) {
+	t.Parallel()
+
 	s := NewReleaseCheckService("v0.0.26")
 	now := time.Now()
 	s.now = func() time.Time { return now }

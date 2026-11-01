@@ -11,6 +11,8 @@ import (
 )
 
 func TestSessionTrackerAppliesRealtimeActivityToUsers(t *testing.T) {
+	t.Parallel()
+
 	tracker := NewSessionTrackerService(zap.NewNop())
 	now := time.Date(2026, 6, 21, 10, 0, 0, 0, time.UTC)
 	tracker.now = func() time.Time { return now }
@@ -29,6 +31,8 @@ func TestSessionTrackerAppliesRealtimeActivityToUsers(t *testing.T) {
 }
 
 func TestSessionTrackerDeduplicatesAppsOnSameTerminal(t *testing.T) {
+	t.Parallel()
+
 	tracker := NewSessionTrackerService(zap.NewNop())
 	now := time.Date(2026, 6, 21, 10, 30, 0, 0, time.UTC)
 	tracker.now = func() time.Time { return now }
@@ -52,6 +56,8 @@ func TestSessionTrackerDeduplicatesAppsOnSameTerminal(t *testing.T) {
 }
 
 func TestSessionTrackerLogoutUsesLatestMergedDeviceID(t *testing.T) {
+	t.Parallel()
+
 	tracker := NewSessionTrackerService(zap.NewNop())
 	now := time.Date(2026, 6, 21, 10, 45, 0, 0, time.UTC)
 	tracker.now = func() time.Time { return now }
@@ -67,6 +73,8 @@ func TestSessionTrackerLogoutUsesLatestMergedDeviceID(t *testing.T) {
 }
 
 func TestDeviceListMergesRealtimeSessions(t *testing.T) {
+	t.Parallel()
+
 	repos := newSessionTrackerTestRepos(t)
 	user := model.User{Base: model.Base{ID: "u1"}, Username: "viewer", PasswordHash: "x", Role: "user", IsActive: true}
 	if err := repos.User.Create(t.Context(), &user); err != nil {
@@ -95,6 +103,8 @@ func TestDeviceListMergesRealtimeSessions(t *testing.T) {
 }
 
 func TestActivityRefreshKeepsPlaybackState(t *testing.T) {
+	t.Parallel()
+
 	tracker := NewSessionTrackerService(zap.NewNop())
 	now := time.Date(2026, 6, 21, 11, 30, 0, 0, time.UTC)
 	tracker.now = func() time.Time { return now }
@@ -115,6 +125,8 @@ func TestActivityRefreshKeepsPlaybackState(t *testing.T) {
 }
 
 func TestLogoutKeepsRealtimeLastActivityWithoutOnlineSession(t *testing.T) {
+	t.Parallel()
+
 	tracker := NewSessionTrackerService(zap.NewNop())
 	now := time.Date(2026, 6, 21, 12, 30, 0, 0, time.UTC)
 	tracker.now = func() time.Time { return now }
@@ -135,6 +147,8 @@ func TestLogoutKeepsRealtimeLastActivityWithoutOnlineSession(t *testing.T) {
 }
 
 func TestRealtimeRecentLoginProtectsCleanupCandidate(t *testing.T) {
+	t.Parallel()
+
 	repos := newSessionTrackerTestRepos(t)
 	now := time.Date(2026, 6, 21, 12, 0, 0, 0, time.UTC)
 	old := now.Add(-30 * 24 * time.Hour)

@@ -20,6 +20,8 @@ func newRuntimeCacheForTest(t *testing.T, maxMB int) *RuntimeCacheService {
 }
 
 func TestRuntimeCacheEvictsByByteBudget(t *testing.T) {
+	t.Parallel()
+
 	cache := newRuntimeCacheForTest(t, 1)
 	cache.SetObject("large", strings.Repeat("a", 800<<10), time.Minute)
 	cache.SetObject("small", strings.Repeat("b", 300<<10), time.Minute)
@@ -36,6 +38,8 @@ func TestRuntimeCacheEvictsByByteBudget(t *testing.T) {
 }
 
 func TestRuntimeCacheSkipsOversizedObject(t *testing.T) {
+	t.Parallel()
+
 	cache := newRuntimeCacheForTest(t, 1)
 	cache.SetObject("huge", strings.Repeat("x", 2<<20), time.Minute)
 
@@ -48,6 +52,8 @@ func TestRuntimeCacheSkipsOversizedObject(t *testing.T) {
 }
 
 func TestRuntimeCachePrefixDeleteReleasesByteBudget(t *testing.T) {
+	t.Parallel()
+
 	cache := newRuntimeCacheForTest(t, 2)
 	for i := 0; i < 4; i++ {
 		cache.SetJSON(context.Background(), fmt.Sprintf("media:%d", i), strings.Repeat("x", 64<<10), time.Minute)
@@ -68,6 +74,8 @@ func TestRuntimeCachePrefixDeleteReleasesByteBudget(t *testing.T) {
 }
 
 func TestRuntimeCacheStillEnforcesEntryLimit(t *testing.T) {
+	t.Parallel()
+
 	cache := newRuntimeCacheForTest(t, 1)
 	cache.limit = 3
 	for i := 0; i < 5; i++ {
@@ -79,6 +87,8 @@ func TestRuntimeCacheStillEnforcesEntryLimit(t *testing.T) {
 }
 
 func TestRuntimeCacheEstimatesMediaRows(t *testing.T) {
+	t.Parallel()
+
 	rows := []model.Media{{
 		Title:       strings.Repeat("t", 1024),
 		Path:        "/media/movies/example.mkv",
@@ -94,6 +104,8 @@ func TestRuntimeCacheEstimatesMediaRows(t *testing.T) {
 }
 
 func TestRuntimeCacheSetMaxSizeEvictsImmediately(t *testing.T) {
+	t.Parallel()
+
 	cache := newRuntimeCacheForTest(t, 2)
 	cache.SetObject("old", strings.Repeat("a", 700<<10), time.Minute)
 	cache.SetObject("new", strings.Repeat("b", 700<<10), time.Minute)
@@ -117,6 +129,8 @@ func TestRuntimeCacheSetMaxSizeEvictsImmediately(t *testing.T) {
 }
 
 func TestRuntimeCacheReturnsStaleValueAfterFreshTTL(t *testing.T) {
+	t.Parallel()
+
 	cache := newRuntimeCacheForTest(t, 1)
 	key := "latest:stale"
 	cache.SetJSONWithStale(context.Background(), key, "cached-value", time.Minute, time.Hour)
@@ -143,6 +157,8 @@ func TestRuntimeCacheReturnsStaleValueAfterFreshTTL(t *testing.T) {
 }
 
 func TestRuntimeCacheDoesNotReturnOrdinaryEntryAsStale(t *testing.T) {
+	t.Parallel()
+
 	cache := newRuntimeCacheForTest(t, 1)
 	key := "latest:ordinary"
 	cache.SetJSON(context.Background(), key, "cached-value", time.Minute)
@@ -163,6 +179,8 @@ func TestRuntimeCacheDoesNotReturnOrdinaryEntryAsStale(t *testing.T) {
 }
 
 func TestRuntimeCacheRefreshReplacesStaleValue(t *testing.T) {
+	t.Parallel()
+
 	cache := newRuntimeCacheForTest(t, 1)
 	ctx := context.Background()
 	key := "latest:refresh"
@@ -187,6 +205,8 @@ func TestRuntimeCacheRefreshReplacesStaleValue(t *testing.T) {
 }
 
 func TestRuntimeCachePrefixInvalidationCoversJSONAndObjects(t *testing.T) {
+	t.Parallel()
+
 	cache := newRuntimeCacheForTest(t, 1)
 	ctx := context.Background()
 	cache.SetJSON(ctx, "media:json", "remove", time.Minute)
@@ -215,6 +235,8 @@ func TestRuntimeCachePrefixInvalidationCoversJSONAndObjects(t *testing.T) {
 }
 
 func TestRuntimeCacheConcurrentMemoryOperations(t *testing.T) {
+	t.Parallel()
+
 	cache := newRuntimeCacheForTest(t, 1)
 	ctx := context.Background()
 	var workers sync.WaitGroup

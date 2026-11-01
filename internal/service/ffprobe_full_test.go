@@ -30,6 +30,8 @@ const fullProbeFixture = `{
 }`
 
 func TestParseFullProbeJSONExtractsStreamsAndChapters(t *testing.T) {
+	t.Parallel()
+
 	got, err := parseFullProbeJSON([]byte(fullProbeFixture))
 	if err != nil {
 		t.Fatalf("parseFullProbeJSON: %v", err)
@@ -80,6 +82,8 @@ func TestParseFullProbeJSONExtractsStreamsAndChapters(t *testing.T) {
 // 落库的 payload 绝不能带 ffprobe 的 format.filename：那是解析后的播放直链，
 // 里面是网盘签名和 pickcode，存进数据库等于把可直接下载的链接留下来。
 func TestFullProbePayloadNeverLeaksSourceURL(t *testing.T) {
+	t.Parallel()
+
 	got, err := parseFullProbeJSON([]byte(fullProbeFixture))
 	if err != nil {
 		t.Fatalf("parseFullProbeJSON: %v", err)
@@ -103,6 +107,8 @@ func TestFullProbePayloadNeverLeaksSourceURL(t *testing.T) {
 
 // ffprobe 对 duration / start_time 有时输出字符串、有时输出裸数字，两种都要能读。
 func TestParseFullProbeJSONAcceptsNumericAndStringTimes(t *testing.T) {
+	t.Parallel()
+
 	got, err := parseFullProbeJSON([]byte(`{
 		"format": {"format_name": "mp4", "duration": 125.5},
 		"streams": [],
@@ -120,6 +126,8 @@ func TestParseFullProbeJSONAcceptsNumericAndStringTimes(t *testing.T) {
 }
 
 func TestParseFullProbeJSONToleratesMissingSections(t *testing.T) {
+	t.Parallel()
+
 	got, err := parseFullProbeJSON([]byte(`{}`))
 	if err != nil {
 		t.Fatalf("parseFullProbeJSON: %v", err)
@@ -138,6 +146,8 @@ func TestParseFullProbeJSONToleratesMissingSections(t *testing.T) {
 }
 
 func TestNormalizeFrameRate(t *testing.T) {
+	t.Parallel()
+
 	cases := map[string]string{
 		"24000/1001": "23.976",
 		"25/1":       "25.000",

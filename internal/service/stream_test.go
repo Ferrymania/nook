@@ -18,6 +18,8 @@ import (
 )
 
 func TestWithAuthTokenPropagatesToInternalRedirect(t *testing.T) {
+	t.Parallel()
+
 	// <video src=/api/stream/{id}?token=JWT> follows the 302 to the cloud
 	// play endpoint, which must stay authenticated.
 	r := &http.Request{Header: http.Header{}, URL: &url.URL{RawQuery: "token=jwt123&profile=p"}}
@@ -35,6 +37,8 @@ func TestWithAuthTokenPropagatesToInternalRedirect(t *testing.T) {
 }
 
 func TestWithAuthTokenNeverLeaksToAbsoluteURL(t *testing.T) {
+	t.Parallel()
+
 	// An absolute external direct link (e.g. cloud CDN) must NOT receive the JWT.
 	r := &http.Request{Header: http.Header{}, URL: &url.URL{RawQuery: "token=jwt123"}}
 	got := withAuthToken("https://cdn.115.example/x.mp4?sig=1", r)
@@ -47,6 +51,8 @@ func TestWithAuthTokenNeverLeaksToAbsoluteURL(t *testing.T) {
 }
 
 func TestWithAuthTokenPropagatesToSameOriginAbsoluteInternalURL(t *testing.T) {
+	t.Parallel()
+
 	r := httptest.NewRequest(http.MethodGet, "http://media.example/Videos/m-1/stream?api_key=jwt123", nil)
 	got := withAuthTokenForInternalRedirect("http://media.example/api/cloud/play/openlist?ref=abc", r, "http://media.example")
 	u, err := url.Parse(got)
@@ -59,6 +65,8 @@ func TestWithAuthTokenPropagatesToSameOriginAbsoluteInternalURL(t *testing.T) {
 }
 
 func TestWithAuthTokenAddsMediaIDToCloudPlaybackRedirect(t *testing.T) {
+	t.Parallel()
+
 	req := httptest.NewRequest(http.MethodGet, "http://media.example/api/stream/media-1?token=jwt123", nil)
 	got := withAuthTokenForInternalRedirect("/api/cloud/play/openlist?ref=abc", req, "")
 	u, err := url.Parse(got)
@@ -71,6 +79,8 @@ func TestWithAuthTokenAddsMediaIDToCloudPlaybackRedirect(t *testing.T) {
 }
 
 func TestServeFileRedirectsInternalSTRMAsAbsoluteURLWithToken(t *testing.T) {
+	t.Parallel()
+
 	repos := newStreamTestRepo(t)
 	if err := repos.DB.Create(&model.Media{
 		Base:    model.Base{ID: "cloud-1"},
@@ -102,6 +112,8 @@ func TestServeFileRedirectsInternalSTRMAsAbsoluteURLWithToken(t *testing.T) {
 }
 
 func TestServeFileRedirectUsesForwardedTunnelHost(t *testing.T) {
+	t.Parallel()
+
 	repos := newStreamTestRepo(t)
 	if err := repos.DB.Create(&model.Media{
 		Base:    model.Base{ID: "cloud-1"},
@@ -132,6 +144,8 @@ func TestServeFileRedirectUsesForwardedTunnelHost(t *testing.T) {
 }
 
 func TestServeFileRedirectsCloudMediaForVideoStreamMode(t *testing.T) {
+	t.Parallel()
+
 	repos := newStreamTestRepo(t)
 	if err := repos.Setting.Set(t.Context(), CloudPlaybackModeSettingKey, CloudPlaybackModeRedirectProxy); err != nil {
 		t.Fatal(err)
@@ -162,6 +176,8 @@ func TestServeFileRedirectsCloudMediaForVideoStreamMode(t *testing.T) {
 }
 
 func TestServeFileRedirectsCloudMediaExternalHTTPSTRMURL(t *testing.T) {
+	t.Parallel()
+
 	repos := newStreamTestRepo(t)
 	target := "https://cdn.example.test/Movie.mkv?sign=direct"
 	if err := repos.DB.Create(&model.Media{
@@ -192,6 +208,8 @@ func TestServeFileRedirectsCloudMediaExternalHTTPSTRMURL(t *testing.T) {
 }
 
 func TestServeFileRedirectsLocalSTRMFileTargetByDefault(t *testing.T) {
+	t.Parallel()
+
 	repos := newStreamTestRepo(t)
 	target := "https://cdn.example.test/LocalMovie.mkv?sign=direct"
 	if err := repos.DB.Create(&model.Media{
@@ -221,6 +239,8 @@ func TestServeFileRedirectsLocalSTRMFileTargetByDefault(t *testing.T) {
 // 别的 Nook / MediaStationGo 实例生成的 .strm：里面的 acct 是对方实例的账号，
 // 本机不能拿自己的账号去解析，直接把 302 透传给客户端，由客户端去对方实例取流。
 func TestServeFilePassesThroughForeignInstanceSTRMURL(t *testing.T) {
+	t.Parallel()
+
 	repos := newStreamTestRepo(t)
 	target := "http://other-nook.example:18080/api/strm/play/cloud115/video.mkv?acct=other-acct&pickcode=xyz"
 	if err := repos.DB.Create(&model.Media{
@@ -257,6 +277,8 @@ func TestServeFilePassesThroughForeignInstanceSTRMURL(t *testing.T) {
 // 播放路径必须回读 .strm 文件内容兜底（与 MediaPlaybackProvider 等一致），
 // 而不是把 .strm 文本文件当视频流返回。
 func TestServeFileFallsBackToStrmFileContentWhenSTRMURLEmpty(t *testing.T) {
+	t.Parallel()
+
 	repos := newStreamTestRepo(t)
 	dir := t.TempDir()
 	strmPath := filepath.Join(dir, "Movie.strm")
@@ -291,6 +313,8 @@ func TestServeFileFallsBackToStrmFileContentWhenSTRMURLEmpty(t *testing.T) {
 // .strm 内容完全解析不出播放目标时，返回明确的 502 错误，绝不把 .strm 文本
 // 文件本身当视频流吐给播放器。
 func TestServeFileRejectsStrmRowWithUnresolvableTarget(t *testing.T) {
+	t.Parallel()
+
 	repos := newStreamTestRepo(t)
 	dir := t.TempDir()
 	strmPath := filepath.Join(dir, "Broken.strm")
@@ -320,6 +344,8 @@ func TestServeFileRejectsStrmRowWithUnresolvableTarget(t *testing.T) {
 }
 
 func TestServeFileRealignsOwnSTRMURLOtherHost(t *testing.T) {
+	t.Parallel()
+
 	repos := repository.New(newServiceTestDB(t, &model.Media{}, &model.Setting{}, &model.StrmAccount{}))
 	if err := repos.StrmAccount.Create(t.Context(), &model.StrmAccount{
 		Base:     model.Base{ID: "own-acct"},
@@ -357,6 +383,8 @@ func TestServeFileRealignsOwnSTRMURLOtherHost(t *testing.T) {
 }
 
 func TestCloudPlaybackModeUsesExplicitModeBeforeLegacySTRMFlag(t *testing.T) {
+	t.Parallel()
+
 	repos := newStreamTestRepo(t)
 	if got := CloudPlaybackMode(t.Context(), repos); got != CloudPlaybackModeRedirectProxy {
 		t.Fatalf("default mode = %q, want %q", got, CloudPlaybackModeRedirectProxy)
@@ -391,6 +419,8 @@ func TestCloudPlaybackModeUsesExplicitModeBeforeLegacySTRMFlag(t *testing.T) {
 }
 
 func TestServeFileRejectsCloudMediaWhenSelectedModeDisabled(t *testing.T) {
+	t.Parallel()
+
 	repos := newStreamTestRepo(t)
 	if err := repos.Setting.Set(t.Context(), CloudPlaybackSTRMEnabledSettingKey, "false"); err != nil {
 		t.Fatal(err)
@@ -423,6 +453,8 @@ func newStreamTestRepo(t *testing.T) *repository.Container {
 }
 
 func TestRequestTokenFromBearerHeader(t *testing.T) {
+	t.Parallel()
+
 	h := http.Header{}
 	h.Set("Authorization", "Bearer hdrtok")
 	r := &http.Request{Header: h, URL: &url.URL{}}
@@ -432,6 +464,8 @@ func TestRequestTokenFromBearerHeader(t *testing.T) {
 }
 
 func TestRequestTokenFromMediaBrowserAuthorizationHeader(t *testing.T) {
+	t.Parallel()
+
 	h := http.Header{}
 	h.Set("X-MediaBrowser-Authorization", `MediaBrowser Client="Infuse", Device="PC", Token="mbtok"`)
 	r := &http.Request{Header: h, URL: &url.URL{}}
@@ -441,6 +475,8 @@ func TestRequestTokenFromMediaBrowserAuthorizationHeader(t *testing.T) {
 }
 
 func TestAppendQueryToHLSSegments(t *testing.T) {
+	t.Parallel()
+
 	in := "#EXTM3U\n#EXTINF:4.0,\nseg_00000.ts\n#EXTINF:4.0,\nseg_00001.ts?old=1\n"
 	got := appendQueryToHLSSegments(in, "token=abc&start=120.5&_seek=1001")
 	if !strings.Contains(got, "seg_00000.ts?token=abc&_seek=1001") {

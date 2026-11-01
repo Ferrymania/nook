@@ -37,6 +37,8 @@ func seedRotationUser(t *testing.T, repos *repository.Container) *model.User {
 // 之前第二个请求必然拿到 401 revoked，前端据此清空会话（部署后被迫重新登录）。
 // 现在并发请求共享同一次轮换，全部成功且拿到同一对令牌。
 func TestConcurrentRefreshSharesSingleRotation(t *testing.T) {
+	t.Parallel()
+
 	svc, repos, db := newRotationTestService(t)
 	u := seedRotationUser(t, repos)
 
@@ -85,6 +87,8 @@ func TestConcurrentRefreshSharesSingleRotation(t *testing.T) {
 // TestRefreshReuseAfterRotationReturnsSamePair 验证轮换完成后（并发窗口已
 // 结束）重复提交同一个旧令牌仍然是幂等的，客户端重试不会掉登录。
 func TestRefreshReuseAfterRotationReturnsSamePair(t *testing.T) {
+	t.Parallel()
+
 	svc, repos, _ := newRotationTestService(t)
 	u := seedRotationUser(t, repos)
 
@@ -112,6 +116,8 @@ func TestRefreshReuseAfterRotationReturnsSamePair(t *testing.T) {
 // TestRefreshRotationReuseIsPerToken 验证复用表不会跨令牌串号：
 // 另一个令牌（例如被设备上限淘汰的那个）不会被误判为可复用。
 func TestRefreshRotationReuseIsPerToken(t *testing.T) {
+	t.Parallel()
+
 	svc, repos, _ := newRotationTestService(t)
 	u := seedRotationUser(t, repos)
 
@@ -139,6 +145,8 @@ func TestRefreshRotationReuseIsPerToken(t *testing.T) {
 // TestRefreshGraceWindowExpires 验证宽限期是有限的：超过之后旧令牌
 // 依旧被拒绝，管理员重置密码/踢下线等撤销语义不受影响。
 func TestRefreshGraceWindowExpires(t *testing.T) {
+	t.Parallel()
+
 	svc, repos, _ := newRotationTestService(t)
 	u := seedRotationUser(t, repos)
 
@@ -160,6 +168,8 @@ func TestRefreshGraceWindowExpires(t *testing.T) {
 // TestRevokeAllDropsRotationReuse 验证登出/被踢下线立即生效：
 // 复用宽限期不能成为旧令牌继续换新的后门。
 func TestRevokeAllDropsRotationReuse(t *testing.T) {
+	t.Parallel()
+
 	svc, repos, _ := newRotationTestService(t)
 	u := seedRotationUser(t, repos)
 

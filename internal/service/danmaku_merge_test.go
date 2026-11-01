@@ -8,6 +8,8 @@ import (
 )
 
 func TestParseDanmakuCommentsSupportsDandanplayJson(t *testing.T) {
+	t.Parallel()
+
 	raw := `{"count":2,"comments":[` +
 		`{"cid":1,"p":"1.50,1,16777215,userA","m":"第一条"},` +
 		`{"cid":2,"p":"2.00,5,16711680,userB","m":"顶部红字"}]}`
@@ -23,6 +25,8 @@ func TestParseDanmakuCommentsSupportsDandanplayJson(t *testing.T) {
 }
 
 func TestParseDanmakuCommentsSupportsBilibiliXml(t *testing.T) {
+	t.Parallel()
+
 	raw := `<?xml version="1.0" encoding="UTF-8"?><i>` +
 		`<d p="3.25,1,25,16777215,1700000000,0,abc,def">来自 XML</d>` +
 		`</i>`
@@ -35,12 +39,16 @@ func TestParseDanmakuCommentsSupportsBilibiliXml(t *testing.T) {
 }
 
 func TestParseDanmakuCommentsReturnsNilForUnsupportedPayload(t *testing.T) {
+	t.Parallel()
+
 	require.Nil(t, parseDanmakuComments(""))
 	require.Nil(t, parseDanmakuComments("not a danmaku payload"))
 }
 
 // 同一时间 + 同一内容视为重复，只保留一条。
 func TestMergeDanmakuCommentsDeduplicatesByTimeAndText(t *testing.T) {
+	t.Parallel()
+
 	setA := []danmakuComment{
 		{TimeSec: 1.0, Mode: 1, Color: 16777215, Text: "哈哈"},
 		{TimeSec: 5.0, Mode: 1, Color: 16777215, Text: "只有A有"},
@@ -59,6 +67,8 @@ func TestMergeDanmakuCommentsDeduplicatesByTimeAndText(t *testing.T) {
 
 // 时间差在容差内且文本一致时也判为重复（跨源可能有零点几秒的精度差）。
 func TestMergeDanmakuCommentsDeduplicatesWithinTolerance(t *testing.T) {
+	t.Parallel()
+
 	merged := mergeDanmakuComments([][]danmakuComment{
 		{{TimeSec: 10.0, Mode: 1, Text: "2333"}},
 		{{TimeSec: 10.3, Mode: 1, Text: "2333"}},
@@ -69,6 +79,8 @@ func TestMergeDanmakuCommentsDeduplicatesWithinTolerance(t *testing.T) {
 
 // 内容相同但时间相距较远时是两条独立弹幕，不能合并。
 func TestMergeDanmakuCommentsKeepsSameTextAtDifferentTimes(t *testing.T) {
+	t.Parallel()
+
 	merged := mergeDanmakuComments([][]danmakuComment{
 		{{TimeSec: 1.0, Mode: 1, Text: "前方高能"}},
 		{{TimeSec: 30.0, Mode: 1, Text: "前方高能"}},
@@ -78,6 +90,8 @@ func TestMergeDanmakuCommentsKeepsSameTextAtDifferentTimes(t *testing.T) {
 
 // 时间相同但内容不同也不能合并。
 func TestMergeDanmakuCommentsKeepsDifferentTextAtSameTime(t *testing.T) {
+	t.Parallel()
+
 	merged := mergeDanmakuComments([][]danmakuComment{
 		{{TimeSec: 2.0, Mode: 1, Text: "AAA"}},
 		{{TimeSec: 2.0, Mode: 1, Text: "BBB"}},
@@ -86,6 +100,8 @@ func TestMergeDanmakuCommentsKeepsDifferentTextAtSameTime(t *testing.T) {
 }
 
 func TestMergeDanmakuCommentsSortsByTime(t *testing.T) {
+	t.Parallel()
+
 	merged := mergeDanmakuComments([][]danmakuComment{
 		{{TimeSec: 9.0, Mode: 1, Text: "后"}},
 		{{TimeSec: 1.0, Mode: 1, Text: "前"}},
@@ -97,6 +113,8 @@ func TestMergeDanmakuCommentsSortsByTime(t *testing.T) {
 
 // 编码结果必须能被前端的 dandanplay JSON 分支解析（p + m 两个字符串字段）。
 func TestEncodeDanmakuCommentsProducesDandanplayShape(t *testing.T) {
+	t.Parallel()
+
 	encoded := encodeDanmakuComments([]danmakuComment{
 		{TimeSec: 1.5, Mode: 5, Color: 16711680, Text: "顶部"},
 	})

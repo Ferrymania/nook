@@ -12,6 +12,8 @@ import (
 )
 
 func TestProfilePinnedLibrariesFiltersInaccessibleAndPreservesOrder(t *testing.T) {
+	t.Parallel()
+
 	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
@@ -61,6 +63,8 @@ func TestProfilePinnedLibrariesFiltersInaccessibleAndPreservesOrder(t *testing.T
 }
 
 func TestProfilePinnedLibrariesKeepsMountedEmbyAndLocalPins(t *testing.T) {
+	t.Parallel()
+
 	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)

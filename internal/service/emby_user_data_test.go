@@ -7,6 +7,8 @@ import (
 )
 
 func TestMergedRemoteUserData(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		raw      any
@@ -69,6 +71,8 @@ func TestMergedRemoteUserData(t *testing.T) {
 }
 
 func TestApplyNookUserDataClearsSharedRemoteState(t *testing.T) {
+	t.Parallel()
+
 	out := applyNookUserData(map[string]any{
 		"IsFavorite":            true,
 		"PlaybackPositionTicks": int64(42_000_000),
@@ -103,6 +107,8 @@ func TestApplyNookUserDataClearsSharedRemoteState(t *testing.T) {
 }
 
 func TestRemoteItemMapsFindsEnvelopeItems(t *testing.T) {
+	t.Parallel()
+
 	remoteID := EncodeEmbyRemoteID("mount-1", "item-1")
 	payload := map[string]any{
 		"Items": []any{
@@ -120,6 +126,8 @@ func TestRemoteItemMapsFindsEnvelopeItems(t *testing.T) {
 }
 
 func TestRecordProgressFallbacksToExistingHistoryDuration(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	remoteID := EncodeEmbyRemoteID("mount-test", "item-999")
 	user := &model.User{Username: "resume_test_user", Role: "user", Tier: "free", IsActive: true}
@@ -149,6 +157,8 @@ func TestRecordProgressFallbacksToExistingHistoryDuration(t *testing.T) {
 }
 
 func TestMarkPlayedStoresRemoteItemLocallyPerUser(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	remoteID := EncodeEmbyRemoteID("mount-test", "item-played")
 	alice := &model.User{Username: "alice_played", Role: "user", Tier: "free", IsActive: true}

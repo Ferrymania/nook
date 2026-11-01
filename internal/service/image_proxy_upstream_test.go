@@ -26,6 +26,8 @@ func newUpstreamImageProxy(t *testing.T, allowedHosts ...string) *ImageProxy {
 }
 
 func TestUpstreamImageFetchURLForwardsResizeToConfiguredMount(t *testing.T) {
+	t.Parallel()
+
 	proxy := newUpstreamImageProxy(t, "192.168.1.50:8096")
 	raw := "http://192.168.1.50:8096/emby/Items/abc/Images/Primary?api_key=secret"
 
@@ -53,6 +55,8 @@ func TestUpstreamImageFetchURLForwardsResizeToConfiguredMount(t *testing.T) {
 }
 
 func TestUpstreamImageFetchURLLeavesOtherUpstreamsAlone(t *testing.T) {
+	t.Parallel()
+
 	proxy := newUpstreamImageProxy(t, "192.168.1.50:8096")
 	opts := imageResizeOptions{MaxWidth: 480, MaxHeight: 600, Quality: 82}
 
@@ -70,6 +74,8 @@ func TestUpstreamImageFetchURLLeavesOtherUpstreamsAlone(t *testing.T) {
 }
 
 func TestRemoteImageCacheKeyIgnoresCredentialRotation(t *testing.T) {
+	t.Parallel()
+
 	proxy := newUpstreamImageProxy(t)
 	first := "http://192.168.1.50:8096/emby/Items/abc/Images/Primary?api_key=old-token"
 	second := "http://192.168.1.50:8096/emby/Items/abc/Images/Primary?api_key=new-token"
@@ -98,6 +104,8 @@ func TestRemoteImageCacheKeyIgnoresCredentialRotation(t *testing.T) {
 }
 
 func TestRemoteImageFetchClientsPreferDirectForConfiguredMount(t *testing.T) {
+	t.Parallel()
+
 	proxy := newUpstreamImageProxy(t, "192.168.1.50:8096")
 
 	mountClients := proxy.remoteImageFetchClients("192.168.1.50:8096")
@@ -127,6 +135,8 @@ func clientNames(clients []remoteImageFetchClient) []string {
 // original and scale it locally for every requested size. The size must now be
 // forwarded to the mount, and each size must get its own cache entry.
 func TestServeRemoteImageForwardsResizeAndCachesPerSize(t *testing.T) {
+	t.Parallel()
+
 	var mu sync.Mutex
 	queries := []url.Values{}
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

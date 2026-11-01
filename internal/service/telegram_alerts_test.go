@@ -13,6 +13,8 @@ import (
 
 // 任务失败必须通知管理员：否则只会停留在任务队列里等人自己发现。
 func TestTaskFailureNotifiesAdmin(t *testing.T) {
+	t.Parallel()
+
 	repos := repository.New(newServiceTestDB(t))
 	tracker := NewTaskTrackerService(zap.NewNop(), nil)
 
@@ -39,6 +41,8 @@ func TestTaskFailureNotifiesAdmin(t *testing.T) {
 
 // 动态字段须 HTML 转义，避免路径/错误里的 <>& 破坏 parse_mode。
 func TestTaskFailureAlertEscapesHTML(t *testing.T) {
+	t.Parallel()
+
 	got := formatTaskFailureAlert(BackgroundTask{
 		Name:       "整理 <script>",
 		SourcePath: "C:\\a&b>c",
@@ -58,6 +62,8 @@ func TestTaskFailureAlertEscapesHTML(t *testing.T) {
 
 // 成功结束的任务不应触发失败通知。
 func TestTaskSuccessDoesNotNotifyAdmin(t *testing.T) {
+	t.Parallel()
+
 	tracker := NewTaskTrackerService(zap.NewNop(), nil)
 	var count int
 	tracker.SetFailureNotifier(func(context.Context, string) { count++ })
@@ -72,6 +78,8 @@ func TestTaskSuccessDoesNotNotifyAdmin(t *testing.T) {
 
 // 未接线通知时，任务路径必须照常完成。
 func TestTaskTrackerWorksWithoutNotifier(t *testing.T) {
+	t.Parallel()
+
 	tracker := NewTaskTrackerService(zap.NewNop(), nil)
 	h := tracker.Start(TaskKindScan, "扫描", TaskUpdate{})
 	h.Finish(errors.New("boom"), TaskUpdate{})

@@ -40,6 +40,8 @@ func seedCloudSTRMMedia(t *testing.T, repos *repository.Container, id, strmURL s
 // 服务端能换到最终直链时必须直接 302 过去：客户端原本要跟着
 // /Videos/{id}/stream → /api/strm/play 两次 302，现在缩成一跳。
 func TestServeFileRedirectsStraightToResolvedDirectURL(t *testing.T) {
+	t.Parallel()
+
 	repos := directRedirectTestRepo(t)
 	seedCloudSTRMMedia(t, repos, "cloud-direct", "/api/strm/play/cloud115/video.mkv?acct=a1&pickcode=pc1")
 	direct := "https://cdnfhnfile.115cdn.net/637b/Movie.mkv?t=1&k=sig"
@@ -87,6 +89,8 @@ func TestServeFileRedirectsStraightToResolvedDirectURL(t *testing.T) {
 // 只要拿不到「客户端自己能直接拉取的直链」，就必须回退到改动前的 strm 端点跳转，
 // 保证行为不会比改动前更差。
 func TestServeFileFallsBackWhenDirectResolveUnavailable(t *testing.T) {
+	t.Parallel()
+
 	strmURL := "/api/strm/play/cloud115/video.mkv?acct=a1&pickcode=pc1"
 	cases := []struct {
 		name    string
@@ -147,6 +151,8 @@ func TestServeFileFallsBackWhenDirectResolveUnavailable(t *testing.T) {
 
 // 没有注入解析器（测试/精简部署）时保持原有跳转，不受本次优化影响。
 func TestServeFileKeepsSTRMEndpointWithoutResolver(t *testing.T) {
+	t.Parallel()
+
 	repos := directRedirectTestRepo(t)
 	seedCloudSTRMMedia(t, repos, "cloud-plain", "/api/strm/play/cloud115/video.mkv?acct=a1&pickcode=pc1")
 	svc := NewStreamService(&config.Config{}, zap.NewNop(), repos, nil)
@@ -163,6 +169,8 @@ func TestServeFileKeepsSTRMEndpointWithoutResolver(t *testing.T) {
 
 // playbackQueryWithUA 负责把播放器 UA 透传给换链方，同时不能改动原 URL。
 func TestPlaybackQueryWithUAInjectsUserAgent(t *testing.T) {
+	t.Parallel()
+
 	u, err := url.Parse("/api/strm/play/cloud115/video.mkv?acct=a1&pickcode=pc1")
 	if err != nil {
 		t.Fatal(err)
@@ -188,6 +196,8 @@ func TestPlaybackQueryWithUAInjectsUserAgent(t *testing.T) {
 // ResolvePlayTargetWithUA 是 ResolvePlayTarget 的 UA 版本：空 UA 时行为必须与
 // 原方法完全一致（外部直链透传）。
 func TestResolvePlayTargetWithUAKeepsPassthroughBehaviour(t *testing.T) {
+	t.Parallel()
+
 	svc := &StrmService{}
 	raw := "https://cdn.example.test/Movie.mkv?sign=1"
 	got, err := svc.ResolvePlayTargetWithUA(context.Background(), raw, "RodelPlayer/1.0")

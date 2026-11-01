@@ -7,6 +7,8 @@ import (
 )
 
 func TestImageURLFallsBackToLibraryCoverURL(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "电影", Path: "/media/movies", Type: "movie", Enabled: true, CoverURL: "https://example.com/lib-cover.jpg"}
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
@@ -23,6 +25,8 @@ func TestImageURLFallsBackToLibraryCoverURL(t *testing.T) {
 }
 
 func TestImageURLFallsBackToBestMemberPoster(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	lib := model.Library{Name: "电影", Path: "/media/movies", Type: "movie", Enabled: true} // no cover_url
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
@@ -50,6 +54,8 @@ func TestImageURLFallsBackToBestMemberPoster(t *testing.T) {
 }
 
 func TestImageURLReturnsEmptyForUnknownID(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	raw, err := svc.ImageURL(t.Context(), "not-a-library-or-media", "Primary")
 	if err != nil {
@@ -61,6 +67,8 @@ func TestImageURLReturnsEmptyForUnknownID(t *testing.T) {
 }
 
 func TestViewsAdvertisesPrimaryImageWhenLibraryHasCover(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	withCover := model.Library{Name: "封库", Path: "/media/set", Type: "movie", Enabled: true}
 	if err := svc.repo.Library.Create(t.Context(), &withCover); err != nil {

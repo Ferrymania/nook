@@ -41,6 +41,8 @@ func playlistTestService(t *testing.T) (*PlaybackService, *EmbyService) {
 	return NewPlaybackService(zap.NewNop(), repo), NewEmbyService(&config.Config{}, zap.NewNop(), repo)
 }
 func TestPlaylistAtomicCreationVisibilityAndOrder(t *testing.T) {
+	t.Parallel()
+
 	p, e := playlistTestService(t)
 	ctx := t.Context()
 	if _, err := p.CreatePlaylistWithItems(ctx, "viewer", "bad", false, []string{"a", "secret"}); !errors.Is(err, ErrPlaylistMediaUnavailable) {
@@ -129,6 +131,8 @@ func TestPlaylistAtomicCreationVisibilityAndOrder(t *testing.T) {
 	}
 }
 func TestPlaylistConcurrentAddsAreIdempotent(t *testing.T) {
+	t.Parallel()
+
 	p, _ := playlistTestService(t)
 	pl, err := p.CreatePlaylist(t.Context(), "viewer", "queue", false)
 	if err != nil {
@@ -162,6 +166,8 @@ func TestPlaylistConcurrentAddsAreIdempotent(t *testing.T) {
 	}
 }
 func TestEmbyPlaylistDiscoveryIsUserScoped(t *testing.T) {
+	t.Parallel()
+
 	p, e := playlistTestService(t)
 	ctx := t.Context()
 	var alphaID string
@@ -216,6 +222,8 @@ func TestEmbyPlaylistDiscoveryIsUserScoped(t *testing.T) {
 }
 
 func TestPublicPlaylistIsReadOnlyAndStillAppliesReaderACL(t *testing.T) {
+	t.Parallel()
+
 	p, _ := playlistTestService(t)
 	ctx := t.Context()
 	pl, err := p.CreatePlaylistWithItems(ctx, "other", "Shared", true, []string{"a", "secret"})
@@ -242,6 +250,8 @@ func TestPublicPlaylistIsReadOnlyAndStillAppliesReaderACL(t *testing.T) {
 }
 
 func TestEmbyPlaylistSeriesAndSeasonExpandIntoOrderedEpisodes(t *testing.T) {
+	t.Parallel()
+
 	p, e := playlistTestService(t)
 	ctx := t.Context()
 	for _, m := range []model.Media{

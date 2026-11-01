@@ -123,6 +123,8 @@ func assertEpisodeIDs(t *testing.T, got, want []string) {
 // that scope episodes by season number (Season=N) instead of the virtual season
 // id: without the filter every season was returned for any requested season.
 func TestEmbyEpisodeItemsFilterBySeasonIndex(t *testing.T) {
+	t.Parallel()
+
 	svc, seriesID := seasonIndexFixture(t)
 
 	cases := []struct {
@@ -169,6 +171,8 @@ func TestEmbyEpisodeItemsFilterBySeasonIndex(t *testing.T) {
 // SeasonId behaviour: resolving through the virtual season id must still return
 // exactly that season.
 func TestEmbySeasonIndexFilterKeepsSeasonIdsWorking(t *testing.T) {
+	t.Parallel()
+
 	svc, seriesID := seasonIndexFixture(t)
 
 	items, err := svc.Items(t.Context(), ItemsParams{ParentID: seriesID, Limit: 50})
@@ -202,6 +206,8 @@ func TestEmbySeasonIndexFilterKeepsSeasonIdsWorking(t *testing.T) {
 // TestEmbyItemsCacheKeySeparatesSeasonFilters guards against a cached unfiltered
 // response being reused for a season-scoped request (and vice versa).
 func TestEmbyItemsCacheKeySeparatesSeasonFilters(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	base := ItemsParams{ParentID: "series-1", IncludeItemTypes: []string{"Episode"}, Limit: 50}
 

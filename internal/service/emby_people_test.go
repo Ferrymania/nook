@@ -16,6 +16,8 @@ import (
 )
 
 func TestResolveMediaPeopleUsesSharedStemBesideKeepExtStrm(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	dir := t.TempDir()
 	mediaPath := filepath.Join(dir, "竞女01.mkv.strm")
@@ -46,6 +48,8 @@ func TestResolveMediaPeopleUsesSharedStemBesideKeepExtStrm(t *testing.T) {
 }
 
 func TestResolveMediaPeopleStillReadsLegacyKeepExtNFO(t *testing.T) {
+	t.Parallel()
+
 	svc := newTestEmbyService(t)
 	dir := t.TempDir()
 	mediaPath := filepath.Join(dir, "竞女01.mkv.strm")
@@ -64,6 +68,8 @@ func TestResolveMediaPeopleStillReadsLegacyKeepExtNFO(t *testing.T) {
 }
 
 func TestResolveMediaPeopleFetchesTMDbAndCaches(t *testing.T) {
+	t.Parallel()
+
 	var hits atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/movie/11/credits" {

@@ -8,6 +8,8 @@ import (
 )
 
 func TestScrapeQueryCandidatesPreferSeriesFolderAndCJKTitle(t *testing.T) {
+	t.Parallel()
+
 	lib := &model.Library{
 		Path: `F:\downloads\国产剧`,
 		Type: "movie",
@@ -34,6 +36,8 @@ func TestScrapeQueryCandidatesPreferSeriesFolderAndCJKTitle(t *testing.T) {
 }
 
 func TestScrapeQueryCandidatesUseCloudSeriesFolder(t *testing.T) {
+	t.Parallel()
+
 	lib := &model.Library{
 		Path: "cloud://openlist/国产剧",
 		Type: "movie",
@@ -55,6 +59,8 @@ func TestScrapeQueryCandidatesUseCloudSeriesFolder(t *testing.T) {
 }
 
 func TestScrapeQueryCandidatesUseSeriesLibraryRootWhenMountedAtShowFolder(t *testing.T) {
+	t.Parallel()
+
 	lib := &model.Library{
 		Path: `/downloads/国产剧/折腰 (2025)`,
 		Type: "tv",
@@ -76,6 +82,8 @@ func TestScrapeQueryCandidatesUseSeriesLibraryRootWhenMountedAtShowFolder(t *tes
 }
 
 func TestScrapeQueryCandidatesSkipEpisodeOnlyTitles(t *testing.T) {
+	t.Parallel()
+
 	lib := &model.Library{
 		Path: `F:\media\电视剧\欧美剧`,
 		Type: "tv",
@@ -96,6 +104,8 @@ func TestScrapeQueryCandidatesSkipEpisodeOnlyTitles(t *testing.T) {
 }
 
 func TestSeriesTitleFromMediaPathIgnoresEpisodeOnlyFolder(t *testing.T) {
+	t.Parallel()
+
 	got := seriesTitleFromMediaPath(`F:\media\电视剧\欧美剧\第 11 集 (2026)\Season 6\第 11 集 - S06E11.mkv`)
 	if got != "" {
 		t.Fatalf("series title from episode-only folder = %q, want empty", got)
@@ -103,6 +113,8 @@ func TestSeriesTitleFromMediaPathIgnoresEpisodeOnlyFolder(t *testing.T) {
 }
 
 func TestMediaIsEpisodicUsesEpisodePatternInPath(t *testing.T) {
+	t.Parallel()
+
 	lib := &model.Library{
 		Path: `/media/movies`,
 		Type: "movie",
@@ -118,6 +130,8 @@ func TestMediaIsEpisodicUsesEpisodePatternInPath(t *testing.T) {
 }
 
 func TestScrapeQueryCandidatesSkipCategoryFolderAsSeriesTitle(t *testing.T) {
+	t.Parallel()
+
 	lib := &model.Library{
 		Path: `/downloads`,
 		Type: "tv",
