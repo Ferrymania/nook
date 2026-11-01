@@ -192,7 +192,7 @@ func (b *serviceContainerBuilder) resolveDanmakuRemoteMedia(ctx context.Context,
 
 func (b *serviceContainerBuilder) initAccessAndStorageServices() {
 	b.c.Permissions = NewPermissionService(b.log, b.repos)
-	b.c.Database = NewDatabaseAdminService(b.cfg, b.log, b.repos, b.repos.DB)
+	b.c.Database = NewDatabaseAdminService(b.cfg, b.repos.DB)
 	b.c.Emby.SetRuntimeCache(b.c.Cache)
 	b.c.Emby.SetSubtitleService(b.c.Subtitle)
 	b.c.Emby.SetDiscovery(b.c.Discovery)

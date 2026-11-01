@@ -171,6 +171,4 @@ func registerAdminRecognitionWordRoutes(admin *gin.RouterGroup, svc *service.Con
 
 func registerAdminDatabaseRoutes(admin *gin.RouterGroup, svc *service.Container) {
 	admin.GET("/database/status", getDatabaseStatusHandler(svc))
-	admin.POST("/database/test", testDatabaseHandler(svc))
-	admin.POST("/database/save-config", saveDatabaseConfigHandler(svc))
 }
