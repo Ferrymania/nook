@@ -15,7 +15,7 @@ var gzipExcludedExtensions = []string{
 	".zip", ".gz", ".xz", ".7z", ".rar",
 }
 
-// apiGzipExcludedPrefixes 大文件流式传输（Range 语义）与 WS/SSE 长连接
+// apiGzipExcludedPrefixes 大文件流式传输（Range 语义）与 WS 长连接
 // 不参与 gzip：压缩会破坏 Range / 逐块推送语义。
 var apiGzipExcludedPrefixes = []string{
 	"/api/stream/",
@@ -24,7 +24,6 @@ var apiGzipExcludedPrefixes = []string{
 	"/api/subtitles/",
 	"/api/strm/play/",
 	"/api/ws",
-	"/api/events",
 	"/api/admin/diagnostics/pprof/",
 }
 

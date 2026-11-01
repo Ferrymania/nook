@@ -150,7 +150,6 @@ func registerAdminBackupRoutes(admin *gin.RouterGroup, svc *service.Container) {
 func registerAdminOrganizerRoutes(admin *gin.RouterGroup, svc *service.Container) {
 	admin.POST("/media/:id/organize", organizeMediaHandler(svc))
 	admin.POST("/libraries/:id/organize", organizeLibraryHandler(svc))
-	admin.GET("/organize/sources", organizeSourcesHandler(svc))
 	admin.POST("/organize/source", organizeDirectoryHandler(svc))
 }
 

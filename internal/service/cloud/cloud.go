@@ -99,7 +99,7 @@ type MovableProvider interface {
 }
 
 // New constructs a provider of the given type from a free-form config map
-// (as persisted by StorageConfigService). The client is shared so callers can
+// (as persisted by the account service). The client is shared so callers can
 // inject timeouts / test transports.
 func New(typ string, cfg map[string]any, client *http.Client) (Provider, error) {
 	if client == nil {

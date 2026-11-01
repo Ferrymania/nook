@@ -5,8 +5,6 @@ import "github.com/spf13/viper"
 const (
 	defaultDatabaseMaxOpenConns = 16
 	defaultDatabaseMaxIdleConns = 4
-	defaultLicenseServerURL     = "https://mgosever.3jzs.com"
-	defaultLicensePublicKey     = "MCowBQYDK2VwAyEABRXnXy+urjrbKit6Yu/HiezWgP0NdsZW3tsegJWRrtI="
 	DefaultCacheMemoryMaxSizeMB = 128
 )
 
@@ -19,7 +17,6 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("app.ffmpeg_path", "ffmpeg")
 	v.SetDefault("app.ffprobe_path", "ffprobe")
 	v.SetDefault("app.ffprobe_max_concurrent", 2)
-	v.SetDefault("app.cloud_scan_max_concurrent", 8)
 	v.SetDefault("app.max_cpu_threads", 2)
 	v.SetDefault("app.vaapi_device", "/dev/dri/renderD128")
 	v.SetDefault("app.cors_origins", []string{})
@@ -55,14 +52,8 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("ai.timeout", 30)
 	v.SetDefault("ai.max_concurrent", 3)
 
-	v.SetDefault("flaresolverr.enabled", false)
-	v.SetDefault("flaresolverr.url", "http://localhost:8191")
-	v.SetDefault("flaresolverr.session", "nook")
-	v.SetDefault("flaresolverr.timeout", 60)
-
 	v.SetDefault("downloads.smart_classify", true)
 	v.SetDefault("organizer.smart_classify", true)
-	v.SetDefault("organizer.auto_after_download", false)
 	v.SetDefault("organize.scrape_after", true)
 	v.SetDefault("scrape.delay_min_ms", 250)
 	v.SetDefault("scrape.delay_max_ms", 500)
@@ -105,12 +96,4 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("transcoder.threads", 2)
 	v.SetDefault("transcoder.max_concurrent", 1)
 	v.SetDefault("transcoder.idle_timeout_seconds", 120)
-
-	// API Config 默认设置
-	v.SetDefault("api_config.auto_encrypt", true)
-	v.SetDefault("api_config.default_timeout", 30)
-
-	v.SetDefault("license.server_url", defaultLicenseServerURL)
-	v.SetDefault("license.hmac_secret", "")
-	v.SetDefault("license.public_key", defaultLicensePublicKey)
 }

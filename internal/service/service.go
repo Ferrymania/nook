@@ -21,7 +21,6 @@ type Container struct {
 	Log              *zap.Logger
 	Repo             *repository.Container
 	WSHub            *Hub
-	SSEHub           *SSEHub
 	Tasks            *TaskTrackerService
 	Auth             *AuthService
 	Media            *MediaService
@@ -198,9 +197,6 @@ func (c *Container) Close() {
 	}
 	if c.WSHub != nil {
 		c.WSHub.Stop()
-	}
-	if c.SSEHub != nil {
-		c.SSEHub.Stop()
 	}
 	if c.Scheduler != nil {
 		c.Scheduler.Stop()

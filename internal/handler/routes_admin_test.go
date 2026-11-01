@@ -30,7 +30,7 @@ func TestAdminRouteSurfacesAreRegistered(t *testing.T) {
 		"GET /api/admin/users",
 		"GET /api/admin/users/:id/permissions",
 		"POST /api/admin/backups",
-		"GET /api/admin/organize/sources",
+		"POST /api/admin/organize/source",
 		"GET /api/admin/api-configs",
 		"GET /api/admin/api-configs/:provider",
 		"PUT /api/admin/api-configs/:provider",

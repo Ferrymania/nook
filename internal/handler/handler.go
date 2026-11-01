@@ -21,7 +21,6 @@ func Register(r *gin.Engine, cfg *config.Config, log *zap.Logger, svc *service.C
 		api.GET("/health", healthCheck)
 		api.HEAD("/health", healthCheck)
 		api.GET("/version", versionInfo)
-		api.GET("/public/ui-config", publicUIConfigHandler(svc))
 
 		// STRM 播放端点：strm 文件内容指向这里，Emby/Infuse 直接请求（无 JWT）。
 		api.GET("/strm/play/:provider/:file", strmPlayHandler(svc))
@@ -53,42 +52,4 @@ func versionInfo(c *gin.Context) {
 func getMyPermissionsHandler(svc *service.Container) gin.HandlerFunc {
 	h := NewPermissionHandler(svc, svc.Log)
 	return h.GetMyPermissions
-}
-
-// ─── SSE Handler ──────────────────────────────────────────────────────────────
-
-func sseHandler(svc *service.Container) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// 获取 SSE Hub
-		hub := svc.SSEHub
-
-		// 设置 SSE 响应头
-		c.Header("Content-Type", "text/event-stream")
-		c.Header("Cache-Control", "no-cache")
-		c.Header("Connection", "keep-alive")
-		c.Header("X-Accel-Buffering", "no")
-
-		// 订阅事件流
-		client := hub.Subscribe()
-		defer hub.Unsubscribe(client)
-
-		// 发送初始连接成功事件
-		c.SSEvent("connected", gin.H{"status": "ok"})
-		c.Writer.Flush()
-
-		// 持续发送事件直到客户端断开连接
-		clientGone := c.Request.Context().Done()
-		for {
-			select {
-			case <-clientGone:
-				return
-			case event, ok := <-client.Ch:
-				if !ok {
-					return
-				}
-				c.SSEvent(event.Type, event.Payload)
-				c.Writer.Flush()
-			}
-		}
-	}
 }
