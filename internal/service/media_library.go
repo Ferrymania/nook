@@ -108,18 +108,18 @@ func (s *MediaService) listLibrariesWithPreview(ctx context.Context, libraries [
 		}
 	}
 
-	// A recent-row window cannot determine a stable series key or the full
-	// episode count. Reuse the complete, permission-scoped series index already
-	// used by library details, and only limit the final cards shown in a shelf.
+	// Resolve series identities and counts over all visible episodes, using
+	// lightweight rows. Only the selected cards need complete media records;
+	// previews must not populate the full episode cache used by details.
 	for i := range out {
 		if _, pendingItem := pendingSet[out[i].ID]; !pendingItem || !isSeriesLibraryType(out[i].Type) {
 			continue
 		}
-		cards, _, err := s.ListLibrarySeriesCards(ctx, out[i].ID, visibility)
+		cards, err := s.listLibrarySeriesPreviewCards(ctx, out[i].ID, visibility, cardLimit)
 		if err != nil {
 			return nil, err
 		}
-		out[i].Cards = latestLibraryCards(cards, cardLimit)
+		out[i].Cards = cards
 		if s.cache != nil {
 			itemKey := s.libraryPreviewCacheKey([]model.Library{out[i].Library}, cardLimit, filter, includeCounts)
 			s.cache.SetJSON(ctx, itemKey, out[i], s.derivedReadCacheTTL())
@@ -136,8 +136,8 @@ func (s *MediaService) listLibrariesWithPreview(ctx context.Context, libraries [
 		return out, nil
 	}
 
-	// Remaining movie previews only need a bounded recent-row window; series
-	// libraries above use the shared complete index for their grouping.
+	// Movie previews use a bounded recent-row window; series libraries above
+	// scan lightweight rows to keep identities and episode counts complete.
 	fetchCount := cardLimit * 12
 	minFetchCount := 120
 	if cardLimit <= 2 {

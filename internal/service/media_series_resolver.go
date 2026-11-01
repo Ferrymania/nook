@@ -100,11 +100,20 @@ func newMediaSeriesKeyResolverFromInputs(inputs []mediaSeriesKeyInputs) mediaSer
 // resolveMediaSeriesKeys 对输入只做一轮派生字段计算，返回可供后续 O(1) 解析的
 // resolver 以及每条记录对应的 key。这是整库剧集加载的快速路径。
 func resolveMediaSeriesKeys(items []model.Media) (mediaSeriesKeyResolver, []string) {
-	inputs := analyzeMediaSeriesKeys(items)
+	return resolveMediaSeriesKeysFrom(len(items), func(i int) model.Media { return items[i] })
+}
+
+// Preview queries supply lightweight rows without constructing a full Media
+// slice. Both paths use the same identity rules, including whole-library aliases.
+func resolveMediaSeriesKeysFrom(count int, mediaAt func(int) model.Media) (mediaSeriesKeyResolver, []string) {
+	inputs := make([]mediaSeriesKeyInputs, count)
+	for i := range inputs {
+		inputs[i] = analyzeMediaSeriesKey(mediaAt(i))
+	}
 	resolver := newMediaSeriesKeyResolverFromInputs(inputs)
-	keys := make([]string, len(items))
-	for i := range items {
-		keys[i] = resolver.keyFromInputs(items[i], inputs[i])
+	keys := make([]string, count)
+	for i := range keys {
+		keys[i] = resolver.keyFromInputs(mediaAt(i), inputs[i])
 	}
 	return resolver, keys
 }
