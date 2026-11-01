@@ -17,28 +17,21 @@ func (s *MediaService) attachLibraryMetadata(ctx context.Context, items []model.
 	if err != nil {
 		return
 	}
-	byID := make(map[string]model.Library, len(libs))
-	for _, lib := range libs {
-		byID[lib.ID] = lib
-	}
 	resolver := newMediaDisplayLibraryResolver(ctx, s.repo, libs)
 	for i := range items {
-		var own model.Library
-		var hasOwn bool
-		if lib, ok := byID[items[i].LibraryID]; ok {
-			own = lib
-			hasOwn = true
-			items[i].LibraryName = lib.Name
-			items[i].LibraryPath = lib.Path
-		}
-		if lib, ok := resolver.DisplayLibraryForMedia(items[i]); ok {
-			items[i].DisplayLibraryID = lib.ID
-			items[i].DisplayLibraryName = lib.Name
-			items[i].DisplayLibraryPath = lib.Path
-			if hasOwn && CloudLibraryAutoCategory(own) {
-				items[i].LibraryName = lib.Name
-				items[i].LibraryPath = lib.Path
-			}
+		resolver.attachMetadata(&items[i])
+	}
+}
+
+func (r mediaDisplayLibraryResolver) attachMetadata(item *model.Media) {
+	own, hasOwn := r.byID[item.LibraryID]
+	if hasOwn {
+		item.LibraryName, item.LibraryPath = own.Name, own.Path
+	}
+	if lib, ok := r.DisplayLibraryForMedia(*item); ok {
+		item.DisplayLibraryID, item.DisplayLibraryName, item.DisplayLibraryPath = lib.ID, lib.Name, lib.Path
+		if hasOwn && CloudLibraryAutoCategory(own) {
+			item.LibraryName, item.LibraryPath = lib.Name, lib.Path
 		}
 	}
 }

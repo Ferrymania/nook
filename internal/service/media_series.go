@@ -500,9 +500,14 @@ func groupMediaSeriesCardsByKeys(items []model.Media, keys []string) []SeriesCar
 	if len(keys) != len(items) {
 		return groupMediaSeriesCards(items)
 	}
+	return groupMediaSeriesCardsFromKeys(len(items), func(i int) model.Media { return items[i] }, keys)
+}
+
+func groupMediaSeriesCardsFromKeys(count int, mediaAt func(int) model.Media, keys []string) []SeriesCard {
 	groups := make([]seriesCardGroup, 0)
-	byKey := make(map[string]int, len(items))
-	for i, item := range items {
+	byKey := make(map[string]int, count)
+	for i := 0; i < count; i++ {
+		item := mediaAt(i)
 		key := keys[i]
 		if key == "" {
 			continue
