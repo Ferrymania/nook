@@ -3,19 +3,16 @@ import toast from 'react-hot-toast'
 
 import { api } from '../api/client'
 import { mediaAPI } from '../api/library'
-import { toolsAPI } from '../api/tools'
-import { confirmAction, confirmActionResult } from '../components/confirmAction'
+import { confirmActionResult } from '../components/confirmAction'
 import { useEpisodeArtworkPreference } from '../hooks/useEpisodeArtworkPreference'
-import type { Library, Media } from '../types'
+import type { Media } from '../types'
 import { seriesTitle, type SeriesCard } from '../utils/groupSeries'
 import { LibraryMovieActions } from './LibraryMovieActions'
 import { useLibraryScrapeStatus } from './useLibraryScrapeStatus'
-import { seriesSourceRoot } from './libraryPageModel'
 
 type UseLibraryAdminActionsOptions = {
   libraryID: string
   role?: string
-  library: Library | null
   selectedSeries: SeriesCard | null
   selectedSeriesEpisodes: Media[]
   reloadCurrentLibrary: () => void
@@ -23,14 +20,12 @@ type UseLibraryAdminActionsOptions = {
   onManualScrape: (media: Media) => void
   manualScrapeLoadingID: string
   onMovieMetadataEdit: (media: Media) => void
-  onMovieOrganize: (media: Media) => void
   onMovieQuerySegments: (media: Media) => void
 }
 
 export function useLibraryAdminActions({
   libraryID,
   role,
-  library,
   selectedSeries,
   selectedSeriesEpisodes,
   reloadCurrentLibrary,
@@ -38,7 +33,6 @@ export function useLibraryAdminActions({
   onManualScrape,
   manualScrapeLoadingID,
   onMovieMetadataEdit,
-  onMovieOrganize,
   onMovieQuerySegments,
 }: UseLibraryAdminActionsOptions) {
   const [scrapeEpisodeArtwork] = useEpisodeArtworkPreference()
@@ -76,39 +70,6 @@ export function useLibraryAdminActions({
 
   const handleSeriesNFO = () => {
     runSeriesTool('nfo', '整剧 NFO 写出', (media) => mediaAPI.exportNFO(media.id))
-  }
-
-  const handleSeriesOrganize = async () => {
-    if (!selectedSeries || selectedSeriesEpisodes.length === 0 || !library) return
-    const source = seriesSourceRoot(selectedSeriesEpisodes)
-    if (!source || source.toLowerCase().startsWith('cloud://')) {
-      toast.error('当前合集不是本地文件夹，无法使用本地整理入库')
-      return
-    }
-    if (!(await confirmAction({
-      title: '整理当前合集',
-      message: `来源：${source}\n目标：自动按元数据选择正确分类库，当前库仅作为就近解析范围。`,
-      confirmText: '开始整理',
-    }))) return
-
-    setSeriesToolBusy('organize')
-    try {
-      const result = await toolsAPI.organizeDirectory({
-        source_path: source,
-        dest_path: library.path,
-        scan_after: true,
-        scrape_after: true,
-      })
-      const replaced = result.replaced ?? 0
-      const reclassified = result.reclassified ?? 0
-      toast.success(`合集整理完成：新增 ${result.organized ?? 0} · 替换 ${replaced} · 纠偏 ${reclassified} · 跳过 ${result.skipped ?? 0}`)
-      reloadCurrentLibrary()
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || '合集整理失败'
-      toast.error(msg)
-    } finally {
-      setSeriesToolBusy('')
-    }
   }
 
   const handleSeriesDelete = async () => {
@@ -176,7 +137,6 @@ export function useLibraryAdminActions({
         onMetadataEdit={onMovieMetadataEdit}
         onProbe={handleMovieProbe}
         onNFO={handleMovieNFO}
-        onOrganize={onMovieOrganize}
         onQuerySegments={onMovieQuerySegments}
         onDelete={handleMovieDelete}
       />
@@ -191,7 +151,6 @@ export function useLibraryAdminActions({
     handleSeriesSmartScrape,
     handleSeriesProbe,
     handleSeriesNFO,
-    handleSeriesOrganize,
     handleSeriesDelete,
     movieActions,
   }

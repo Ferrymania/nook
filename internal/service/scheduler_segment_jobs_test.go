@@ -14,10 +14,11 @@ import (
 )
 
 func TestSegmentPrewarmDefaultsOff(t *testing.T) {
-	repos := repository.New(newServiceTestDB(t, &model.Setting{}))
-	enabled, err := librarySegmentPrewarmEnabled(t.Context(), repos, &model.Library{})
-	if err != nil || enabled {
-		t.Fatalf("prewarm must default to off: enabled=%v err=%v", enabled, err)
+	t.Parallel()
+	for _, lib := range []*model.Library{nil, {}, {ScrapeSettings: &model.LibraryScrapeSettings{}}} {
+		if librarySegmentPrewarmEnabled(lib) {
+			t.Fatal("prewarm must default to off without an explicit library preference")
+		}
 	}
 }
 
@@ -52,15 +53,26 @@ func TestJobSegmentPrewarmSkippedWhenDisabled(t *testing.T) {
 		t.Fatalf("provider calls = %d, want 0 when prewarm is disabled", got)
 	}
 
-	// Upgrades retain the previous global preference until a library saves its own.
-	if err := repos.Setting.Set(t.Context(), legacySegmentPrewarmEnabledKey, "true"); err != nil {
+	// A retired global switch must not enable background queries.
+	if err := repos.Setting.Set(t.Context(), "segment.prewarm_enabled", "true"); err != nil {
+		t.Fatal(err)
+	}
+	if err := scheduler.jobSegmentPrewarm(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if got := atomic.LoadInt32(&calls); got != 0 {
+		t.Fatalf("provider calls = %d, want 0 with only the retired global switch enabled", got)
+	}
+	on := true
+	lib.ScrapeSettings = &model.LibraryScrapeSettings{SegmentPrewarmEnabled: &on}
+	if err := repos.DB.Save(&lib).Error; err != nil {
 		t.Fatal(err)
 	}
 	if err := scheduler.jobSegmentPrewarm(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	if got := atomic.LoadInt32(&calls); got != 1 {
-		t.Fatalf("provider calls = %d, want 1 after enabling prewarm", got)
+		t.Fatalf("provider calls = %d, want 1 after enabling this library", got)
 	}
 }
 
@@ -88,7 +100,7 @@ func TestJobSegmentPrewarmRespectsLibraryScopeAndKeepsPlaybackQueries(t *testing
 	if err := repos.DB.Delete(&model.Library{}, "id = ?", "deleted").Error; err != nil {
 		t.Fatal(err)
 	}
-	if err := repos.Setting.Set(t.Context(), legacySegmentPrewarmEnabledKey, "true"); err != nil {
+	if err := repos.Setting.Set(t.Context(), "segment.prewarm_enabled", "true"); err != nil {
 		t.Fatal(err)
 	}
 	scheduler := NewSchedulerService(zap.NewNop(), repos, nil, nil, nil, "")
@@ -98,12 +110,12 @@ func TestJobSegmentPrewarmRespectsLibraryScopeAndKeepsPlaybackQueries(t *testing
 	if err := scheduler.jobSegmentPrewarm(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if got := atomic.LoadInt32(calls); got != 2 {
-		t.Fatalf("provider calls=%d, want enabled and inherited libraries only", got)
+	if got := atomic.LoadInt32(calls); got != 1 {
+		t.Fatalf("provider calls=%d, want only the explicitly enabled library", got)
 	}
 	for _, id := range []string{"on", "legacy", "off", "disabled", "deleted"} {
 		ledger, err := repos.MediaSegment.GetFetch(t.Context(), "m-"+id, IntroDBSource)
-		if err != nil || (ledger != nil) != (id == "on" || id == "legacy") {
+		if err != nil || (ledger != nil) != (id == "on") {
 			t.Fatalf("library %s: unexpected ledger=%#v err=%v", id, ledger, err)
 		}
 	}
@@ -113,10 +125,10 @@ func TestJobSegmentPrewarmRespectsLibraryScopeAndKeepsPlaybackQueries(t *testing
 		t.Fatal(err)
 	}
 	rows, err := segments.ListForPlayback(t.Context(), m)
-	if err != nil || len(rows) == 0 || atomic.LoadInt32(calls) != 3 {
+	if err != nil || len(rows) == 0 || atomic.LoadInt32(calls) != 2 {
 		t.Fatalf("playback lookup was blocked: rows=%#v calls=%d err=%v", rows, atomic.LoadInt32(calls), err)
 	}
-	if _, err := segments.ListForPlayback(t.Context(), m); err != nil || atomic.LoadInt32(calls) != 3 {
+	if _, err := segments.ListForPlayback(t.Context(), m); err != nil || atomic.LoadInt32(calls) != 2 {
 		t.Fatalf("playback did not reuse its cache: calls=%d err=%v", atomic.LoadInt32(calls), err)
 	}
 }

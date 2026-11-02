@@ -41,7 +41,6 @@ export function MediaDetailPage() {
         onSmartScrape={detail.rescrape}
         onManualScrape={() => detail.setManualScrapeOpen(true)}
         onMetadataEdit={() => detail.setMetadataEditOpen(true)}
-        onOrganize={() => detail.setOrganizeOpen(true)}
         onProbe={detail.reprobe}
         onExportNFO={detail.exportNFO}
         onDelete={detail.deleteMedia}
@@ -65,14 +64,11 @@ export function MediaDetailPage() {
         media={media}
         manualScrapeOpen={detail.manualScrapeOpen}
         metadataEditOpen={detail.metadataEditOpen}
-        organizeOpen={detail.organizeOpen}
         scrapeEpisodeArtwork={detail.scrapeEpisodeArtwork}
         onManualScrapeClose={() => detail.setManualScrapeOpen(false)}
         onMetadataEditClose={() => detail.setMetadataEditOpen(false)}
-        onOrganizeClose={() => detail.setOrganizeOpen(false)}
         onManualScrapeApplied={detail.refresh}
         onMetadataSaved={detail.handleMetadataSaved}
-        onOrganized={detail.refresh}
       />
     </div>
   )

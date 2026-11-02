@@ -23,7 +23,7 @@ func IsAdultMediaPathOrMetadata(path, mediaType string, nsfw bool) bool {
 	if nsfw {
 		return true
 	}
-	if normalizeOrganizeMediaType(mediaType) == "adult" {
+	if normalizeMetadataMediaType(mediaType) == "adult" {
 		return true
 	}
 	if AdultCodeFromMediaPath(path) != "" {

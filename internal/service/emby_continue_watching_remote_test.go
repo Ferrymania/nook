@@ -48,11 +48,11 @@ func TestContinueWatchingMountedEpisodesUseNookProgressAndPermissions(t *testing
 	defer server.Close()
 	e := newTestEmbyService(t)
 	cfg := &config.Config{}
-	remote := NewEmbyRemoteService(cfg, zap.NewNop(), e.repo, NewCryptoService("", zap.NewNop()))
+	remote := NewEmbyRemoteService(cfg, zap.NewNop(), e.repo, NewCryptoService("test-secret", zap.NewNop()))
 	e.SetEmbyRemote(remote)
 	ctx := t.Context()
 	raw, _ := json.Marshal(map[string]string{"url": server.URL, "api_key": "fixture-token", "remote_user_id": "upstream"})
-	account := &model.StrmAccount{Base: model.Base{ID: "account"}, Name: "Remote", Provider: model.StrmProviderEmbyRemote, Config: string(raw), Enabled: true}
+	account := &model.StrmAccount{Base: model.Base{ID: "account"}, Name: "Remote", Provider: model.StrmProviderEmbyRemote, Config: encryptedTestAccountConfig(t, string(raw)), Enabled: true}
 	if err := e.repo.StrmAccount.Create(ctx, account); err != nil {
 		t.Fatal(err)
 	}

@@ -29,26 +29,22 @@ func newBackupTestService(t *testing.T) (*BackupService, *config.Config) {
 	return svc, cfg
 }
 
-func TestRestoreLegacyBackupSkipsOnlyRetiredTables(t *testing.T) {
+func TestRestorePostgresBackupRejectsUnsupportedContent(t *testing.T) {
 	svc, _ := newBackupTestService(t)
 	ctx := context.Background()
-	// Upgrading and restoring must leave opaque legacy data untouched.
-	if err := svc.db.Exec(`CREATE TABLE reader_books (id text PRIMARY KEY, title text)`).Error; err != nil {
+	if err := svc.db.Create(&model.Setting{Key: "media-setting", Value: "keep"}).Error; err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.db.Exec(`INSERT INTO reader_books VALUES ('existing', 'keep')`).Error; err != nil {
-		t.Fatal(err)
-	}
-	writeBackup := func(chunks []postgresBackupChunk) string {
+	writeBackup := func(format string, chunks []postgresBackupChunk) string {
 		t.Helper()
-		path := filepath.Join(t.TempDir(), "legacy.json.gz")
+		path := filepath.Join(t.TempDir(), "unsupported.json.gz")
 		file, err := os.Create(path)
 		if err != nil {
 			t.Fatal(err)
 		}
 		zw := gzip.NewWriter(file)
 		enc := json.NewEncoder(zw)
-		if err := enc.Encode(postgresBackupHeader{Format: postgresBackupFormat, Version: postgresBackupVersion}); err != nil {
+		if err := enc.Encode(postgresBackupHeader{Format: format, Version: postgresBackupVersion}); err != nil {
 			t.Fatal(err)
 		}
 		for _, chunk := range chunks {
@@ -68,36 +64,33 @@ func TestRestoreLegacyBackupSkipsOnlyRetiredTables(t *testing.T) {
 		raw, _ := json.Marshal(value)
 		return postgresBackupChunk{Table: "settings", Rows: []postgresBackupRow{{"key": json.RawMessage(`"media-setting"`), "value": raw}}}
 	}
-	chunks := []postgresBackupChunk{settingChunk("restored")}
-	for _, table := range []string{
-		"reader_book_sources", "reader_source_states", "reader_books", "reader_chapters",
-		"reader_content_caches", "reader_replace_rules", "reader_profiles", "reader_book_groups",
+	for _, tc := range []struct {
+		name   string
+		format string
+		table  string
+		want   string
+	}{
+		{name: "legacy format", format: "mebox-postgres-logical", want: "不支持的备份格式"},
+		{name: "retired table", format: postgresBackupFormat, table: "reader_books", want: "备份包含未知表 reader_books"},
+		{name: "unknown table", format: postgresBackupFormat, table: "unknown_table", want: "备份包含未知表 unknown_table"},
 	} {
-		chunks = append(chunks, postgresBackupChunk{Table: table, Rows: []postgresBackupRow{{"id": json.RawMessage(`"from-backup"`)}}})
-	}
-	if err := svc.restorePostgresBackup(ctx, writeBackup(chunks)); err != nil {
-		t.Fatal(err)
-	}
-	var titles []string
-	if err := svc.db.Table("reader_books").Pluck("title", &titles).Error; err != nil {
-		t.Fatal(err)
-	}
-	if !reflect.DeepEqual(titles, []string{"keep"}) || svc.db.Migrator().HasTable("reader_chapters") {
-		t.Fatal("restore modified or recreated retired data")
-	}
-	// Unknown future/corrupt tables must still roll the entire restore back.
-	err := svc.restorePostgresBackup(ctx, writeBackup([]postgresBackupChunk{
-		settingChunk("must-rollback"), {Table: "reader_unknown_table"},
-	}))
-	if err == nil || !strings.Contains(err.Error(), "reader_unknown_table") {
-		t.Fatalf("unknown table should reject restore: %v", err)
-	}
-	var value string
-	if err := svc.db.Model(&model.Setting{}).Where("key = ?", "media-setting").Select("value").Scan(&value).Error; err != nil {
-		t.Fatal(err)
-	}
-	if value != "restored" {
-		t.Fatalf("media setting was not restored or rollback failed: %q", value)
+		t.Run(tc.name, func(t *testing.T) {
+			chunks := []postgresBackupChunk{settingChunk("must-not-restore")}
+			if tc.table != "" {
+				chunks = append(chunks, postgresBackupChunk{Table: tc.table})
+			}
+			err := svc.restorePostgresBackup(ctx, writeBackup(tc.format, chunks))
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("restore error = %v, want %q", err, tc.want)
+			}
+			var value string
+			if err := svc.db.Model(&model.Setting{}).Where("key = ?", "media-setting").Select("value").Scan(&value).Error; err != nil {
+				t.Fatal(err)
+			}
+			if value != "keep" {
+				t.Fatalf("rejected backup changed existing data: %q", value)
+			}
+		})
 	}
 }
 

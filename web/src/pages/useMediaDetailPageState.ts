@@ -47,7 +47,6 @@ export function useMediaDetailPageState({ id, navigate }: MediaDetailPageStatePa
 
   const [manualScrapeOpen, setManualScrapeOpen] = useState(false)
   const [metadataEditOpen, setMetadataEditOpen] = useState(false)
-  const [organizeOpen, setOrganizeOpen] = useState(false)
   const [scrapeEpisodeArtwork, setScrapeEpisodeArtwork] = useEpisodeArtworkPreference()
 
   const refresh = useMediaDetailRefresh({
@@ -127,13 +126,11 @@ export function useMediaDetailPageState({ id, navigate }: MediaDetailPageStatePa
     setSelectedSeason,
     manualScrapeOpen,
     metadataEditOpen,
-    organizeOpen,
     scrapeEpisodeArtwork,
     refresh,
     handleMetadataSaved,
     setManualScrapeOpen,
     setMetadataEditOpen,
-    setOrganizeOpen,
     setScrapeEpisodeArtwork,
     ...actions,
   }

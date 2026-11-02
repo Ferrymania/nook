@@ -173,7 +173,7 @@ func repeatedSeriesTitleKey(media model.Media) string {
 		return ""
 	}
 	title := strings.TrimSpace(firstNonEmpty(media.Title, media.OriginalName))
-	if title == "" || unsafeAutomaticEpisodeQuery(title) || organizeMediaTitleLooksLikeRelease(title) {
+	if title == "" || unsafeAutomaticEpisodeQuery(title) || mediaTitleLooksLikeRelease(title) {
 		return ""
 	}
 	title = normalizeSeriesTitle(title)

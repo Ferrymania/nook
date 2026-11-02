@@ -30,11 +30,7 @@ func (s *SchedulerService) jobSegmentPrewarm(ctx context.Context) error {
 		if !lib.Enabled {
 			continue
 		}
-		enabled, err := librarySegmentPrewarmEnabled(ctx, s.repo, lib)
-		if err != nil {
-			return err
-		}
-		if enabled {
+		if librarySegmentPrewarmEnabled(lib) {
 			libraryIDs = append(libraryIDs, lib.ID)
 		}
 	}

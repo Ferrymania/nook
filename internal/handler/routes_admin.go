@@ -18,7 +18,6 @@ func registerAdminRoutes(api *gin.RouterGroup, cfg *config.Config, svc *service.
 	registerAdminSystemRoutes(admin, svc)
 	registerAdminDiagnosticsRoutes(admin, svc)
 	registerAdminBackupRoutes(admin, svc)
-	registerAdminOrganizerRoutes(admin, svc)
 	registerAdminAPIConfigRoutes(admin, svc)
 	registerAdminRecognitionWordRoutes(admin, svc)
 	registerAdminStrmRoutes(admin, svc)
@@ -145,12 +144,6 @@ func registerAdminBackupRoutes(admin *gin.RouterGroup, svc *service.Container) {
 	admin.POST("/backups", createBackupHandler(svc))
 	admin.DELETE("/backups", deleteBackupHandler(svc))
 	admin.POST("/backups/restore", restoreBackupHandler(svc))
-}
-
-func registerAdminOrganizerRoutes(admin *gin.RouterGroup, svc *service.Container) {
-	admin.POST("/media/:id/organize", organizeMediaHandler(svc))
-	admin.POST("/libraries/:id/organize", organizeLibraryHandler(svc))
-	admin.POST("/organize/source", organizeDirectoryHandler(svc))
 }
 
 func registerAdminAPIConfigRoutes(admin *gin.RouterGroup, svc *service.Container) {

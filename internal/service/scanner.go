@@ -52,14 +52,13 @@ func mediaExtensionSupportsProbe(ext string) bool {
 
 // ScannerService walks libraries on disk and upserts model.Media rows.
 type ScannerService struct {
-	cfg       *config.Config
-	log       *zap.Logger
-	repo      *repository.Container
-	hub       *Hub
-	probe     *FFprobeService
-	scraper   *ScraperService
-	organizer *OrganizerService
-	cache     *RuntimeCacheService
+	cfg     *config.Config
+	log     *zap.Logger
+	repo    *repository.Container
+	hub     *Hub
+	probe   *FFprobeService
+	scraper *ScraperService
+	cache   *RuntimeCacheService
 
 	imageProxy *ImageProxy
 
@@ -87,12 +86,6 @@ func NewScannerService(
 		localMediaProbeQueue: make(chan localMediaProbeTask, 1024),
 		localMediaProbing:    make(map[string]struct{}),
 		localScans:           make(map[string]struct{}),
-	}
-}
-
-func (s *ScannerService) SetOrganizer(organizer *OrganizerService) {
-	if s != nil {
-		s.organizer = organizer
 	}
 }
 

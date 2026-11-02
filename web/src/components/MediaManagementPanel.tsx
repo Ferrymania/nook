@@ -13,17 +13,16 @@ type MediaManagementPanelProps = {
   onMetadataEdit: () => void
   onProbe: () => void
   onExportNFO: () => void
-  onOrganize: () => void
   onDelete: () => void
 }
 
 export function MediaManagementPanel({
   scope, busy = '', headerActions, segmentAction, manualMatchLabel = '手动匹配',
-  onSmartScrape, onManualScrape, onMetadataEdit, onProbe, onExportNFO, onOrganize, onDelete,
+  onSmartScrape, onManualScrape, onMetadataEdit, onProbe, onExportNFO, onDelete,
 }: MediaManagementPanelProps) {
   const handlers: Record<Exclude<MediaManagementActionKey, 'segments'>, () => void> = {
     scrape: onSmartScrape, match: onManualScrape, metadata: onMetadataEdit,
-    probe: onProbe, nfo: onExportNFO, organize: onOrganize, delete: onDelete,
+    probe: onProbe, nfo: onExportNFO, delete: onDelete,
   }
 
   return (

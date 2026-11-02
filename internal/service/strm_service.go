@@ -260,13 +260,13 @@ func (s *StrmService) Stop() {
 // ─── 网盘账号 ──────────────────────────────────────────────────────────────────
 
 // strmAccountConfigJSON 序列化账号配置并加密敏感字段。
-func (s *StrmService) strmAccountConfigJSON(values map[string]string, encrypt bool) (string, error) {
+func (s *StrmService) strmAccountConfigJSON(values map[string]string) (string, error) {
 	cfg := make(map[string]string, len(values))
 	for k, v := range values {
 		if v == "" {
 			continue
 		}
-		if encrypt && strmContains(StrmAccountSecretKeys, k) {
+		if strmContains(StrmAccountSecretKeys, k) {
 			cfg[k] = s.crypto.Encrypt(v)
 		} else {
 			cfg[k] = v
@@ -290,7 +290,11 @@ func (s *StrmService) strmAccountConfig(acct *model.StrmAccount) (map[string]str
 	}
 	for _, k := range StrmAccountSecretKeys {
 		if v, ok := cfg[k]; ok {
-			cfg[k] = s.crypto.Decrypt(v)
+			plain, err := s.crypto.Decrypt(v)
+			if err != nil {
+				return nil, fmt.Errorf("读取账号凭据 %s 失败: %w", k, err)
+			}
+			cfg[k] = plain
 		}
 	}
 	return cfg, nil
@@ -329,7 +333,11 @@ func (s *StrmService) validateOpenListAccountToken(encoded string) error {
 	if err := json.Unmarshal([]byte(encoded), &cfg); err != nil {
 		return fmt.Errorf("decode account config: %w", err)
 	}
-	if strings.TrimSpace(s.crypto.Decrypt(cfg["token"])) == "" {
+	token, err := s.crypto.Decrypt(cfg["token"])
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(token) == "" {
 		return cloud.ErrOpenListTokenRequired
 	}
 	return nil
@@ -460,7 +468,7 @@ func (s *StrmService) CreateStrmAccount(ctx context.Context, name, provider stri
 	if strings.TrimSpace(name) == "" {
 		name = providerLabel(provider)
 	}
-	enc, err := s.strmAccountConfigJSON(config, true)
+	enc, err := s.strmAccountConfigJSON(config)
 	if err != nil {
 		return nil, err
 	}

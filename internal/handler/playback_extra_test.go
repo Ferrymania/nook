@@ -103,6 +103,36 @@ func TestStreamCloudMediaWithoutSTRMURLReturnsBadGateway(t *testing.T) {
 	}
 }
 
+func TestExternalPlaybackURLIgnoresLegacyPublicOrigin(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	for _, tc := range []struct {
+		name       string
+		origin     string
+		configured string
+		want       string
+	}{
+		{name: "request fallback", want: "https://forwarded.example.test"},
+		{name: "invalid current header", origin: "javascript:alert(1)", want: "https://forwarded.example.test"},
+		{name: "configured public URL", configured: "https://configured.example.test", want: "https://configured.example.test"},
+		{name: "current header", origin: "https://browser.example.test", configured: "https://configured.example.test", want: "https://browser.example.test"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+			ctx.Request = httptest.NewRequest(http.MethodGet, "http://origin.internal/api/playback/media-1/external-url", nil)
+			ctx.Request.Header.Set("X-MeBox-Public-Origin", "https://legacy.example.test")
+			ctx.Request.Header.Set("X-Nook-Public-Origin", tc.origin)
+			ctx.Request.Header.Set("X-Forwarded-Proto", "https")
+			ctx.Request.Header.Set("X-Forwarded-Host", "forwarded.example.test")
+			cfg := &config.Config{}
+			cfg.App.ServerURL = tc.configured
+			path := "/api/stream/media-1?token=scoped-playback-token"
+			if got := externalPlaybackURL(ctx, &service.Container{Cfg: cfg}, path); got != tc.want+path {
+				t.Fatalf("externalPlaybackURL = %q, want %q", got, tc.want+path)
+			}
+		})
+	}
+}
+
 func TestExternalURLPrefersBrowserPublicOriginOverForwardedSource(t *testing.T) {
 	router, _, secret := newPlaybackScopeTestRouter(t)
 	loginToken := signedTestToken(t, secret)

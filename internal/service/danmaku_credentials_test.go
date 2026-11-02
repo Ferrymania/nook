@@ -45,40 +45,47 @@ func TestDandanplaySignatureVectors(t *testing.T) {
 	}
 }
 
-// 凭据解析：官方域名 + 未配置 → 内置回退；配置了 → 用户凭据优先；
-// 只配一半 → 回退内置；第三方源一律不携带凭据。
+// 用户凭据只用于其配置源；没有可用凭据时，仅官方源使用内置凭据。
 func TestDanmakuCredentialsSelection(t *testing.T) {
 	svc := newDanmakuTestService(t)
 	ctx := context.Background()
+	// These retired values must never override user or built-in credentials.
+	require.NoError(t, svc.repo.Setting.Set(ctx, "danmaku.app_id", "retired-id"))
+	require.NoError(t, svc.repo.Setting.Set(ctx, "danmaku.app_key", "retired-key"))
+	embedID, embedKey := danmakuEmbeddedCredentials()
 	official := "https://api.dandanplay.net/api/v2/comment/25484?withRelated=true"
 	thirdParty := "https://dm.example.com/api/v2/comment/25484"
-
-	embedID, embedKey := danmakuEmbeddedCredentials()
-
-	// 1) 官方域名、未配置：内置回退。
+	for _, tc := range []struct {
+		name, target    string
+		user            *danmakuUserContext
+		wantID, wantKey string
+		wantOK          bool
+	}{
+		{"official defaults ignore global credentials", official, nil, embedID, embedKey, true},
+		{"explicit official credentials", official, &danmakuUserContext{source: DanmakuDefaultSource, appID: "user-id", appKey: "user-key"}, "user-id", "user-key", true},
+		{"empty user source means official", official, &danmakuUserContext{appID: "user-id", appKey: "user-key"}, "user-id", "user-key", true},
+		{"incomplete official credentials", official, &danmakuUserContext{appID: "user-id"}, embedID, embedKey, true},
+		{"mirror credentials do not reach official", official, &danmakuUserContext{source: "https://dm.example.com", appID: "mirror-id", appKey: "mirror-key"}, embedID, embedKey, true},
+		{"mirror gets no built-in or global credentials", thirdParty, nil, "", "", false},
+		{"official user credentials do not reach mirror", thirdParty, &danmakuUserContext{appID: "user-id", appKey: "user-key"}, "", "", false},
+		{"explicit mirror credentials", thirdParty, &danmakuUserContext{source: "https://dm.example.com", appID: "mirror-id", appKey: "mirror-key"}, "mirror-id", "mirror-key", true},
+		{"incomplete mirror credentials", thirdParty, &danmakuUserContext{source: "https://dm.example.com", appKey: "mirror-key"}, "", "", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := ctx
+			if tc.user != nil {
+				ctx = context.WithValue(ctx, danmakuUserContextKey{}, *tc.user)
+			}
+			id, key, ok := svc.danmakuCredentials(ctx, tc.target)
+			require.Equal(t, tc.wantOK, ok)
+			require.Equal(t, tc.wantID, id)
+			require.True(t, key == tc.wantKey, "unexpected credential selection")
+		})
+	}
+	// An incomplete retired pair is ignored too.
+	require.NoError(t, svc.repo.Setting.Delete(ctx, "danmaku.app_key"))
 	id, key, ok := svc.danmakuCredentials(ctx, official)
 	require.True(t, ok)
 	require.Equal(t, embedID, id)
-	require.Equal(t, embedKey, key)
-
-	// 2) 官方域名、配置完整：用户凭据覆盖内置。
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuAppIDKey, "my-app-id"))
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuAppKeyKey, "my-app-key"))
-	id, key, ok = svc.danmakuCredentials(ctx, official)
-	require.True(t, ok)
-	require.Equal(t, "my-app-id", id)
-	require.Equal(t, "my-app-key", key)
-
-	// 3) 只配一个：视为不完整，回退内置。
-	require.NoError(t, svc.repo.Setting.Delete(ctx, DanmakuAppKeyKey))
-	id, key, ok = svc.danmakuCredentials(ctx, official)
-	require.True(t, ok)
-	require.Equal(t, embedID, id)
-	require.Equal(t, embedKey, key)
-
-	// 4) 第三方源：即使配了凭据也不发送（内置凭据更不能外泄）。
-	id, key, ok = svc.danmakuCredentials(ctx, thirdParty)
-	require.False(t, ok)
-	require.Empty(t, id)
-	require.Empty(t, key)
+	require.True(t, key == embedKey, "incomplete global credentials affected the built-in fallback")
 }

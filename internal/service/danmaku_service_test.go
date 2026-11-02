@@ -35,6 +35,22 @@ func newDanmakuTestService(t *testing.T) *DanmakuService {
 	return NewDanmakuService(zap.NewNop(), repos)
 }
 
+const danmakuTestUserID = "danmaku-test-user"
+
+// Configure the same per-user settings path used by the player.
+func setDanmakuTestSource(t *testing.T, svc *DanmakuService, source string) {
+	t.Helper()
+	ctx := t.Context()
+	user, err := svc.repo.User.FindByID(ctx, danmakuTestUserID)
+	require.NoError(t, err)
+	if user == nil {
+		user = &model.User{Base: model.Base{ID: danmakuTestUserID}, Username: danmakuTestUserID, PasswordHash: "x", Role: "user", IsActive: true}
+		require.NoError(t, svc.repo.User.Create(ctx, user))
+	}
+	_, err = svc.UpdateUserSettings(ctx, user.ID, DanmakuSettingsPatch{Source: &source})
+	require.NoError(t, err)
+}
+
 // seedDanmakuMedia inserts a media row so the service can resolve a name and
 // episode number.
 func seedDanmakuMedia(t *testing.T, svc *DanmakuService, id, title, originalName string, episodeNum int) {
@@ -97,7 +113,7 @@ func (ds *danmakuSourceServer) URL() string { return ds.server.URL }
 
 func TestDanmakuConfigDefaults(t *testing.T) {
 	svc := newDanmakuTestService(t)
-	cfg := svc.Config(context.Background())
+	cfg := svc.ConfigForUser(context.Background(), "")
 	require.True(t, cfg.Enabled)
 	require.Equal(t, "1", cfg.Opacity)
 	require.Equal(t, "24", cfg.FontSize)
@@ -105,26 +121,61 @@ func TestDanmakuConfigDefaults(t *testing.T) {
 	require.Empty(t, cfg.Source)
 }
 
-func TestDanmakuConfigReadsPersistedValues(t *testing.T) {
+func TestDanmakuConfigReadsUserPreferences(t *testing.T) {
 	svc := newDanmakuTestService(t)
-	ctx := context.Background()
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuEnabledKey, "false"))
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuSourceKey, "https://dm.example.com"))
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuOpacityKey, "0.7"))
+	ctx := t.Context()
+	setDanmakuTestSource(t, svc, "https://dm.example.com")
+	enabled, opacity := false, 0.7
+	_, err := svc.UpdateUserSettings(ctx, danmakuTestUserID, DanmakuSettingsPatch{Enabled: &enabled, Opacity: &opacity})
+	require.NoError(t, err)
 
-	cfg := svc.Config(ctx)
+	cfg := svc.ConfigForUser(ctx, danmakuTestUserID)
 	require.False(t, cfg.Enabled)
 	require.Equal(t, "https://dm.example.com", cfg.Source)
 	require.Equal(t, "0.7", cfg.Opacity)
 }
 
+func TestDanmakuConfigIgnoresRetiredGlobalPreferences(t *testing.T) {
+	svc := newDanmakuTestService(t)
+	ctx := t.Context()
+	for key, value := range map[string]string{
+		"danmaku.enabled": "false", "danmaku.source": "https://legacy.example.com",
+		"danmaku.opacity": "0.3", "danmaku.font_size": "40", "danmaku.area": "0.2",
+	} {
+		require.NoError(t, svc.repo.Setting.Set(ctx, key, value))
+	}
+	check := func(userID string) {
+		t.Helper()
+		cfg := svc.ConfigForUser(ctx, userID)
+		require.True(t, cfg.Enabled)
+		require.Empty(t, cfg.Source)
+		require.Equal(t, "1", cfg.Opacity)
+		require.Equal(t, "24", cfg.FontSize)
+		require.Equal(t, "1", cfg.Area)
+		require.Equal(t, 1.0, cfg.Volume)
+		require.False(t, cfg.MergeSources)
+	}
+	check("")
+	check("missing-user")
+	setDanmakuTestSource(t, svc, "")
+	check(danmakuTestUserID)
+	// Database lookup failures use the same fixed defaults.
+	db, err := svc.repo.DB.DB()
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+	check(danmakuTestUserID)
+}
+
 func TestDanmakuFetchDisablesWhenToggleOff(t *testing.T) {
 	svc := newDanmakuTestService(t)
 	ctx := context.Background()
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuEnabledKey, "false"))
+	setDanmakuTestSource(t, svc, "")
+	enabled := false
+	_, err := svc.UpdateUserSettings(ctx, danmakuTestUserID, DanmakuSettingsPatch{Enabled: &enabled})
+	require.NoError(t, err)
 	seedDanmakuMedia(t, svc, "m1", "测试动画", "", 0)
 
-	res, err := svc.Fetch(ctx, "m1", "", "")
+	res, err := svc.FetchWithOptions(ctx, "m1", "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	require.False(t, res.Enabled)
 	require.Empty(t, res.Raw)
@@ -132,15 +183,37 @@ func TestDanmakuFetchDisablesWhenToggleOff(t *testing.T) {
 	require.Equal(t, "auto", res.SourceType)
 }
 
+func TestDanmakuFetchIgnoresRetiredGlobalPreferences(t *testing.T) {
+	official := newDanmakuSourceServer(t)
+	overrideDanmakuOfficialBase(t, official.URL())
+	var retiredCalls atomic.Int32
+	retired := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		retiredCalls.Add(1)
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	t.Cleanup(retired.Close)
+	svc := newDanmakuTestService(t)
+	ctx := t.Context()
+	require.NoError(t, svc.repo.Setting.Set(ctx, "danmaku.enabled", "false"))
+	require.NoError(t, svc.repo.Setting.Set(ctx, "danmaku.source", retired.URL))
+	seedDanmakuMedia(t, svc, "defaults-media", "测试动画", "", 0)
+	res, err := svc.FetchWithOptions(ctx, "defaults-media", "", "99999", DanmakuFetchOptions{UserID: "missing-user"})
+	require.NoError(t, err)
+	require.True(t, res.Enabled)
+	require.Empty(t, res.Source)
+	require.Contains(t, res.Raw, "显式指定弹幕")
+	require.Zero(t, retiredCalls.Load(), "the retired global source must never be contacted")
+}
+
 func TestDanmakuFetchWithDandanplaySource(t *testing.T) {
 	srv := newDanmakuSourceServer(t)
 
 	svc := newDanmakuTestService(t)
 	ctx := context.Background()
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuSourceKey, srv.URL()))
+	setDanmakuTestSource(t, svc, srv.URL())
 	seedDanmakuMedia(t, svc, "m2", "测试动画", "", 0)
 
-	res, err := svc.Fetch(ctx, "m2", "", "")
+	res, err := svc.FetchWithOptions(ctx, "m2", "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	require.True(t, res.Enabled)
 	require.Equal(t, "xml", res.SourceType)
@@ -157,10 +230,10 @@ func TestDanmakuFetchUsesOriginalNameForSearch(t *testing.T) {
 
 	svc := newDanmakuTestService(t)
 	ctx := context.Background()
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuSourceKey, srv.URL()))
+	setDanmakuTestSource(t, svc, srv.URL())
 	seedDanmakuMedia(t, svc, "m3", "刮削标题A", "日文原名B", 0)
 
-	res, err := svc.Fetch(ctx, "m3", "", "")
+	res, err := svc.FetchWithOptions(ctx, "m3", "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	require.True(t, res.Enabled)
 	require.Contains(t, res.Raw, "弹幕A")
@@ -173,11 +246,11 @@ func TestDanmakuFetchSearchesByEpisodeNumber(t *testing.T) {
 
 	svc := newDanmakuTestService(t)
 	ctx := context.Background()
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuSourceKey, srv.URL()))
+	setDanmakuTestSource(t, svc, srv.URL())
 	// 第 3 话：搜索时应带 episode=3，命中该集弹幕库。
 	seedDanmakuMedia(t, svc, "m2", "测试动画", "", 3)
 
-	res, err := svc.Fetch(ctx, "m2", "", "")
+	res, err := svc.FetchWithOptions(ctx, "m2", "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	require.True(t, res.Enabled)
 	require.Contains(t, srv.lastSearch, "anime=")
@@ -190,11 +263,11 @@ func TestDanmakuFetchKeywordKeepsEpisode(t *testing.T) {
 
 	svc := newDanmakuTestService(t)
 	ctx := context.Background()
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuSourceKey, srv.URL()))
+	setDanmakuTestSource(t, svc, srv.URL())
 	seedDanmakuMedia(t, svc, "m5", "测试动画", "", 5)
 
 	// 手动搜索关键词时保留媒体集数，仍只命中该集。
-	res, err := svc.Fetch(ctx, "m5", "另一个名字", "")
+	res, err := svc.FetchWithOptions(ctx, "m5", "另一个名字", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	require.True(t, res.Enabled)
 	require.Contains(t, srv.lastSearch, "anime=")
@@ -222,10 +295,10 @@ func TestDanmakuFetchHandlesSearch404(t *testing.T) {
 
 	svc := newDanmakuTestService(t)
 	ctx := context.Background()
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuSourceKey, srv.URL))
+	setDanmakuTestSource(t, svc, srv.URL)
 	seedDanmakuMedia(t, svc, "m4", "测试动画", "", 0)
 
-	res, err := svc.Fetch(ctx, "m4", "", "")
+	res, err := svc.FetchWithOptions(ctx, "m4", "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.Error(t, err)
 	require.True(t, res.Enabled)
 }
@@ -242,10 +315,10 @@ func TestDanmakuFetchReturnsCandidatesOnAmbiguity(t *testing.T) {
 
 	svc := newDanmakuTestService(t)
 	ctx := context.Background()
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuSourceKey, srv.URL()))
+	setDanmakuTestSource(t, svc, srv.URL())
 	seedDanmakuMedia(t, svc, "m6", "测试动画", "", 0)
 
-	res, err := svc.Fetch(ctx, "m6", "", "")
+	res, err := svc.FetchWithOptions(ctx, "m6", "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	require.True(t, res.Enabled)
 	// 歧义时不取弹幕，返回候选交由播放器选择。
@@ -263,9 +336,9 @@ func TestDanmakuFetchWithExplicitEpisodeID(t *testing.T) {
 
 	svc := newDanmakuTestService(t)
 	ctx := context.Background()
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuSourceKey, srv.URL()))
+	setDanmakuTestSource(t, svc, srv.URL())
 	// 媒体名与搜索无关也能用显式 episodeId 命中。
-	res, err := svc.Fetch(ctx, "m2", "", "99999")
+	res, err := svc.FetchWithOptions(ctx, "m2", "", "99999", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	require.True(t, res.Enabled)
 	require.Contains(t, res.Raw, "显式指定弹幕")
@@ -311,10 +384,10 @@ func TestDanmakuFetchDetectsJSONSource(t *testing.T) {
 
 	svc := newDanmakuTestService(t)
 	ctx := context.Background()
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuSourceKey, srv.URL))
+	setDanmakuTestSource(t, svc, srv.URL)
 	seedDanmakuMedia(t, svc, "mjson", "测试动画", "", 0)
 
-	res, err := svc.Fetch(ctx, "mjson", "", "")
+	res, err := svc.FetchWithOptions(ctx, "mjson", "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	require.True(t, res.Enabled)
 	require.Equal(t, "json", res.SourceType)
@@ -323,8 +396,8 @@ func TestDanmakuFetchDetectsJSONSource(t *testing.T) {
 
 	// XML 源仍按 XML 探测。
 	srvXML := newDanmakuSourceServer(t)
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuSourceKey, srvXML.URL()))
-	res2, err := svc.Fetch(ctx, "mjson", "", "")
+	setDanmakuTestSource(t, svc, srvXML.URL())
+	res2, err := svc.FetchWithOptions(ctx, "mjson", "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	require.Equal(t, "xml", res2.SourceType)
 	require.Contains(t, res2.Raw, "弹幕A")
@@ -349,14 +422,14 @@ func TestDanmakuFetchCachesRepeatedRequests(t *testing.T) {
 
 	svc := newDanmakuTestService(t)
 	ctx := context.Background()
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuSourceKey, srv.URL))
+	setDanmakuTestSource(t, svc, srv.URL)
 	seedDanmakuMedia(t, svc, "cache-media", "测试动画", "", 1)
 
-	first, err := svc.Fetch(ctx, "cache-media", "", "")
+	first, err := svc.FetchWithOptions(ctx, "cache-media", "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	require.NotEmpty(t, first.Raw)
 
-	second, err := svc.Fetch(ctx, "cache-media", "", "")
+	second, err := svc.FetchWithOptions(ctx, "cache-media", "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	require.Equal(t, first.Raw, second.Raw)
 	require.EqualValues(t, 1, atomic.LoadInt32(&searchCalls))
@@ -381,7 +454,7 @@ func TestDanmakuFetchCoalescesConcurrentRequests(t *testing.T) {
 
 	svc := newDanmakuTestService(t)
 	ctx := context.Background()
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuSourceKey, srv.URL))
+	setDanmakuTestSource(t, svc, srv.URL)
 	seedDanmakuMedia(t, svc, "concurrent-media", "测试动画", "", 1)
 
 	const workers = 8
@@ -393,7 +466,7 @@ func TestDanmakuFetchCoalescesConcurrentRequests(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			<-start
-			_, err := svc.Fetch(ctx, "concurrent-media", "", "")
+			_, err := svc.FetchWithOptions(ctx, "concurrent-media", "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 			errs <- err
 		}()
 	}

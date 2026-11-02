@@ -1,63 +1,7 @@
 import { api } from './client'
 import type { ScrapeOptions } from './library'
 
-// toolsAPI groups admin-only endpoints that don't fit the other domain
-// modules: organizing media files, inspecting local media tools, and repairing
-// metadata before rescraping.
-// OrganizeOverrides are optional single-request overrides for an organize
-// action. Empty fields fall back to the system settings.
-// source_path = 源目录（待整理文件所在），dest_path = 目的地目录（整理输出到哪里）。
-export interface OrganizeOverrides {
-  source_path?: string
-  dest_path?: string
-  transfer_mode?: string
-  media_type?: string
-  media_category?: string
-  scan_after?: boolean
-  scrape_after?: boolean
-  library_id?: string
-  dry_run?: boolean
-}
-
-export interface OrganizeResultSummary {
-  organized?: number
-  skipped?: number
-  replaced?: number
-  reclassified?: number
-  source_path?: string
-  dest_path?: string
-  errors?: string[]
-  dry_run?: boolean
-  items?: Array<{
-    source: string
-    target?: string
-    action: string
-    reason?: string
-    media_type?: string
-    category?: string
-    title?: string
-  }>
-  scans?: Array<{
-    library_id: string
-    name: string
-    path: string
-    visited: number
-    added: number
-    updated: number
-    removed: number
-    error?: string
-  }>
-  scrapes?: Array<{
-    library_id: string
-    name: string
-    path: string
-    matched: number
-    skipped?: boolean
-    reason?: string
-    error?: string
-  }>
-}
-
+// Administrative tools for inspecting media utilities and repairing metadata.
 export interface FFmpegToolInfo {
   installed: boolean
   path?: string
@@ -70,29 +14,6 @@ export interface FFmpegToolPair {
 }
 
 export const toolsAPI = {
-  organizeMedia: (mediaID: string, opts?: OrganizeOverrides) =>
-    api
-      .post<{ path: string; scans?: unknown[]; scrapes?: unknown[] }>(`/admin/media/${mediaID}/organize`, opts ?? {})
-      .then((r) => r.data),
-
-  organizeLibrary: (libraryID: string, opts?: OrganizeOverrides) =>
-    api
-      .post<OrganizeResultSummary>(
-        `/admin/libraries/${libraryID}/organize`,
-        opts ?? {},
-      )
-      .then((r) => r.data),
-
-  // organizeDirectory organizes an arbitrary source directory (e.g. downloads)
-  // into the destination with dedup + 洗版 (resolution replacement).
-  organizeDirectory: (opts: OrganizeOverrides) =>
-    api
-      .post<OrganizeResultSummary>(
-        '/admin/organize/source',
-        opts,
-      )
-      .then((r) => r.data),
-
   // ffToolsStatus 查询当前工具的可用性、路径和版本。
   ffToolsStatus: (signal?: AbortSignal) =>
     api.get<FFmpegToolPair>('/admin/tools/ffmpeg/status', { signal }).then((r) => r.data),

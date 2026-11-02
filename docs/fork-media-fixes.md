@@ -55,6 +55,16 @@ docker build --platform linux/amd64 --build-arg VERSION=fixes-20261014 -t nook:f
 
 Emby 兼容接口支持 SenPlayer 首页同时请求 `Series,Movie,Video`，保留两类条目并统一分页。图片地址变化时更新缓存标识，让客户端重新获取图片。底部统计是否重新请求仍取决于客户端的刷新行为。
 
+## 媒体库刮削设置
+
+刮削与后台预取配置使用各媒体库的 `libraries.scrape_settings`，不再读取旧全局的 `scrape.auto_on_scan`、`scrape.providers`、`scrape.language`、`tmdb.language`、`scrape.delay_min_ms`、`scrape.delay_max_ms` 和 `segment.prewarm_enabled`。需要沿用旧全局值的库，应在升级前保存其当前生效的独立设置；程序启动时不会自动迁移这些旧值。
+
+新建或尚未保存独立设置的库默认关闭扫描后自动刮削和后台预取，语言为简体中文，请求间隔为 250–500 毫秒。已保存的独立设置不受影响；每集图片的全局开关 `scrape.episode_images` 继续生效。
+
+## 弹幕设置
+
+播放器与弹幕偏好只读取当前用户的设置，没有可用用户时使用固定默认值，不再读取旧全局 `danmaku.*` 显示参数。应用凭据优先使用用户为当前弹幕源保存的完整 App ID 与 App Key；没有可用用户凭据时，仅官方弹幕服务使用内置凭据，旧全局 `danmaku.app_id`、`danmaku.app_key` 不再生效。仍使用旧全局凭据的部署，应先确认受影响用户并保存其需要的用户凭据，再升级。
+
 ## Nook 命名与旧安装升级
 
 从 `0.0.2` 开始，界面、程序、Go 模块、Docker 服务、环境变量和发布包统一使用 Nook：
@@ -63,8 +73,10 @@ Emby 兼容接口支持 SenPlayer 首页同时请求 `Series,Movie,Video`，保�
 - Docker 服务为 `nook`，健康检查为 `/usr/local/bin/nook-healthcheck`。
 - 配置环境变量使用 `NOOK_*`，数据库使用 PostgreSQL；发布标签为 `nook-v版本号`，安装包为 `nook_平台_架构`。
 
-升级前须将旧 `MEBOX_*` 环境变量改为对应的 `NOOK_*` 名称。本版本不再读取旧环境变量或迁移旧品牌浏览器偏好；已保存的 `nook` 登录状态、主题和偏好继续使用。旧页面 `/play-profiles`、`/playback-settings`、`/api-configs`、`/tools` 不再单独跳转，请使用当前菜单入口。旧 Compose 的健康检查脚本路径与旧逻辑备份格式仍保留兼容，不改变 `.jwt_secret`。
+升级前须将旧 `MEBOX_*` 环境变量改为对应的 `NOOK_*` 名称。本版本不再读取旧环境变量或迁移旧品牌浏览器偏好；已保存的 `nook` 登录状态、主题和偏好继续使用。旧页面 `/play-profiles`、`/playback-settings`、`/api-configs`、`/tools` 不再单独跳转，请使用当前菜单入口。逻辑备份仅支持 `nook-postgres-logical` v1，不再接受 `mebox-postgres-logical` 格式，也不再跳过已退役的阅读模块表；遇到未知表会拒绝恢复并回滚。不改变 `.jwt_secret`。
 
 当前播放设置保存在用户账号中，旧 `play_profiles` 数据不再自动导入；仍需该迁移的旧部署，应先升级到包含 Profile 迁移的版本（PR #44）完成转换，再升级本版本。启动时保留旧表和数据，不执行删除。媒体库标签要求前后端同步升级；读取失败仍显示缓存，写入失败回滚并提示。
+
+数据库中的非空 API 密钥和网盘/远程 Emby 凭据必须为 `enc:v1:` 密文，不再直接读取历史明文；格式错误、密文损坏或密钥不匹配会明确报错。正常读取仍使用原 JWT 密钥解密，空凭据保持为空。
 
 已有 PostgreSQL 的用户、数据库名和密码属于实际部署数据，不能仅因改名就替换成默认的 `nook`。将配置键改为 `NOOK_DATABASE_DSN` 时，保留原 DSN 的连接参数和现有挂载目录。将 Compose 服务从 `mebox` 改为 `nook` 前，先停止原应用服务，避免两个应用同时访问相同数据；PostgreSQL 服务与数据卷保持原配置。

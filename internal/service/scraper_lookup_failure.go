@@ -29,7 +29,7 @@ func (f *scrapeLookupFailure) reject(query string, year int, match *Match) {
 	}
 	if !automaticMetadataTitleTrusted(query, match) || unsafeAutomaticEpisodeQuery(query) {
 		f.titleMismatch = true
-	} else if !organizeMetadataMatchTrusted(query, year, match) {
+	} else if !metadataMatchTrusted(query, year, match) {
 		f.yearMismatch = true
 	}
 }

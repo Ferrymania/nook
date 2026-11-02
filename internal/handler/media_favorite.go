@@ -8,12 +8,10 @@
 package handler
 
 import (
-	"net/http"
-
-	"github.com/gin-gonic/gin"
-
 	"github.com/Ferrymania/nook/internal/middleware"
 	"github.com/Ferrymania/nook/internal/service"
+	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 // addMediaFavoriteHandler ensures the (user, media) row exists. If it
@@ -118,33 +116,5 @@ func scrapeTestHandler(svc *service.Container) gin.HandlerFunc {
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"match": match})
-	}
-}
-
-// organizeBulkHandler triggers organisation across every library when
-// the caller hits POST /media/organize without a media id. It mirrors
-// the upstream Vue surface.
-func organizeBulkHandler(svc *service.Container) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		libs, err := svc.Repo.Library.List(c.Request.Context())
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		out := make([]any, 0, len(libs))
-		for _, l := range libs {
-			resp, err := organizePipeline(svc).Run(c.Request.Context(), service.OrganizePipelineRequest{
-				Scope:     service.OrganizeScopeLibrary,
-				Trigger:   service.OrganizeTriggerManual,
-				TaskName:  "批量整理媒体库：" + l.Name,
-				LibraryID: l.ID,
-			})
-			if err != nil {
-				out = append(out, gin.H{"library": l.Name, "error": err.Error()})
-				continue
-			}
-			out = append(out, gin.H{"library": l.Name, "result": resp.Result})
-		}
-		c.JSON(http.StatusOK, gin.H{"results": out})
 	}
 }

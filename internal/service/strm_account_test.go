@@ -6,16 +6,67 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"go.uber.org/zap"
 
 	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/helper"
 	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/repository"
 	"github.com/Ferrymania/nook/internal/service/cloud"
 	"github.com/Ferrymania/nook/internal/service/cloud115"
 )
+
+func TestStoredAccountCredentialsRejectPlaintext(t *testing.T) {
+	t.Parallel()
+	cipher := NewCryptoService("test-secret", zap.NewNop())
+	svc := &StrmService{crypto: cipher}
+	remote := &EmbyRemoteService{crypto: cipher}
+	for _, key := range StrmAccountSecretKeys {
+		t.Run(key, func(t *testing.T) {
+			account := &model.StrmAccount{Config: mustJSON(map[string]string{"url": "https://emby.example.com", key: "plaintext-fixture"})}
+			if _, err := svc.strmAccountConfig(account); !errors.Is(err, helper.ErrSecretNotEncrypted) {
+				t.Fatalf("stored %s must be rejected: %v", key, err)
+			}
+			if key == "password" || key == "api_key" || key == "token" {
+				if _, err := remote.configOf(account); !errors.Is(err, helper.ErrSecretNotEncrypted) {
+					t.Fatalf("remote Emby stored %s must be rejected: %v", key, err)
+				}
+			}
+		})
+	}
+}
+
+func TestPersist115TokensKeepsOtherCredentialsEncrypted(t *testing.T) {
+	t.Parallel()
+	svc := testStrmService(t)
+	account, err := svc.CreateStrmAccount(t.Context(), "115", model.StrmProvider115, map[string]string{
+		"app_id": "100195129", "access_token": "old-access", "refresh_token": "old-refresh", "cookie": "saved-cookie",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc.persist115Tokens(account.ID, "new-access", "new-refresh")
+	fresh, err := svc.repo.StrmAccount.FindByID(t.Context(), account.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var stored map[string]string
+	if err := json.Unmarshal([]byte(fresh.Config), &stored); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"cookie", "access_token", "refresh_token"} {
+		if !strings.HasPrefix(stored[key], encPrefix) {
+			t.Fatalf("token refresh wrote an unencrypted %s", key)
+		}
+	}
+	values, err := svc.strmAccountConfig(fresh)
+	if err != nil || values["cookie"] != "saved-cookie" || values["access_token"] != "new-access" || values["refresh_token"] != "new-refresh" {
+		t.Fatalf("refreshed credentials must remain readable: %v", err)
+	}
+}
 
 func TestOpenListTokenValidationAndPreview(t *testing.T) {
 	svc := &StrmService{crypto: NewCryptoService("test-secret", zap.NewNop())}
@@ -31,11 +82,14 @@ func TestOpenListTokenValidationAndPreview(t *testing.T) {
 	if err := svc.validateOpenListAccountToken(account.Config); err != nil {
 		t.Fatal(err)
 	}
-	for _, token := range []string{"", "  ", svc.crypto.Encrypt("  ")} {
+	for _, token := range []string{"", svc.crypto.Encrypt("  ")} {
 		raw := mustJSON(map[string]string{"username": "legacy", "password": "secret", "token": token})
 		if err := svc.validateOpenListAccountToken(raw); !errors.Is(err, cloud.ErrOpenListTokenRequired) {
 			t.Fatalf("invalid Token validation = %v", err)
 		}
+	}
+	if err := svc.validateOpenListAccountToken(mustJSON(map[string]string{"token": "legacy-token"})); err == nil {
+		t.Fatal("plaintext stored Token must be rejected")
 	}
 	for _, raw := range []string{`{"password":"secret"}`, `{"token":""}`, `{"token":"  "}`, `not-json`} {
 		if HasStrmAccountCredential(&model.StrmAccount{Provider: model.StrmProviderOpenList, Config: raw}) {

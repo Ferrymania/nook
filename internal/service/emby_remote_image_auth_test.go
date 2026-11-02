@@ -65,13 +65,13 @@ func TestRefreshRemoteEmbyImageTokenForHostRelogins(t *testing.T) {
 
 	db := newServiceTestDB(t, &model.StrmAccount{}, &model.EmbyMount{})
 	repos := repository.New(db)
-	svc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("", zap.NewNop()))
+	svc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("test-secret", zap.NewNop()))
 	acct := &model.StrmAccount{
 		Base:     model.Base{ID: "acct-refresh"},
 		Name:     "refresh-emby",
 		Provider: model.StrmProviderEmbyRemote,
 		Enabled:  true,
-		Config:   `{"url":"` + upstream.URL + `","api_key":"stale-token","username":"u","password":"p"}`,
+		Config:   encryptedTestAccountConfig(t, `{"url":"`+upstream.URL+`","api_key":"stale-token","username":"u","password":"p"}`),
 	}
 	if err := repos.StrmAccount.Create(t.Context(), acct); err != nil {
 		t.Fatalf("create account: %v", err)

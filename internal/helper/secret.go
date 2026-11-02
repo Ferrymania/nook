@@ -1,13 +1,12 @@
 // Package helper — AES-256-GCM at-rest secret encryption.
 //
-// Sensitive values (third-party API keys, service passwords, book-source
-// login credentials) are stored in the database. Encrypting them keyed off
+// Sensitive values (third-party API keys and service credentials) are stored
+// in the database. Encrypting them keyed off
 // a per-install secret means a stolen DB file alone is not enough to
 // recover the plaintext.
 //
 // Format on disk: "enc:v1:" + base64(nonce || ciphertext || tag).
-// Legacy plaintext rows (no prefix) round-trip unchanged so an upgraded
-// install needs no migration step.
+// Nonempty stored values must carry this prefix and authenticate successfully.
 package helper
 
 import (
@@ -16,15 +15,22 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"strings"
 )
 
 // EncPrefix tags ciphertext rows so they can be told apart from plaintext.
 const EncPrefix = "enc:v1:"
 
+var (
+	ErrSecretNotEncrypted      = errors.New("凭据未加密，请重新保存")
+	ErrSecretCipherUnavailable = errors.New("凭据加密密钥不可用")
+	ErrSecretCiphertextInvalid = errors.New("凭据解密失败，请检查加密密钥或重新保存")
+)
+
 // SecretCipher encrypts/decrypts strings with AES-256-GCM derived from a
-// stable per-install secret. A zero-value SecretCipher (empty key) is a
-// pass-through, which keeps unit tests and keyless dev setups working.
+// stable per-install secret. A zero-value SecretCipher cannot decrypt nonempty
+// stored values.
 type SecretCipher struct {
 	aead cipher.AEAD
 }
@@ -63,22 +69,28 @@ func (c *SecretCipher) Encrypt(plain string) string {
 	return EncPrefix + base64.StdEncoding.EncodeToString(sealed)
 }
 
-// Decrypt returns the plaintext for a stored value. Plaintext rows (no
-// prefix) are returned unchanged, as are values that fail to authenticate.
-func (c *SecretCipher) Decrypt(value string) string {
-	if value == "" || !c.Ready() || !strings.HasPrefix(value, EncPrefix) {
-		return value
+// Decrypt accepts empty values or authenticated ciphertext. It never returns
+// plaintext legacy values or invalid ciphertext as usable credentials.
+func (c *SecretCipher) Decrypt(value string) (string, error) {
+	if value == "" {
+		return "", nil
+	}
+	if !strings.HasPrefix(value, EncPrefix) {
+		return "", ErrSecretNotEncrypted
+	}
+	if !c.Ready() {
+		return "", ErrSecretCipherUnavailable
 	}
 	data, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(value, EncPrefix))
-	if err != nil || len(data) < c.aead.NonceSize() {
-		return value
+	if err != nil || len(data) < c.aead.NonceSize()+c.aead.Overhead() {
+		return "", ErrSecretCiphertextInvalid
 	}
 	nonce, body := data[:c.aead.NonceSize()], data[c.aead.NonceSize():]
 	plain, err := c.aead.Open(nil, nonce, body, nil)
 	if err != nil {
-		return value
+		return "", ErrSecretCiphertextInvalid
 	}
-	return string(plain)
+	return string(plain), nil
 }
 
 // IsEncrypted reports whether value carries the encrypted prefix.

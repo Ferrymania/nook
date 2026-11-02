@@ -127,24 +127,6 @@ func TestResolveAccessibleLibraryPathMapsEmbeddedHostMediaMarker(t *testing.T) {
 	}
 }
 
-func TestResolveAccessibleMappedPathMapsEmbeddedHostDownloadMarker(t *testing.T) {
-	root := t.TempDir()
-	containerDownloads := filepath.Join(root, "container", "downloads")
-	containerItem := filepath.Join(containerDownloads, "国产剧")
-	if err := os.MkdirAll(containerItem, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("NOOK_DOWNLOAD_CONTAINER_DIR", containerDownloads)
-
-	got, _, err := resolveAccessibleMappedPath("/vol1/1000/nas/downloads/国产剧")
-	if err != nil {
-		t.Fatalf("resolveAccessibleMappedPath() error = %v", err)
-	}
-	if got != filepath.Clean(containerItem) {
-		t.Fatalf("resolveAccessibleMappedPath() = %q, want %q", got, filepath.Clean(containerItem))
-	}
-}
-
 // 中段 marker 启发式绝不能污染目的地解析：resolveMappedDestinationPath 不校验存在性、
 // 会返回首个候选，一旦启发式并进来，就会把形如 <tmp>/media/... 的合法整理目的地错误
 // 重写到容器根 /media（曾导致 organizer 跨盘 hardlink 失败）。钉死该边界。
@@ -202,21 +184,6 @@ func TestInferLibraryKindMatchesCategoryWords(t *testing.T) {
 	}
 }
 
-func TestMappedPathCandidatesMapWindowsDriveDownloadMarker(t *testing.T) {
-	root := t.TempDir()
-	containerDownloads := filepath.Join(root, "container", "downloads")
-	containerLibrary := filepath.Join(containerDownloads, "国产剧")
-	t.Setenv("NOOK_DOWNLOAD_CONTAINER_DIR", containerDownloads)
-
-	want := filepath.Clean(containerLibrary)
-	for _, got := range mappedPathCandidates(`F:\downloads\国产剧`) {
-		if got == want {
-			return
-		}
-	}
-	t.Fatalf("mappedPathCandidates() missing %q", want)
-}
-
 func TestResolveMappedDestinationPathPrefersConfiguredContainerMapping(t *testing.T) {
 	root := t.TempDir()
 	containerMedia := filepath.Join(root, "container", "media")
@@ -256,28 +223,61 @@ func TestResolveMappedDestinationPathPrefersContainerForRelativeMediaMarker(t *t
 	}
 }
 
-func TestResolveAccessibleMappedPathMapsWindowsDownloadVariants(t *testing.T) {
+func TestMediaPathsIgnoreRetiredDownloadMapping(t *testing.T) {
 	root := t.TempDir()
-	containerDownloads := filepath.Join(root, "container", "downloads")
-	containerSource := filepath.Join(containerDownloads, "国产剧")
+	hostRoot := filepath.Join(root, "host", "downloads")
+	containerRoot := filepath.Join(root, "container", "downloads")
+	containerSource := filepath.Join(containerRoot, "国产剧")
 	if err := os.MkdirAll(containerSource, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("NOOK_DOWNLOAD_DIR", `Q:\downloads`)
-	t.Setenv("NOOK_DOWNLOAD_CONTAINER_DIR", containerDownloads)
-
-	for _, input := range []string{`Q:\downloads\国产剧`, `Q:/downloads/国产剧`, `/app/Q:\downloads\国产剧`} {
+	t.Setenv("NOOK_DOWNLOAD_DIR", hostRoot)
+	t.Setenv("NOOK_DOWNLOAD_CONTAINER_DIR", containerRoot)
+	t.Chdir(root)
+	for _, input := range []string{
+		filepath.Join(hostRoot, "国产剧"),
+		filepath.Join(root, "nas", "downloads", "国产剧"),
+		`F:\downloads\国产剧`,
+		filepath.Join("downloads", "国产剧"),
+	} {
 		t.Run(input, func(t *testing.T) {
-			got, info, err := resolveAccessibleMappedPath(input)
-			if err != nil {
-				t.Fatalf("resolveAccessibleMappedPath() error = %v", err)
+			for _, candidate := range append(mappedPathCandidates(input), embeddedContainerMarkerCandidates(input)...) {
+				if candidate == containerSource {
+					t.Fatalf("retired download mapping still resolves %q to %q", input, candidate)
+				}
 			}
-			if !info.IsDir() {
-				t.Fatalf("resolved path is not dir")
+			if _, _, err := resolveAccessibleMappedPath(input); err == nil {
+				t.Fatalf("retired download mapping unexpectedly resolved %q", input)
 			}
-			if got != filepath.Clean(containerSource) {
-				t.Fatalf("resolveAccessibleMappedPath() = %q, want %q", got, filepath.Clean(containerSource))
+			if _, err := resolveAccessibleLibraryPath(input); err == nil {
+				t.Fatalf("retired library download mapping unexpectedly resolved %q", input)
+			}
+			if got := resolveMappedDestinationPath(input); got == containerSource {
+				t.Fatalf("retired destination mapping unexpectedly resolved %q", input)
 			}
 		})
+	}
+	if isRelativeVolumeMarkerPath("downloads") || isRelativeVolumeMarkerPath("downloads/国产剧") {
+		t.Fatal("downloads must no longer be a reserved container path marker")
+	}
+}
+
+func TestMediaPathsKeepExplicitDownloadDirectory(t *testing.T) {
+	directory := filepath.Join(t.TempDir(), "downloads", "国产剧")
+	if err := os.MkdirAll(directory, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	got, info, err := resolveAccessibleMappedPath(directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !info.IsDir() || got != directory {
+		t.Fatalf("explicit directory = %q, want %q", got, directory)
+	}
+	if got, err := resolveAccessibleLibraryPath(directory); err != nil || got != directory {
+		t.Fatalf("explicit library = %q, %v, want %q", got, err, directory)
+	}
+	if got := resolveMappedDestinationPath(directory); got != directory {
+		t.Fatalf("explicit destination = %q, want %q", got, directory)
 	}
 }

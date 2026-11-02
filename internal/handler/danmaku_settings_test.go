@@ -73,7 +73,7 @@ func TestUpdateDanmakuSettingsPersistsMergeSources(t *testing.T) {
 		t.Fatal("response should echo merge_sources=true")
 	}
 	// 落库校验：重新读取应为 true。
-	if !svc.Danmaku.MergeSourcesEnabled(t.Context(), "user-1") {
+	if !svc.Danmaku.ConfigForUser(t.Context(), "user-1").MergeSources {
 		t.Fatal("merge preference was not persisted")
 	}
 }
@@ -121,7 +121,8 @@ func TestGetDanmakuConfigIncludesPerUserMergePreference(t *testing.T) {
 		t.Fatal("default merge preference should be false")
 	}
 
-	if err := svc.Danmaku.SetMergeSources(t.Context(), "user-1", true); err != nil {
+	merge := true
+	if _, err := svc.Danmaku.UpdateUserSettings(t.Context(), "user-1", service.DanmakuSettingsPatch{MergeSources: &merge}); err != nil {
 		t.Fatalf("set: %v", err)
 	}
 	c2, w2 := newDanmakuSettingsContext(t, svc, http.MethodGet, "/danmaku/config", "", "user-1")

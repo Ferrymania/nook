@@ -87,7 +87,7 @@ func TestAdultProviderUsesConfiguredMultipleSources(t *testing.T) {
 	defer good.Close()
 
 	db := newServiceTestDB(t, &model.APIConfig{})
-	apiConfig := NewAPIConfigService(zap.NewNop(), repository.New(db), NewCryptoService("", zap.NewNop()))
+	apiConfig := NewAPIConfigService(zap.NewNop(), repository.New(db), NewCryptoService("test-secret", zap.NewNop()))
 	baseURL := bad.URL + "\n" + good.URL
 	if _, err := apiConfig.Update(context.Background(), "adult", APIConfigPatch{BaseURL: &baseURL}); err != nil {
 		t.Fatal(err)

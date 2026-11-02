@@ -197,44 +197,50 @@ func hardlinksUnsupported(t *testing.T, root string) bool {
 	return err != nil
 }
 
-func TestFileManagerIncludesConfiguredOrganizeRoots(t *testing.T) {
-	root := t.TempDir()
-	sourceDir := filepath.Join(root, "downloads")
-	targetDir := filepath.Join(root, "media")
-	qbDir := filepath.Join(root, "qb-save")
-	for _, dir := range []string{sourceDir, targetDir, qbDir} {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
+func TestFileManagerIgnoresRetiredDownloadAndOrganizeRoots(t *testing.T) {
+	svc, repos := newFileManagerTestServiceWithRepo(t, t.TempDir())
+	legacyPaths := []string{t.TempDir()}
+	t.Setenv("NOOK_DOWNLOAD_CONTAINER_DIR", legacyPaths[0])
+	for _, key := range []string{"organize.source_dir", "organize.target_dir", "downloader.savepath", "qbittorrent.savepath"} {
+		directory := t.TempDir()
+		legacyPaths = append(legacyPaths, directory)
+		if err := repos.Setting.Set(t.Context(), key, directory); err != nil {
 			t.Fatal(err)
 		}
 	}
-	svc, repos := newFileManagerTestServiceWithRepo(t, root)
-	if err := repos.Setting.Set(t.Context(), "organize.source_dir", sourceDir); err != nil {
-		t.Fatal(err)
-	}
-	if err := repos.Setting.Set(t.Context(), "organize.target_dir", targetDir); err != nil {
-		t.Fatal(err)
-	}
-	if err := repos.Setting.Set(t.Context(), "qbittorrent.savepath", qbDir); err != nil {
-		t.Fatal(err)
-	}
-
 	listing, err := svc.List("", 100)
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := map[string]string{}
 	for _, root := range listing.Roots {
-		got[root.Label] = root.Path
-	}
-	for label, want := range map[string]string{
-		"organize-source": filepath.Clean(sourceDir),
-		"organize-target": filepath.Clean(targetDir),
-		// 旧键 qbittorrent.savepath 写入应经兼容回退落在 downloader-savepath 下
-		"downloader-savepath": filepath.Clean(qbDir),
-	} {
-		if got[label] != want {
-			t.Fatalf("root %s = %q, want %q; roots=%#v", label, got[label], want, listing.Roots)
+		for _, legacy := range legacyPaths {
+			if root.Path == legacy {
+				t.Fatalf("retired configuration still exposes root %#v", root)
+			}
 		}
+	}
+	for _, directory := range legacyPaths {
+		if _, err := svc.List(directory, 100); !errors.Is(err, ErrPathOutOfBounds) {
+			t.Fatalf("List(%q) error = %v, want out-of-bounds", directory, err)
+		}
+		if _, err := svc.ResolvePath(directory); !errors.Is(err, ErrPathOutOfBounds) {
+			t.Fatalf("ResolvePath(%q) error = %v, want out-of-bounds", directory, err)
+		}
+		if _, err := svc.CreateFolder(directory, "child"); !errors.Is(err, ErrPathOutOfBounds) {
+			t.Fatalf("CreateFolder(%q) error = %v, want out-of-bounds", directory, err)
+		}
+	}
+	// An explicit library root remains usable, even when its directory is named downloads.
+	directory := filepath.Join(t.TempDir(), "downloads")
+	if err := os.MkdirAll(directory, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	library := &model.Library{Name: "显式下载目录", Path: directory, Type: "movie", Enabled: true}
+	if err := repos.Library.Create(t.Context(), library); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.CreateFolder(directory, "影片"); err != nil {
+		t.Fatalf("explicit library root must remain writable: %v", err)
 	}
 }
 

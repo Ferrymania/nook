@@ -18,7 +18,7 @@ func (s *ScraperService) lookupAutomaticTMDb(ctx context.Context, kind, query st
 		return nil
 	}
 	fallbackKind := ""
-	normalized := normalizeOrganizeMediaType(kind)
+	normalized := normalizeMetadataMediaType(kind)
 	if normalized == "anime" {
 		if isTVMetadataKind(kind) {
 			fallbackKind = "movie"
@@ -214,7 +214,7 @@ func uniqueAutomaticMetadataMatch(query string, year int, expectedType string, c
 			}
 			continue
 		}
-		if !organizeMetadataMatchTrusted(query, year, candidate) {
+		if !metadataMatchTrusted(query, year, candidate) {
 			failure.reject(query, year, candidate)
 			continue
 		}
@@ -231,8 +231,8 @@ func metadataMatchCompatibleWithType(expectedType string, match *Match) bool {
 	if match == nil {
 		return false
 	}
-	expectedType = normalizeOrganizeMediaType(expectedType)
-	matchType := normalizeOrganizeMediaType(match.MediaType)
+	expectedType = normalizeMetadataMediaType(expectedType)
+	matchType := normalizeMetadataMediaType(match.MediaType)
 	if expectedType == "" || matchType == "" {
 		return true
 	}
@@ -250,9 +250,9 @@ func metadataMatchCompatibleWithType(expectedType string, match *Match) bool {
 
 func metadataMatchCompatibleWithTheatrical(expectedType string, isTheatrical bool, match *Match) bool {
 	if isTheatrical &&
-		normalizeOrganizeMediaType(expectedType) == "movie" &&
+		normalizeMetadataMediaType(expectedType) == "movie" &&
 		match != nil &&
-		normalizeOrganizeMediaType(match.MediaType) == "anime" {
+		normalizeMetadataMediaType(match.MediaType) == "anime" {
 		return true
 	}
 	return metadataMatchCompatibleWithType(expectedType, match)

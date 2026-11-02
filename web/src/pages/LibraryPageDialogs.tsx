@@ -1,12 +1,11 @@
 import { ManualScrapeDialog } from '../components/ManualScrapeDialog'
 import { MetadataEditDialog } from '../components/MetadataEditDialog'
-import { OrganizeMediaDialog } from '../components/OrganizeMediaDialog'
 import { MediaSegmentQueryDialog } from '../components/MediaSegmentQueryButton'
 import type { Media } from '../types'
 import { isTheatricalFeature, seriesTitle, type SeriesCard } from '../utils/groupSeries'
 import type { SeriesManualScrapeTarget } from '../utils/manualScrapeTargets'
 
-export type LibraryMovieDialog = { kind: 'metadata' | 'organize' | 'segments'; media: Media } | null
+export type LibraryMovieDialog = { kind: 'metadata' | 'segments'; media: Media } | null
 
 type LibraryPageDialogsProps = {
   manualSeriesScrape: SeriesManualScrapeTarget | null
@@ -44,7 +43,6 @@ export function LibraryPageDialogs({
   return (
     <>
       {movieDialog?.kind === 'metadata' && <MetadataEditDialog open media={movieDialog.media} onClose={onCloseMovieDialog} onSaved={onApplied} />}
-      {movieDialog?.kind === 'organize' && <OrganizeMediaDialog open media={movieDialog.media} onClose={onCloseMovieDialog} onOrganized={onApplied} />}
       {movieDialog?.kind === 'segments' && <MediaSegmentQueryDialog media={movieDialog.media} onClose={onCloseMovieDialog} />}
       <ManualScrapeDialog
         open={!!manualSeriesScrape}

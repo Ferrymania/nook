@@ -11,7 +11,6 @@ type MediaDetailAdminPanelProps = {
   onSmartScrape: () => void
   onManualScrape: () => void
   onMetadataEdit: () => void
-  onOrganize: () => void
   onProbe: () => void
   onExportNFO: () => void
   onDelete: () => void
@@ -24,7 +23,6 @@ export function MediaDetailAdminPanel({
   onSmartScrape,
   onManualScrape,
   onMetadataEdit,
-  onOrganize,
   onProbe,
   onExportNFO,
   onDelete,
@@ -49,7 +47,6 @@ export function MediaDetailAdminPanel({
       onMetadataEdit={onMetadataEdit}
       onProbe={onProbe}
       onExportNFO={onExportNFO}
-      onOrganize={onOrganize}
       onDelete={onDelete}
       segmentAction={<MediaSegmentQueryButton key={media.id} media={media} />}
     />

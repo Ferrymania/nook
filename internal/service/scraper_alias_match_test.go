@@ -43,7 +43,7 @@ func TestEnrichOneUsesAlternateLanguageTitleAndKeepsLocalizedMetadata(t *testing
 	}))
 	defer upstream.Close()
 
-	repos := newOrganizerTestRepo(t)
+	repos := newMediaTestRepo(t)
 	cfg := &config.Config{}
 	cfg.Secrets.TMDbAPIKey = "test-key"
 	cfg.Secrets.TMDbAPIProxy = upstream.URL
@@ -98,7 +98,7 @@ func TestEnrichOneDoesNotFallbackTVEpisodeToMovie(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	repos := newOrganizerTestRepo(t)
+	repos := newMediaTestRepo(t)
 	cfg := &config.Config{}
 	cfg.Secrets.TMDbAPIKey = "test-key"
 	cfg.Secrets.TMDbAPIProxy = upstream.URL

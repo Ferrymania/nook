@@ -64,7 +64,7 @@ func TestMovieSequelNormalizationPreservesIdentity(t *testing.T) {
 		{"Project A", "Project B", false},
 		{"寒战1994", "寒战1995", false},
 	} {
-		if got := organizeMetadataMatchTrusted(tc.query, 2026, &Match{Title: tc.title, Year: 2026, TMDbID: 1}); got != tc.want {
+		if got := metadataMatchTrusted(tc.query, 2026, &Match{Title: tc.title, Year: 2026, TMDbID: 1}); got != tc.want {
 			t.Errorf("trust(%q, %q)=%v, want %v", tc.query, tc.title, got, tc.want)
 		}
 	}
@@ -126,7 +126,7 @@ func TestAutomaticMovieYearFallbackAndProviderAliases(t *testing.T) {
 			cfg := &config.Config{}
 			cfg.Secrets.TMDbAPIKey, cfg.Secrets.TMDbAPIProxy = "test-key", upstream.URL
 			log := zap.NewNop()
-			svc := NewScraperService(cfg, log, newOrganizerTestRepo(t), NewTMDbProvider(cfg, log, nil), nil, nil, nil, NewHub(log))
+			svc := NewScraperService(cfg, log, newMediaTestRepo(t), NewTMDbProvider(cfg, log, nil), nil, nil, nil, NewHub(log))
 			match := svc.lookupAutomaticTMDb(t.Context(), "movie", tc.query, tc.sourceYear, 0, &scrapeLookupFailure{})
 			if tc.wantID == 0 {
 				if match != nil {

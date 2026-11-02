@@ -42,8 +42,9 @@ func (s *ApiConfigService) GetByProvider(ctx context.Context, provider string) (
 		return nil, ErrApiConfigNotFound
 	}
 	// 解密敏感字段
-	if cfg.APIKey != "" && s.crypto.IsEncrypted(cfg.APIKey) {
-		cfg.APIKey = s.crypto.Decrypt(cfg.APIKey)
+	cfg.APIKey, err = s.crypto.Decrypt(cfg.APIKey)
+	if err != nil {
+		return nil, err
 	}
 	return cfg, nil
 }
@@ -56,8 +57,9 @@ func (s *ApiConfigService) List(ctx context.Context) ([]model.APIConfig, error) 
 	}
 	// 解密敏感字段
 	for i := range configs {
-		if configs[i].APIKey != "" && s.crypto.IsEncrypted(configs[i].APIKey) {
-			configs[i].APIKey = s.crypto.Decrypt(configs[i].APIKey)
+		configs[i].APIKey, err = s.crypto.Decrypt(configs[i].APIKey)
+		if err != nil {
+			return nil, err
 		}
 	}
 	return configs, nil
