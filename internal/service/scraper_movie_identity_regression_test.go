@@ -23,6 +23,7 @@ func TestMovieScrapeFailedReleaseNames(t *testing.T) {
 		folder, file, query, title, english, original string
 		year, id                                      int
 	}{
+		{"生化危机爆发夜4K.杜比视界 内封精修简英双语＆简中特效sup字幕", "Resident.Evil.2026.2160p.iTunes.WEB-DL.DDP5.1.Atmos.DV.HDR.H.265-年糕.strm", "生化危机爆发夜", "生化危机：爆发夜", "Resident Evil", "Resident Evil", 2026, 1423191},
 		{batman, "蝙蝠侠：黑暗骑士.The.Dark.Knight.2008.V2.2160p.Remux.strm", "The Dark Knight", "黑暗骑士", "The Dark Knight", "The Dark Knight", 2008, 155},
 		{batman, "蝙蝠侠：黑暗骑士崛起.The.Dark.Knight.Rises.2012.v2.2160p.Remux.strm", "The Dark Knight Rises", "黑暗骑士崛起", "The Dark Knight Rises", "The Dark Knight Rises", 2012, 49026},
 		{potter, "Harry.Potter.and.the.Goblet.of.Fire.2005.UHD.BluRay.strm", "Harry Potter and the Goblet of Fire", "哈利·波特与火焰杯", "Harry Potter and the Goblet of Fire", "Harry Potter and the Goblet of Fire", 2005, 674},
