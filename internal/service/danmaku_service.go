@@ -28,24 +28,8 @@ import (
 	"github.com/Ferrymania/nook/internal/repository"
 )
 
-// Legacy instance-level danmaku settings. Playback preferences now live on
-// model.User; these keys remain only as a fallback for unauthenticated/legacy
-// service paths and tests.
-const (
-	DanmakuEnabledKey  = "danmaku.enabled"
-	DanmakuSourceKey   = "danmaku.source"
-	DanmakuOpacityKey  = "danmaku.opacity"
-	DanmakuFontSizeKey = "danmaku.font_size"
-	DanmakuAreaKey     = "danmaku.area"
-	// DanmakuAppIDKey / DanmakuAppKeyKey hold the optional dandanplay
-	// DevCenter application credentials. When both are set they override the
-	// built-in fallback pair (see danmaku_credentials.go).
-	DanmakuAppIDKey  = "danmaku.app_id"
-	DanmakuAppKeyKey = "danmaku.app_key"
-)
-
 // DanmakuDefaultSource is the official dandanplay endpoint used when the
-// admin leaves the source address empty. Any server implementing the
+// user leaves the source address empty. Any server implementing the
 // dandanplay protocol (search/episodes + comment/{episodeId}) may be used.
 const DanmakuDefaultSource = "https://api.dandanplay.net"
 
@@ -346,47 +330,10 @@ func cloneDanmakuAnimeList(in []DanmakuAnime) []DanmakuAnime {
 	return out
 }
 
-// Config reads danmaku settings from the runtime settings table.
-func (s *DanmakuService) Config(ctx context.Context) DanmakuRenderConfig {
-	cfg := DanmakuRenderConfig{
-		Opacity:  "1",
-		FontSize: "24",
-		Area:     "1",
-		Volume:   1,
-	}
-	if s == nil || s.repo == nil || s.repo.Setting == nil {
-		return cfg
-	}
-	read := func(key, fallback string) string {
-		v, err := s.repo.Setting.Get(ctx, key)
-		if err != nil || v == "" {
-			return fallback
-		}
-		return v
-	}
-	cfg.Enabled = ParseBoolSetting(read(DanmakuEnabledKey, "true"), true)
-	cfg.Source = read(DanmakuSourceKey, "")
-	cfg.Opacity = read(DanmakuOpacityKey, "1")
-	cfg.FontSize = read(DanmakuFontSizeKey, "24")
-	cfg.Area = read(DanmakuAreaKey, "1")
-	return cfg
-}
-
-// ConfigForUser 返回当前用户的播放器与弹幕偏好。用户不存在时回退到旧版
-// 全局配置，便于旧客户端和迁移期平滑工作。
+// ConfigForUser 返回当前用户的播放器与弹幕偏好；没有可用用户时使用固定默认值。
 func (s *DanmakuService) ConfigForUser(ctx context.Context, userID string) DanmakuRenderConfig {
-	if user, ok := s.findUser(ctx, userID); ok {
-		return danmakuConfigFromUser(user)
-	}
-	return s.Config(ctx)
-}
-
-// MergeSourcesEnabled 返回该用户的弹幕合并偏好，读取失败时回退为关闭。
-func (s *DanmakuService) MergeSourcesEnabled(ctx context.Context, userID string) bool {
-	if user, ok := s.findUser(ctx, userID); ok {
-		return user.DanmakuMergeSources
-	}
-	return false
+	user, _ := s.findUser(ctx, userID)
+	return danmakuConfigFromUser(user)
 }
 
 func (s *DanmakuService) findUser(ctx context.Context, userID string) (*model.User, bool) {
@@ -536,12 +483,6 @@ func normalizeDanmakuSource(raw string) (string, error) {
 	return source, nil
 }
 
-// SetMergeSources 持久化该用户的弹幕合并偏好，保留旧调用点兼容性。
-func (s *DanmakuService) SetMergeSources(ctx context.Context, userID string, enabled bool) error {
-	_, err := s.UpdateUserSettings(ctx, userID, DanmakuSettingsPatch{MergeSources: &enabled})
-	return err
-}
-
 // Fetch retrieves danmaku for the given media. keyword overrides the
 // media-derived search term (empty = use the video's own name); pass it from
 // the player when the user searches for a custom title. episodeID forces a
@@ -575,7 +516,7 @@ func (s *DanmakuService) FetchWithOptions(ctx context.Context, mediaID, keyword,
 	if s == nil {
 		return nil, errors.New("danmaku service unavailable")
 	}
-	cfg := s.Config(ctx)
+	cfg := danmakuConfigFromUser(nil)
 	credentialFingerprint := ""
 	if user, ok := s.findUser(ctx, opts.UserID); ok {
 		cfg = danmakuConfigFromUser(user)
@@ -1074,9 +1015,8 @@ func (s *DanmakuService) fetchBody(ctx context.Context, sourceURL string, follow
 }
 
 // danmakuCredentials resolves application credentials. Per-user explicit
-// credentials are used for any configured source. Legacy global credentials
-// and the built-in fallback pair are only sent to the official host, never to
-// third-party dandanplay protocol mirrors.
+// credentials are used for their configured source. The built-in fallback
+// pair is only sent to the official host, never to third-party mirrors.
 func (s *DanmakuService) danmakuCredentials(ctx context.Context, sourceURL string) (appID, appKey string, ok bool) {
 	u, err := url.Parse(sourceURL)
 	if err != nil {
@@ -1105,19 +1045,6 @@ func (s *DanmakuService) danmakuCredentials(ctx context.Context, sourceURL strin
 	}
 	if !isOfficial {
 		return "", "", false
-	}
-	var id, key string
-	if s != nil && s.repo != nil && s.repo.Setting != nil {
-		id, _ = s.repo.Setting.Get(ctx, DanmakuAppIDKey)
-		key, _ = s.repo.Setting.Get(ctx, DanmakuAppKeyKey)
-	}
-	id, key = strings.TrimSpace(id), strings.TrimSpace(key)
-	if id != "" && key != "" {
-		return id, key, true
-	}
-	if id != "" || key != "" {
-		s.log.Warn("danmaku credentials incomplete, using built-in fallback",
-			zap.Bool("has_app_id", id != ""), zap.Bool("has_app_key", key != ""))
 	}
 	embedID, embedKey := danmakuEmbeddedCredentials()
 	return embedID, embedKey, true

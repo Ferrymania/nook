@@ -9,7 +9,6 @@ import { ExternalPlayerButton } from '../components/ExternalPlayerButton'
 import { ManualScrapeDialog } from '../components/ManualScrapeDialog'
 import { MediaVersionSwitcher } from '../components/MediaVersionSwitcher'
 import { MetadataEditDialog } from '../components/MetadataEditDialog'
-import { OrganizeMediaDialog } from '../components/OrganizeMediaDialog'
 import type { Media } from '../types'
 import { MediaDetailAdminPanel } from './MediaDetailAdminPanel'
 import { MediaDetailPoster } from './MediaDetailArtwork'
@@ -32,7 +31,6 @@ interface MediaDetailMainContentProps extends MediaDetailPlaybackActionsProps {
   onSmartScrape: () => void
   onManualScrape: () => void
   onMetadataEdit: () => void
-  onOrganize: () => void
   onProbe: () => void
   onExportNFO: () => void
   onDelete: () => void
@@ -42,14 +40,11 @@ interface MediaDetailDialogsProps {
   media: Media
   manualScrapeOpen: boolean
   metadataEditOpen: boolean
-  organizeOpen: boolean
   scrapeEpisodeArtwork: boolean
   onManualScrapeClose: () => void
   onMetadataEditClose: () => void
-  onOrganizeClose: () => void
   onManualScrapeApplied: () => void
   onMetadataSaved: (media: Media) => void | Promise<void>
-  onOrganized: () => void
 }
 
 interface MediaDetailManualScrapeDialogProps {
@@ -146,7 +141,6 @@ export function MediaDetailMainContent({
   onSmartScrape,
   onManualScrape,
   onMetadataEdit,
-  onOrganize,
   onProbe,
   onExportNFO,
   onDelete,
@@ -177,7 +171,6 @@ export function MediaDetailMainContent({
             onSmartScrape={onSmartScrape}
             onManualScrape={onManualScrape}
             onMetadataEdit={onMetadataEdit}
-            onOrganize={onOrganize}
             onProbe={onProbe}
             onExportNFO={onExportNFO}
             onDelete={onDelete}
@@ -192,14 +185,11 @@ export function MediaDetailDialogs({
   media,
   manualScrapeOpen,
   metadataEditOpen,
-  organizeOpen,
   scrapeEpisodeArtwork,
   onManualScrapeClose,
   onMetadataEditClose,
-  onOrganizeClose,
   onManualScrapeApplied,
   onMetadataSaved,
-  onOrganized,
 }: MediaDetailDialogsProps) {
   return (
     <>
@@ -215,12 +205,6 @@ export function MediaDetailDialogs({
         media={media}
         onClose={onMetadataEditClose}
         onSaved={onMetadataSaved}
-      />
-      <OrganizeMediaDialog
-        open={organizeOpen}
-        media={media}
-        onClose={onOrganizeClose}
-        onOrganized={onOrganized}
       />
     </>
   )

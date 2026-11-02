@@ -21,7 +21,7 @@ import (
 // cache so later episodes reuse the corrected result.
 func (s *ScraperService) lookup(ctx context.Context, lib *model.Library, media *model.Media, query string, year int, bypassCache bool, failure *scrapeLookupFailure) *Match {
 	if _, bound := ctx.Value(libraryScrapeContextKey{}).(model.LibraryScrapeSettings); !bound || (lib != nil && lib.ID != "") {
-		ctx = withLibraryScrapeSettings(ctx, libraryScrapeSettings(ctx, s.repo, lib))
+		ctx = withLibraryScrapeSettings(ctx, libraryScrapeSettings(lib))
 	}
 	kind := ""
 	if lib != nil {
@@ -34,7 +34,7 @@ func (s *ScraperService) lookup(ctx context.Context, lib *model.Library, media *
 	isTheatrical := mediaLooksLikeTheatricalFeature(media)
 	if isTheatrical {
 		kind = "movie"
-	} else if (normalizeOrganizeMediaType(kind) != "movie" || explicitEpisode) && mediaIsEpisodic(media, lib) {
+	} else if (normalizeMetadataMediaType(kind) != "movie" || explicitEpisode) && mediaIsEpisodic(media, lib) {
 		kind = "tv"
 	}
 
@@ -254,17 +254,14 @@ func shouldScrapeCandidateRow(media model.Media) bool {
 	if strings.TrimSpace(media.ScrapeStatus) != "matched" {
 		return true
 	}
-	return organizeMediaTitleLooksLikeRelease(media.Title)
+	return mediaTitleLooksLikeRelease(media.Title)
 }
 
 func (s *ScraperService) scrapeDelay(ctx context.Context) time.Duration {
-	var minMS, maxMS int
+	minMS, maxMS := defaultScrapeDelayMinMS, defaultScrapeDelayMaxMS
 	if settings, ok := ctx.Value(libraryScrapeContextKey{}).(model.LibraryScrapeSettings); ok {
 		minMS = settings.DelayMinMS
 		maxMS = settings.DelayMaxMS
-	} else {
-		minMS = s.scrapeDelaySetting(ctx, "scrape.delay_min_ms", defaultScrapeDelayMinMS)
-		maxMS = s.scrapeDelaySetting(ctx, "scrape.delay_max_ms", defaultScrapeDelayMaxMS)
 	}
 	if minMS < 0 {
 		minMS = 0
@@ -288,17 +285,6 @@ func (s *ScraperService) scrapeDelay(ctx context.Context) time.Duration {
 		return time.Duration(minMS) * time.Millisecond
 	}
 	return time.Duration(minMS+secureRandomIntn(maxMS-minMS+1)) * time.Millisecond
-}
-
-func (s *ScraperService) scrapeDelaySetting(ctx context.Context, key string, fallback int) int {
-	if s == nil || s.repo == nil || s.repo.Setting == nil {
-		return fallback
-	}
-	value, err := s.repo.Setting.Get(ctx, key)
-	if err != nil || strings.TrimSpace(value) == "" {
-		return fallback
-	}
-	return parseIntSettingDefault(strings.TrimSpace(value), fallback)
 }
 
 func (s *ScraperService) mediaIsMatched(ctx context.Context, mediaID string) bool {

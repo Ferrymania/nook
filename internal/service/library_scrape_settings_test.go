@@ -61,7 +61,7 @@ func TestLibraryScrapeSettingsExcludeRemovedProviders(t *testing.T) {
 		AutoOnScan: true, DelayMinMS: 1200, DelayMaxMS: 1500,
 	}
 	lib := &model.Library{ScrapeSettings: prefs}
-	got := libraryScrapeSettings(t.Context(), nil, lib)
+	got := libraryScrapeSettings(lib)
 	if strings.Join(got.Providers, ",") != "tmdb,bangumi" || got.Language != "ja-JP" || !got.AutoOnScan || got.DelayMinMS != 1200 || got.DelayMaxMS != 1500 {
 		t.Fatalf("effective preferences = %#v", got)
 	}
@@ -72,7 +72,7 @@ func TestLibraryScrapeSettingsExcludeRemovedProviders(t *testing.T) {
 		t.Fatalf("effective preferences must remain editable: %v", err)
 	}
 	prefs.Providers = []string{"douban"}
-	if got := libraryScrapeSettings(t.Context(), nil, lib); len(got.Providers) != 0 {
+	if got := libraryScrapeSettings(lib); len(got.Providers) != 0 {
 		t.Fatalf("removed-only selection must not silently enable other providers: %v", got.Providers)
 	}
 	if err := validateLibraryScrapeSettings(*prefs); err == nil {
@@ -88,40 +88,56 @@ func TestLibraryScrapeSettingsExcludeRemovedProviders(t *testing.T) {
 		}
 	}
 }
-func TestLibraryScrapeSettingsExcludeRemovedGlobalProvider(t *testing.T) {
+func TestLibraryScrapeDefaultsIgnoreRetiredGlobalSettings(t *testing.T) {
 	t.Parallel()
 
 	s, _ := newLibraryScrapeEnv(t)
-	for _, tc := range []struct{ stored, want string }{
-		{"douban", ""},
-		{"douban,tmdb", "tmdb"},
-		{"tmdb,douban,bangumi", "tmdb,bangumi"},
+	for key, value := range map[string]string{
+		"scrape.auto_on_scan": "true", "scrape.language": "ja-JP", "tmdb.language": "en-US",
+		"scrape.providers": "douban,bangumi", "scrape.delay_min_ms": "1200", "scrape.delay_max_ms": "1500",
+		"segment.prewarm_enabled": "true", "scrape.episode_images": "true",
 	} {
-		if err := s.repo.Setting.Set(t.Context(), "scrape.providers", tc.stored); err != nil {
+		if err := s.repo.Setting.Set(t.Context(), key, value); err != nil {
 			t.Fatal(err)
 		}
-		got := libraryScrapeSettings(t.Context(), s.repo, nil)
-		if strings.Join(got.Providers, ",") != tc.want {
-			t.Fatalf("stored=%q effective providers=%v, want %q", tc.stored, got.Providers, tc.want)
+	}
+	lib := model.Library{Name: "Unsaved", Path: t.TempDir()}
+	if err := s.repo.Library.Create(t.Context(), &lib); err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{"", lib.ID} {
+		var view *LibraryScrapeSettingsView
+		var err error
+		if id == "" {
+			view, err = s.DefaultLibraryScrapeSettings(t.Context())
+		} else {
+			view, err = s.GetLibraryScrapeSettings(t.Context(), id)
 		}
-		stored, err := s.repo.Setting.Get(t.Context(), "scrape.providers")
-		if err != nil || stored != tc.stored {
-			t.Fatalf("reading preferences changed stored providers: %q, %v", stored, err)
+		if err != nil {
+			t.Fatal(err)
 		}
+		prefs := view.Settings
+		if prefs.AutoOnScan || prefs.Language != "zh-CN" || strings.Join(prefs.Providers, ",") != "tmdb,bangumi,thetvdb,fanart" || prefs.DelayMinMS != 250 || prefs.DelayMaxMS != 500 || prefs.SegmentPrewarmEnabled == nil || *prefs.SegmentPrewarmEnabled {
+			t.Fatalf("retired settings affected defaults: %#v", prefs)
+		}
+		if !view.EpisodeImages {
+			t.Fatal("the active global episode-image preference must remain in use")
+		}
+	}
+	scanner := &ScannerService{}
+	if scanner.autoScrapeEnabled(&lib) || scanner.autoScrapeEnabled(nil) {
+		t.Fatal("an unsaved library must not inherit global automatic scraping")
 	}
 }
 
-func TestLibraryScrapeSettingsPreserveLegacyAndIsolateLibraries(t *testing.T) {
+func TestLibraryScrapeSettingsPreserveSavedPreferencesAndIsolateLibraries(t *testing.T) {
 	t.Parallel()
 
 	s, _ := newLibraryScrapeEnv(t)
-	for k, v := range map[string]string{"scrape.auto_on_scan": "true", "scrape.language": "ja-JP", "scrape.providers": "bangumi,tmdb", "scrape.delay_min_ms": "1200", "scrape.delay_max_ms": "1500"} {
-		if err := s.repo.Setting.Set(t.Context(), k, v); err != nil {
-			t.Fatal(err)
-		}
-	}
-	a := model.Library{Name: "A", Path: t.TempDir(), Type: "anime"}
-	b := model.Library{Name: "B", Path: t.TempDir(), Type: "movie"}
+	// Previously inherited values are now stored explicitly in each library.
+	prefs := model.LibraryScrapeSettings{AutoOnScan: true, Language: "ja-JP", Providers: []string{"bangumi", "tmdb"}, DelayMinMS: 1200, DelayMaxMS: 1500}
+	a := model.Library{Name: "A", Path: t.TempDir(), Type: "anime", ScrapeSettings: &prefs}
+	b := model.Library{Name: "B", Path: t.TempDir(), Type: "movie", ScrapeSettings: &prefs}
 	for _, lib := range []*model.Library{&a, &b} {
 		if err := s.repo.Library.Create(t.Context(), lib); err != nil {
 			t.Fatal(err)
@@ -129,7 +145,7 @@ func TestLibraryScrapeSettingsPreserveLegacyAndIsolateLibraries(t *testing.T) {
 	}
 	initial, err := s.GetLibraryScrapeSettings(t.Context(), a.ID)
 	if err != nil || !initial.Settings.AutoOnScan || initial.Settings.Language != "ja-JP" || initial.Settings.DelayMinMS != 1200 || initial.Settings.Providers[0] != "bangumi" {
-		t.Fatalf("legacy preferences lost: %#v, %v", initial, err)
+		t.Fatalf("saved preferences lost: %#v, %v", initial, err)
 	}
 	settings := model.LibraryScrapeSettings{AutoOnScan: false, Providers: []string{"tmdb"}, Language: "en-US", DelayMinMS: 0, DelayMaxMS: 0}
 	if _, err := s.SaveLibraryScrapeSettings(t.Context(), a.ID, settings, true, nil); err != nil {
@@ -147,7 +163,7 @@ func TestLibraryScrapeSettingsPreserveLegacyAndIsolateLibraries(t *testing.T) {
 		t.Fatalf("other library changed: %#v %v", other, err)
 	}
 	scanner := &ScannerService{repo: s.repo}
-	if scanner.autoScrapeEnabled(t.Context(), stored) || !scanner.autoScrapeEnabled(t.Context(), &b) {
+	if scanner.autoScrapeEnabled(stored) || !scanner.autoScrapeEnabled(&b) {
 		t.Fatal("scanner did not use per-library preference")
 	}
 	invalid := settings
@@ -168,20 +184,23 @@ func TestLibraryScrapeSettingsPreserveLegacyAndIsolateLibraries(t *testing.T) {
 	}
 }
 
-func TestLibrarySegmentPrewarmPreferencePreservesLegacyAndIsolatesLibraries(t *testing.T) {
+func TestLibrarySegmentPrewarmPreferenceIsolatesLibraries(t *testing.T) {
 	t.Parallel()
 
 	s, _ := newLibraryScrapeEnv(t)
 	ctx := t.Context()
+	on, off := true, false
 	prefs := model.LibraryScrapeSettings{Providers: []string{"tmdb"}, Language: "zh-CN"}
-	a := model.Library{Name: "Existing preferences", Path: t.TempDir(), ScrapeSettings: &prefs}
-	b := model.Library{Name: "Legacy preferences", Path: t.TempDir()}
+	a := model.Library{Name: "Missing prewarm preference", Path: t.TempDir(), ScrapeSettings: &prefs}
+	onPrefs := prefs
+	onPrefs.SegmentPrewarmEnabled = &on
+	b := model.Library{Name: "Saved prewarm preference", Path: t.TempDir(), ScrapeSettings: &onPrefs}
 	for _, lib := range []*model.Library{&a, &b} {
 		if err := s.repo.Library.Create(ctx, lib); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if err := s.repo.Setting.Set(ctx, legacySegmentPrewarmEnabledKey, "true"); err != nil {
+	if err := s.repo.Setting.Set(ctx, "segment.prewarm_enabled", "true"); err != nil {
 		t.Fatal(err)
 	}
 	check := func(id string, want bool) *LibraryScrapeSettingsView {
@@ -195,33 +214,30 @@ func TestLibrarySegmentPrewarmPreferencePreservesLegacyAndIsolatesLibraries(t *t
 		}
 		return view
 	}
-	view := check(a.ID, true)
+	view := check(a.ID, false)
 	check(b.ID, true)
-	off := false
+	view.Settings.SegmentPrewarmEnabled = &on
+	if _, err := s.SaveLibraryScrapeSettings(ctx, a.ID, view.Settings, false, nil); err != nil {
+		t.Fatal(err)
+	}
+	check(a.ID, true)
 	view.Settings.SegmentPrewarmEnabled = &off
 	if _, err := s.SaveLibraryScrapeSettings(ctx, a.ID, view.Settings, false, nil); err != nil {
 		t.Fatal(err)
 	}
 	check(a.ID, false)
 	check(b.ID, true)
-	if value, err := s.repo.Setting.Get(ctx, legacySegmentPrewarmEnabledKey); err != nil || value != "true" {
-		t.Fatalf("library save rewrote global preference: %q err=%v", value, err)
-	}
-	on := true
-	view.Settings.SegmentPrewarmEnabled = &on
-	if _, err := s.SaveLibraryScrapeSettings(ctx, a.ID, view.Settings, false, nil); err != nil {
-		t.Fatal(err)
-	}
-	// Old clients can save other fields without resetting this library's choice.
+	// A partial save retains the library's own preference.
 	view.Settings.SegmentPrewarmEnabled = nil
-	if _, err := s.SaveLibraryScrapeSettings(ctx, a.ID, view.Settings, false, nil); err != nil {
+	if _, err := s.SaveLibraryScrapeSettings(ctx, b.ID, view.Settings, false, nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.repo.Setting.Set(ctx, legacySegmentPrewarmEnabledKey, "false"); err != nil {
+	check(b.ID, true)
+	if err := s.repo.Setting.Set(ctx, "segment.prewarm_enabled", "false"); err != nil {
 		t.Fatal(err)
 	}
-	check(a.ID, true)
-	check(b.ID, false)
+	check(a.ID, false)
+	check(b.ID, true)
 }
 
 func TestMetadataProvidersUseSavedCredentialsAndGlobalSwitch(t *testing.T) {

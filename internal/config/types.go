@@ -10,7 +10,6 @@ type Config struct {
 	Media      MediaConfig      `mapstructure:"media"`
 	Transcoder TranscoderConfig `mapstructure:"transcoder"`
 	AI         AIConfig         `mapstructure:"ai"`
-	Organizer  OrganizerConfig  `mapstructure:"organizer"`
 }
 
 // TranscoderConfig 控制 HLS / ffmpeg 后端。
@@ -130,10 +129,4 @@ type AIConfig struct {
 	Model         string `mapstructure:"model"`
 	Timeout       int    `mapstructure:"timeout"`
 	MaxConcurrent int    `mapstructure:"max_concurrent"`
-}
-
-// OrganizerConfig 配置媒体文件智能分类整理。
-type OrganizerConfig struct {
-	SmartClassify bool              `mapstructure:"smart_classify"`
-	Categories    map[string]string `mapstructure:"categories"`
 }

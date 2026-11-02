@@ -150,7 +150,7 @@ func (s *StrmService) save115OAuthToken(ctx context.Context, session *strm115Aut
 			cfg["user_name"] = info.UserName
 		}
 	}
-	enc, err := s.strmAccountConfigJSON(cfg, false)
+	enc, err := s.strmAccountConfigJSON(cfg)
 	if err != nil {
 		return err
 	}
@@ -262,7 +262,7 @@ func (s *StrmService) refresh115TokensOnce(ctx context.Context) {
 			acct.LastTestResult = msg
 			acct.LastTestOK = false
 			if cfg["access_token"] == "" {
-				enc, encErr := s.strmAccountConfigJSON(cfg, false)
+				enc, encErr := s.strmAccountConfigJSON(cfg)
 				if encErr == nil {
 					acct.Config = enc
 				}
@@ -274,7 +274,7 @@ func (s *StrmService) refresh115TokensOnce(ctx context.Context) {
 		cfg["access_token"] = s.crypto.Encrypt(token.AccessToken)
 		cfg["refresh_token"] = s.crypto.Encrypt(token.RefreshToken)
 		cfg["token_refreshed_at"] = strconv.FormatInt(time.Now().Unix(), 10)
-		enc, err := s.strmAccountConfigJSON(cfg, false)
+		enc, err := s.strmAccountConfigJSON(cfg)
 		if err != nil {
 			continue
 		}
@@ -304,7 +304,7 @@ func (s *StrmService) persist115Tokens(accountID, accessToken, refreshToken stri
 	cfg["access_token"] = s.crypto.Encrypt(accessToken)
 	cfg["refresh_token"] = s.crypto.Encrypt(refreshToken)
 	cfg["token_refreshed_at"] = strconv.FormatInt(time.Now().Unix(), 10)
-	enc, err := s.strmAccountConfigJSON(cfg, false)
+	enc, err := s.strmAccountConfigJSON(cfg)
 	if err != nil {
 		return
 	}

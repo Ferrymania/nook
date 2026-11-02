@@ -57,7 +57,7 @@ func (s *ScraperService) ApplyManualMatchWithOptions(ctx context.Context, mediaI
 		return nil, errors.New("media not found")
 	}
 	lib, _ := s.repo.Library.FindByID(ctx, media.LibraryID)
-	ctx = withLibraryScrapeSettings(ctx, libraryScrapeSettings(ctx, s.repo, lib))
+	ctx = withLibraryScrapeSettings(ctx, libraryScrapeSettings(lib))
 	if err := s.waitScrapeTurn(ctx); err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func rebuildManualScrapeIdentity(media *model.Media, lib *model.Library, match *
 	if media == nil || match == nil {
 		return
 	}
-	mediaType := normalizeOrganizeMediaType(match.MediaType)
+	mediaType := normalizeMetadataMediaType(match.MediaType)
 	if mediaType == "" && librarySupportsSeasons(lib) {
 		mediaType = "tv"
 	}

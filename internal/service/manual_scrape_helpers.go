@@ -13,7 +13,7 @@ func mergeManualRequestIntoMatch(match *Match, req ManualScrapeRequest) *Match {
 	if req.Title != "" {
 		match.Title = req.Title
 	}
-	if mediaType := normalizeOrganizeMediaType(req.MediaType); mediaType != "" {
+	if mediaType := normalizeMetadataMediaType(req.MediaType); mediaType != "" {
 		match.MediaType = mediaType
 	}
 	if req.OriginalName != "" {

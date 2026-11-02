@@ -179,9 +179,6 @@ func externalPlaybackURL(c *gin.Context, svc *service.Container, path string) st
 		return path
 	}
 	headerOrigin := sanitizedPublicOrigin(c.GetHeader("X-Nook-Public-Origin"))
-	if headerOrigin == "" {
-		headerOrigin = sanitizedPublicOrigin(c.GetHeader("X-MeBox-Public-Origin"))
-	}
 	if headerOrigin != "" && !isLocalPublicOrigin(headerOrigin) {
 		return joinOriginPath(headerOrigin, path)
 	}

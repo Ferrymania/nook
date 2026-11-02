@@ -10,7 +10,7 @@ import (
 // immediately; otherwise the admin would have to wait out the TTL before a
 // saved word list takes effect.
 func TestRecognitionWordsCacheInvalidatedBySaveConfig(t *testing.T) {
-	repos := newOrganizerTestRepo(t)
+	repos := newMediaTestRepo(t)
 	svc := NewRecognitionWordsService(zap.NewNop(), repos)
 
 	if err := svc.SaveConfig(t.Context(), RecognitionWordsConfig{
@@ -35,7 +35,7 @@ func TestRecognitionWordsCacheInvalidatedBySaveConfig(t *testing.T) {
 }
 
 func TestRecognitionWordsDisabledReturnsRawInput(t *testing.T) {
-	repos := newOrganizerTestRepo(t)
+	repos := newMediaTestRepo(t)
 	svc := NewRecognitionWordsService(zap.NewNop(), repos)
 	if err := svc.SaveConfig(t.Context(), RecognitionWordsConfig{
 		Enabled:   false,

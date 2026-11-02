@@ -13,7 +13,7 @@ func (s *ScraperService) ManualSearch(ctx context.Context, media *model.Media, q
 		return nil, errors.New("media required")
 	}
 	lib, _ := s.repo.Library.FindByID(ctx, media.LibraryID)
-	ctx = withLibraryScrapeSettings(ctx, libraryScrapeSettings(ctx, s.repo, lib))
+	ctx = withLibraryScrapeSettings(ctx, libraryScrapeSettings(lib))
 	queries := s.manualSearchQueries(ctx, media, lib, query)
 	if len(queries) == 0 {
 		return nil, errors.New("search query required")

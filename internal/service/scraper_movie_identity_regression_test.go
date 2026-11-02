@@ -59,7 +59,7 @@ func TestMovieScrapeFailedReleaseNames(t *testing.T) {
 				_ = json.NewEncoder(w).Encode(item)
 			}))
 			defer upstream.Close()
-			repos := newOrganizerTestRepo(t)
+			repos := newMediaTestRepo(t)
 			cfg := &config.Config{}
 			cfg.Secrets.TMDbAPIKey, cfg.Secrets.TMDbAPIProxy = "test-key", upstream.URL
 			log := zap.NewNop()
@@ -114,11 +114,11 @@ func TestMovieScrapeKeepsAmbiguousTitlesUnmatched(t *testing.T) {
 		{"无间道", "无间道2"},
 		{"电影 AB C", "电影 A BC"},
 	} {
-		if organizeMetadataMatchTrusted(tc.query, 0, &Match{Title: tc.title, TMDbID: 1}) {
+		if metadataMatchTrusted(tc.query, 0, &Match{Title: tc.title, TMDbID: 1}) {
 			t.Errorf("accepted distinct movie %q for %q", tc.title, tc.query)
 		}
 	}
-	if organizeMetadataMatchTrusted("The Dark Knight", 2005, &Match{Title: "The Dark Knight", Year: 2008, TMDbID: 155}) {
+	if metadataMatchTrusted("The Dark Knight", 2005, &Match{Title: "The Dark Knight", Year: 2008, TMDbID: 155}) {
 		t.Fatal("year mismatch guard was weakened")
 	}
 	for input, want := range map[string]string{
@@ -156,7 +156,7 @@ func TestMovieScrapeFailureReasonsReachQueue(t *testing.T) {
 				_ = json.NewEncoder(w).Encode(map[string]any{"results": results})
 			}))
 			defer upstream.Close()
-			repos := newOrganizerTestRepo(t)
+			repos := newMediaTestRepo(t)
 			if err := repos.DB.AutoMigrate(&model.ScrapeTask{}); err != nil {
 				t.Fatal(err)
 			}
@@ -186,7 +186,7 @@ func TestMovieScrapeFailureReasonsReachQueue(t *testing.T) {
 			}
 			// A cached miss must retain the same explanation without another lookup.
 			failure := scrapeLookupFailure{}
-			cacheCtx := withLibraryScrapeSettings(t.Context(), libraryScrapeSettings(t.Context(), repos, &lib))
+			cacheCtx := withLibraryScrapeSettings(t.Context(), libraryScrapeSettings(&lib))
 			if _, ok := scraper.lookupCache.get(scraper.lookupSettingsCacheKey(cacheCtx, "movie", "Example Film", 2023, false, 0), &failure); !ok || !strings.Contains(failure.message(), tc.want) {
 				t.Fatalf("cached failure lost its explanation: %s", failure.message())
 			}

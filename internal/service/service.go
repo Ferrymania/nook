@@ -52,8 +52,6 @@ type Container struct {
 	Backup           *BackupService
 	Permissions      *PermissionService
 	ReleaseCheck     *ReleaseCheckService
-	Organizer        *OrganizerService
-	OrganizePipeline *OrganizePipelineService
 	Token            *TokenService
 	ApiConfig        *ApiConfigService
 	Device           *DeviceService

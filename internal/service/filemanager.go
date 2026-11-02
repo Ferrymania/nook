@@ -63,7 +63,7 @@ type FileOperationResult struct {
 // ErrPathOutOfBounds is returned when path falls outside every allowed root.
 var ErrPathOutOfBounds = errors.New("path is outside the allowed roots")
 
-// ErrRootMutation protects configured roots such as /media and /downloads.
+// ErrRootMutation protects configured storage and media-library roots.
 var ErrRootMutation = errors.New("refusing to mutate an allowed root")
 
 // ResolvePath validates that path sits inside one of the allowed storage roots

@@ -576,13 +576,20 @@ func (r *EmbyRemoteService) configOf(acct *model.StrmAccount) (*EmbyRemoteConfig
 	if err != nil {
 		return nil, err
 	}
+	for _, key := range []string{"password", "api_key", "token"} {
+		plain, err := r.crypto.Decrypt(raw[key])
+		if err != nil {
+			return nil, fmt.Errorf("读取 Emby 凭据 %s 失败: %w", key, err)
+		}
+		raw[key] = plain
+	}
 	cfg := &EmbyRemoteConfig{
 		BaseURL:      lines[activeLine].URL,
 		Lines:        lines,
 		ActiveLine:   activeLine,
 		Username:     strings.TrimSpace(raw["username"]),
-		Password:     r.crypto.Decrypt(raw["password"]),
-		Token:        firstNonEmptyStr(r.crypto.Decrypt(raw["api_key"]), r.crypto.Decrypt(raw["token"])),
+		Password:     raw["password"],
+		Token:        firstNonEmptyStr(raw["api_key"], raw["token"]),
 		RemoteUserID: strings.TrimSpace(raw["remote_user_id"]),
 		ProxyPlay:    parseBoolSetting(raw["proxy_play"], false),
 	}

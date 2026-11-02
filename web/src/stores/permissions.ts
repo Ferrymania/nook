@@ -54,7 +54,7 @@ export const usePermissionStore = create<PermissionState>((set, get) => ({
   hasPermission: (key: string) => {
     const state = get()
     // Only admins implicitly have every capability in the UI.
-    // Plus / is_super must not reveal scrape/organize/delete controls.
+    // Plus / is_super must not reveal scrape/delete controls.
     if (state.role === 'admin') {
       return true
     }

@@ -15,7 +15,7 @@ import (
 func TestSchedulerPeriodicLocalScanRunsAtMostOncePerDay(t *testing.T) {
 	root := t.TempDir()
 	libraryPath := filepath.Join(root, "library")
-	writeOrgFile(t, filepath.Join(libraryPath, "Daily.Show.S01E01.mkv"), "episode 1")
+	writeMediaTestFile(t, filepath.Join(libraryPath, "Daily.Show.S01E01.mkv"), "episode 1")
 
 	db := newServiceTestDB(t, &model.Library{}, &model.Media{}, &model.Setting{})
 	repos := repository.New(db)
@@ -40,7 +40,7 @@ func TestSchedulerPeriodicLocalScanRunsAtMostOncePerDay(t *testing.T) {
 		t.Fatalf("media count after first scan = %d, want 1", got)
 	}
 
-	writeOrgFile(t, filepath.Join(libraryPath, "Daily.Show.S01E02.mkv"), "episode 2")
+	writeMediaTestFile(t, filepath.Join(libraryPath, "Daily.Show.S01E02.mkv"), "episode 2")
 	if err := scheduler.jobScanLibraries(t.Context()); err != nil {
 		t.Fatalf("same-day periodic local scan: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestSchedulerPeriodicLocalScanRunsAtMostOncePerDay(t *testing.T) {
 func TestSchedulerManualLocalScanBypassesDailyPeriodicLimit(t *testing.T) {
 	root := t.TempDir()
 	libraryPath := filepath.Join(root, "library")
-	writeOrgFile(t, filepath.Join(libraryPath, "Manual.Show.S01E01.mkv"), "episode 1")
+	writeMediaTestFile(t, filepath.Join(libraryPath, "Manual.Show.S01E01.mkv"), "episode 1")
 
 	db := newServiceTestDB(t, &model.Library{}, &model.Media{}, &model.Setting{})
 	repos := repository.New(db)
@@ -88,7 +88,7 @@ func TestSchedulerManualLocalScanBypassesDailyPeriodicLimit(t *testing.T) {
 	if err := scheduler.jobScanLibraries(t.Context()); err != nil {
 		t.Fatalf("first periodic local scan: %v", err)
 	}
-	writeOrgFile(t, filepath.Join(libraryPath, "Manual.Show.S01E02.mkv"), "episode 2")
+	writeMediaTestFile(t, filepath.Join(libraryPath, "Manual.Show.S01E02.mkv"), "episode 2")
 	if err := scheduler.RunNow(t.Context(), "library_scan"); err != nil {
 		t.Fatalf("manual local scan: %v", err)
 	}

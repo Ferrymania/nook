@@ -16,13 +16,13 @@ func newImageTagTestService(t *testing.T) (*EmbyRemoteService, *model.EmbyMount,
 	t.Helper()
 	db := newServiceTestDB(t, &model.StrmAccount{}, &model.EmbyMount{})
 	repos := repository.New(db)
-	svc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("", zap.NewNop()))
+	svc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("test-secret", zap.NewNop()))
 	acct := &model.StrmAccount{
 		Base:     model.Base{ID: "acct-tag"},
 		Name:     "tag-emby",
 		Provider: model.StrmProviderEmbyRemote,
 		Enabled:  true,
-		Config:   `{"url":"http://emby.test:8096","token":"fake-token"}`,
+		Config:   encryptedTestAccountConfig(t, `{"url":"http://emby.test:8096","token":"fake-token"}`),
 	}
 	mount := &model.EmbyMount{
 		Base:         model.Base{ID: "mount-tag"},

@@ -11,6 +11,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -87,7 +88,11 @@ func (s *APIConfigService) List(ctx context.Context) ([]PublicView, error) {
 	}
 	out := make([]PublicView, 0, len(rows))
 	for _, r := range rows {
-		out = append(out, s.toPublic(&r))
+		view, err := s.toPublic(&r)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *view)
 	}
 	sort.SliceStable(out, func(i, j int) bool {
 		return out[i].HasKey && !out[j].HasKey
@@ -101,8 +106,7 @@ func (s *APIConfigService) Get(ctx context.Context, provider string) (*PublicVie
 	if err != nil || row == nil {
 		return nil, err
 	}
-	v := s.toPublic(row)
-	return &v, nil
+	return s.toPublic(row)
 }
 
 // Resolve returns the decrypted key + base url ready for use by an HTTP
@@ -128,9 +132,13 @@ func (s *APIConfigService) Resolve(ctx context.Context, provider string) (Resolv
 		s.log.Warn("api_config.resolve: provider not found", zap.String("provider", provider))
 		return Resolved{}, nil
 	}
+	key, err := s.crypto.Decrypt(row.APIKey)
+	if err != nil {
+		return Resolved{}, fmt.Errorf("读取 %s API 密钥失败: %w", provider, err)
+	}
 	resolved := Resolved{
 		Found:   true,
-		APIKey:  s.crypto.Decrypt(row.APIKey),
+		APIKey:  key,
 		BaseURL: row.BaseURL,
 		Extra:   row.Extra,
 		Enabled: row.Enabled,
@@ -203,8 +211,7 @@ func (s *APIConfigService) Update(ctx context.Context, provider string, patch AP
 	if s.onChange != nil {
 		s.onChange()
 	}
-	v := s.toPublic(row)
-	return &v, nil
+	return s.toPublic(row)
 }
 
 // Delete clears a provider's API key (the row stays so the masked
@@ -236,8 +243,11 @@ func (s *APIConfigService) findByProvider(ctx context.Context, provider string) 
 	return &row, nil
 }
 
-func (s *APIConfigService) toPublic(r *model.APIConfig) PublicView {
-	plain := s.crypto.Decrypt(r.APIKey)
+func (s *APIConfigService) toPublic(r *model.APIConfig) (*PublicView, error) {
+	plain, err := s.crypto.Decrypt(r.APIKey)
+	if err != nil {
+		return nil, fmt.Errorf("读取 %s API 密钥失败: %w", r.Provider, err)
+	}
 	pv := PublicView{
 		ID:          r.ID,
 		Provider:    r.Provider,
@@ -252,5 +262,5 @@ func (s *APIConfigService) toPublic(r *model.APIConfig) PublicView {
 	if pv.HasKey {
 		pv.MaskedKey = MaskAPIKey(plain)
 	}
-	return pv
+	return &pv, nil
 }

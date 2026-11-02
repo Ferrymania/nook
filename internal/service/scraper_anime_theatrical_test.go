@@ -2,14 +2,12 @@ package service
 
 import (
 	"encoding/json"
+	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/model"
+	"go.uber.org/zap"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"go.uber.org/zap"
-
-	"github.com/Ferrymania/nook/internal/config"
-	"github.com/Ferrymania/nook/internal/model"
 )
 
 func TestTheatricalTitleVariants(t *testing.T) {
@@ -205,7 +203,7 @@ func TestEnrichOneAnimeMixedEpisodesAndTheatrical(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	repos := newOrganizerTestRepo(t)
+	repos := newMediaTestRepo(t)
 	cfg := &config.Config{}
 	cfg.Secrets.TMDbAPIKey = "test-key"
 	cfg.Secrets.TMDbAPIProxy = upstream.URL
@@ -266,48 +264,5 @@ func TestEnrichOneAnimeMixedEpisodesAndTheatrical(t *testing.T) {
 	}
 	if gotMovie.Title != "鬼灭之刃 剧场版 无限列车篇" {
 		t.Fatalf("theatrical movie title = %q, want '鬼灭之刃 剧场版 无限列车篇'", gotMovie.Title)
-	}
-}
-
-func TestClassifyAnimeTheatricalMovie(t *testing.T) {
-	categories := map[string]string{
-		"animation_movie": "动画电影",
-		"jp_anime":        "日番",
-		"chinese_movie":   "华语电影",
-	}
-	tests := []struct {
-		title     string
-		mediaType string
-		want      string
-	}{
-		{
-			title:     "名侦探柯南 剧场版01 引爆摩天楼",
-			mediaType: "movie",
-			want:      "动画电影",
-		},
-		{
-			title:     "鬼灭之刃 剧场版 无限列车篇",
-			mediaType: "movie",
-			want:      "动画电影",
-		},
-		{
-			title:     "鬼灭之刃 S01E01",
-			mediaType: "tv",
-			want:      "日番",
-		},
-	}
-
-	for _, tc := range tests {
-		input := mediaClassifyInput{
-			MediaType: tc.mediaType,
-			Title:     tc.title,
-			Languages: []string{"JA"},
-			Countries: []string{"JP"},
-			Genres:    []string{"Animation"},
-		}
-		got := classifyMediaCategory(input, categories)
-		if got != tc.want {
-			t.Fatalf("classifyMediaCategory(%q, %q) = %q, want %q", tc.title, tc.mediaType, got, tc.want)
-		}
 	}
 }

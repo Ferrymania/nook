@@ -18,48 +18,18 @@ import (
 var scrapeProviderNames = map[string]string{"tmdb": "TMDb", "bangumi": "Bangumi", "thetvdb": "TheTVDB", "fanart": "Fanart"}
 var defaultScrapeProviders = []string{"tmdb", "bangumi", "thetvdb", "fanart"}
 
-// The former global value is only a compatibility default for libraries that
-// have not saved the new preference. Explicit library values always win.
-const legacySegmentPrewarmEnabledKey = "segment.prewarm_enabled"
-
-func librarySegmentPrewarmEnabled(ctx context.Context, repo *repository.Container, lib *model.Library) (bool, error) {
-	if lib != nil && lib.ScrapeSettings != nil && lib.ScrapeSettings.SegmentPrewarmEnabled != nil {
-		return *lib.ScrapeSettings.SegmentPrewarmEnabled, nil
-	}
-	value, err := repo.Setting.Get(ctx, legacySegmentPrewarmEnabledKey)
-	return parseBoolSetting(value, false), err
+func librarySegmentPrewarmEnabled(lib *model.Library) bool {
+	return lib != nil && lib.ScrapeSettings != nil && lib.ScrapeSettings.SegmentPrewarmEnabled != nil && *lib.ScrapeSettings.SegmentPrewarmEnabled
 }
 
-// Legacy settings are read only for libraries that have never saved their own
-// preferences. Library-specific preferences never rewrite legacy defaults.
-func libraryScrapeSettings(ctx context.Context, repo *repository.Container, lib *model.Library) model.LibraryScrapeSettings {
+// Unsaved libraries use fixed defaults; saved preferences belong to that library.
+func libraryScrapeSettings(lib *model.Library) model.LibraryScrapeSettings {
 	if lib != nil && lib.ScrapeSettings != nil {
 		out := *lib.ScrapeSettings
 		out.Providers = supportedScrapeProviders(out.Providers)
 		return out
 	}
-	out := model.LibraryScrapeSettings{Providers: append([]string(nil), defaultScrapeProviders...), Language: "zh-CN", DelayMinMS: 250, DelayMaxMS: 500}
-	if repo == nil || repo.Setting == nil {
-		return out
-	}
-	rows, err := repo.Setting.All(ctx)
-	if err != nil {
-		return out
-	}
-	values := map[string]string{}
-	for _, row := range rows {
-		values[row.Key] = strings.TrimSpace(row.Value)
-	}
-	out.AutoOnScan = parseBoolSetting(values["scrape.auto_on_scan"], false)
-	if v := firstText(values["scrape.language"], values["tmdb.language"]); validScrapeLanguage(v) {
-		out.Language = v
-	}
-	if v := values["scrape.providers"]; v != "" {
-		out.Providers = supportedScrapeProviders(strings.Split(v, ","))
-	}
-	out.DelayMinMS = max(0, min(maxScrapeDelayMS, parseIntSettingDefault(values["scrape.delay_min_ms"], 250)))
-	out.DelayMaxMS = max(out.DelayMinMS, min(maxScrapeDelayMS, parseIntSettingDefault(values["scrape.delay_max_ms"], 500)))
-	return out
+	return model.LibraryScrapeSettings{Providers: append([]string(nil), defaultScrapeProviders...), Language: "zh-CN", DelayMinMS: defaultScrapeDelayMinMS, DelayMaxMS: defaultScrapeDelayMaxMS}
 }
 
 func supportedScrapeProviders(values []string) []string {
@@ -161,11 +131,8 @@ func (s *ScraperService) libraryScrapeSettingsView(ctx context.Context, lib *mod
 	if err != nil {
 		return nil, err
 	}
-	view := &LibraryScrapeSettingsView{EpisodeImages: parseBoolSetting(episodeImages, false), Settings: libraryScrapeSettings(ctx, s.repo, lib), AutoProbe: lib.AutoProbe}
-	prewarmEnabled, err := librarySegmentPrewarmEnabled(ctx, s.repo, lib)
-	if err != nil {
-		return nil, err
-	}
+	view := &LibraryScrapeSettingsView{EpisodeImages: parseBoolSetting(episodeImages, false), Settings: libraryScrapeSettings(lib), AutoProbe: lib.AutoProbe}
+	prewarmEnabled := librarySegmentPrewarmEnabled(lib)
 	view.Settings.SegmentPrewarmEnabled = &prewarmEnabled
 	for _, p := range defaultScrapeProviders {
 		cfg := s.scrapeProviderConfig(ctx, p)
@@ -248,7 +215,7 @@ func (s *ScraperService) onlineScrapeAvailable(ctx context.Context) bool {
 	return false
 }
 
-// Share pacing across queue workers and synchronous scan/organize scrapes.
+// Share pacing across queue workers and synchronous scan scrapes.
 // This spaces task starts without introducing a second task queue.
 func (s *ScraperService) waitScrapeTurn(ctx context.Context) error {
 	for {

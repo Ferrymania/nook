@@ -1,14 +1,54 @@
 package service
 
 import (
+	"errors"
 	"reflect"
+	"strings"
 	"testing"
 
 	"go.uber.org/zap"
 
+	"github.com/Ferrymania/nook/internal/helper"
 	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/repository"
 )
+
+func TestAPIConfigRejectsPlaintextStoredKey(t *testing.T) {
+	t.Parallel()
+	repos := repository.New(newServiceTestDB(t))
+	cipher := NewCryptoService("test-secret", zap.NewNop())
+	svc := NewAPIConfigService(zap.NewNop(), repos, cipher)
+	connection := NewApiConfigService(nil, zap.NewNop(), repos, cipher)
+	const plaintext = "plaintext-api-key-fixture"
+	if err := repos.DB.Create(&model.APIConfig{Provider: "tmdb", APIKey: plaintext}).Error; err != nil {
+		t.Fatal(err)
+	}
+	for name, read := range map[string]func() error{
+		"resolve":         func() error { _, err := svc.Resolve(t.Context(), "tmdb"); return err },
+		"get":             func() error { _, err := svc.Get(t.Context(), "tmdb"); return err },
+		"list":            func() error { _, err := svc.List(t.Context()); return err },
+		"connection get":  func() error { _, err := connection.GetByProvider(t.Context(), "tmdb"); return err },
+		"connection list": func() error { _, err := connection.List(t.Context()); return err },
+	} {
+		t.Run(name, func(t *testing.T) {
+			err := read()
+			if !errors.Is(err, helper.ErrSecretNotEncrypted) {
+				t.Fatalf("read error = %v, want unencrypted credential error", err)
+			}
+			if strings.Contains(err.Error(), plaintext) {
+				t.Fatal("credential leaked in error")
+			}
+		})
+	}
+	replacement := "replacement-key"
+	if _, err := svc.Update(t.Context(), "tmdb", APIConfigPatch{APIKey: &replacement}); err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := svc.Resolve(t.Context(), "tmdb")
+	if err != nil || resolved.APIKey != replacement {
+		t.Fatalf("replacement key must be encrypted and readable: %v", err)
+	}
+}
 
 func TestAPIConfigListHidesScraperSourcesAndPrioritizesConfigured(t *testing.T) {
 	db := newServiceTestDB(t)

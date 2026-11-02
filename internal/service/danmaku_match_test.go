@@ -141,10 +141,10 @@ func TestDanmakuFetchHashMatchRemapsEpisodeIDToConfiguredSource(t *testing.T) {
 
 	svc := newDanmakuTestService(t)
 	ctx := context.Background()
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuSourceKey, cfgSrv.URL))
+	setDanmakuTestSource(t, svc, cfgSrv.URL)
 	seedDanmakuVideoMedia(t, svc, "mC", "测试动画", videoPath, 32000, 0)
 
-	res, err := svc.Fetch(ctx, "mC", "", "")
+	res, err := svc.FetchWithOptions(ctx, "mC", "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	// 弹幕取自配置源，且用的是重定位后的 ID。
 	require.Contains(t, res.Raw, "弹幕A")
@@ -187,10 +187,10 @@ func TestDanmakuFetchHashMatchFallsBackWhenConfiguredLibraryIsEmpty(t *testing.T
 
 	svc := newDanmakuTestService(t)
 	ctx := context.Background()
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuSourceKey, cfgSrv.URL))
+	setDanmakuTestSource(t, svc, cfgSrv.URL)
 	seedDanmakuVideoMedia(t, svc, "mEmpty", "测试动画", videoPath, 32000, 0)
 
-	res, err := svc.Fetch(ctx, "mEmpty", "", "")
+	res, err := svc.FetchWithOptions(ctx, "mEmpty", "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	require.Contains(t, res.Raw, "官方兜底弹幕")
 	require.Equal(t, int64(90001), res.EpisodeID)
@@ -233,10 +233,10 @@ func TestDanmakuFetchHashMatchReturnsAlternatives(t *testing.T) {
 
 	svc := newDanmakuTestService(t)
 	ctx := context.Background()
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuSourceKey, cfgSrv.URL))
+	setDanmakuTestSource(t, svc, cfgSrv.URL)
 	seedDanmakuVideoMedia(t, svc, "mAlt", "多来源动画", videoPath, 32000, 0)
 
-	res, err := svc.Fetch(ctx, "mAlt", "", "")
+	res, err := svc.FetchWithOptions(ctx, "mAlt", "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 
 	// 自动加载第一个来源（沿用既有取值逻辑）。
@@ -286,10 +286,10 @@ func TestDanmakuFetchHashMatchNoAlternativesForSingleSource(t *testing.T) {
 
 	svc := newDanmakuTestService(t)
 	ctx := context.Background()
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuSourceKey, cfgSrv.URL))
+	setDanmakuTestSource(t, svc, cfgSrv.URL)
 	seedDanmakuVideoMedia(t, svc, "mOne", "单来源动画", videoPath, 32000, 0)
 
-	res, err := svc.Fetch(ctx, "mOne", "", "")
+	res, err := svc.FetchWithOptions(ctx, "mOne", "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	require.Contains(t, res.Raw, "唯一来源弹幕")
 	require.Empty(t, res.Alternatives)
@@ -334,10 +334,13 @@ func TestDanmakuFetchMergeSourcesCombinesAndDeduplicates(t *testing.T) {
 
 	svc := newDanmakuTestService(t)
 	ctx := context.Background()
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuSourceKey, cfgSrv.URL))
+	setDanmakuTestSource(t, svc, cfgSrv.URL)
+	merge := true
+	_, err := svc.UpdateUserSettings(ctx, danmakuTestUserID, DanmakuSettingsPatch{MergeSources: &merge})
+	require.NoError(t, err)
 	seedDanmakuVideoMedia(t, svc, "mMerge", "合并动画", videoPath, 32000, 0)
 
-	res, err := svc.FetchWithOptions(ctx, "mMerge", "", "", DanmakuFetchOptions{MergeSources: true})
+	res, err := svc.FetchWithOptions(ctx, "mMerge", "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	require.Equal(t, 2, res.MergedSources, "expected both sources to be merged")
 
@@ -385,10 +388,10 @@ func TestDanmakuFetchWithoutMergeLoadsSingleSource(t *testing.T) {
 
 	svc := newDanmakuTestService(t)
 	ctx := context.Background()
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuSourceKey, cfgSrv.URL))
+	setDanmakuTestSource(t, svc, cfgSrv.URL)
 	seedDanmakuVideoMedia(t, svc, "mNoMerge", "不合并动画", videoPath, 32000, 0)
 
-	res, err := svc.Fetch(ctx, "mNoMerge", "", "")
+	res, err := svc.FetchWithOptions(ctx, "mNoMerge", "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	require.Zero(t, res.MergedSources)
 	require.Equal(t, int64(401), res.EpisodeID)
@@ -411,11 +414,13 @@ func TestDanmakuMergeSourcesPreferencePersistsPerUser(t *testing.T) {
 	require.NoError(t, svc.repo.User.Create(ctx, &userA))
 	require.NoError(t, svc.repo.User.Create(ctx, &userB))
 
-	require.False(t, svc.MergeSourcesEnabled(ctx, "user-a"))
-	require.NoError(t, svc.SetMergeSources(ctx, "user-a", true))
-	require.True(t, svc.MergeSourcesEnabled(ctx, "user-a"))
+	require.False(t, svc.ConfigForUser(ctx, "user-a").MergeSources)
+	merge := true
+	_, err := svc.UpdateUserSettings(ctx, "user-a", DanmakuSettingsPatch{MergeSources: &merge})
+	require.NoError(t, err)
+	require.True(t, svc.ConfigForUser(ctx, "user-a").MergeSources)
 	// 另一个用户不受影响。
-	require.False(t, svc.MergeSourcesEnabled(ctx, "user-b"))
+	require.False(t, svc.ConfigForUser(ctx, "user-b").MergeSources)
 
 	// 重新读取确认已落库，且 ConfigForUser 会带出该偏好。
 	cfg := svc.ConfigForUser(ctx, "user-a")
@@ -451,10 +456,10 @@ func TestDanmakuFetchHashMatchFallsBackToOfficialWhenConfiguredHasNoMatch(t *tes
 
 	svc := newDanmakuTestService(t)
 	ctx := context.Background()
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuSourceKey, cfgSrv.URL))
+	setDanmakuTestSource(t, svc, cfgSrv.URL)
 	seedDanmakuVideoMedia(t, svc, "mNoMatch", "冷门动画", videoPath, 32000, 0)
 
-	res, err := svc.Fetch(ctx, "mNoMatch", "", "")
+	res, err := svc.FetchWithOptions(ctx, "mNoMatch", "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	require.Contains(t, res.Raw, "弹幕来自官方")
 	require.Equal(t, int64(90001), res.EpisodeID)
@@ -483,10 +488,10 @@ func TestDanmakuFetchHashMatchConfiguredFailsFallsBackOfficial(t *testing.T) {
 
 	svc := newDanmakuTestService(t)
 	ctx := context.Background()
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuSourceKey, cfgSrv.URL))
+	setDanmakuTestSource(t, svc, cfgSrv.URL)
 	seedDanmakuVideoMedia(t, svc, "mF", "测试动画", videoPath, 32000, 0)
 
-	res, err := svc.Fetch(ctx, "mF", "", "")
+	res, err := svc.FetchWithOptions(ctx, "mF", "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	require.Contains(t, res.Raw, "弹幕官方兜底")
 }
@@ -504,10 +509,10 @@ func TestDanmakuFetchHashMissFallsBackToFileNameSearch(t *testing.T) {
 
 	svc := newDanmakuTestService(t)
 	ctx := context.Background()
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuSourceKey, cfgSrv.URL()))
+	setDanmakuTestSource(t, svc, cfgSrv.URL())
 	seedDanmakuVideoMedia(t, svc, "mM", "刮削标题", videoPath, 32000, 1)
 
-	res, err := svc.Fetch(ctx, "mM", "", "")
+	res, err := svc.FetchWithOptions(ctx, "mM", "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	require.True(t, res.Enabled)
 	require.Contains(t, res.Raw, "弹幕A")
@@ -537,7 +542,7 @@ func TestDanmakuFetchHashMissUsesScrapedMetadata(t *testing.T) {
 
 	svc := newDanmakuTestService(t)
 	ctx := context.Background()
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuSourceKey, cfgSrv.URL()))
+	setDanmakuTestSource(t, svc, cfgSrv.URL())
 	media := model.Media{
 		Title:        "命运石之门",
 		Year:         2011,
@@ -550,7 +555,7 @@ func TestDanmakuFetchHashMissUsesScrapedMetadata(t *testing.T) {
 	media.ID = "mScrapedMeta"
 	require.NoError(t, svc.repo.DB.Create(&media).Error)
 
-	res, err := svc.Fetch(ctx, media.ID, "", "")
+	res, err := svc.FetchWithOptions(ctx, media.ID, "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	require.True(t, res.Enabled)
 	require.Contains(t, res.Raw, "弹幕A")
@@ -840,7 +845,7 @@ func TestDanmakuFetchPrefersHashOverCompleteMetadata(t *testing.T) {
 
 	svc := newDanmakuTestService(t)
 	ctx := context.Background()
-	require.NoError(t, svc.repo.Setting.Set(ctx, DanmakuSourceKey, source.URL()))
+	setDanmakuTestSource(t, svc, source.URL())
 
 	m := model.Media{
 		Title:        "测试动画",
@@ -853,7 +858,7 @@ func TestDanmakuFetchPrefersHashOverCompleteMetadata(t *testing.T) {
 	m.ID = "hash-first"
 	require.NoError(t, svc.repo.DB.Create(&m).Error)
 
-	res, err := svc.Fetch(ctx, "hash-first", "", "")
+	res, err := svc.FetchWithOptions(ctx, "hash-first", "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	require.Equal(t, "hash", res.MatchMode)
 	require.NotEmpty(t, res.Raw)

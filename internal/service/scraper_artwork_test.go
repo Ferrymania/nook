@@ -17,7 +17,7 @@ import (
 	"github.com/Ferrymania/nook/internal/model"
 )
 
-func TestScrapeDelayUsesSettings(t *testing.T) {
+func TestScrapeDelayUsesLibrarySettings(t *testing.T) {
 	scraper, repos, closeServer := newTestScraper(t)
 	defer closeServer()
 	if err := repos.DB.AutoMigrate(&model.Setting{}); err != nil {
@@ -34,18 +34,17 @@ func TestScrapeDelayUsesSettings(t *testing.T) {
 	if err := repos.Setting.Set(t.Context(), "scrape.delay_max_ms", "0"); err != nil {
 		t.Fatal(err)
 	}
-	if got := scraper.scrapeDelay(t.Context()); got != 0 {
-		t.Fatalf("disabled scrapeDelay = %s, want 0", got)
+	if got := scraper.scrapeDelay(t.Context()); got < 250*time.Millisecond || got > 500*time.Millisecond {
+		t.Fatalf("retired global settings affected scrapeDelay: %s", got)
+	}
+	ctx := withLibraryScrapeSettings(t.Context(), model.LibraryScrapeSettings{DelayMinMS: 0, DelayMaxMS: 0})
+	if got := scraper.scrapeDelay(ctx); got != 0 {
+		t.Fatalf("disabled library scrapeDelay = %s, want 0", got)
 	}
 
-	if err := repos.Setting.Set(t.Context(), "scrape.delay_min_ms", "800"); err != nil {
-		t.Fatal(err)
-	}
-	if err := repos.Setting.Set(t.Context(), "scrape.delay_max_ms", "200"); err != nil {
-		t.Fatal(err)
-	}
-	if got := scraper.scrapeDelay(t.Context()); got != 800*time.Millisecond {
-		t.Fatalf("normalized scrapeDelay = %s, want 800ms", got)
+	ctx = withLibraryScrapeSettings(t.Context(), model.LibraryScrapeSettings{DelayMinMS: 800, DelayMaxMS: 200})
+	if got := scraper.scrapeDelay(ctx); got != 800*time.Millisecond {
+		t.Fatalf("normalized library scrapeDelay = %s, want 800ms", got)
 	}
 }
 

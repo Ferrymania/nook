@@ -138,7 +138,7 @@ func mediaExternalIDLanguageFallbackTrusted(m *model.Media, match *Match) bool {
 	return title != "" &&
 		containsCJK(title) &&
 		!unsafeAutomaticEpisodeQuery(title) &&
-		!organizeMediaTitleLooksLikeRelease(title)
+		!mediaTitleLooksLikeRelease(title)
 }
 
 func preferExistingLocalizedEpisodeTitle(m *model.Media, lib *model.Library, match *Match) {

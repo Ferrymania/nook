@@ -2,15 +2,14 @@ package service
 
 import (
 	"encoding/json"
+	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/model"
+	"go.uber.org/zap"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/Ferrymania/nook/internal/config"
-	"github.com/Ferrymania/nook/internal/model"
-	"go.uber.org/zap"
 )
 
 func TestConservativeAutomaticTitleRequiresWholeNameOrAlias(t *testing.T) {
@@ -112,11 +111,11 @@ func TestConservativeTVUsesSeasonYearAndSeparatesSeasonCache(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.Secrets.TMDbAPIKey, cfg.Secrets.TMDbAPIProxy = "test-key", upstream.URL
 	log := zap.NewNop()
-	svc := NewScraperService(cfg, log, newOrganizerTestRepo(t), NewTMDbProvider(cfg, log, nil), nil, nil, nil, NewHub(log))
+	svc := NewScraperService(cfg, log, newMediaTestRepo(t), NewTMDbProvider(cfg, log, nil), nil, nil, nil, NewHub(log))
 	lib := &model.Library{Type: "tv", Path: "/media/tv"}
 	m := &model.Media{Title: "秘密森林", Path: "/media/tv/秘密森林/S02/E02.mkv", SeasonNum: 2, EpisodeNum: 2}
 	match := svc.lookup(t.Context(), lib, m, "秘密森林", 2020, false, &scrapeLookupFailure{})
-	if match == nil || match.Year != 2017 || match.seasonYear != 2020 || !organizeMetadataMatchTrusted("秘密森林", 2020, match) {
+	if match == nil || match.Year != 2017 || match.seasonYear != 2020 || !metadataMatchTrusted("秘密森林", 2020, match) {
 		t.Fatalf("season year not preserved independently: %+v", match)
 	}
 	if got := svc.lookup(t.Context(), lib, m, "秘密森林", 2020, false, &scrapeLookupFailure{}); got == nil || seasonCalls["2"] != 1 {
@@ -151,14 +150,14 @@ func TestConservativeAmbiguityStopsBeforeOtherQueriesOrLocalFallback(t *testing.
 	cfg := &config.Config{}
 	cfg.Secrets.TMDbAPIKey, cfg.Secrets.TMDbAPIProxy = "test-key", upstream.URL
 	log := zap.NewNop()
-	repo := newOrganizerTestRepo(t)
+	repo := newMediaTestRepo(t)
 	svc := NewScraperService(cfg, log, repo, NewTMDbProvider(cfg, log, nil), nil, nil, nil, NewHub(log))
 	lib := model.Library{Path: t.TempDir(), Type: "movie", Name: "test"}
 	if err := repo.DB.Create(&lib).Error; err != nil {
 		t.Fatal(err)
 	}
 	m := model.Media{LibraryID: lib.ID, Title: "Same Title", Path: lib.Path + "/Same.Title.2000.mkv", Year: 2000, ScrapeStatus: "pending"}
-	writeOrgFile(t, filepath.Join(lib.Path, "Same.Title.2000.nfo"), `<movie><title>Same Title</title><year>2000</year></movie>`)
+	writeMediaTestFile(t, filepath.Join(lib.Path, "Same.Title.2000.nfo"), `<movie><title>Same Title</title><year>2000</year></movie>`)
 	if err := repo.DB.Create(&m).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -169,36 +168,5 @@ func TestConservativeAmbiguityStopsBeforeOtherQueriesOrLocalFallback(t *testing.
 	got, err := repo.Media.FindByID(t.Context(), m.ID)
 	if err != nil || got.ScrapeStatus != "no_match" || got.TMDbID != 0 || !strings.Contains(reason, "手动匹配") || calls != 1 {
 		t.Fatalf("ambiguity not retained: media=%+v reason=%q calls=%d err=%v", got, reason, calls, err)
-	}
-}
-
-func TestConservativeOrganizerCacheStillChecksChineseSource(t *testing.T) {
-	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		results := []any{}
-		if r.URL.Path == "/search/movie" && r.URL.Query().Get("query") == "Same Title" {
-			results = append(results, map[string]any{"id": 1, "title": "电影甲", "original_title": "Same Title", "release_date": "2000-01-01"})
-		}
-		_ = json.NewEncoder(w).Encode(map[string]any{"results": results})
-	}))
-	defer upstream.Close()
-	cfg := &config.Config{}
-	cfg.Secrets.TMDbAPIKey, cfg.Secrets.TMDbAPIProxy = "test-key", upstream.URL
-	log := zap.NewNop()
-	repo := newOrganizerTestRepo(t)
-	svc := NewScraperService(cfg, log, repo, NewTMDbProvider(cfg, log, nil), nil, nil, nil, NewHub(log))
-	organizer := NewOrganizerService(cfg, log, repo)
-	organizer.SetScraper(svc)
-	root := t.TempDir()
-	cache := map[string]*Match{}
-	for _, title := range []string{"电影甲", "电影乙"} {
-		path := filepath.Join(root, title+".Same.Title.2000", "Same.Title.2000.mkv")
-		got := organizer.lookupOrganizeMetadata(t.Context(), path, root, "movie", "Same Title", 2000, 0, 0, cache)
-		if title == "电影甲" && (got == nil || got.TMDbID != 1) {
-			t.Fatalf("verified bilingual source rejected: %+v", got)
-		}
-		if title == "电影乙" && got != nil {
-			t.Fatalf("cached English name concealed conflicting Chinese source: %+v", got)
-		}
 	}
 }

@@ -24,7 +24,7 @@ func (s *ScraperService) EnrichOneWithOptions(ctx context.Context, m *model.Medi
 	if err != nil {
 		return err
 	}
-	ctx = withLibraryScrapeSettings(ctx, libraryScrapeSettings(ctx, s.repo, lib))
+	ctx = withLibraryScrapeSettings(ctx, libraryScrapeSettings(lib))
 	if err := s.waitScrapeTurn(ctx); err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func (s *ScraperService) EnrichOneWithOptions(ctx context.Context, m *model.Medi
 			continue
 		}
 		sourceNamesTrusted := automaticSourceNamesTrusted(candidates, candidateMatch)
-		if !organizeMetadataMatchTrusted(candidate, year, candidateMatch) || !sourceNamesTrusted {
+		if !metadataMatchTrusted(candidate, year, candidateMatch) || !sourceNamesTrusted {
 			failure.reject(candidate, year, candidateMatch)
 			if !sourceNamesTrusted {
 				failure.titleMismatch = true
@@ -297,7 +297,7 @@ func applyScrapeMediaTypeResets(updates map[string]any, match *Match) {
 	if updates == nil || match == nil {
 		return
 	}
-	switch normalizeOrganizeMediaType(match.MediaType) {
+	switch normalizeMetadataMediaType(match.MediaType) {
 	case "movie", "adult":
 		updates["season_num"] = 0
 		updates["episode_num"] = 0

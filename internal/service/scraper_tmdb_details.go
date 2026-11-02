@@ -138,7 +138,7 @@ func (s *ScraperService) enrichDeferredEpisodeDetails(ctx context.Context, rows 
 		if !mediaIsEpisodic(media, lib) {
 			continue
 		}
-		episodeCtx := withLibraryScrapeSettings(ctx, libraryScrapeSettings(ctx, s.repo, lib))
+		episodeCtx := withLibraryScrapeSettings(ctx, libraryScrapeSettings(lib))
 		if !scrapeProviderSelected(episodeCtx, "tmdb") {
 			continue
 		}

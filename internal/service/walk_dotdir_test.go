@@ -4,10 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"go.uber.org/zap"
-
-	"github.com/Ferrymania/nook/internal/config"
 	"github.com/Ferrymania/nook/internal/model"
 )
 
@@ -85,31 +81,5 @@ func TestScanLibraryIndexesDotPrefixedRoot(t *testing.T) {
 	}
 	if got := countMedia(t, repos); got != 1 {
 		t.Fatalf("media count = %d, want 1", got)
-	}
-}
-
-// End-to-end: organizing from a dot-prefixed source directory must find files.
-func TestOrganizeDirectoryReadsDotPrefixedSource(t *testing.T) {
-	repos := newOrganizerTestRepo(t)
-	cfg := &config.Config{}
-	cfg.Organizer.SmartClassify = true
-	organizer := NewOrganizerService(cfg, zap.NewNop(), repos)
-
-	root := t.TempDir()
-	src := filepath.Join(root, ".downloads")
-	dest := filepath.Join(root, "media")
-	writeWalkFile(t, filepath.Join(src, "Oppenheimer.2023.2160p.WEB-DL.H265", "oppenheimer-2160p.mkv"))
-
-	res, err := organizer.OrganizeDirectory(t.Context(), OrganizeOptions{
-		SourcePath:   src,
-		DestPath:     dest,
-		TransferMode: TransferCopy,
-	})
-	if err != nil {
-		t.Fatalf("organize directory: %v", err)
-	}
-	if res.Organized != 1 {
-		t.Fatalf("organized=%d skipped=%d errors=%v, want the file under a dot-prefixed source to be organized",
-			res.Organized, res.Skipped, res.Errors)
 	}
 }

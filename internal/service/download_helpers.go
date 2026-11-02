@@ -5,7 +5,7 @@ import (
 	"unicode"
 )
 
-// 整理入库与外部搜索依赖的通用标题归一化辅助函数。
+// 媒体识别与搜索使用的通用标题归一化辅助函数。
 // 这些函数原本与订阅/下载逻辑共存，移除对应功能时保留为通用帮助函数。
 
 func normalizeAvailabilityComparable(value string) string {

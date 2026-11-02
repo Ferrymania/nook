@@ -67,22 +67,7 @@ func (s *FileManagerService) allowedRoots() (map[string]string, error) {
 	add("movies", s.cfg.Media.MoviesDir)
 	add("tv", s.cfg.Media.TVDir)
 	add("anime", s.cfg.Media.AnimeDir)
-	add("downloads", envOrDefault("NOOK_DOWNLOAD_CONTAINER_DIR", "/downloads"))
 	add("media", envOrDefault("NOOK_MEDIA_CONTAINER_DIR", "/media"))
-	if s.repo != nil && s.repo.Setting != nil {
-		addSetting := func(label, key string) {
-			if value, err := s.repo.Setting.Get(context.Background(), key); err == nil {
-				add(label, strings.TrimSpace(value))
-			}
-		}
-		addSetting("organize-source", "organize.source_dir")
-		addSetting("organize-target", "organize.target_dir")
-		addSetting("downloader-savepath", "downloader.savepath")
-		// 兼容历史键名 qbittorrent.savepath：旧版本把下载器保存目录存在该键下
-		if value, err := s.repo.Setting.Get(context.Background(), "downloader.savepath"); err != nil || strings.TrimSpace(value) == "" {
-			addSetting("downloader-savepath", "qbittorrent.savepath")
-		}
-	}
 	if s.repo != nil && s.repo.Library != nil {
 		libs, err := s.repo.Library.List(context.Background())
 		if err == nil {

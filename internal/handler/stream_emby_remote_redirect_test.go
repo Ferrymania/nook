@@ -62,12 +62,12 @@ func TestStreamRedirectsRemoteContainerToPlayableEpisode(t *testing.T) {
 	cfg.Secrets.JWTSecret = "stream-redirect-secret"
 	log := zap.NewNop()
 
-	remote := service.NewEmbyRemoteService(cfg, log, repos, service.NewCryptoService("", log))
+	remote := service.NewEmbyRemoteService(cfg, log, repos, service.NewCryptoService("test-secret", log))
 	svc := &service.Container{Cfg: cfg, Repo: repos, EmbyRemote: remote}
 
 	rawConfig, _ := json.Marshal(map[string]string{
 		"url":            upstream.URL,
-		"api_key":        "test-api-key",
+		"api_key":        service.NewCryptoService("test-secret", log).Encrypt("test-api-key"),
 		"remote_user_id": "uid-1",
 	})
 	if err := repos.StrmAccount.Create(t.Context(), &model.StrmAccount{
@@ -150,13 +150,13 @@ func TestStreamKeepsPlayableRemoteItem(t *testing.T) {
 	cfg.Secrets.JWTSecret = "stream-keep-secret"
 	log := zap.NewNop()
 
-	remote := service.NewEmbyRemoteService(cfg, log, repos, service.NewCryptoService("", log))
+	remote := service.NewEmbyRemoteService(cfg, log, repos, service.NewCryptoService("test-secret", log))
 	emby := service.NewEmbyService(cfg, log, repos).SetEmbyRemote(remote)
 	svc := &service.Container{Cfg: cfg, Repo: repos, EmbyRemote: remote, Emby: emby}
 
 	rawConfig, _ := json.Marshal(map[string]string{
 		"url":            upstream.URL,
-		"api_key":        "test-api-key",
+		"api_key":        service.NewCryptoService("test-secret", log).Encrypt("test-api-key"),
 		"remote_user_id": "uid-1",
 	})
 	if err := repos.StrmAccount.Create(t.Context(), &model.StrmAccount{

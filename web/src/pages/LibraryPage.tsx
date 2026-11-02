@@ -244,13 +244,11 @@ export function LibraryPage() {
     handleSeriesSmartScrape,
     handleSeriesProbe,
     handleSeriesNFO,
-    handleSeriesOrganize,
     handleSeriesDelete,
     movieActions,
   } = useLibraryAdminActions({
     libraryID: id,
     role,
-    library,
     selectedSeries,
     selectedSeriesEpisodes: selectedSeriesAllEpisodes,
     reloadCurrentLibrary,
@@ -258,7 +256,6 @@ export function LibraryPage() {
     onManualScrape: handleCardManualScrape,
     manualScrapeLoadingID: seriesManualScrape.loadingMediaID,
     onMovieMetadataEdit: media => setMovieDialog({ kind: 'metadata', media }),
-    onMovieOrganize: media => setMovieDialog({ kind: 'organize', media }),
     onMovieQuerySegments: media => setMovieDialog({ kind: 'segments', media }),
   })
 
@@ -385,7 +382,6 @@ export function LibraryPage() {
         onMetadataEdit={() => setSeriesMetadataEditOpen(true)}
         onProbe={handleSeriesProbe}
         onNFO={handleSeriesNFO}
-        onOrganize={handleSeriesOrganize}
         onDelete={handleSeriesDelete}
         onSeasonChange={setSelectedSeason}
         onManualScrapeMedia={setManualMovie}

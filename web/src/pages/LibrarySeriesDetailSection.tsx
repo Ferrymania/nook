@@ -30,7 +30,6 @@ type LibrarySeriesDetailSectionProps = {
   onMetadataEdit: () => void
   onProbe: () => void
   onNFO: () => void
-  onOrganize: () => void
   onDelete: () => void
   onSeasonChange: (season: number) => void
   onManualScrapeMedia: (media: Media) => void
@@ -56,7 +55,6 @@ export function LibrarySeriesDetailSection({
   onMetadataEdit,
   onProbe,
   onNFO,
-  onOrganize,
   onDelete,
   onSeasonChange,
   onManualScrapeMedia,
@@ -86,7 +84,6 @@ export function LibrarySeriesDetailSection({
             onMetadataEdit={onMetadataEdit}
             onProbe={onProbe}
             onNFO={onNFO}
-            onOrganize={onOrganize}
             onDelete={onDelete}
           />
 

@@ -488,7 +488,7 @@ func TestManualSearchAllProvidersProviderIDSkipsAdultSource(t *testing.T) {
 	cfg.Secrets.TMDbAPIKey = "test-key"
 	cfg.Secrets.TMDbAPIProxy = tmdbUpstream.URL
 	log := zap.NewNop()
-	apiConfig := NewAPIConfigService(log, repos, NewCryptoService("", log))
+	apiConfig := NewAPIConfigService(log, repos, NewCryptoService("test-secret", log))
 	adultBaseURL := adultUpstream.URL
 	if _, err := apiConfig.Update(t.Context(), "adult", APIConfigPatch{BaseURL: &adultBaseURL}); err != nil {
 		t.Fatal(err)
@@ -561,7 +561,7 @@ func TestManualSearchIncludesAdultProvider(t *testing.T) {
 		t.Fatal(err)
 	}
 	repos := repository.New(db)
-	apiConfig := NewAPIConfigService(zap.NewNop(), repos, NewCryptoService("", zap.NewNop()))
+	apiConfig := NewAPIConfigService(zap.NewNop(), repos, NewCryptoService("test-secret", zap.NewNop()))
 	baseURL := upstream.URL
 	if _, err := apiConfig.Update(t.Context(), "adult", APIConfigPatch{BaseURL: &baseURL}); err != nil {
 		t.Fatal(err)

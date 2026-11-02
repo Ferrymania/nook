@@ -40,7 +40,7 @@ func TestRemoteItemRequestsPeopleAndRewritesPersonIDs(t *testing.T) {
 
 	db := newServiceTestDB(t, &model.StrmAccount{}, &model.EmbyMount{})
 	repos := repository.New(db)
-	svc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("", zap.NewNop()))
+	svc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("test-secret", zap.NewNop()))
 	rawConfig, _ := json.Marshal(map[string]string{
 		"url":            server.URL,
 		"token":          "fake-token",
@@ -49,7 +49,7 @@ func TestRemoteItemRequestsPeopleAndRewritesPersonIDs(t *testing.T) {
 	acct := &model.StrmAccount{
 		Base:     model.Base{ID: "acct-people"},
 		Provider: model.StrmProviderEmbyRemote,
-		Config:   string(rawConfig),
+		Config:   encryptedTestAccountConfig(t, string(rawConfig)),
 		Enabled:  true,
 	}
 	if err := repos.StrmAccount.Create(t.Context(), acct); err != nil {

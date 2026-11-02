@@ -11,7 +11,7 @@ type Library struct {
 	SortOrder       int                    `gorm:"index;default:0" json:"sort_order"`        // 手动拖拽排序用，越小越靠前
 	CarouselEnabled bool                   `gorm:"default:false" json:"carousel_enabled"`    // 是否参与首页海报轮播（默认不参与）
 	AutoProbe       bool                   `gorm:"not null;default:false" json:"auto_probe"` // 刮削时按需探测技术信息（默认关闭）
-	ScrapeSettings  *LibraryScrapeSettings `gorm:"serializer:json;type:text" json:"-"`       // nil 保留升级前的设置，首次保存后独立于其他库。
+	ScrapeSettings  *LibraryScrapeSettings `gorm:"serializer:json;type:text" json:"-"`       // 未保存时使用默认值，各媒体库独立配置。
 	Roots           []LibraryRoot          `gorm:"foreignKey:LibraryID" json:"roots,omitempty"`
 }
 
@@ -21,7 +21,7 @@ type LibraryScrapeSettings struct {
 	Language   string   `json:"language"`
 	DelayMinMS int      `json:"delay_min_ms"`
 	DelayMaxMS int      `json:"delay_max_ms"`
-	// nil preserves the former global preference until this library saves its own value.
+	// A missing preference defaults to disabled.
 	SegmentPrewarmEnabled *bool `json:"segment_prewarm_enabled,omitempty"`
 }
 

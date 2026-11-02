@@ -14,7 +14,6 @@ type LibraryMovieActionsProps = {
   onMetadataEdit: (media: Media) => void
   onProbe: (media: Media) => void
   onNFO: (media: Media) => void
-  onOrganize: (media: Media) => void
   onQuerySegments: (media: Media) => void
   onDelete: (media: Media) => void
 }
@@ -27,7 +26,6 @@ export function LibraryMovieActions({
   onMetadataEdit,
   onProbe,
   onNFO,
-  onOrganize,
   onQuerySegments,
   onDelete,
 }: LibraryMovieActionsProps) {
@@ -111,7 +109,7 @@ export function LibraryMovieActions({
 
   const handlers: Record<MediaManagementActionKey, (media: Media) => void> = {
     scrape: onSmartScrape, match: onManualScrape, metadata: onMetadataEdit,
-    probe: onProbe, nfo: onNFO, organize: onOrganize, segments: onQuerySegments, delete: onDelete,
+    probe: onProbe, nfo: onNFO, segments: onQuerySegments, delete: onDelete,
   }
 
   return <>

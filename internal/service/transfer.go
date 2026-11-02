@@ -1,14 +1,4 @@
-// Package service — file transfer strategies for the organizer.
-//
-// 整理媒体时支持四种转移方式：
-//
-//	move     移动（同盘 rename，跨盘 copy+删除源）——会移除源文件
-//	copy     复制（保留源文件）
-//	hardlink 硬链接（同盘零额外占用，保留源文件；做种不受影响）
-//	symlink  软链接（保留源文件，指向源）
-//
-// 除 move 外，其余方式都保留源文件，因此下载器仍能在原
-// 路径找到数据继续做种上传。
+// Package service — file copy, move and link operations used by file management.
 package service
 
 import (
@@ -21,7 +11,7 @@ import (
 
 var linkFile = os.Link
 
-// TransferMode 表示整理时文件的转移方式。
+// TransferMode 表示文件的转移方式。
 type TransferMode string
 
 const (
@@ -47,11 +37,6 @@ func parseTransferMode(s string) TransferMode {
 	default:
 		return TransferMove
 	}
-}
-
-// keepsSource 报告该转移方式是否会保留源文件（用于做种）。
-func (m TransferMode) keepsSource() bool {
-	return m == TransferCopy || m == TransferHardlink || m == TransferSymlink
 }
 
 // transferFile 按指定方式把 src 转移到 dst。
@@ -85,12 +70,12 @@ func transferFile(src, dst string, mode TransferMode) error {
 
 // copyFile 流式复制 src 到 dst（保留源文件）。O_EXCL 保证不覆盖已存在目标。
 func copyFile(src, dst string) error {
-	in, err := os.Open(src) // #nosec G304 -- src is selected from configured media/download roots by the organizer.
+	in, err := os.Open(src) // #nosec G304 -- src is checked against the configured file-management roots.
 	if err != nil {
 		return err
 	}
 	defer in.Close()
-	f, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644) // #nosec G304,G302 -- dst is organizer-generated; media files must remain readable by local players.
+	f, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644) // #nosec G304,G302 -- dst is checked against the configured file-management roots; media files must remain readable by local players.
 	if err != nil {
 		return err
 	}
@@ -106,7 +91,7 @@ func copyFile(src, dst string) error {
 // to copy + remove for cross-device moves.
 //
 // If dst already exists, moveFile returns an error instead of overwriting it.
-// OrganizeMedia checks this before calling transferFile; this remains the
+// The caller checks the target before transfer; this remains the
 // second line of defense against different releases collapsing to one name.
 func moveFile(src, dst string) error {
 	if _, err := os.Stat(dst); err == nil {
@@ -115,12 +100,12 @@ func moveFile(src, dst string) error {
 	if err := os.Rename(src, dst); err == nil {
 		return nil
 	}
-	in, err := os.Open(src) // #nosec G304 -- src is selected from configured media/download roots by the organizer.
+	in, err := os.Open(src) // #nosec G304 -- src is checked against the configured file-management roots.
 	if err != nil {
 		return err
 	}
 	defer in.Close()
-	f, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644) // #nosec G304,G302 -- dst is organizer-generated; media files must remain readable by local players.
+	f, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644) // #nosec G304,G302 -- dst is checked against the configured file-management roots; media files must remain readable by local players.
 	if err != nil {
 		return err
 	}

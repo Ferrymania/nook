@@ -64,7 +64,7 @@ func TestMountedRemoteNextUpKeepsPartiallyWatchedEpisode(t *testing.T) {
 	repos := repository.New(db)
 
 	cfg := &config.Config{}
-	remote := NewEmbyRemoteService(cfg, zap.NewNop(), repos, NewCryptoService("", zap.NewNop()))
+	remote := NewEmbyRemoteService(cfg, zap.NewNop(), repos, NewCryptoService("test-secret", zap.NewNop()))
 	svc := NewEmbyService(cfg, zap.NewNop(), repos).SetEmbyRemote(remote)
 
 	rawConfig, _ := json.Marshal(map[string]string{
@@ -76,7 +76,7 @@ func TestMountedRemoteNextUpKeepsPartiallyWatchedEpisode(t *testing.T) {
 		Base:     model.Base{ID: "acct-1"},
 		Name:     "远程 Emby",
 		Provider: model.StrmProviderEmbyRemote,
-		Config:   string(rawConfig),
+		Config:   encryptedTestAccountConfig(t, string(rawConfig)),
 		Enabled:  true,
 	}
 	if err := repos.StrmAccount.Create(t.Context(), acct); err != nil {
@@ -177,7 +177,7 @@ func TestMountedRemoteNextUpAfterCompletedEpisode(t *testing.T) {
 	repos := repository.New(db)
 
 	cfg := &config.Config{}
-	remote := NewEmbyRemoteService(cfg, zap.NewNop(), repos, NewCryptoService("", zap.NewNop()))
+	remote := NewEmbyRemoteService(cfg, zap.NewNop(), repos, NewCryptoService("test-secret", zap.NewNop()))
 	svc := NewEmbyService(cfg, zap.NewNop(), repos).SetEmbyRemote(remote)
 
 	rawConfig, _ := json.Marshal(map[string]string{
@@ -189,7 +189,7 @@ func TestMountedRemoteNextUpAfterCompletedEpisode(t *testing.T) {
 		Base:     model.Base{ID: "acct-1"},
 		Name:     "远程 Emby",
 		Provider: model.StrmProviderEmbyRemote,
-		Config:   string(rawConfig),
+		Config:   encryptedTestAccountConfig(t, string(rawConfig)),
 		Enabled:  true,
 	}
 	if err := repos.StrmAccount.Create(t.Context(), acct); err != nil {

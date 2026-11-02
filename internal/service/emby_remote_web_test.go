@@ -160,7 +160,7 @@ func TestRemoteSeriesCardsAutoAuthOnFirstBrowse(t *testing.T) {
 
 	db := newServiceTestDB(t, &model.StrmAccount{}, &model.EmbyMount{})
 	repos := repository.New(db)
-	svc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("", zap.NewNop()))
+	svc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("test-secret", zap.NewNop()))
 
 	// 账号只配置了用户名/密码，从未「测试连接」：无 api_key、无 remote_user_id。
 	rawConfig, _ := json.Marshal(map[string]string{
@@ -172,7 +172,7 @@ func TestRemoteSeriesCardsAutoAuthOnFirstBrowse(t *testing.T) {
 		Base:     model.Base{ID: "acct-1"},
 		Name:     "test-emby",
 		Provider: model.StrmProviderEmbyRemote,
-		Config:   string(rawConfig),
+		Config:   encryptedTestAccountConfig(t, string(rawConfig)),
 		Enabled:  true,
 	}
 	if err := repos.StrmAccount.Create(t.Context(), acct); err != nil {
@@ -266,7 +266,7 @@ func TestRemoteSeriesCardsResolveUserIDFromAPIKey(t *testing.T) {
 
 	db := newServiceTestDB(t, &model.StrmAccount{}, &model.EmbyMount{})
 	repos := repository.New(db)
-	svc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("", zap.NewNop()))
+	svc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("test-secret", zap.NewNop()))
 
 	rawConfig, _ := json.Marshal(map[string]string{
 		"url":   server.URL,
@@ -276,7 +276,7 @@ func TestRemoteSeriesCardsResolveUserIDFromAPIKey(t *testing.T) {
 		Base:     model.Base{ID: "acct-2"},
 		Name:     "api-key-emby",
 		Provider: model.StrmProviderEmbyRemote,
-		Config:   string(rawConfig),
+		Config:   encryptedTestAccountConfig(t, string(rawConfig)),
 		Enabled:  true,
 	}
 	if err := repos.StrmAccount.Create(t.Context(), acct); err != nil {
@@ -343,7 +343,7 @@ func TestRemoteSearchMedia(t *testing.T) {
 
 	db := newServiceTestDB(t, &model.StrmAccount{}, &model.EmbyMount{})
 	repos := repository.New(db)
-	svc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("", zap.NewNop()))
+	svc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("test-secret", zap.NewNop()))
 
 	rawConfig, _ := json.Marshal(map[string]string{
 		"url":   server.URL,
@@ -353,7 +353,7 @@ func TestRemoteSearchMedia(t *testing.T) {
 		Base:     model.Base{ID: "acct-1"},
 		Name:     "test-emby",
 		Provider: model.StrmProviderEmbyRemote,
-		Config:   string(rawConfig),
+		Config:   encryptedTestAccountConfig(t, string(rawConfig)),
 		Enabled:  true,
 	}
 	if err := repos.StrmAccount.Create(t.Context(), acct); err != nil {
@@ -453,7 +453,7 @@ func TestRemoteLatestCardsTvShowsYearAndPoster(t *testing.T) {
 
 	db := newServiceTestDB(t, &model.StrmAccount{}, &model.EmbyMount{})
 	repos := repository.New(db)
-	svc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("", zap.NewNop()))
+	svc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("test-secret", zap.NewNop()))
 
 	rawConfig, _ := json.Marshal(map[string]string{
 		"url":   server.URL,
@@ -463,7 +463,7 @@ func TestRemoteLatestCardsTvShowsYearAndPoster(t *testing.T) {
 		Base:     model.Base{ID: "acct-tv"},
 		Name:     "tv-emby",
 		Provider: model.StrmProviderEmbyRemote,
-		Config:   string(rawConfig),
+		Config:   encryptedTestAccountConfig(t, string(rawConfig)),
 		Enabled:  true,
 	}
 	_ = repos.StrmAccount.Create(t.Context(), acct)
@@ -556,7 +556,7 @@ func TestRemoteLatestCardsTvShowsGroupsEpisodeFallbackBySeries(t *testing.T) {
 
 	db := newServiceTestDB(t, &model.StrmAccount{}, &model.EmbyMount{})
 	repos := repository.New(db)
-	svc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("", zap.NewNop()))
+	svc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("test-secret", zap.NewNop()))
 
 	rawConfig, _ := json.Marshal(map[string]string{
 		"url":            server.URL,
@@ -567,7 +567,7 @@ func TestRemoteLatestCardsTvShowsGroupsEpisodeFallbackBySeries(t *testing.T) {
 		Base:     model.Base{ID: "acct-tv-fallback"},
 		Name:     "tv-emby",
 		Provider: model.StrmProviderEmbyRemote,
-		Config:   string(rawConfig),
+		Config:   encryptedTestAccountConfig(t, string(rawConfig)),
 		Enabled:  true,
 	}
 	if err := repos.StrmAccount.Create(t.Context(), acct); err != nil {
@@ -648,7 +648,7 @@ func TestEmbyLatestItemsRemoteTvShowsUseSeriesIDs(t *testing.T) {
 		&model.EmbyMount{},
 	)
 	repos := repository.New(db)
-	remoteSvc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("", zap.NewNop()))
+	remoteSvc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("test-secret", zap.NewNop()))
 	svc := NewEmbyService(&config.Config{}, zap.NewNop(), repos).SetEmbyRemote(remoteSvc)
 
 	rawConfig, _ := json.Marshal(map[string]string{
@@ -660,7 +660,7 @@ func TestEmbyLatestItemsRemoteTvShowsUseSeriesIDs(t *testing.T) {
 		Base:     model.Base{ID: "acct-emby-latest"},
 		Name:     "tv-emby",
 		Provider: model.StrmProviderEmbyRemote,
-		Config:   string(rawConfig),
+		Config:   encryptedTestAccountConfig(t, string(rawConfig)),
 		Enabled:  true,
 	}
 	if err := repos.StrmAccount.Create(t.Context(), acct); err != nil {
@@ -730,7 +730,7 @@ func TestRemoteSeriesCardsFetchAllPages(t *testing.T) {
 
 	db := newServiceTestDB(t, &model.StrmAccount{}, &model.EmbyMount{})
 	repos := repository.New(db)
-	svc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("", zap.NewNop()))
+	svc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("test-secret", zap.NewNop()))
 
 	rawConfig, _ := json.Marshal(map[string]string{
 		"url":            server.URL,
@@ -741,7 +741,7 @@ func TestRemoteSeriesCardsFetchAllPages(t *testing.T) {
 		Base:     model.Base{ID: "acct-series-pages"},
 		Name:     "tv-emby",
 		Provider: model.StrmProviderEmbyRemote,
-		Config:   string(rawConfig),
+		Config:   encryptedTestAccountConfig(t, string(rawConfig)),
 		Enabled:  true,
 	}
 	if err := repos.StrmAccount.Create(t.Context(), acct); err != nil {
@@ -809,7 +809,7 @@ func TestRemoteSeriesCardsRecursiveFiltersAnimeContainers(t *testing.T) {
 
 	db := newServiceTestDB(t, &model.StrmAccount{}, &model.EmbyMount{})
 	repos := repository.New(db)
-	svc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("", zap.NewNop()))
+	svc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("test-secret", zap.NewNop()))
 
 	rawConfig, _ := json.Marshal(map[string]string{
 		"url":            server.URL,
@@ -820,7 +820,7 @@ func TestRemoteSeriesCardsRecursiveFiltersAnimeContainers(t *testing.T) {
 		Base:     model.Base{ID: "acct-recursive"},
 		Name:     "nijigem",
 		Provider: model.StrmProviderEmbyRemote,
-		Config:   string(rawConfig),
+		Config:   encryptedTestAccountConfig(t, string(rawConfig)),
 		Enabled:  true,
 	}
 	if err := repos.StrmAccount.Create(t.Context(), acct); err != nil {
@@ -892,7 +892,7 @@ func TestRemoteLatestCardsKeyMatchesSeriesList(t *testing.T) {
 
 	db := newServiceTestDB(t, &model.StrmAccount{}, &model.EmbyMount{})
 	repos := repository.New(db)
-	svc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("", zap.NewNop()))
+	svc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("test-secret", zap.NewNop()))
 
 	rawConfig, _ := json.Marshal(map[string]string{
 		"url":            server.URL,
@@ -903,7 +903,7 @@ func TestRemoteLatestCardsKeyMatchesSeriesList(t *testing.T) {
 		Base:     model.Base{ID: "acct-latest-key"},
 		Name:     "tv-emby",
 		Provider: model.StrmProviderEmbyRemote,
-		Config:   string(rawConfig),
+		Config:   encryptedTestAccountConfig(t, string(rawConfig)),
 		Enabled:  true,
 	}
 	if err := repos.StrmAccount.Create(t.Context(), acct); err != nil {
@@ -967,7 +967,7 @@ func TestRemoteLatestFields(t *testing.T) {
 
 	db := newServiceTestDB(t, &model.StrmAccount{}, &model.EmbyMount{})
 	repos := repository.New(db)
-	svc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("", zap.NewNop()))
+	svc := NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, NewCryptoService("test-secret", zap.NewNop()))
 
 	rawConfig, _ := json.Marshal(map[string]string{
 		"url":   server.URL,
@@ -977,7 +977,7 @@ func TestRemoteLatestFields(t *testing.T) {
 		Base:     model.Base{ID: "acct-movie"},
 		Name:     "movie-emby",
 		Provider: model.StrmProviderEmbyRemote,
-		Config:   string(rawConfig),
+		Config:   encryptedTestAccountConfig(t, string(rawConfig)),
 		Enabled:  true,
 	}
 	_ = repos.StrmAccount.Create(t.Context(), acct)

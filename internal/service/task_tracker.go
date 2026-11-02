@@ -16,14 +16,13 @@ const (
 	TaskStatusCompleted = "completed"
 	TaskStatusFailed    = "failed"
 
-	TaskKindOrganize = "organize"
-	TaskKindScan     = "scan"
-	TaskKindScrape   = "scrape"
+	TaskKindScan   = "scan"
+	TaskKindScrape = "scrape"
 )
 
 // BackgroundTask is the compact, operator-facing shape shown on the live tasks
 // page. It tracks long-running work that is not represented by a download or
-// transcode job, such as organize → scan → scrape ingest flows.
+// transcode job, such as library scans and metadata scraping.
 type BackgroundTask struct {
 	ID         string           `json:"id"`
 	Kind       string           `json:"kind"`

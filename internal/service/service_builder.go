@@ -101,14 +101,9 @@ func (b *serviceContainerBuilder) initProviderServices() {
 }
 
 func (b *serviceContainerBuilder) initContentServices() {
-	b.c.Organizer = NewOrganizerService(b.cfg, b.log, b.repos)
-	b.c.Organizer.SetProbe(b.c.FFprobe)
-	b.c.Organizer.SetScraper(b.c.Scraper)
 	b.c.Transcoder = NewTranscoderService(b.cfg, b.log, b.repos, b.c.WSHub)
 	b.c.Scan = NewScannerService(b.cfg, b.log, b.repos, b.c.WSHub, b.c.FFprobe, b.c.Scraper)
-	b.c.Scan.SetOrganizer(b.c.Organizer)
 	b.c.Scan.SetRuntimeCache(b.c.Cache)
-	b.c.OrganizePipeline = NewOrganizePipelineService(b.log, b.repos, b.c.Organizer, b.c.Scan, b.c.Tasks)
 	b.c.Watcher = NewWatcherService(b.log, b.repos, b.c.Scan)
 	b.c.NFO = NewNFOService(b.log, b.repos)
 	b.c.FileManager = NewFileManagerService(b.cfg, b.log, b.repos)

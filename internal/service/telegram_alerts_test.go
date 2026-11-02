@@ -24,7 +24,7 @@ func TestTaskFailureNotifiesAdmin(t *testing.T) {
 		adminCalls = append(adminCalls, call{text})
 	})
 
-	h := tracker.Start(TaskKindOrganize, "自动整理", TaskUpdate{})
+	h := tracker.Start(TaskKindScan, "自动整理", TaskUpdate{})
 	h.Finish(errors.New("disk full"), TaskUpdate{})
 
 	if len(adminCalls) != 1 {
@@ -68,7 +68,7 @@ func TestTaskSuccessDoesNotNotifyAdmin(t *testing.T) {
 	var count int
 	tracker.SetFailureNotifier(func(context.Context, string) { count++ })
 
-	h := tracker.Start(TaskKindOrganize, "自动整理", TaskUpdate{})
+	h := tracker.Start(TaskKindScan, "自动整理", TaskUpdate{})
 	h.Finish(nil, TaskUpdate{})
 
 	if count != 0 {

@@ -587,7 +587,8 @@ func TestSearchMediaHandlerIncludesEmbyRemote(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rawCfg, _ := json.Marshal(map[string]string{"url": server.URL, "token": "fake-token"})
+	crypto := service.NewCryptoService("test-secret", zap.NewNop())
+	rawCfg, _ := json.Marshal(map[string]string{"url": server.URL, "token": crypto.Encrypt("fake-token")})
 	acct := model.StrmAccount{
 		Base:     model.Base{ID: "acct-1"},
 		Name:     "远程Emby",
@@ -610,7 +611,6 @@ func TestSearchMediaHandlerIncludesEmbyRemote(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	crypto := service.NewCryptoService("", zap.NewNop())
 	remoteSvc := service.NewEmbyRemoteService(&config.Config{}, zap.NewNop(), repos, crypto)
 	mediaSvc := service.NewMediaService(&config.Config{}, zap.NewNop(), repos)
 

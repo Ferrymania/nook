@@ -9,7 +9,7 @@ import (
 )
 
 func inferLibraryKind(name, path, requested string) string {
-	requested = normalizeOrganizeMediaType(requested)
+	requested = normalizeMetadataMediaType(requested)
 	text := strings.ToLower(name + " " + filepath.ToSlash(path))
 	// English category names must be whole words: a random ancestor such as
 	// macOS's 6tvttyb... temporary directory is not a TV category.
@@ -70,12 +70,12 @@ func resolveAccessibleLibraryPath(path string) (string, error) {
 }
 
 // embeddedContainerMarkerCandidates 处理旧库把宿主机绝对路径整段写进来的情况：
-// /media 或 /downloads 出现在路径中段（如 moviepilot 的 /vol1/.../media/电视剧/国产剧），
-// 取最后一个该段之后的尾巴拼到容器目录（默认 /media、/downloads，可用 *_CONTAINER_DIR 覆盖）。
+// /media 出现在路径中段（如 /vol1/.../media/电视剧/国产剧），
+// 取最后一个该段之后的尾巴拼到容器媒体目录。
 //
 // 这个启发式偏激进，只能在**按存在性校验**的读/扫描解析里使用；绝不能并入
 // mappedPathCandidates——resolveMappedDestinationPath 不校验存在性、会返回首个候选，
-// 那样会把形如 <tmp>/media/... 的合法目的地错误重写到容器根，破坏整理/硬链接。
+// 那样会把形如 <tmp>/media/... 的合法目的地错误重写到容器根。
 func embeddedContainerMarkerCandidates(input string) []string {
 	normalized := cleanPathForVolumeMapping(input)
 	markerPath := pathAfterWindowsDrivePrefix(normalized)
@@ -85,7 +85,6 @@ func embeddedContainerMarkerCandidates(input string) []string {
 		container string
 	}{
 		{part: "/media", container: envOrDefault("NOOK_MEDIA_CONTAINER_DIR", "/media")},
-		{part: "/downloads", container: envOrDefault("NOOK_DOWNLOAD_CONTAINER_DIR", "/downloads")},
 	} {
 		part := strings.TrimRight(marker.part, "/")
 		container := strings.TrimRight(filepath.ToSlash(marker.container), "/")
@@ -126,7 +125,7 @@ func resolveAccessibleMappedPath(path string) (string, os.FileInfo, error) {
 			return filepath.Clean(candidate), info, nil
 		}
 	}
-	// 兜底同 resolveAccessibleLibraryPath：中段 /media|/downloads 的旧宿主机路径，
+	// 兜底同 resolveAccessibleLibraryPath：中段 /media 的旧宿主机路径，
 	// 仅在 os.Stat 校验存在后采用。
 	for _, candidate := range embeddedContainerMarkerCandidates(input) {
 		if info, err := os.Stat(candidate); err == nil {
@@ -220,7 +219,6 @@ func dockerVolumePathCandidates(path string) []string {
 		container string
 	}{
 		{env: "NOOK_MEDIA_DIR", container: envOrDefault("NOOK_MEDIA_CONTAINER_DIR", "/media")},
-		{env: "NOOK_DOWNLOAD_DIR", container: envOrDefault("NOOK_DOWNLOAD_CONTAINER_DIR", "/downloads")},
 	} {
 		container := cleanPathForVolumeMapping(mapping.container)
 		if container == "." || container == "" || strings.HasPrefix(container, ".") {
@@ -263,7 +261,6 @@ func dockerVolumePathCandidates(path string) []string {
 		container string
 	}{
 		{part: "/media", container: envOrDefault("NOOK_MEDIA_CONTAINER_DIR", "/media")},
-		{part: "/downloads", container: envOrDefault("NOOK_DOWNLOAD_CONTAINER_DIR", "/downloads")},
 	} {
 		part := strings.TrimRight(marker.part, "/")
 		container := strings.TrimRight(filepath.ToSlash(marker.container), "/")
@@ -286,10 +283,5 @@ func isRelativeVolumeMarkerPath(path string) bool {
 	if normalized == "" || strings.HasPrefix(normalized, "/") || filepath.IsAbs(path) {
 		return false
 	}
-	for _, marker := range []string{"media", "downloads"} {
-		if normalized == marker || strings.HasPrefix(normalized, marker+"/") {
-			return true
-		}
-	}
-	return false
+	return normalized == "media" || strings.HasPrefix(normalized, "media/")
 }

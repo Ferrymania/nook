@@ -29,7 +29,6 @@ type LibrarySeriesDetailHeaderProps = {
   onMetadataEdit: () => void
   onProbe: () => void
   onNFO: () => void
-  onOrganize: () => void
   onDelete: () => void
 }
 
@@ -49,7 +48,6 @@ export function LibrarySeriesDetailHeader({
   onMetadataEdit,
   onProbe,
   onNFO,
-  onOrganize,
   onDelete,
 }: LibrarySeriesDetailHeaderProps) {
   const tvEpisodes = allEpisodes.filter((media) => !isTheatricalFeature(media))
@@ -118,7 +116,6 @@ export function LibrarySeriesDetailHeader({
               onMetadataEdit={onMetadataEdit}
               onProbe={onProbe}
               onExportNFO={onNFO}
-              onOrganize={onOrganize}
               onDelete={onDelete}
               segmentAction={<MediaSegmentQueryButton key={series.rep.id} media={series.rep} episodes={queryEpisodes} disabled={!!seriesToolBusy} />}
             />

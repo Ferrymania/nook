@@ -12,7 +12,6 @@ import (
 	"reflect"
 	"time"
 
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 
@@ -212,18 +211,6 @@ func decodePostgresBackupRows(ctx context.Context, sch *schema.Schema, modelType
 	return slice.Interface(), nil
 }
 
-// Retired tables can occur in backups made before their feature was removed.
-// Keep this exact allowlist so unrelated unknown tables still reject the restore.
-func isRetiredBackupTable(table string) bool {
-	switch table {
-	case "reader_book_sources", "reader_source_states", "reader_books", "reader_chapters",
-		"reader_content_caches", "reader_replace_rules", "reader_profiles", "reader_book_groups":
-		return true
-	default:
-		return false
-	}
-}
-
 // restorePostgresBackup 用逻辑备份重建全库。
 func (b *BackupService) restorePostgresBackup(ctx context.Context, src string) error {
 	file, err := os.Open(src)
@@ -242,7 +229,7 @@ func (b *BackupService) restorePostgresBackup(ctx context.Context, src string) e
 	if err := dec.Decode(&header); err != nil {
 		return fmt.Errorf("备份头损坏: %w", err)
 	}
-	if (header.Format != postgresBackupFormat && header.Format != "mebox-postgres-logical") || header.Version != postgresBackupVersion {
+	if header.Format != postgresBackupFormat || header.Version != postgresBackupVersion {
 		return fmt.Errorf("不支持的备份格式 %q (v%d)", header.Format, header.Version)
 	}
 	schemas, modelTypes, err := postgresBackupModelSchemas(b.db)
@@ -274,12 +261,6 @@ func (b *BackupService) restorePostgresBackup(ctx context.Context, src string) e
 			}
 			sch, ok := schemas[chunk.Table]
 			if !ok {
-				if isRetiredBackupTable(chunk.Table) {
-					if b.log != nil {
-						b.log.Warn("skipping retired table in legacy backup", zap.String("table", chunk.Table))
-					}
-					continue
-				}
 				return fmt.Errorf("备份包含未知表 %s，可能来自不兼容的版本", chunk.Table)
 			}
 			if len(chunk.Rows) == 0 {
