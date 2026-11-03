@@ -140,6 +140,7 @@ func CleanQuery(raw string) (title string, year int) {
 	if name == "" {
 		name = strings.TrimSuffix(base, filepath.Ext(base))
 	}
+	name = cleanQueryReleaseName(name)
 	lower := strings.ToLower(name)
 	_, episode := ParseEpisode(base)
 
@@ -171,7 +172,7 @@ func CleanQuery(raw string) (title string, year int) {
 	// 保留电影片名里的单个字母（Project A、X）；剧集沿用原有碎片清洗。
 	//
 	// seenReleaseBoundary 只有在遇到分辨率/编码等强标记后才置位，置位后其余
-	// ASCII 词一律视为发布尾巴丢弃；releaseSignalled 则宽松得多，年份标记也会
+	// 其余内容均视为发布尾巴丢弃；releaseSignalled 则宽松得多，年份标记也会
 	// 置位，它只用来武装弱标记（bd/dvd/web）。这样 "Web Therapy" 不会被截空，
 	// 而 "2019.Avatar.1080p" 这种年份前置的标题也不会因为年份标记把后面的
 	// 真实标题词当成尾巴丢掉。
@@ -211,7 +212,7 @@ func CleanQuery(raw string) (title string, year int) {
 		} else if _, ok := noiseTokenSet[w]; ok {
 			continue
 		}
-		if seenReleaseBoundary && isASCIIWord(w) {
+		if seenReleaseBoundary {
 			continue
 		}
 		if len(w) == 1 && w[0] < 128 && (seenEpisodeBoundary || (episode > 0 && (w[0] < '0' || w[0] > '9'))) {
