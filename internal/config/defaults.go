@@ -3,13 +3,14 @@ package config
 import "github.com/spf13/viper"
 
 const (
+	DefaultAppPort              = 18080
 	defaultDatabaseMaxOpenConns = 16
 	defaultDatabaseMaxIdleConns = 4
 	DefaultCacheMemoryMaxSizeMB = 128
 )
 
 func setDefaults(v *viper.Viper) {
-	v.SetDefault("app.port", 8080)
+	v.SetDefault("app.port", DefaultAppPort)
 	v.SetDefault("app.debug", false)
 	v.SetDefault("app.env", "production")
 	v.SetDefault("app.data_dir", "./data")

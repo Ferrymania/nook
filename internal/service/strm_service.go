@@ -62,7 +62,7 @@ var StrmSettingDefs = map[string]struct {
 	Choices []string
 	Help    string
 }{
-	StrmSettingBaseURL:         {Default: "", Label: "STRM 链接基础地址", Kind: "text", Help: "生成的 strm 文件指向的播放地址（默认留空自动取服务器公网地址 app.server_url）。例如 http://192.168.1.10:8096"},
+	StrmSettingBaseURL:         {Default: "", Label: "STRM 播放地址", Kind: "text", Help: "此地址会写入生成的 STRM 文件。如果用 Emby 读取 STRM，请填写 Emby 服务器能访问的 Nook 地址。例如 http://127.0.0.1:18080"},
 	StrmSettingVideoExt:        {Default: StrmDefaultVideoExt, Label: "视频扩展名", Kind: "text", Help: "逗号分隔；命中即生成 .strm。暂时不支持 ISO，默认不生成 ISO 的 STRM"},
 	StrmSettingMetaExt:         {Default: StrmDefaultMetaExt, Label: "元数据扩展名", Kind: "text", Help: "逗号分隔；进入下载/上传队列的文件类型（nfo/图片/字幕）"},
 	StrmSettingExcludeName:     {Default: StrmDefaultExclude, Label: "排除文件名", Kind: "text", Help: "逗号分隔；文件名包含任一关键词即跳过"},
@@ -972,7 +972,7 @@ func (s *StrmService) validateSyncPath(ctx context.Context, p *model.StrmSyncPat
 
 // strmDefaultBaseURL 兜底默认：所有地址配置都为空时使用本机监听地址。
 func strmDefaultBaseURL(cfg *config.Config) string {
-	port := 8080
+	port := config.DefaultAppPort
 	if cfg != nil && cfg.App.Port > 0 {
 		port = cfg.App.Port
 	}

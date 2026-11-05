@@ -1377,17 +1377,8 @@ func (st *strmSyncState) writeVideoStrm(entry cloud.FileEntry, rel, ext, targetR
 		}
 	}
 
-	// 增量同步模式快速检查：本地 strm 文件存在、非空且修改时间与远端 mtime 一致，直接跳过无需读磁盘
-	if st.syncType == model.StrmSyncTypeIncremental && entry.MTime > 0 {
-		if info, err := os.Stat(target); err == nil && info.Size() > 0 && info.ModTime().Unix() == entry.MTime {
-			st.mu.Lock()
-			st.rec.Skipped++
-			st.mu.Unlock()
-			done()
-			return
-		}
-	}
-
+	// 远端 mtime 不会随播放地址、链接参数或账号配置变化，增量同步也必须
+	// 比较 STRM 内容。生成链接只使用已有文件列表信息，不额外解析视频直链。
 	content, err := st.strmContent(entry, rel, ext)
 	if err != nil {
 		st.s.log.Warn("build strm content failed", zap.String("file", rel), zap.Error(err))

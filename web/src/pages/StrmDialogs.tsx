@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useRef, useState } from 'react'
+import { FormEvent, useEffect, useId, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import {
   ArrowDown,
@@ -475,21 +475,43 @@ export function StrmAccountDialog({
 // ─── 115 登录二维码（canvas 渲染；115 返回的是扫码页面链接而非图片） ───────────
 
 // QR 尺寸：物理像素 = CSS 像素（避免 canvas 被 CSS 缩放导致裁切/模糊）
+const STRM_BASE_URL = 'strm.base_url'
+
+function strmPlaybackHostname(address: string) {
+  if (!/^https?:\/\/[^/\s]/i.test(address)) return ''
+  try {
+    return new URL(address).hostname.toLowerCase().replace(/\.$/, '')
+  } catch {
+    return ''
+  }
+}
+
+function strmPlaybackAddressHint(hostname: string) {
+  if (!hostname) return ''
+  if (hostname === 'localhost' || hostname.endsWith('.localhost') || /^127\.(?:\d+\.){2}\d+$/.test(hostname) || hostname === '[::1]') {
+    return '仅适用于与 Nook 共用网络环境的服务。Emby 在另一个容器时，请填写它能访问的 Nook 地址。'
+  }
+  if (/^(?:10\.\d+|172\.(?:1[6-9]|2\d|3[01])|192\.168|169\.254)\.\d+\.\d+$/.test(hostname) ||
+    /^\[(?:f[cd][0-9a-f]{2}|fe[89ab][0-9a-f]):/.test(hostname) ||
+    (!hostname.includes('.') && !hostname.startsWith('[')) || hostname.endsWith('.local')) {
+    return ''
+  }
+  return '如果 STRM 播放接口可从公网访问，拿到完整链接的人可能无需登录就能播放。'
+}
+
 const SETTING_DEFS: SettingDef[] = [
-  { key: 'strm.base_url', label: 'STRM 链接基础地址', type: 'text', hint: '生成的 strm 文件指向的播放地址；留空依次自动使用 app.server_url，最后回退到本机地址（http://127.0.0.1:端口）。Emby 在其他设备时请配置局域网/公网地址' },
   { key: 'strm.video_ext', label: '视频扩展名', type: 'text', hint: '逗号分隔，命中即生成 .strm。暂时不支持 ISO，默认不生成 ISO 的 STRM' },
   { key: 'strm.meta_ext', label: '元数据扩展名', type: 'text', hint: '逗号分隔，进入下载/上传队列（nfo/图片/字幕）' },
   { key: 'strm.exclude_name', label: '排除文件名', type: 'text', hint: '逗号分隔，文件名包含任一关键词即跳过' },
   { key: 'strm.min_video_size_mb', label: '最小视频大小(MB)', type: 'number', hint: '小于该大小的视频不生成 STRM，0 表示不限' },
   {
     key: 'strm.add_path',
-    label: 'STRM 链接 path 参数',
+    label: '链接附带的文件信息',
     type: 'select',
-    hint: '1=附带完整远端路径 2=仅文件名 3=不带 path',
     options: [
       { value: '1', label: '完整路径' },
       { value: '2', label: '仅文件名' },
-      { value: '3', label: '不带 path' },
+      { value: '3', label: '不附带' },
     ],
   },
   {
@@ -502,23 +524,44 @@ const SETTING_DEFS: SettingDef[] = [
   { key: 'strm.upload_threads', label: '上传队列线程数', type: 'number', hint: '元数据上传并发数' },
 ]
 
-export function StrmSettingsDialog({ onClose }: { onClose: () => void }) {
+export function StrmSettingsDialog({ onClose, onAddressChange }: { onClose: () => void; onAddressChange: (address: string) => void }) {
+  const addressID = useId()
   const [values, setValues] = useState<Record<string, string> | null>(null)
   const [saving, setSaving] = useState(false)
+  const [addressError, setAddressError] = useState('')
+  const address = values?.[STRM_BASE_URL] ?? ''
+  const addressHostname = strmPlaybackHostname(address.trim())
+  const addressHint = strmPlaybackAddressHint(addressHostname)
+
+  const updateAddress = (value: string) => {
+    setAddressError('')
+    setValues((current) => current && { ...current, [STRM_BASE_URL]: value })
+  }
 
   useEffect(() => {
+    let active = true
     strmAPI
       .getSettings()
-      .then(setValues)
-      .catch((err) => toast.error(apiErrorMessage(err)))
-  }, [])
+      .then((settings) => {
+        if (!active) return
+        setValues(settings)
+        onAddressChange(settings[STRM_BASE_URL]?.trim() ?? '')
+      })
+      .catch((err) => { if (active) toast.error(apiErrorMessage(err)) })
+    return () => { active = false }
+  }, [onAddressChange])
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     if (!values) return
+    if (address.trim() && !addressHostname) {
+      setAddressError('请输入包含 http:// 或 https:// 的完整地址。')
+      return
+    }
     setSaving(true)
     try {
       await strmAPI.updateSettings(values)
+      onAddressChange(address.trim())
       toast.success('STRM 设置已保存')
       onClose()
     } catch (err) {
@@ -529,18 +572,45 @@ export function StrmSettingsDialog({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <DialogShell title="STRM 设置" subtitle="全局默认配置；同步目录可单独覆盖" onClose={onClose} wide>
+    <DialogShell title="STRM 设置" subtitle="全局默认配置，同步目录可单独覆盖" onClose={onClose} wide>
       {!values ? (
         <div className="flex justify-center py-10 text-ink-50">
           <Loader2 className="animate-spin" />
         </div>
       ) : (
         <form onSubmit={submit} className="space-y-4">
+          <div className="grid items-start gap-2 md:grid-cols-[280px_1fr]">
+            <div>
+              <label htmlFor={addressID} className="text-sm font-medium text-ink-100">STRM 播放地址</label>
+              <p id={`${addressID}-help`} className="mt-0.5 text-xs text-sand-500">
+                此地址会写入生成的 STRM 文件。如果用 Emby 读取 STRM，请填写 Emby 服务器能访问的 Nook 地址。
+              </p>
+            </div>
+            <div className="min-w-0 space-y-2">
+              <input
+                id={addressID}
+                className={inputCls}
+                inputMode="url"
+                autoCapitalize="none"
+                spellCheck={false}
+                value={address}
+                placeholder="http://127.0.0.1:18080"
+                aria-invalid={Boolean(addressError)}
+                aria-describedby={`${addressID}-help ${addressID}-note`}
+                onChange={(event) => updateAddress(event.target.value)}
+              />
+              <div id={`${addressID}-note`} aria-live="polite">
+                {addressError ? <p className="text-xs text-rose-600">{addressError}</p> :
+                  addressHint && <p className="text-xs text-ink-50">{addressHint}</p>}
+              </div>
+            </div>
+          </div>
           {SETTING_DEFS.map((def) => (
             <SettingRow
               key={def.key}
               def={def}
               value={values[def.key] ?? ''}
+              showKey={false}
               onChange={(value) => setValues((v) => ({ ...v!, [def.key]: value }))}
             />
           ))}
@@ -574,13 +644,13 @@ export function StrmSyncPathDialog({
   existing,
   onClose,
   onSaved,
-  onOpenSettings,
+  onAddressMissing,
 }: {
   accounts: StrmAccount[]
   existing: StrmSyncPath | null
   onClose: () => void
   onSaved: () => void
-  onOpenSettings?: () => void
+  onAddressMissing: () => void
 }) {
   const [form, setForm] = useState<StrmSyncPathInput>(() => ({
     name: existing?.name ?? '',
@@ -605,6 +675,7 @@ export function StrmSyncPathDialog({
     enabled: existing?.enabled ?? true,
   }))
   const [saving, setSaving] = useState(false)
+  const [addressMissing, setAddressMissing] = useState(false)
   const [browsing, setBrowsing] = useState(false)
   const [browsingLocal, setBrowsingLocal] = useState<null | 'remote_path' | 'local_path'>(null)
   // 输入框显示的远端目录文本：对于 115 优先显示完整路径，若尚未反查到则显示 ID
@@ -710,12 +781,12 @@ export function StrmSyncPathDialog({
     try {
       if (!existing) {
         const settings = await strmAPI.getSettings()
-        if (!settings?.['strm.base_url']?.trim()) {
-          toast.error('未填写strm地址')
-          onClose()
-          onOpenSettings?.()
+        if (!settings[STRM_BASE_URL]?.trim()) {
+          setAddressMissing(true)
+          onAddressMissing()
           return
         }
+        setAddressMissing(false)
       }
       if (existing) {
         await strmAPI.updatePath(existing.id, form)
@@ -930,6 +1001,9 @@ export function StrmSyncPathDialog({
           </div>
         </details>
 
+        {addressMissing && (
+          <p role="alert" className="text-sm text-rose-600">播放地址已清空，请在「STRM 设置」中重新填写。</p>
+        )}
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-ink-100 hover:bg-gray-50">
             取消

@@ -13,7 +13,7 @@ func TestLoadUsesOnlyNookEnvironment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.App.Port != 8080 || cfg.Database.DSN != "" {
+	if cfg.App.Port != 18080 || cfg.Database.DSN != "" {
 		t.Fatalf("retired environment aliases were loaded: port=%d dsn=%q", cfg.App.Port, cfg.Database.DSN)
 	}
 	t.Setenv("NOOK_APP_PORT", "9092")
