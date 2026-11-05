@@ -76,9 +76,9 @@ RUN mkdir -p /data /cache /media \
 # Entrypoint supplies container defaults and UID/GID handling.
 ENV TZ=Asia/Shanghai
 
-EXPOSE 8080
+EXPOSE 18080
 
-# 探测协议不能写死：开启 HTTPS 后 8080 只接受 TLS。脚本按数据目录里的
+# 探测协议不能写死：开启 HTTPS 后 18080 只接受 TLS。脚本按数据目录里的
 # .http_scheme 选择协议并在失败时回退，无需用户改配置。
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD ["/usr/local/bin/nook-healthcheck"]

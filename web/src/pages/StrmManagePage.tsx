@@ -26,6 +26,9 @@ import { StrmAccountDialog, StrmSettingsDialog, StrmSyncPathDialog } from './Str
 
 type StrmDialogKey = 'account' | 'settings' | 'path' | null
 type AccountTestState = { pending: boolean; error?: string }
+type PlaybackAddressStatus = 'loading' | 'unavailable' | 'missing' | 'ready'
+
+const ADD_PATH_HINT_ID = 'strm-add-path-hint'
 
 const STATUS_META: Record<string, { label: string; cls: string }> = {
   '': { label: '尚未同步', cls: 'bg-gray-100 text-gray-500' },
@@ -59,6 +62,7 @@ export function StrmManagePage() {
   const recordPageRef = useRef(1)
   const recordRequestRef = useRef(0)
   const [loading, setLoading] = useState(true)
+  const [playbackAddressStatus, setPlaybackAddressStatus] = useState<PlaybackAddressStatus>('loading')
   const [dialog, setDialog] = useState<StrmDialogKey>(null)
   const [editingPath, setEditingPath] = useState<StrmSyncPath | null>(null)
   const [editingAccount, setEditingAccount] = useState<StrmAccount | null>(null)
@@ -104,6 +108,17 @@ export function StrmManagePage() {
   useEffect(() => {
     refresh().catch(() => undefined)
   }, [refresh])
+
+  useEffect(() => {
+    let active = true
+    const finish = (status: PlaybackAddressStatus) => {
+      if (active) setPlaybackAddressStatus((current) => current === 'loading' ? status : current)
+    }
+    strmAPI.getSettings()
+      .then((settings) => finish(settings['strm.base_url']?.trim() ? 'ready' : 'missing'))
+      .catch(() => finish('unavailable'))
+    return () => { active = false }
+  }, [])
 
   // 有进行中的同步时轮询刷新状态
   useEffect(() => {
@@ -184,20 +199,19 @@ export function StrmManagePage() {
     }
   }
 
-  const openAddPathDialog = async () => {
-    try {
-      const settings = await strmAPI.getSettings()
-      const baseUrl = settings?.['strm.base_url']?.trim()
-      if (!baseUrl) {
-        toast.error('未填写strm地址')
-        setDialog('settings')
-        return
-      }
-      setEditingPath(null)
-      setDialog('path')
-    } catch (err) {
-      toast.error(apiErrorMessage(err))
-    }
+  const canAddPath = playbackAddressStatus === 'ready'
+  const addPathHint = playbackAddressStatus === 'missing'
+    ? '请先在「STRM 设置」中填写播放地址。'
+    : playbackAddressStatus === 'unavailable' ? '暂时无法读取播放地址，请打开「STRM 设置」重试。' : ''
+
+  const updatePlaybackAddress = useCallback((address: string) => {
+    setPlaybackAddressStatus(address ? 'ready' : 'missing')
+  }, [])
+
+  const openAddPathDialog = () => {
+    if (!canAddPath) return
+    setEditingPath(null)
+    setDialog('path')
   }
 
   return (
@@ -223,10 +237,29 @@ export function StrmManagePage() {
             <Settings size={16} />
             STRM 设置
           </button>
-          <button type="button" onClick={openAddPathDialog} className="neon-button">
-            <Plus size={16} />
-            添加同步目录
-          </button>
+          <div className="group relative">
+            <button
+              type="button"
+              aria-disabled={!canAddPath}
+              aria-describedby={addPathHint ? ADD_PATH_HINT_ID : undefined}
+              onClick={openAddPathDialog}
+              className="neon-button aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:bg-transparent"
+            >
+              <Plus size={16} />
+              添加同步目录
+            </button>
+            {addPathHint && (
+              <div
+                id={ADD_PATH_HINT_ID}
+                role="tooltip"
+                className="invisible absolute left-1/2 top-full z-10 w-max max-w-40 -translate-x-1/2 pt-2 group-hover:visible group-has-[:focus-visible]:visible"
+              >
+                <div className="rounded-lg border border-(--app-border) bg-(--app-panel-elevated) px-3 py-2 text-xs text-ink-600 shadow-sm">
+                  {addPathHint}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -248,6 +281,8 @@ export function StrmManagePage() {
           <SyncPathSection
             paths={paths}
             actingPath={actingPath}
+            canAddPath={canAddPath}
+            addPathHint={addPathHint}
             onAdd={openAddPathDialog}
             onEdit={(path) => { setEditingPath(path); setDialog('path') }}
             onDelete={deletePath}
@@ -274,14 +309,19 @@ export function StrmManagePage() {
           onSaved={() => { setDialog(null); refresh().catch(() => undefined) }}
         />
       )}
-      {dialog === 'settings' && <StrmSettingsDialog onClose={() => setDialog(null)} />}
+      {dialog === 'settings' && (
+        <StrmSettingsDialog
+          onClose={() => setDialog(null)}
+          onAddressChange={updatePlaybackAddress}
+        />
+      )}
       {dialog === 'path' && (
         <StrmSyncPathDialog
           accounts={accounts}
           existing={editingPath}
           onClose={() => setDialog(null)}
           onSaved={() => { setDialog(null); refresh().catch(() => undefined) }}
-          onOpenSettings={() => setDialog('settings')}
+          onAddressMissing={() => updatePlaybackAddress('')}
         />
       )}
     </div>
@@ -393,6 +433,8 @@ function AccountSection({
 function SyncPathSection({
   paths,
   actingPath,
+  canAddPath,
+  addPathHint,
   onAdd,
   onEdit,
   onDelete,
@@ -401,6 +443,8 @@ function SyncPathSection({
 }: {
   paths: StrmSyncPath[]
   actingPath: string | null
+  canAddPath: boolean
+  addPathHint: string
   onAdd: () => void
   onEdit: (path: StrmSyncPath) => void
   onDelete: (path: StrmSyncPath) => void
@@ -415,7 +459,14 @@ function SyncPathSection({
           <h2 className="font-display text-lg font-semibold text-ink-600">STRM 同步目录</h2>
           <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-sand-500">{paths.length}</span>
         </div>
-        <button type="button" onClick={onAdd} className="inline-flex items-center gap-1 text-sm font-semibold text-brand-500 hover:text-brand-600">
+        <button
+          type="button"
+          disabled={!canAddPath}
+          aria-describedby={addPathHint ? ADD_PATH_HINT_ID : undefined}
+          title={addPathHint || undefined}
+          onClick={onAdd}
+          className="inline-flex items-center gap-1 text-sm font-semibold text-brand-500 enabled:hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
+        >
           <Plus size={14} />新建
         </button>
       </div>

@@ -279,7 +279,7 @@ func TestStrmCronMatches(t *testing.T) {
 
 // TestStrmDefaultBaseURL 无任何地址配置时自动使用本机监听地址。
 func TestStrmDefaultBaseURL(t *testing.T) {
-	if got := strmDefaultBaseURL(nil); got != "http://127.0.0.1:8080" {
+	if got := strmDefaultBaseURL(nil); got != "http://127.0.0.1:18080" {
 		t.Fatalf("default base url = %q", got)
 	}
 	if got := strmDefaultBaseURL(&config.Config{App: config.AppConfig{Port: 9000}}); got != "http://127.0.0.1:9000" {

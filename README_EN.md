@@ -31,6 +31,7 @@ docker compose up -d
 ```
 
 - Open `http://SERVER_IP:18080`.
+- The default container port is `18080`; Compose publishes `18080:18080`.
 - Initial account: `admin` / `admin123`. You must change the default password before accessing the application or signing in with an Emby client.
 - Image: `ghcr.io/ferrymania/nook:latest`, available for `linux/amd64` and `linux/arm64`.
 - For an existing PostgreSQL instance, see the [deployment guide](https://github.com/Ferrymania/nook/wiki/Deployment).

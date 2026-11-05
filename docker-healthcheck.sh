@@ -12,7 +12,7 @@
 # 文件缺失或该协议探测失败时再试另一种，避免状态文件过期导致误报不健康。
 set -u
 
-port="${NOOK_APP_PORT:-8080}"
+port="${NOOK_APP_PORT:-18080}"
 data_dir="${NOOK_APP_DATA_DIR:-/data}"
 
 scheme_file="$data_dir/.http_scheme"

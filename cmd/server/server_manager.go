@@ -316,7 +316,7 @@ func httpsRedirectURL(host string, r *http.Request) string {
 }
 
 // redirectHostHeader 取重定向目标主机。HTTP/1.1 里 Host 是唯一的主机来源（端口映射
-// 到容器 8080 时它同时也是 HTTPS 端口），这里只做字符过滤，避免把请求头里的怪字符
+// 到容器 18080 时它同时也是 HTTPS 端口），这里只做字符过滤，避免把请求头里的怪字符
 // 带进 Location 造成任意跳转。
 func redirectHostHeader(r *http.Request) string {
 	host := strings.TrimSpace(r.Host)

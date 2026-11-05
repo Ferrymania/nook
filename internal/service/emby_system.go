@@ -6,12 +6,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Ferrymania/nook/internal/config"
 	"github.com/Ferrymania/nook/internal/model"
 )
 
 // SystemInfo returns the full Emby identity payload.
 func (e *EmbyService) SystemInfo() map[string]any {
-	port := 8096
+	port := config.DefaultAppPort
 	if e != nil && e.cfg != nil {
 		port = e.cfg.App.Port
 	}
@@ -44,7 +45,7 @@ func (e *EmbyService) SystemInfo() map[string]any {
 
 // SystemInfoPublic 是不需要认证的精简版（Emby Web 客户端登陆前会拉）。
 func (e *EmbyService) SystemInfoPublic() map[string]any {
-	port := 8096
+	port := config.DefaultAppPort
 	if e != nil && e.cfg != nil {
 		port = e.cfg.App.Port
 	}

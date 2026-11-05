@@ -18,7 +18,7 @@ services:
     init: true
 
     ports:
-      - "18080:8080"
+      - "18080:18080"
 
     volumes:
       # 配置、JWT 密钥、日志；PostgreSQL 主库仍由已有数据库服务管理。
