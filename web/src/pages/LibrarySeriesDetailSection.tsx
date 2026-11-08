@@ -31,6 +31,8 @@ type LibrarySeriesDetailSectionProps = {
   onProbe: () => void
   onNFO: () => void
   onDelete: () => void
+  onDeleteSeason: (episodes: Media[]) => void
+  onDeleteEpisode: (episode: Media) => void
   onSeasonChange: (season: number) => void
   onManualScrapeMedia: (media: Media) => void
 }
@@ -56,6 +58,8 @@ export function LibrarySeriesDetailSection({
   onProbe,
   onNFO,
   onDelete,
+  onDeleteSeason,
+  onDeleteEpisode,
   onSeasonChange,
   onManualScrapeMedia,
 }: LibrarySeriesDetailSectionProps) {
@@ -96,6 +100,9 @@ export function LibrarySeriesDetailSection({
             isAdmin={isAdmin}
             onSeasonChange={onSeasonChange}
             onManualScrape={onManualScrapeMedia}
+            deleteBusy={Boolean(seriesToolBusy)}
+            onDeleteSeason={onDeleteSeason}
+            onDeleteEpisode={onDeleteEpisode}
           />
         </motion.div>
       )}
@@ -112,6 +119,9 @@ type LibrarySeriesEpisodesPanelProps = {
   isAdmin: boolean
   onSeasonChange: (season: number) => void
   onManualScrape: (media: Media) => void
+  deleteBusy: boolean
+  onDeleteSeason: (episodes: Media[]) => void
+  onDeleteEpisode: (episode: Media) => void
 }
 
 function LibrarySeriesEpisodesPanel({
@@ -123,6 +133,9 @@ function LibrarySeriesEpisodesPanel({
   isAdmin,
   onSeasonChange,
   onManualScrape,
+  deleteBusy,
+  onDeleteSeason,
+  onDeleteEpisode,
 }: LibrarySeriesEpisodesPanelProps) {
   return (
     <div className="space-y-6">
@@ -135,6 +148,9 @@ function LibrarySeriesEpisodesPanel({
         isAdmin={isAdmin}
         onSeasonChange={onSeasonChange}
         onManualScrape={onManualScrape}
+        deleteBusy={deleteBusy}
+        onDeleteSeason={onDeleteSeason}
+        onDeleteEpisode={onDeleteEpisode}
       />
     </div>
   )

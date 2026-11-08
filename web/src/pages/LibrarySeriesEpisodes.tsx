@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Play, Search } from 'lucide-react'
+import { Play, Search, Trash2 } from 'lucide-react'
 
 import { ARTWORK, imageURL } from '../api/client'
 import { ArtworkImage } from '../components/ArtworkImage'
@@ -8,12 +8,14 @@ import { ExternalPlayerButton } from '../components/ExternalPlayerButton'
 import type { Media } from '../types'
 import {
   isTheatricalFeature,
+  expandSeriesMediaVersions,
   seasonLabel,
   seriesTitleFromPath,
   THEATRICAL_SEASON,
 } from '../utils/groupSeries'
 import { formatSize } from './libraryPageModel'
 import { formatEpisodeLabel, formatEpisodeNumber } from '../utils/episodeNumber'
+import { canPreviewRemoteDelete } from './confirmMediaDelete'
 
 type SeasonGroup = {
   season: number
@@ -29,6 +31,9 @@ type LibrarySeriesEpisodesProps = {
   isAdmin?: boolean
   onSeasonChange: (season: number) => void
   onManualScrape?: (media: Media) => void
+  deleteBusy?: boolean
+  onDeleteSeason?: (episodes: Media[]) => void
+  onDeleteEpisode?: (episode: Media) => void
 }
 
 export function LibrarySeriesEpisodes({
@@ -40,6 +45,9 @@ export function LibrarySeriesEpisodes({
   isAdmin = false,
   onSeasonChange,
   onManualScrape,
+  deleteBusy,
+  onDeleteSeason,
+  onDeleteEpisode,
 }: LibrarySeriesEpisodesProps) {
   if (loading) {
     return (
@@ -71,9 +79,20 @@ export function LibrarySeriesEpisodes({
       </div>
 
       <div>
-        <h3 className="mb-3 font-display text-lg font-semibold text-ink-600">
-          {seasonLabel(displaySeason)}
-        </h3>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h3 className="font-display text-lg font-semibold text-ink-600">{seasonLabel(displaySeason)}</h3>
+          {isAdmin && onDeleteSeason && displaySeason !== THEATRICAL_SEASON && visibleEpisodes.some(canDeleteEpisodeOriginal) && (
+            <button
+              type="button"
+              className="btn-outline text-xs"
+              disabled={deleteBusy}
+              onClick={() => onDeleteSeason(visibleEpisodes)}
+            >
+              <Trash2 size={14} />
+              删除本季 115 原片
+            </button>
+          )}
+        </div>
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           {visibleEpisodes.map((ep) => {
             const displayTitle = episodeDisplayTitle(ep, visibleEpisodes)
@@ -132,6 +151,18 @@ export function LibrarySeriesEpisodes({
                     </button>
                   )}
                   <ExternalPlayerButton mediaId={ep.id} label="外部" compact />
+                  {isAdmin && onDeleteEpisode && canDeleteEpisodeOriginal(ep) && (
+                    <button
+                      type="button"
+                      className="btn-outline px-2! py-1.5!"
+                      aria-label={`删除 ${displayTitle} 的 115 原片`}
+                      title="删除此集的 115 原片"
+                      disabled={deleteBusy}
+                      onClick={() => onDeleteEpisode(ep)}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
                 </div>
               </div>
             )
@@ -140,6 +171,10 @@ export function LibrarySeriesEpisodes({
       </div>
     </>
   )
+}
+
+function canDeleteEpisodeOriginal(episode: Media) {
+  return expandSeriesMediaVersions([episode]).some(canPreviewRemoteDelete)
 }
 
 function episodeDisplayTitle(ep: Media, siblings: Media[]): string {

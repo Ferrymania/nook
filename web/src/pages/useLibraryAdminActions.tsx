@@ -3,10 +3,10 @@ import toast from 'react-hot-toast'
 
 import { api } from '../api/client'
 import { mediaAPI } from '../api/library'
-import { confirmActionResult } from '../components/confirmAction'
 import { useEpisodeArtworkPreference } from '../hooks/useEpisodeArtworkPreference'
 import type { Media } from '../types'
-import { seriesTitle, type SeriesCard } from '../utils/groupSeries'
+import { expandSeriesMediaVersions, seriesTitle, type SeriesCard } from '../utils/groupSeries'
+import { confirmMediaDelete, confirmRemoteMediaDelete, deleteConfirmedRemoteMedia } from './confirmMediaDelete'
 import { LibraryMovieActions } from './LibraryMovieActions'
 import { useLibraryScrapeStatus } from './useLibraryScrapeStatus'
 
@@ -72,18 +72,45 @@ export function useLibraryAdminActions({
     runSeriesTool('nfo', '整剧 NFO 写出', (media) => mediaAPI.exportNFO(media.id))
   }
 
-  const handleSeriesDelete = async () => {
-    if (!selectedSeries || selectedSeriesEpisodes.length === 0) return
-    const result = await confirmActionResult({
-      title: '删除整剧',
-      message: `确定从媒体库删除「${seriesTitle(selectedSeries.rep)}」的 ${selectedSeriesEpisodes.length} 个媒体？\n默认仅移除索引记录，磁盘文件会保留。`,
-      confirmText: '删除',
-      checkboxLabel: '同时删除本地文件（含同名 NFO）',
-    })
-    if (!result.confirmed) return
-    await runSeriesTool('delete', '整剧删除', (media) => mediaAPI.delete(media.id, { deleteFiles: result.checked }))
-    clearSelectedSeries()
+  const deleteSeriesMedia = async (items: Media[], wholeSeriesLabel?: string) => {
+    if (seriesToolBusy || items.length === 0) return
+    setSeriesToolBusy('delete')
+    try {
+      if (wholeSeriesLabel) {
+        const choice = await confirmMediaDelete(items, '删除整剧', wholeSeriesLabel)
+        if (!choice) return
+        if (choice.mode === 'local') {
+          await runSeriesTool('delete', '整剧删除', (media) => mediaAPI.delete(media.id, { deleteFiles: choice.deleteFiles }))
+          clearSelectedSeries()
+          return
+        }
+        const allApprovedDeleted = await deleteConfirmedRemoteMedia(choice.approved)
+        if (allApprovedDeleted && Object.keys(choice.approved).length === items.length) clearSelectedSeries()
+      } else {
+        const approved = await confirmRemoteMediaDelete(items)
+        if (!approved) return
+        await deleteConfirmedRemoteMedia(approved)
+      }
+      reloadCurrentLibrary()
+    } catch (err: unknown) {
+      toast.error(deleteError(err))
+      reloadCurrentLibrary()
+    } finally {
+      setSeriesToolBusy('')
+    }
   }
+
+  const handleSeriesDelete = () => {
+    if (!selectedSeries) return
+    void deleteSeriesMedia(selectedSeriesEpisodes,
+      `${seriesTitle(selectedSeries.rep)}（${selectedSeriesEpisodes.length} 个媒体）`)
+  }
+
+  const handleSeasonDelete = (episodes: Media[]) =>
+    void deleteSeriesMedia(expandSeriesMediaVersions(episodes))
+
+  const handleEpisodeDelete = (episode: Media) =>
+    void deleteSeriesMedia(expandSeriesMediaVersions([episode]))
 
   const runMovieTool = async (media: Media, key: string, label: string, action: (media: Media) => Promise<unknown>) => {
     const busyKey = `${key}:${media.id}`
@@ -116,14 +143,23 @@ export function useLibraryAdminActions({
   }
 
   const handleMovieDelete = async (media: Media) => {
-    const result = await confirmActionResult({
-      title: '删除媒体',
-      message: `确定从媒体库删除「${media.title}」？\n默认仅移除索引记录，磁盘文件会保留。`,
-      confirmText: '删除',
-      checkboxLabel: '同时删除本地文件（含同名 NFO）',
-    })
-    if (!result.confirmed) return
-    await runMovieTool(media, 'delete', '删除', (item) => mediaAPI.delete(item.id, { deleteFiles: result.checked }))
+    try {
+      const choice = await confirmMediaDelete([media], '删除媒体', media.title)
+      if (!choice) return
+      if (choice.mode === 'remote') {
+        setMovieToolBusy(`delete:${media.id}`)
+        try {
+          await deleteConfirmedRemoteMedia(choice.approved)
+        } finally {
+          setMovieToolBusy('')
+          reloadCurrentLibrary()
+        }
+      } else {
+        await runMovieTool(media, 'delete', '删除', (item) => mediaAPI.delete(item.id, { deleteFiles: choice.deleteFiles }))
+      }
+    } catch (err: unknown) {
+      toast.error(deleteError(err))
+    }
   }
 
   const movieActions = (media: Media): ReactNode => {
@@ -152,8 +188,14 @@ export function useLibraryAdminActions({
     handleSeriesProbe,
     handleSeriesNFO,
     handleSeriesDelete,
+    handleSeasonDelete,
+    handleEpisodeDelete,
     movieActions,
   }
+}
+
+function deleteError(err: unknown) {
+  return (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? '删除失败'
 }
 
 function smartScrapeOptions(episodeImages: boolean) {

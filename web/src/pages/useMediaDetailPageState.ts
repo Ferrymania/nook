@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { api } from '../api/client'
 import { mediaAPI } from '../api/library'
 import { playbackAPI } from '../api/playback'
-import { confirmActionResult } from '../components/confirmAction'
+import { confirmMediaDelete, deleteConfirmedRemoteMedia } from './confirmMediaDelete'
 import { useEpisodeArtworkPreference } from '../hooks/useEpisodeArtworkPreference'
 import type { Media } from '../types'
 import { seasonSortOrder } from '../utils/groupSeries'
@@ -294,20 +294,19 @@ async function deleteMediaFromLibrary(
   from: string | undefined,
 ): Promise<void> {
   if (!media) return
-  const result = await confirmActionResult({
-    title: '删除媒体',
-    message: `确定从媒体库删除「${media.title}」？\n默认仅移除索引记录，磁盘文件会保留。`,
-    confirmText: '删除',
-    checkboxLabel: '同时删除本地文件（含同名 NFO）',
-  })
-  if (!result.confirmed) return
   try {
-    await mediaAPI.delete(media.id, { deleteFiles: result.checked })
+    const choice = await confirmMediaDelete([media], '删除媒体', media.title)
+    if (!choice) return
+    if (choice.mode === 'remote') {
+      if (!await deleteConfirmedRemoteMedia(choice.approved)) return
+    } else {
+      await mediaAPI.delete(media.id, { deleteFiles: choice.deleteFiles })
+      toast.success(choice.deleteFiles ? '已删除媒体及本地文件' : '已从媒体库删除')
+    }
   } catch (err: unknown) {
     toast.error(apiErrorMessage(err, '删除媒体失败'))
     return
   }
-  toast.success(result.checked ? '已删除媒体及本地文件' : '已从媒体库删除')
   goBackFromMediaDetail(media, navigate, from, true)
 }
 

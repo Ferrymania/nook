@@ -91,10 +91,11 @@ type StrmService struct {
 	stopCh     chan struct{}
 	baseCtx    context.Context // 服务级长期上下文（同步/队列不随 HTTP 请求取消）
 
-	mu            sync.Mutex
-	running       map[string]context.CancelFunc // sync path id -> cancel
-	oauthSessions map[string]*strm115AuthSession
-	wafUntil      time.Time // 115 风控/限流熔断截止时间（由 mu 保护）
+	mu                  sync.Mutex
+	running             map[string]context.CancelFunc // sync path id -> cancel
+	deletingRemoteMedia bool                          // excludes sync while deleting 115 originals
+	oauthSessions       map[string]*strm115AuthSession
+	wafUntil            time.Time // 115 风控/限流熔断截止时间（由 mu 保护）
 
 	providerMu       sync.Mutex
 	provider115Cache map[string]cloud.Provider // account ID -> shared provider/OpenClient
