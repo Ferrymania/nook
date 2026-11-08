@@ -33,7 +33,6 @@ import {
   PLAYBACK_RATE_OPTIONS,
   stepPlaybackRate,
 } from '../utils/playbackRate'
-import type { SubtitleChineseMode } from '../utils/subtitleChinese'
 import {
   SUBTITLE_POSITION_OPTIONS,
   SUBTITLE_STYLE_OPTIONS,
@@ -149,8 +148,6 @@ type PlayerControlsProps = {
   /** 当前激活字幕轨道：-1=关闭，0..n-1=对应轨道。 */
   subtitleIndex: number
   onSelectSubtitle: (index: number) => void
-  subtitleChineseMode: SubtitleChineseMode
-  onSubtitleChineseModeChange: (mode: SubtitleChineseMode) => void
   subtitlePosition: SubtitlePosition
   onSubtitlePositionChange: (position: SubtitlePosition) => void
   subtitleStyle: SubtitleStylePreset
@@ -220,8 +217,6 @@ export function PlayerControls({
   subs,
   subtitleIndex,
   onSelectSubtitle,
-  subtitleChineseMode,
-  onSubtitleChineseModeChange,
   subtitlePosition,
   onSubtitlePositionChange,
   subtitleStyle,
@@ -838,9 +833,6 @@ export function PlayerControls({
 
   const displayTime = isScrubbing && scrubValue !== null ? scrubValue : currentTime
   const selectedSubtitle = subtitleIndex >= 0 ? subs[subtitleIndex] : undefined
-  const canConvertSelectedSubtitle =
-    selectedSubtitle?.source === 'external' &&
-    (selectedSubtitle.delivery === 'webvtt' || selectedSubtitle.delivery === 'ass')
   const canAdjustSelectedSubtitle = selectedSubtitle?.delivery === 'webvtt'
   const usesOriginalASS = selectedSubtitle?.delivery === 'ass'
   const qualityGroups = [
@@ -958,9 +950,6 @@ export function PlayerControls({
             subtitleStyle={subtitleStyle}
             onSubtitleStyleChange={onSubtitleStyleChange}
             usesOriginalASS={usesOriginalASS}
-            canConvertSelectedSubtitle={canConvertSelectedSubtitle}
-            subtitleChineseMode={subtitleChineseMode}
-            onSubtitleChineseModeChange={onSubtitleChineseModeChange}
           />
         </div>
       )}
@@ -1330,12 +1319,6 @@ export function PlayerControls({
                   subtitleStyle={subtitleStyle}
                   onSubtitleStyleChange={onSubtitleStyleChange}
                   usesOriginalASS={usesOriginalASS}
-                  canConvertSelectedSubtitle={canConvertSelectedSubtitle}
-                  subtitleChineseMode={subtitleChineseMode}
-                  onSubtitleChineseModeChange={(mode) => {
-                    onSubtitleChineseModeChange(mode)
-                    setSubtitleMenuOpen(false)
-                  }}
                 />
               </div>
             )}
@@ -1472,12 +1455,9 @@ type SubtitleItemsProps = {
   subtitleStyle: SubtitleStylePreset
   onSubtitleStyleChange: (style: SubtitleStylePreset) => void
   usesOriginalASS: boolean
-  canConvertSelectedSubtitle: boolean
-  subtitleChineseMode: SubtitleChineseMode
-  onSubtitleChineseModeChange: (mode: SubtitleChineseMode) => void
 }
 
-/** 字幕轨道列表 + 位置/样式/简繁设置。桌面端弹层与小屏设置面板共用同一份。 */
+/** 字幕轨道列表和位置、样式设置，供桌面和小屏菜单共用。 */
 function SubtitleItems({
   subs,
   subtitleIndex,
@@ -1488,9 +1468,6 @@ function SubtitleItems({
   subtitleStyle,
   onSubtitleStyleChange,
   usesOriginalASS,
-  canConvertSelectedSubtitle,
-  subtitleChineseMode,
-  onSubtitleChineseModeChange,
 }: SubtitleItemsProps) {
   return (
     <>
@@ -1565,32 +1542,6 @@ function SubtitleItems({
         <p className="mx-2.5 mt-1 border-t border-white/10 px-0.5 pt-2 text-[10px] leading-relaxed text-white/45">
           ASS/SSA 使用字幕文件自带的样式与位置，不做统一覆盖。
         </p>
-      )}
-
-      {canConvertSelectedSubtitle && (
-        <>
-          <div className={PLAYER_MENU_DIVIDER} />
-          <p className={PLAYER_MENU_LABEL}>外挂字幕简繁转换</p>
-          {(
-            [
-              ['original', '保持原文'],
-              ['simplified', '转换为简体'],
-              ['traditional', '转换为繁体'],
-            ] as const
-          ).map(([mode, label]) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => onSubtitleChineseModeChange(mode)}
-              className={`${PLAYER_MENU_ITEM} ${subtitleChineseMode === mode ? 'text-rose-400' : ''}`}
-            >
-              <span className="min-w-0 flex-1">{label}</span>
-              {subtitleChineseMode === mode && (
-                <Check size={13} className="shrink-0 text-rose-400" />
-              )}
-            </button>
-          ))}
-        </>
       )}
     </>
   )

@@ -37,7 +37,7 @@ func newDanmakuTestService(t *testing.T) *DanmakuService {
 
 const danmakuTestUserID = "danmaku-test-user"
 
-// Configure the same per-user settings path used by the player.
+// Enable danmaku and configure the source through the player's settings path.
 func setDanmakuTestSource(t *testing.T, svc *DanmakuService, source string) {
 	t.Helper()
 	ctx := t.Context()
@@ -47,7 +47,8 @@ func setDanmakuTestSource(t *testing.T, svc *DanmakuService, source string) {
 		user = &model.User{Base: model.Base{ID: danmakuTestUserID}, Username: danmakuTestUserID, PasswordHash: "x", Role: "user", IsActive: true}
 		require.NoError(t, svc.repo.User.Create(ctx, user))
 	}
-	_, err = svc.UpdateUserSettings(ctx, user.ID, DanmakuSettingsPatch{Source: &source})
+	enabled := true
+	_, err = svc.UpdateUserSettings(ctx, user.ID, DanmakuSettingsPatch{Source: &source, Enabled: &enabled})
 	require.NoError(t, err)
 }
 
@@ -114,7 +115,7 @@ func (ds *danmakuSourceServer) URL() string { return ds.server.URL }
 func TestDanmakuConfigDefaults(t *testing.T) {
 	svc := newDanmakuTestService(t)
 	cfg := svc.ConfigForUser(context.Background(), "")
-	require.True(t, cfg.Enabled)
+	require.False(t, cfg.Enabled)
 	require.Equal(t, "1", cfg.Opacity)
 	require.Equal(t, "24", cfg.FontSize)
 	require.Equal(t, "1", cfg.Area)
@@ -139,7 +140,7 @@ func TestDanmakuConfigIgnoresRetiredGlobalPreferences(t *testing.T) {
 	svc := newDanmakuTestService(t)
 	ctx := t.Context()
 	for key, value := range map[string]string{
-		"danmaku.enabled": "false", "danmaku.source": "https://legacy.example.com",
+		"danmaku.enabled": "true", "danmaku.source": "https://legacy.example.com",
 		"danmaku.opacity": "0.3", "danmaku.font_size": "40", "danmaku.area": "0.2",
 	} {
 		require.NoError(t, svc.repo.Setting.Set(ctx, key, value))
@@ -147,7 +148,7 @@ func TestDanmakuConfigIgnoresRetiredGlobalPreferences(t *testing.T) {
 	check := func(userID string) {
 		t.Helper()
 		cfg := svc.ConfigForUser(ctx, userID)
-		require.True(t, cfg.Enabled)
+		require.False(t, cfg.Enabled)
 		require.Empty(t, cfg.Source)
 		require.Equal(t, "1", cfg.Opacity)
 		require.Equal(t, "24", cfg.FontSize)
@@ -157,13 +158,14 @@ func TestDanmakuConfigIgnoresRetiredGlobalPreferences(t *testing.T) {
 	}
 	check("")
 	check("missing-user")
-	setDanmakuTestSource(t, svc, "")
-	check(danmakuTestUserID)
+	user := &model.User{Username: "danmaku-default-user", PasswordHash: "x", Role: "user", IsActive: true}
+	require.NoError(t, svc.repo.User.Create(ctx, user))
+	check(user.ID)
 	// Database lookup failures use the same fixed defaults.
 	db, err := svc.repo.DB.DB()
 	require.NoError(t, err)
 	require.NoError(t, db.Close())
-	check(danmakuTestUserID)
+	check(user.ID)
 }
 
 func TestDanmakuFetchDisablesWhenToggleOff(t *testing.T) {
@@ -197,7 +199,8 @@ func TestDanmakuFetchIgnoresRetiredGlobalPreferences(t *testing.T) {
 	require.NoError(t, svc.repo.Setting.Set(ctx, "danmaku.enabled", "false"))
 	require.NoError(t, svc.repo.Setting.Set(ctx, "danmaku.source", retired.URL))
 	seedDanmakuMedia(t, svc, "defaults-media", "测试动画", "", 0)
-	res, err := svc.FetchWithOptions(ctx, "defaults-media", "", "99999", DanmakuFetchOptions{UserID: "missing-user"})
+	setDanmakuTestSource(t, svc, "")
+	res, err := svc.FetchWithOptions(ctx, "defaults-media", "", "99999", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	require.True(t, res.Enabled)
 	require.Empty(t, res.Source)

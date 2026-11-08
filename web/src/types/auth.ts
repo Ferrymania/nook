@@ -9,7 +9,6 @@ export interface User {
   email?: string
   avatar_url?: string
   hide_adult?: boolean
-  subtitle_chinese_mode?: 'original' | 'simplified' | 'traditional'
   /** 本地缓存的播放器音量，服务端配置接口会刷新。 */
   player_volume?: number
   force_password_reset: boolean

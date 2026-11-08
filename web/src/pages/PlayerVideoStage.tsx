@@ -17,10 +17,6 @@ import {
 import { subtitlesAPI, type SubtitleTrack } from '../api/subtitles'
 import { type DanmakuAnime, type DanmakuLoadedInfo } from '../api/danmaku'
 import type { Media, PlaybackQuality } from '../types'
-import {
-  loadSubtitleChineseConverter,
-  type SubtitleChineseMode,
-} from '../utils/subtitleChinese'
 import { AssSubtitleStage } from '../components/AssSubtitleStage'
 import { DanmakuStage } from '../components/DanmakuStage'
 import { PlayerControls } from '../components/PlayerControls'
@@ -159,6 +155,7 @@ function buildSubtitleRenderGroups(
 
 type PlayerVideoStageProps = {
   media: Media | null
+  topBar: ReactNode
   /**
    * 竖屏剧场模式：舞台不再全屏居中，而是贴顶按 16:9 自适应高度；
    * 弹层改为底部动作面板，避免右侧抽屉与悬浮小弹层在窄屏下被裁剪。
@@ -171,8 +168,6 @@ type PlayerVideoStageProps = {
   /** 当前激活字幕轨道：-1=关闭，0..n-1=对应轨道。 */
   subtitleIndex: number
   onSelectSubtitle: (index: number) => void
-  subtitleChineseMode: SubtitleChineseMode
-  onSubtitleChineseModeChange: (mode: SubtitleChineseMode) => void
   subtitlePosition: SubtitlePosition
   onSubtitlePositionChange: (position: SubtitlePosition) => void
   subtitleStyle: SubtitleStylePreset
@@ -249,14 +244,13 @@ type PlayerVideoStageProps = {
 
 export function PlayerVideoStage({
   media,
+  topBar,
   theater = false,
   loadError,
   playerError,
   subs,
   subtitleIndex,
   onSelectSubtitle,
-  subtitleChineseMode,
-  onSubtitleChineseModeChange,
   subtitlePosition,
   onSubtitlePositionChange,
   subtitleStyle,
@@ -327,6 +321,7 @@ export function PlayerVideoStage({
   // 画面，轻触画面也不会把它们唤回来，也不会误触发播放/暂停；想看操作栏必须先
   // 点左边的锁解锁。VR 和普通播放共用这一套状态。
   const [locked, setLocked] = useState(false)
+  const showControls = controlsVisible && !locked
   // 锁按钮本身默认隐身（见下方的 lockVisible），这三个状态决定它什么时候露面：
   //   lockHovered —— 桌面鼠标停在感应区里（移开就收）；
   //   lockShown   —— 点了画面之后的临时显示窗口；
@@ -345,8 +340,6 @@ export function PlayerVideoStage({
   const revealControlsOnlyRef = useRef(false)
   // 当前展示的字幕文本（由自定义字幕层渲染，100% 透明无黑框）
   const [activeCues, setActiveCues] = useState<SubtitleCue[]>([])
-  const [subtitleChineseConverter, setSubtitleChineseConverter] =
-    useState<(text: string) => string>(() => (text: string) => text)
   // 独立保存完整 WebVTT 时间轴。HLS seek 会替换媒体源，Chromium 此时可能清空
   // <track>.track.cues；独立时间轴不受 MediaSource 重挂载和轨道 mode 切换影响。
   const [subtitleTimeline, setSubtitleTimeline] = useState<{
@@ -363,32 +356,6 @@ export function PlayerVideoStage({
   useEffect(() => {
     setAssFallbackPath(null)
   }, [media?.id, activeSubtitleTrack?.path, subs])
-
-  useEffect(() => {
-    const selectedTrack = subs[subtitleIndex]
-    let cancelled = false
-
-    setSubtitleChineseConverter(() => (text: string) => text)
-    if (
-      subtitleChineseMode === 'original' ||
-      selectedTrack?.source !== 'external' ||
-      selectedTrack.delivery !== 'webvtt'
-    ) {
-      return
-    }
-
-    void loadSubtitleChineseConverter(subtitleChineseMode)
-      .then((converter) => {
-        if (!cancelled) setSubtitleChineseConverter(() => converter)
-      })
-      .catch(() => {
-        // 字典分包加载失败时保留原文，避免影响字幕正常显示。
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [subs, subtitleIndex, subtitleChineseMode])
 
   useEffect(() => {
     setTracksArmed(false)
@@ -627,7 +594,7 @@ export function PlayerVideoStage({
           subtitleTimeline.cues.filter(
             (cue) => absoluteTime >= cue.startTime && absoluteTime <= cue.endTime,
           ),
-        ).map((cue) => ({ ...cue, text: subtitleChineseConverter(cue.text) }))
+        )
         setActiveCues(cues)
         return
       }
@@ -664,12 +631,7 @@ export function PlayerVideoStage({
           }
         }
       }
-      setActiveCues(
-        uniqueSubtitleCues(cues).map((cue) => ({
-          ...cue,
-          text: subtitleChineseConverter(cue.text),
-        })),
-      )
+      setActiveCues(uniqueSubtitleCues(cues))
     }
 
     const apply = () => {
@@ -732,7 +694,6 @@ export function PlayerVideoStage({
     streamOffset,
     subtitleTimeline,
     tracksArmed,
-    subtitleChineseConverter,
     assFallbackPath,
   ])
 
@@ -788,6 +749,7 @@ export function PlayerVideoStage({
       onClick={handleSurfaceActivate}
       onDoubleClick={toggleFullscreen}
     >
+      {showControls ? topBar : null}
       {media ? (
         <>
           <div
@@ -853,7 +815,6 @@ export function PlayerVideoStage({
                 videoRef={videoRef}
                 source={subtitlesAPI.assUrl(media.id, assTrack.path)}
                 timeOffset={streamOffset}
-                chineseMode={assTrack.source === 'external' ? subtitleChineseMode : 'original'}
                 onError={(error) => {
                   console.warn('libass subtitle rendering failed; falling back to WebVTT', error)
                   setAssFallbackPath(assTrack.path)
@@ -892,15 +853,13 @@ export function PlayerVideoStage({
             onVolumeCommit={onPlayerVolumeCommit}
             playbackRate={playerPlaybackRate}
             onPlaybackRateChange={onPlayerPlaybackRateChange}
-            uiVisible={controlsVisible && !locked}
+            uiVisible={showControls}
             onUiVisibleChange={setControlsVisible}
             uiHold={vrUiHovered}
             uiLocked={locked}
             subs={subs}
             subtitleIndex={subtitleIndex}
             onSelectSubtitle={onSelectSubtitle}
-            subtitleChineseMode={subtitleChineseMode}
-            onSubtitleChineseModeChange={onSubtitleChineseModeChange}
             subtitlePosition={subtitlePosition}
             onSubtitlePositionChange={onSubtitlePositionChange}
             subtitleStyle={subtitleStyle}

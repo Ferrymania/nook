@@ -134,13 +134,8 @@ func TestConcurrentPlaybackLimitStillApplies(t *testing.T) {
 		t.Run(fmt.Sprintf("enabled_%v", enabled), func(t *testing.T) {
 			svc, repos, userID := newDeviceServiceForTest(t)
 			ctx := t.Context()
-			for _, kv := range [][2]string{
-				{SettingAntiShareEnabled, strconv.FormatBool(enabled)},
-				{SettingMaxConcurrentPlay, "1"},
-			} {
-				if err := repos.Setting.Set(ctx, kv[0], kv[1]); err != nil {
-					t.Fatal(err)
-				}
+			if err := repos.Setting.Set(ctx, SettingAntiShareEnabled, strconv.FormatBool(enabled)); err != nil {
+				t.Fatal(err)
 			}
 			svc.RecordPlayback(ctx, userID, "dev-1", "Phone", "Infuse")
 			u, err := repos.User.FindByID(ctx, userID)

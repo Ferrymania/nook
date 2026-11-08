@@ -10,7 +10,6 @@ export const profileAPI = {
     email?: string
     avatar_url?: string
     hide_adult?: boolean
-    subtitle_chinese_mode?: 'original' | 'simplified' | 'traditional'
     password?: string
   }) =>
     api.patch<User>('/me', patch).then((r) => r.data),

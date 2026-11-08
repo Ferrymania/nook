@@ -86,7 +86,8 @@ func TestDanmakuFetchHashMatchLayer(t *testing.T) {
 	ctx := context.Background()
 	seedDanmakuVideoMedia(t, svc, "mH", "测试动画", videoPath, 32000, 1)
 
-	res, err := svc.Fetch(ctx, "mH", "", "")
+	setDanmakuTestSource(t, svc, "")
+	res, err := svc.FetchWithOptions(ctx, "mH", "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	require.True(t, res.Enabled)
 	require.Equal(t, "xml", res.SourceType)
@@ -613,7 +614,8 @@ func TestDanmakuFetchStrmHashViaDirectLink(t *testing.T) {
 	media.STRMURL = "/api/strm/play/115/video.mkv?acct=1&pickcode=abc"
 	require.NoError(t, svc.repo.DB.Save(&media).Error)
 
-	res, err := svc.Fetch(ctx, "mS", "", "")
+	setDanmakuTestSource(t, svc, "")
+	res, err := svc.FetchWithOptions(ctx, "mS", "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	require.True(t, res.Enabled)
 	require.Contains(t, res.Raw, "弹幕Strm命中")
@@ -711,8 +713,10 @@ func TestDanmakuFetchHashMatchSkippedOnManualKeyword(t *testing.T) {
 	ctx := context.Background()
 	seedDanmakuVideoMedia(t, svc, "mManual", "自动识别动画A", videoPath, 32000, 1)
 
+	setDanmakuTestSource(t, svc, "")
+	opts := DanmakuFetchOptions{UserID: danmakuTestUserID}
 	// 1) 默认自动识别：命中 Hash 识别
-	resAuto, err := svc.Fetch(ctx, "mManual", "", "")
+	resAuto, err := svc.FetchWithOptions(ctx, "mManual", "", "", opts)
 	require.NoError(t, err)
 	require.True(t, matchCalled)
 	require.Equal(t, "hash", resAuto.MatchMode)
@@ -720,7 +724,7 @@ func TestDanmakuFetchHashMatchSkippedOnManualKeyword(t *testing.T) {
 	require.Contains(t, resAuto.Raw, "自动识别弹幕")
 
 	// 2) 用户传入手动搜索关键词：跳过 Hash 识别，命中搜索结果动画B
-	resManual, err := svc.Fetch(ctx, "mManual", "手动搜索动画B", "")
+	resManual, err := svc.FetchWithOptions(ctx, "mManual", "手动搜索动画B", "", opts)
 	require.NoError(t, err)
 	require.Equal(t, "search", resManual.MatchMode)
 	require.Equal(t, int64(99999), resManual.EpisodeID)
@@ -767,7 +771,9 @@ func TestDanmakuFetchEmbyRemoteHashViaDirectLink(t *testing.T) {
 	})
 
 	ctx := context.Background()
-	res, err := svc.Fetch(ctx, remoteMediaID, "", "")
+	setDanmakuTestSource(t, svc, "")
+	opts := DanmakuFetchOptions{UserID: danmakuTestUserID}
+	res, err := svc.FetchWithOptions(ctx, remoteMediaID, "", "", opts)
 	require.NoError(t, err)
 	require.True(t, res.Enabled)
 	require.Equal(t, "hash", res.MatchMode)
@@ -780,7 +786,7 @@ func TestDanmakuFetchEmbyRemoteHashViaDirectLink(t *testing.T) {
 	require.Equal(t, 1, rangeHits)
 
 	// 第二次拉取验证 hashCache 命中，不重复请求 rangeSrv
-	res2, err := svc.Fetch(ctx, remoteMediaID, "", "")
+	res2, err := svc.FetchWithOptions(ctx, remoteMediaID, "", "", opts)
 	require.NoError(t, err)
 	require.Equal(t, "hash", res2.MatchMode)
 	require.Equal(t, 1, rangeHits)
@@ -821,7 +827,8 @@ func TestDanmakuFetchEmbyRemoteStreamFailedFallsBackToSearch(t *testing.T) {
 	})
 
 	ctx := context.Background()
-	res, err := svc.Fetch(ctx, remoteMediaID, "", "")
+	setDanmakuTestSource(t, svc, "")
+	res, err := svc.FetchWithOptions(ctx, remoteMediaID, "", "", DanmakuFetchOptions{UserID: danmakuTestUserID})
 	require.NoError(t, err)
 	require.True(t, res.Enabled)
 	require.Equal(t, "search", res.MatchMode)
