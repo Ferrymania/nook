@@ -245,6 +245,8 @@ export function LibraryPage() {
     handleSeriesProbe,
     handleSeriesNFO,
     handleSeriesDelete,
+    handleSeasonDelete,
+    handleEpisodeDelete,
     movieActions,
   } = useLibraryAdminActions({
     libraryID: id,
@@ -383,6 +385,8 @@ export function LibraryPage() {
         onProbe={handleSeriesProbe}
         onNFO={handleSeriesNFO}
         onDelete={handleSeriesDelete}
+        onDeleteSeason={handleSeasonDelete}
+        onDeleteEpisode={handleEpisodeDelete}
         onSeasonChange={setSelectedSeason}
         onManualScrapeMedia={setManualMovie}
       />

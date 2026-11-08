@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { AlertTriangle } from 'lucide-react'
 
 export type ConfirmOptions = {
@@ -9,11 +9,14 @@ export type ConfirmOptions = {
   danger?: boolean
   checkboxLabel?: string
   checkboxDefaultChecked?: boolean
+  alternateText?: string
+  details?: ReactNode
 }
 
 export type ConfirmResult = {
   confirmed: boolean
   checked: boolean
+  alternate?: boolean
 }
 
 export function ConfirmDialog({
@@ -51,6 +54,7 @@ export function ConfirmDialog({
               {options.title || '确认操作'}
             </h3>
             <p className="mt-2 whitespace-pre-line text-sm leading-6 text-ink-50">{options.message}</p>
+            {options.details}
             {hasCheckbox ? (
               <label className="mt-4 flex cursor-pointer items-start gap-2.5 text-sm text-ink-100">
                 <input
@@ -64,7 +68,16 @@ export function ConfirmDialog({
             ) : null}
           </div>
         </div>
-        <div className="flex justify-end gap-2 border-t border-gray-100 bg-gray-50/80 px-5 py-4">
+        <div className="flex flex-wrap justify-end gap-2 border-t border-gray-100 bg-gray-50/80 px-5 py-4">
+          {options.alternateText && (
+            <button
+              type="button"
+              onClick={() => onClose({ confirmed: false, checked, alternate: true })}
+              className="mr-auto rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
+            >
+              {options.alternateText}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => onClose({ confirmed: false, checked })}

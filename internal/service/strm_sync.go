@@ -107,6 +107,10 @@ func (s *StrmService) startSync(ctx context.Context, pathID string, completed ch
 		return errors.New("该同步目录未关联网盘账号")
 	}
 	s.mu.Lock()
+	if s.deletingRemoteMedia {
+		s.mu.Unlock()
+		return errors.New("正在删除 115 原片，请稍后同步")
+	}
 	if _, exists := s.running[pathID]; exists {
 		s.mu.Unlock()
 		return errors.New("该目录正在同步中")

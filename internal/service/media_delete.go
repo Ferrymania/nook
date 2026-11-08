@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"go.uber.org/zap"
@@ -16,6 +17,10 @@ import (
 // When deleteFiles is true and the path is a local filesystem file, the media
 // file and its sidecar NFO are also removed. cloud:// paths are never touched on disk.
 func (s *MediaService) DeleteMedia(ctx context.Context, id string, deleteFiles bool) error {
+	return s.deleteMedia(ctx, id, deleteFiles, "")
+}
+
+func (s *MediaService) deleteMedia(ctx context.Context, id string, deleteFiles bool, expectedPath string) error {
 	var media model.Media
 	err := s.repo.DB.WithContext(ctx).Where("id = ?", id).First(&media).Error
 	if err != nil {
@@ -25,8 +30,17 @@ func (s *MediaService) DeleteMedia(ctx context.Context, id string, deleteFiles b
 		return err
 	}
 
+	if expectedPath != "" && media.Path != expectedPath {
+		return errors.New("媒体路径已变更")
+	}
+
 	if deleteFiles {
-		if err := deleteLocalMediaFiles(s.log, media.Path); err != nil {
+		if expectedPath != "" {
+			err = deleteRemoteMediaLocalFiles(media.Path)
+		} else {
+			err = deleteLocalMediaFiles(s.log, media.Path)
+		}
+		if err != nil {
 			return err
 		}
 	}
@@ -36,6 +50,22 @@ func (s *MediaService) DeleteMedia(ctx context.Context, id string, deleteFiles b
 		s.invalidateMediaCache(ctx)
 	}
 	return err
+}
+
+func deleteRemoteMediaLocalFiles(path string) error {
+	entries, err := os.ReadDir(filepath.Dir(path))
+	if err != nil {
+		return err
+	}
+	stem := mediaSidecarBase(path)
+	for _, entry := range entries {
+		_, video := videoExtensions[strings.ToLower(filepath.Ext(entry.Name()))]
+		if video && !entry.IsDir() && entry.Name() != filepath.Base(path) &&
+			strings.EqualFold(mediaSidecarBase(entry.Name()), stem) {
+			return os.Remove(path)
+		}
+	}
+	return removeMediaAndNFO(path)
 }
 
 func deleteLocalMediaFiles(log *zap.Logger, path string) error {

@@ -59,6 +59,16 @@ export interface MediaPage {
   page_size: number
 }
 
+export type RemoteDeleteItem = {
+  id: string
+  title: string
+  account?: string
+  remote_path?: string
+  fingerprint?: string
+  status: 'ready' | 'skipped' | 'pending' | 'deleted' | 'failed' | 'local_failed'
+  message?: string
+}
+
 export interface MediaSearchPage {
   items: Media[]
   total?: number
@@ -393,6 +403,16 @@ export const mediaAPI = {
         params: options?.deleteFiles ? { delete_files: true } : undefined,
       })
       .then((r) => r.data),
+
+  previewRemoteDelete: (mediaIDs: string[]) =>
+    api.post<{ items: RemoteDeleteItem[] }>(
+      '/media/remote-delete/preview', { media_ids: mediaIDs }, { timeout: BATCH_REQUEST_TIMEOUT },
+    ).then((r) => r.data.items),
+
+  deleteRemote: (approved: Record<string, string>) =>
+    api.post<{ items: RemoteDeleteItem[] }>(
+      '/media/remote-delete', { media_ids: Object.keys(approved), approved }, { timeout: BATCH_REQUEST_TIMEOUT },
+    ).then((r) => r.data.items),
 
   exportNFO: (id: string) =>
     api.post<{ path: string }>(`/media/${id}/nfo`).then((r) => r.data),
