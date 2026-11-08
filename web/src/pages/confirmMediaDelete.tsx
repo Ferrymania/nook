@@ -9,15 +9,31 @@ type DeleteChoice =
   | { mode: 'remote'; approved: Record<string, string> }
 
 export async function confirmMediaDelete(items: Media[], title: string, label: string): Promise<DeleteChoice | null> {
+  let approved: Record<string, string> | undefined
   const result = await confirmActionResult({
     title,
     message: `确定从媒体库删除「${label}」？\n默认仅移除索引记录，磁盘文件会保留。`,
     confirmText: '删除',
     checkboxLabel: '同时删除本地文件（含同名 NFO）',
-    alternateText: items.some(canPreviewRemoteDelete) ? '删除 115 原片…' : undefined,
+    alternateCheckbox: items.some(canPreviewRemoteDelete) ? {
+      label: '同时删除 115 网盘原片',
+      async loadPreview() {
+        const preview = await loadRemoteMediaDeletePreview(items)
+        approved = preview.approved
+        return {
+          canConfirm: preview.count > 0,
+          details: (
+            <>
+              <p className="text-sm leading-5 text-ink-50">{preview.message}</p>
+              {renderRemoteDeleteList(preview.items)}
+            </>
+          ),
+        }
+      },
+    } : undefined,
   })
-  if (result.confirmed) return { mode: 'local', deleteFiles: result.checked }
-  const approved = result.alternate ? await confirmRemoteMediaDelete(items) : null
+  if (!result.confirmed) return null
+  if (!result.alternate) return { mode: 'local', deleteFiles: result.checked }
   return approved ? { mode: 'remote', approved } : null
 }
 
@@ -34,28 +50,34 @@ export function canPreviewRemoteDelete(media: Media): boolean {
 
 export async function confirmRemoteMediaDelete(items: Media[]): Promise<Record<string, string> | null> {
   const loading = toast.loading('正在核对 115 原片…')
-  let preview: RemoteDeleteItem[]
+  let preview: Awaited<ReturnType<typeof loadRemoteMediaDeletePreview>>
   try {
-    preview = await mediaAPI.previewRemoteDelete(items.map((item) => item.id))
+    preview = await loadRemoteMediaDeletePreview(items)
   } finally {
     toast.dismiss(loading)
   }
+  const confirmed = await confirmAction({
+    title: preview.count ? '删除 115 原片' : '没有可删除的 115 原片',
+    message: preview.message,
+    confirmText: preview.count ? '移入 115 回收站' : '关闭',
+    danger: preview.count > 0,
+    details: renderRemoteDeleteList(preview.items),
+  })
+  return confirmed && preview.count ? preview.approved : null
+}
+
+async function loadRemoteMediaDeletePreview(items: Media[]) {
+  const preview = await mediaAPI.previewRemoteDelete(items.map((item) => item.id))
   const approved = Object.fromEntries(preview.flatMap((item) =>
     item.status === 'ready' && item.fingerprint ? [[item.id, item.fingerprint]] : [],
   ))
   const count = Object.keys(approved).length
-  const confirmed = await confirmAction({
-    title: count ? '删除 115 原片' : '没有可删除的 115 原片',
-    message: count
-      ? `${count} 个 115 视频将移入回收站，随后清理对应的本地 STRM、未被其他版本共用的同名 NFO 和媒体条目。${
-        preview.length > count ? `其余 ${preview.length - count} 个条目将保留。` : ''
-      }`
-      : '所有条目都将保留。',
-    confirmText: count ? '移入 115 回收站' : '关闭',
-    danger: count > 0,
-    details: renderRemoteDeleteList(preview),
-  })
-  return confirmed && count ? approved : null
+  const message = count
+    ? `${count} 个 115 原片将移入回收站，并清理对应的本地文件和媒体条目。${
+      preview.length > count ? `其余 ${preview.length - count} 个条目将保留。` : ''
+    }`
+    : '没有可删除的 115 原片。'
+  return { approved, count, items: preview, message }
 }
 
 export async function deleteConfirmedRemoteMedia(approved: Record<string, string>): Promise<boolean> {
