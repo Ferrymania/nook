@@ -35,7 +35,7 @@ export const deviceNotifySettingsGroup: SettingGroup = {
       key: 'device.max_concurrent_play',
       label: '单账号并发播放设备上限',
       type: 'number',
-      defaultValue: '3',
+      defaultValue: '1',
     },
     {
       key: 'device.max_logged_clients',

@@ -351,7 +351,6 @@ func (s *DanmakuService) findUser(ctx context.Context, userID string) (*model.Us
 func danmakuConfigFromUser(user *model.User) DanmakuRenderConfig {
 	if user == nil {
 		return DanmakuRenderConfig{
-			Enabled:  true,
 			Opacity:  "1",
 			FontSize: "24",
 			Area:     "1",

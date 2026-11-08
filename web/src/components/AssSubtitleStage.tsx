@@ -5,18 +5,12 @@ import jassubWasmUrl from 'jassub/dist/wasm/jassub-worker.wasm?url'
 import jassubModernWasmUrl from 'jassub/dist/wasm/jassub-worker-modern.wasm?url'
 import notoSansSCUrl from '../assets/fonts/noto-sans-sc-regular.woff2?url'
 
-import {
-  loadSubtitleChineseConverter,
-  type SubtitleChineseMode,
-} from '../utils/subtitleChinese'
-import { convertASSContent } from '../utils/subtitleASS'
 import { runWithoutGlobalVideoFrame } from '../utils/withoutVideoFrame'
 
 type AssSubtitleStageProps = {
   videoRef: React.RefObject<HTMLVideoElement>
   source: string
   timeOffset?: number
-  chineseMode?: SubtitleChineseMode
   onReady?: () => void
   onError?: (error: unknown) => void
 }
@@ -30,7 +24,6 @@ export function AssSubtitleStage({
   videoRef,
   source,
   timeOffset = 0,
-  chineseMode = 'original',
   onReady,
   onError,
 }: AssSubtitleStageProps) {
@@ -52,12 +45,9 @@ export function AssSubtitleStage({
 
     const load = async () => {
       try {
-        const [response, converter] = await Promise.all([
-          fetch(source, { signal: controller.signal }),
-          loadSubtitleChineseConverter(chineseMode).catch(() => (text: string) => text),
-        ])
+        const response = await fetch(source, { signal: controller.signal })
         if (!response.ok) throw new Error(`subtitle request failed: ${response.status}`)
-        const body = await response.text()
+        const body = (await response.text()).replace(/^\uFEFF/, '').replace(/\r\n/g, '\n')
         if (!body.trim()) throw new Error('empty subtitle payload')
         if (cancelled) return
 
@@ -65,7 +55,7 @@ export function AssSubtitleStage({
           () =>
             new JASSUB({
               video,
-              subContent: convertASSContent(body, converter),
+              subContent: body,
               timeOffset: timeOffsetRef.current,
               workerUrl: jassubWorkerUrl,
               wasmUrl: jassubWasmUrl,
@@ -100,7 +90,7 @@ export function AssSubtitleStage({
     }
     // timeOffset is applied live below. Recreating the full libass worker on a
     // seek offset change would be unnecessarily expensive.
-  }, [source, chineseMode, videoRef])
+  }, [source, videoRef])
 
   useEffect(() => {
     timeOffsetRef.current = timeOffset

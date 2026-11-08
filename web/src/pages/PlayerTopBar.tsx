@@ -62,9 +62,15 @@ export function PlayerTopBar({
   const status = modeLabel ? { ...derived, label: modeLabel } : derived
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 bg-linear-to-b from-black/60 via-black/20 to-transparent px-2.5 pb-10 pt-2.5 sm:px-3.5 sm:pt-3.5">
+    <div
+      className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 bg-linear-to-b from-black/60 via-black/20 to-transparent px-2.5 pb-10 pt-2.5 sm:px-3.5 sm:pt-3.5"
+      onPointerDown={(event) => event.stopPropagation()}
+      onClick={(event) => event.stopPropagation()}
+      onDoubleClick={(event) => event.stopPropagation()}
+    >
       <div className="flex min-w-0 items-center gap-2">
         <button
+          type="button"
           onClick={onBack}
           className={`${PLAYER_ICON_BUTTON} pointer-events-auto h-8 w-8 bg-black/35 backdrop-blur-sm hover:bg-black/60 sm:h-9 sm:w-9`}
           title="返回 (Esc)"

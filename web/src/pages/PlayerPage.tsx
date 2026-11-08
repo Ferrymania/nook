@@ -16,7 +16,6 @@ import { playbackAPI } from '../api/playback'
 import { playbackSettingsAPI } from '../api/playbackSettings'
 import { subtitlesAPI, type SubtitleTrack } from '../api/subtitles'
 import { systemAPI } from '../api/system'
-import { profileAPI } from '../api/profile'
 import { useAuthStore } from '../stores/auth'
 import type { Media, PlaybackInfo, PlaybackQuality, PlaybackSegment, PlaybackSegmentKind } from '../types'
 import { getSeriesKey, seriesTitleFromPath } from '../utils/groupSeries'
@@ -25,10 +24,6 @@ import { autoPlayEpisodeFor, mediaVersionMatches, mediaVersionsOf } from '../uti
 import { DEFAULT_PLAYBACK_RATE, normalizePlaybackRate } from '../utils/playbackRate'
 import { resolveActiveSkip, skippedNoticeText, toSkipSegments, type SkipPrompt } from '../utils/skipSegments'
 import { isRemoteEmbyID } from '../utils/remoteEmby'
-import {
-  normalizeSubtitleChineseMode,
-  type SubtitleChineseMode,
-} from '../utils/subtitleChinese'
 import {
   loadSubtitlePosition,
   loadSubtitleStyle,
@@ -153,10 +148,6 @@ export function PlayerPage() {
   const [subtitleIndex, setSubtitleIndex] = useState<number>(0)
   const authUser = useAuthStore((state) => state.user)
   const setAuthUser = useAuthStore((state) => state.setUser)
-  const [subtitleChineseMode, setSubtitleChineseMode] =
-    useState<SubtitleChineseMode>(() =>
-      normalizeSubtitleChineseMode(authUser?.subtitle_chinese_mode),
-    )
   const [subtitlePosition, setSubtitlePosition] = useState<SubtitlePosition>(loadSubtitlePosition)
   const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStylePreset>(loadSubtitleStyle)
   const [playerVolume, setPlayerVolume] = useState(() =>
@@ -164,13 +155,10 @@ export function PlayerPage() {
   )
   // 播放倍速只作用于当前视频：不入库、不跨视频沿用（换集/换片会重置回 1x）。
   const [playerPlaybackRate, setPlayerPlaybackRate] = useState(() => DEFAULT_PLAYBACK_RATE)
-  const persistedSubtitleChineseModeRef = useRef(subtitleChineseMode)
   // VR 全景播放的首次操作说明是否已经看过：null = 服务端配置还没读回来，
   // 这时不弹说明，避免给老用户闪一下。
   const [vr360GuideSeen, setVr360GuideSeen] = useState<boolean | null>(null)
   const playerVolumeTouchedRef = useRef(false)
-  const subtitlePreferenceTouchedRef = useRef(false)
-  const subtitlePreferenceSaveQueueRef = useRef<Promise<void>>(Promise.resolve())
   const [hlsUnavailable, setHlsUnavailable] = useState(false)
   const [playerError, setPlayerError] = useState('')
   // 媒体元数据加载失败（404 / 无权限等）：舞台区直接展示错误而不是永远「加载中」
@@ -213,7 +201,7 @@ export function PlayerPage() {
 
   // 弹幕控制：状态来自 /api/danmaku/config 初始值，用户在面板里实时调整。
   const [danmakuOpen, setDanmakuOpen] = useState(false)
-  const [danmakuEnabled, setDanmakuEnabled] = useState(true)
+  const [danmakuEnabled, setDanmakuEnabled] = useState(false)
   const [danmakuSearch, setDanmakuSearch] = useState<string | null>(null)
   const [danmakuSearchTrigger, setDanmakuSearchTrigger] = useState(0)
   const [danmakuSearching, setDanmakuSearching] = useState(false)
@@ -270,24 +258,6 @@ export function PlayerPage() {
       .catch(() => setDirectOnly(false))
       .finally(() => setDirectOnlyKnown(true))
   }, [])
-
-  // 每次进入播放器都从数据库刷新用户的字幕转换偏好；本地登录缓存只用作首屏初值。
-  useEffect(() => {
-    let cancelled = false
-    profileAPI
-      .get()
-      .then((user) => {
-        if (cancelled || subtitlePreferenceTouchedRef.current) return
-        const savedMode = normalizeSubtitleChineseMode(user.subtitle_chinese_mode)
-        persistedSubtitleChineseModeRef.current = savedMode
-        setSubtitleChineseMode(savedMode)
-        setAuthUser(user)
-      })
-      .catch(() => undefined)
-    return () => {
-      cancelled = true
-    }
-  }, [setAuthUser])
 
   const applyDanmakuConnectionConfig = useCallback((cfg: DanmakuConfig) => {
     setDanmakuSource(cfg.source ?? '')
@@ -2335,30 +2305,6 @@ export function PlayerPage() {
     [hlsSource, hlsStartSec, mode, setPlaybackMode, startCloudTranscode],
   )
 
-  const changeSubtitleChineseMode = useCallback(
-    (nextMode: SubtitleChineseMode) => {
-      subtitlePreferenceTouchedRef.current = true
-      setSubtitleChineseMode(nextMode)
-
-      const save = subtitlePreferenceSaveQueueRef.current.then(async () => {
-        const user = await profileAPI.update({ subtitle_chinese_mode: nextMode })
-        persistedSubtitleChineseModeRef.current = nextMode
-        setAuthUser(user)
-        toast.success('字幕转换偏好已保存，后续播放将自动沿用')
-      })
-      subtitlePreferenceSaveQueueRef.current = save.catch(() => undefined)
-      void save.catch(() => {
-        setSubtitleChineseMode((currentMode) =>
-          currentMode === nextMode
-            ? persistedSubtitleChineseModeRef.current
-            : currentMode,
-        )
-        toast.error('字幕转换偏好保存失败，已恢复上次设置')
-      })
-    },
-    [setAuthUser],
-  )
-
   const handleVideoError = useCallback(() => {
     const video = ref.current
     if (mode !== 'direct') {
@@ -2433,26 +2379,26 @@ export function PlayerPage() {
 
   return (
     <div className="relative flex h-full w-full flex-1 flex-col overflow-hidden bg-black">
-      <PlayerTopBar
-        title={topBarTitle}
-        subtitle={topBarSubtitle}
-        directOnly={directOnly}
-        isDirectStream={isDirectStream}
-        directStreamLabel={isRemoteEmbyID(media?.id) ? 'Emby 直连播放' : undefined}
-        modeLabel={playbackModeLabel}
-        mode={mode}
-        onBack={goBack}
-      />
       <PlayerVideoStage
         theater={isMobileTheater}
+        topBar={
+          <PlayerTopBar
+            title={topBarTitle}
+            subtitle={topBarSubtitle}
+            directOnly={directOnly}
+            isDirectStream={isDirectStream}
+            directStreamLabel={isRemoteEmbyID(media?.id) ? 'Emby 直连播放' : undefined}
+            modeLabel={playbackModeLabel}
+            mode={mode}
+            onBack={goBack}
+          />
+        }
         media={media}
         loadError={loadError}
         playerError={playerError}
         subs={subs}
         subtitleIndex={subtitleIndex}
         onSelectSubtitle={selectSubtitle}
-        subtitleChineseMode={subtitleChineseMode}
-        onSubtitleChineseModeChange={changeSubtitleChineseMode}
         subtitlePosition={subtitlePosition}
         onSubtitlePositionChange={changeSubtitlePosition}
         subtitleStyle={subtitleStyle}

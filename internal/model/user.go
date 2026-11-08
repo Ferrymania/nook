@@ -45,7 +45,7 @@ type User struct {
 	// PlayerVr360GuideSeen 记录用户是否已经看过 VR 全景播放的首次操作说明，
 	// 按用户保存：看过一次之后不再弹出。
 	PlayerVr360GuideSeen bool    `gorm:"not null;default:false" json:"player_vr360_guide_seen"`
-	DanmakuEnabled       bool    `gorm:"not null;default:true" json:"danmaku_enabled"`
+	DanmakuEnabled       bool    `gorm:"not null;default:false" json:"danmaku_enabled"`
 	DanmakuOpacity       float64 `gorm:"not null;default:1" json:"danmaku_opacity"`
 	DanmakuFontSize      int     `gorm:"not null;default:24" json:"danmaku_font_size"`
 	DanmakuArea          float64 `gorm:"not null;default:1" json:"danmaku_area"`

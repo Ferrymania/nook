@@ -73,7 +73,7 @@ type accountCleanupRule struct {
 func defaultBotConfig() botConfig {
 	return botConfig{
 		AntiShareEnabled:  false, // 防共享默认关闭，需管理员显式开启
-		MaxConcurrentPlay: 3,
+		MaxConcurrentPlay: 1,
 		MaxLoggedClients:  3,
 		PlayWindowSeconds: 90,
 		ClientActiveDays:  30,
