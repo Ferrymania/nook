@@ -84,7 +84,7 @@ func TestAPIConfigListHidesScraperSourcesAndPrioritizesConfigured(t *testing.T) 
 			t.Fatalf("configured key must remain masked: %s", item.Provider)
 		}
 	}
-	want := []string{"bangumi", "tmdb", "fanart", "openai", "thetvdb"}
+	want := []string{"bangumi", "tmdb", "fanart", "omdb", "openai", "thetvdb"}
 	if !reflect.DeepEqual(providers, want) || !items[0].HasKey || !items[1].HasKey {
 		t.Fatalf("provider order = %v, want %v with configured keys first", providers, want)
 	}

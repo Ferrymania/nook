@@ -25,7 +25,8 @@ type Match struct {
 	People        []map[string]any `json:"-"`
 	NSFW          bool             `json:"nsfw,omitempty"`
 	SearchKeyword string           `json:"-"`
-	seasonYear    int              // 本次查询已校验的季播出年，不覆盖整剧首播年。
+	ratingSource  string
+	seasonYear    int // 本次查询已校验的季播出年，不覆盖整剧首播年。
 }
 
 // TMDbEpisodeDetails holds per-episode metadata from /tv/{id}/season/{season}/episode/{episode}.

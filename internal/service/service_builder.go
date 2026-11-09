@@ -96,6 +96,8 @@ func (b *serviceContainerBuilder) initProviderServices() {
 		b.c.TMDb, b.c.Bangumi, b.c.TheTVDB, b.c.Fanart,
 		b.c.WSHub, adult,
 	)
+	b.c.ExternalRatings = newExternalRatingService(b.repos, b.c.APIConfig, b.c.TMDb, b.log)
+	b.c.Scraper.externalRatings = b.c.ExternalRatings
 	b.c.Scraper.SetRuntimeCache(b.c.Cache)
 	b.c.APIConfig.onChange = b.c.Scraper.lookupCache.clear
 }

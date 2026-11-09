@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronDown, Shuffle } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronDown } from 'lucide-react'
 
 import {
   SORT_OPTIONS,
+  getSortOption,
   type SortField,
   type SortOption,
   type SortOrder,
@@ -11,8 +12,8 @@ import {
 type MediaSortDropdownProps = {
   value: SortField
   order: SortOrder
+  isSeriesLibrary: boolean
   onChange: (field: SortField, order: SortOrder) => void
-  onReshuffle?: () => void
   buttonClassName?: string
   className?: string
 }
@@ -20,15 +21,16 @@ type MediaSortDropdownProps = {
 export function MediaSortDropdown({
   value,
   order,
+  isSeriesLibrary,
   onChange,
-  onReshuffle,
   className = '',
   buttonClassName,
 }: MediaSortDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const currentOption = SORT_OPTIONS.find((opt) => opt.id === value) ?? SORT_OPTIONS[0]
+  const currentOption = getSortOption(value)
+  const options = isSeriesLibrary ? SORT_OPTIONS : SORT_OPTIONS.filter(option => option.id !== 'updated_at')
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -45,16 +47,6 @@ export function MediaSortDropdown({
   }, [isOpen])
 
   const handleSelect = (option: SortOption) => {
-    if (option.id === 'random') {
-      if (value === 'random') {
-        onReshuffle?.()
-      } else {
-        onChange('random', 'desc')
-      }
-      setIsOpen(false)
-      return
-    }
-
     if (value === option.id) {
       // 再次点击相同项：切换升降序
       const nextOrder: SortOrder = order === 'asc' ? 'desc' : 'asc'
@@ -78,9 +70,7 @@ export function MediaSortDropdown({
       >
         <ArrowUpDown size={14} className="text-sand-500" />
         <span>排序: {currentOption.label}</span>
-        {value === 'random' ? (
-          <Shuffle size={12} className="text-brand-600" />
-        ) : order === 'asc' ? (
+        {order === 'asc' ? (
           <ArrowUp size={13} className="text-brand-600 font-bold" />
         ) : (
           <ArrowDown size={13} className="text-brand-600 font-bold" />
@@ -94,7 +84,7 @@ export function MediaSortDropdown({
             排序方式
           </div>
           <div className="max-h-80 overflow-y-auto py-1 space-y-0.5">
-            {SORT_OPTIONS.map((option) => {
+            {options.map((option) => {
               const isSelected = value === option.id
               return (
                 <button
@@ -113,9 +103,7 @@ export function MediaSortDropdown({
                   </div>
                   {isSelected && (
                     <div className="flex items-center text-brand-600">
-                      {option.id === 'random' ? (
-                        <Shuffle size={13} />
-                      ) : order === 'asc' ? (
+                      {order === 'asc' ? (
                         <ArrowUp size={14} className="stroke-[2.5]" />
                       ) : (
                         <ArrowDown size={14} className="stroke-[2.5]" />

@@ -267,6 +267,9 @@ func TestEnrichOneWritesTMDbEpisodeMetadata(t *testing.T) {
 	if got.Rating < 9.09 || got.Rating > 9.11 {
 		t.Fatalf("episode rating = %v, want 9.1", got.Rating)
 	}
+	if got.RatingSource != "tmdb" {
+		t.Fatalf("episode rating source = %q, want tmdb", got.RatingSource)
+	}
 	if got.EpisodeTitle != "任务代号: 猫" {
 		t.Fatalf("episode_title should store per-episode name, got %q", got.EpisodeTitle)
 	}

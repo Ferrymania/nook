@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Ferrymania/nook/internal/model"
+	"gorm.io/gorm"
 )
 
 type MediaMetadataUpdate struct {
@@ -40,7 +41,8 @@ func (s *MediaService) UpdateMetadata(ctx context.Context, id string, req MediaM
 	if id == "" {
 		return nil, errors.New("media id required")
 	}
-	if existing, err := s.repo.Media.FindByID(ctx, id); err != nil {
+	existing, err := s.repo.Media.FindByID(ctx, id)
+	if err != nil {
 		return nil, err
 	} else if existing == nil {
 		return nil, errors.New("media not found")
@@ -72,7 +74,9 @@ func (s *MediaService) UpdateMetadata(ctx context.Context, id string, req MediaM
 		updates["release_date"] = normalizeReleaseDate(*req.ReleaseDate)
 	}
 	if req.Rating != nil {
-		updates["rating"] = clampRating(*req.Rating)
+		rating := clampRating(*req.Rating)
+		updates["rating"] = rating
+		updates["rating_source"] = gorm.Expr("CASE WHEN rating = ? THEN rating_source ELSE '' END", rating)
 	}
 	if req.SeasonNum != nil {
 		updates["season_num"] = clampNonNegativeInt(*req.SeasonNum)
@@ -84,7 +88,12 @@ func (s *MediaService) UpdateMetadata(ctx context.Context, id string, req MediaM
 		updates["episode_fraction"] = clampEpisodeFraction(*req.EpisodeFraction)
 	}
 	if req.TMDbID != nil {
-		updates["tm_db_id"] = clampNonNegativeInt(*req.TMDbID)
+		id := clampNonNegativeInt(*req.TMDbID)
+		updates["tm_db_id"] = id
+		if id != existing.TMDbID {
+			updates["tm_db_media_type"] = ""
+			updates["rating_source"] = ""
+		}
 	}
 	if req.BangumiID != nil {
 		updates["bangumi_id"] = clampNonNegativeInt(*req.BangumiID)

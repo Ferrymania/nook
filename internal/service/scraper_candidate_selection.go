@@ -190,6 +190,7 @@ func mergeAutomaticTMDbLocalizedMatch(localized, search *Match) {
 	}
 	if localized.Rating <= 0 {
 		localized.Rating = search.Rating
+		localized.ratingSource = search.ratingSource
 	}
 	if len(localized.Languages) == 0 {
 		localized.Languages = append([]string(nil), search.Languages...)

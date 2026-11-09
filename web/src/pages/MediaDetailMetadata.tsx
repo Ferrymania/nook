@@ -1,4 +1,4 @@
-import { Star } from 'lucide-react'
+import { MediaExternalRatings } from '../components/MediaExternalRatings'
 
 import type { Media } from '../types'
 import { mediaTechnicalSummary } from '../utils/mediaTechnicalSummary'
@@ -27,17 +27,7 @@ export function MediaDetailMetadata({ media }: MediaDetailMetadataProps) {
             {media.title}
           </p>
         )}
-        {(media.rating > 0 || media.year > 0) && (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium text-(--app-subtle) tabular-nums">
-            {Number.isFinite(media.rating) && media.rating > 0 && (
-              <span className="inline-flex items-center gap-1.5" aria-label={`评分 ${media.rating.toFixed(1)}`}>
-                <Star size={15} fill="currentColor" className="text-(--app-danger-text)" aria-hidden="true" />
-                {media.rating.toFixed(1)}
-              </span>
-            )}
-            {media.year > 0 && <span>{media.year} 年</span>}
-          </div>
-        )}
+        <MediaExternalRatings media={media} showMediaInfo />
         {technicalSummary.length > 0 && (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-medium text-(--app-subtle) tabular-nums" aria-label="媒体信息">
             {technicalSummary.map((value, index) => <span key={index} className="whitespace-nowrap">{value}</span>)}

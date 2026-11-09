@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, type DragEvent, type MouseEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Folder, GripVertical, Image, MoreVertical, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Folder, GripVertical, Image, MoreVertical, Pencil, Plus, RefreshCw, Star, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
+import { externalRatingsAPI } from '../api/library'
 import { LocalDirBrowserDialog } from '../components/LocalDirBrowserDialog'
 import type { Library, LibraryRoot } from '../types'
+import { LibraryRatingsDialog } from './LibraryRatingsDialog'
 import type { RootDraft } from './adminLibraryPanelModel'
 import { apiErrorMessage, displayLibraryRootName, displayLibraryRootPath, fallbackLibraryRoot, libraryTypeLabels, rootDraftKey } from './adminLibraryPanelModel'
 
@@ -32,6 +34,7 @@ export function AdminLibraryTable({ libs, disabled = false, ...actions }: Librar
   const [browsing, setBrowsing] = useState<{ library: Library; root: LibraryRoot } | null>(null)
   const [draggingID, setDraggingID] = useState<string | null>(null)
   const [dragOverID, setDragOverID] = useState<string | null>(null)
+  const [ratingsLibrary, setRatingsLibrary] = useState<{ library: Library; submission: Promise<string> } | null>(null)
   const [busy, setBusy] = useState(false)
   const busyRef = useRef(false)
   const blocked = busy || disabled
@@ -78,6 +81,11 @@ export function AdminLibraryTable({ libs, disabled = false, ...actions }: Librar
           <button type="button" className="nook-library-manager-button nook-library-manager-add-directory" disabled={blocked} onClick={() => { setExpanded(previous => previous.includes(library.id) ? previous : [...previous, library.id]); actions.onAddLibraryRoot(library) }}><Plus size={15} />添加目录</button>
           <div className="nook-library-manager-menu"><ActionMenu label={`${library.name}更多操作`} disabled={blocked}>
             <MenuButton icon={<RefreshCw size={14} />} label="扫描媒体库" onClick={() => void run(() => actions.onScanLibrary(library))}>扫描媒体库</MenuButton>
+            <MenuButton icon={<Star size={14} />} label="补齐评分" onClick={() => {
+              const submission = externalRatingsAPI.enqueue(library.id)
+                .then(() => '', error => apiErrorMessage(error, '提交评分任务失败'))
+              setRatingsLibrary({ library, submission })
+            }}>补齐评分</MenuButton>
             <MenuButton icon={<Image size={14} />} label="修改封面" onClick={() => actions.onEditLibraryCover(library)}>修改封面</MenuButton>
             <MenuButton icon={<ArrowUp size={14} />} label="上移" disabled={index === 0} onClick={() => reorder(library.id, libs[index - 1].id)}>上移</MenuButton>
             <MenuButton icon={<ArrowDown size={14} />} label="下移" disabled={index === libs.length - 1} onClick={() => reorder(library.id, libs[index + 1].id)}>下移</MenuButton>
@@ -102,6 +110,7 @@ export function AdminLibraryTable({ libs, disabled = false, ...actions }: Librar
         })}</div>}
       </li>
     })}</ul>
+    {ratingsLibrary && <LibraryRatingsDialog {...ratingsLibrary} onClose={() => setRatingsLibrary(null)} />}
     {browsing && <LocalDirBrowserDialog initialDir={actions.editableRootDraft(browsing.library.id, browsing.root).path} title="选择媒体库目录" onSelect={path => { actions.onEditableRootChange(browsing.library.id, browsing.root, { path }); setBrowsing(null) }} onClose={() => setBrowsing(null)} />}
   </section>
 }
@@ -120,7 +129,7 @@ function ActionMenu({ label, children, disabled }: { label: string; children: Re
     if (triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect()
       const spaceBelow = window.innerHeight - rect.bottom
-      const estimatedHeight = 180
+      const estimatedHeight = 220
       const openUpward = spaceBelow < estimatedHeight && rect.top > estimatedHeight
       setCoords({
         top: openUpward ? undefined : rect.bottom + 4,

@@ -61,6 +61,7 @@ type Media struct {
 	EpisodeStillURL string  `gorm:"size:1024;default:''" json:"episode_still_url,omitempty"`
 	Overview        string  `gorm:"type:text" json:"overview,omitempty"`
 	Rating          float32 `json:"rating"`
+	RatingSource    string  `gorm:"size:16;not null;default:''" json:"rating_source,omitempty"`
 	Year            int     `json:"year"`
 	ReleaseDate     string  `gorm:"size:10;index:idx_media_library_release,priority:2" json:"release_date,omitempty"`
 	SeasonNum       int     `json:"season_num"`
@@ -68,6 +69,7 @@ type Media struct {
 	EpisodeFraction float64 `gorm:"default:0" json:"episode_fraction,omitempty"` // 集号小数部分（S01E11.5 → 0.5）；Emby 的 IndexNumber 只能是整数，小数单独存放
 	ScrapeStatus    string  `gorm:"size:16;default:pending" json:"scrape_status"`
 	TMDbID          int     `json:"tmdb_id"`
+	TMDbMediaType   string  `gorm:"column:tm_db_media_type;size:5;not null;default:''" json:"-"`
 	BangumiID       int     `json:"bangumi_id"`
 	DoubanID        string  `gorm:"column:douban_id;size:32" json:"douban_id,omitempty"`
 	TheTVDBID       string  `gorm:"column:thetvdb_id;size:64" json:"thetvdb_id,omitempty"`

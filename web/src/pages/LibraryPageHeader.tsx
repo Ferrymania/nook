@@ -18,8 +18,8 @@ type LibraryPageHeaderProps = {
   scraping: boolean
   sortField: SortField
   sortOrder: SortOrder
+  isSeriesLibrary: boolean
   onSortChange: (field: SortField, order: SortOrder) => void
-  onReshuffle: () => void
   onScan: () => void
   onScrape: () => void
 }
@@ -36,8 +36,8 @@ export function LibraryPageHeader({
   scraping,
   sortField,
   sortOrder,
+  isSeriesLibrary,
   onSortChange,
-  onReshuffle,
   onScan,
   onScrape,
 }: LibraryPageHeaderProps) {
@@ -59,8 +59,8 @@ export function LibraryPageHeader({
         <MediaSortDropdown
           value={sortField}
           order={sortOrder}
+          isSeriesLibrary={isSeriesLibrary}
           onChange={onSortChange}
-          onReshuffle={onReshuffle}
           buttonClassName="library-toolbar-button"
         />
         {isAdmin && !library?.is_remote_emby && (

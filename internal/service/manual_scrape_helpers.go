@@ -34,8 +34,9 @@ func mergeManualRequestIntoMatch(match *Match, req ManualScrapeRequest) *Match {
 	if value := normalizeReleaseDate(req.ReleaseDate); value != "" {
 		match.ReleaseDate = value
 	}
-	if req.Rating > 0 {
+	if req.Rating > 0 && req.Rating != match.Rating {
 		match.Rating = req.Rating
+		match.ratingSource = ""
 	}
 	if req.TMDbID > 0 {
 		match.TMDbID = req.TMDbID
