@@ -19,7 +19,7 @@ type APIConfig struct {
 	APIKey   string `gorm:"type:text" json:"-"` // ciphertext (never serialised)
 	BaseURL  string `gorm:"size:512" json:"base_url,omitempty"`
 	Extra    string `gorm:"type:text" json:"extra,omitempty"` // free-form JSON
-	Enabled  bool   `gorm:"default:true" json:"enabled"`
+	Enabled  bool   `gorm:"default:false" json:"enabled"`
 
 	Description  string     `gorm:"size:255" json:"description,omitempty"`
 	LastTestedAt *time.Time `json:"last_tested_at,omitempty"`

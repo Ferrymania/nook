@@ -21,7 +21,8 @@ func TestExternalRatingsBackfillDeduplicatesAndPreservesPartialResults(t *testin
 	log := zap.NewNop()
 	api := NewAPIConfigService(log, repo, NewCryptoService("ratings-test-secret", log))
 	key, limit := "omdb-fixture-key", "1"
-	if _, err := api.Update(ctx, "omdb", APIConfigPatch{APIKey: &key, Extra: &limit}); err != nil {
+	enabled := true
+	if _, err := api.Update(ctx, "omdb", APIConfigPatch{APIKey: &key, Extra: &limit, Enabled: &enabled}); err != nil {
 		t.Fatal(err)
 	}
 	cfg := &config.Config{}

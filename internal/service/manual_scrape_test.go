@@ -490,7 +490,8 @@ func TestManualSearchAllProvidersProviderIDSkipsAdultSource(t *testing.T) {
 	log := zap.NewNop()
 	apiConfig := NewAPIConfigService(log, repos, NewCryptoService("test-secret", log))
 	adultBaseURL := adultUpstream.URL
-	if _, err := apiConfig.Update(t.Context(), "adult", APIConfigPatch{BaseURL: &adultBaseURL}); err != nil {
+	enabled := true
+	if _, err := apiConfig.Update(t.Context(), "adult", APIConfigPatch{BaseURL: &adultBaseURL, Enabled: &enabled}); err != nil {
 		t.Fatal(err)
 	}
 	scraper := NewScraperService(cfg, log, repos, NewTMDbProvider(cfg, log, nil), nil, nil, nil, NewHub(log), NewAdultProvider(log, apiConfig))
@@ -563,7 +564,8 @@ func TestManualSearchIncludesAdultProvider(t *testing.T) {
 	repos := repository.New(db)
 	apiConfig := NewAPIConfigService(zap.NewNop(), repos, NewCryptoService("test-secret", zap.NewNop()))
 	baseURL := upstream.URL
-	if _, err := apiConfig.Update(t.Context(), "adult", APIConfigPatch{BaseURL: &baseURL}); err != nil {
+	enabled := true
+	if _, err := apiConfig.Update(t.Context(), "adult", APIConfigPatch{BaseURL: &baseURL, Enabled: &enabled}); err != nil {
 		t.Fatal(err)
 	}
 	log := zap.NewNop()
