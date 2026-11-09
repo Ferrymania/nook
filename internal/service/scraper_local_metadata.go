@@ -98,6 +98,7 @@ func mergeLocalMetadataIntoMatch(match *Match, local *LocalMetadata) {
 	}
 	if local.Rating > 0 && !episode {
 		match.Rating = local.Rating
+		match.ratingSource = ""
 	}
 	if local.Year > 0 {
 		match.Year = local.Year
@@ -219,6 +220,7 @@ func (s *ScraperService) applyLocalMetadataMatch(ctx context.Context, m *model.M
 	}
 	if next.Rating > 0 {
 		updates["rating"] = next.Rating
+		updates["rating_source"] = next.RatingSource
 	}
 	if next.Year > 0 {
 		updates["year"] = next.Year
@@ -228,6 +230,9 @@ func (s *ScraperService) applyLocalMetadataMatch(ctx context.Context, m *model.M
 	}
 	if next.TMDbID > 0 {
 		updates["tm_db_id"] = next.TMDbID
+		if next.TMDbID != m.TMDbID {
+			updates["tm_db_media_type"] = ""
+		}
 	}
 	if next.BangumiID > 0 {
 		updates["bangumi_id"] = next.BangumiID

@@ -26,6 +26,8 @@ type ScraperService struct {
 	images  *ImageProxy
 	probe   *MediaProbeService
 
+	externalRatings *ExternalRatingService
+
 	// Caches provider-chain results keyed by media kind/query/year. Per-instance
 	// so services with different provider config never share results.
 	lookupCache  *scrapeLookupCache

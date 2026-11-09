@@ -47,6 +47,7 @@ func applyLocalIdentityMetadata(m *model.Media, local *LocalMetadata) {
 	}
 	if local.Rating > 0 {
 		m.Rating = local.Rating
+		m.RatingSource = ""
 	}
 }
 

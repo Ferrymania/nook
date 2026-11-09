@@ -30,6 +30,7 @@ export interface Media {
   episode_still_url?: string
   overview?: string
   rating: number
+  rating_source?: string
   year: number
   release_date?: string
   season_num: number

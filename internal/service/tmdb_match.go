@@ -56,6 +56,7 @@ func (t *TMDbProvider) GetMovieMatch(ctx context.Context, tmdbID int) (*Match, e
 		OriginalName: r.OriginalTitle,
 		Overview:     r.Overview,
 		Rating:       r.VoteAverage,
+		ratingSource: "tmdb",
 		Languages:    nonEmptyStrings(r.OriginalLanguage),
 	}
 	if m.Title == "" {
@@ -139,6 +140,7 @@ func (t *TMDbProvider) GetTVMatch(ctx context.Context, tmdbID int) (*Match, erro
 		OriginalName: r.OriginalName,
 		Overview:     r.Overview,
 		Rating:       r.VoteAverage,
+		ratingSource: "tmdb",
 		Languages:    nonEmptyStrings(r.OriginalLanguage),
 		Countries:    deduplicate(r.OriginCountry),
 	}

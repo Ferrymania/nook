@@ -109,6 +109,7 @@ func (t *TMDbProvider) movieSearchResultToMatch(r tmdbMovieSearchResult) *Match 
 		OriginalName: r.OriginalTitle,
 		Overview:     r.Overview,
 		Rating:       r.VoteAverage,
+		ratingSource: "tmdb",
 		Languages:    nonEmptyStrings(r.OriginalLanguage),
 		Genres:       genre.FromTMDBIDs(r.GenreIDs),
 	}
@@ -197,6 +198,7 @@ func (t *TMDbProvider) tvSearchResultToMatch(r tmdbTVSearchResult) *Match {
 		OriginalName: r.OriginalName,
 		Overview:     r.Overview,
 		Rating:       r.VoteAverage,
+		ratingSource: "tmdb",
 		Languages:    nonEmptyStrings(r.OriginalLanguage),
 		Countries:    deduplicate(r.OriginCountry),
 		Genres:       genre.FromTMDBIDs(r.GenreIDs),

@@ -297,8 +297,9 @@ func addMatchedMediaDetailUpdates(updates map[string]any, existing, incoming mod
 	setNonEmptyMediaString(updates, "languages", existing.Languages, incoming.Languages)
 	setNonEmptyMediaString(updates, "countries", existing.Countries, incoming.Countries)
 	setNonEmptyMediaString(updates, "genres", existing.Genres, incoming.Genres)
-	if incoming.Rating > 0 {
-		setIfChanged(updates, "rating", existing.Rating, incoming.Rating)
+	if incoming.Rating > 0 && (incoming.Rating != existing.Rating || incoming.RatingSource != existing.RatingSource) {
+		updates["rating"] = incoming.Rating
+		updates["rating_source"] = incoming.RatingSource
 	}
 	if incoming.Year > 0 {
 		setIfChanged(updates, "year", existing.Year, incoming.Year)
@@ -366,6 +367,9 @@ func addIncomingMediaProviderIDs(updates map[string]any, existing, incoming mode
 	changed := false
 	if incoming.TMDbID > 0 && existing.TMDbID != incoming.TMDbID {
 		updates["tm_db_id"] = incoming.TMDbID
+		if incoming.Rating <= 0 {
+			updates["rating_source"] = ""
+		}
 		changed = true
 	}
 	if incoming.BangumiID > 0 && existing.BangumiID != incoming.BangumiID {

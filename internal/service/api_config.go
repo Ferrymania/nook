@@ -43,6 +43,7 @@ func (s *APIConfigService) SeedDefaults(ctx context.Context) error {
 		{Provider: "bangumi", BaseURL: "https://api.bgm.tv", Description: "Bangumi (anime)", Enabled: true},
 		{Provider: "thetvdb", BaseURL: "https://api4.thetvdb.com/v4", Description: "TheTVDB (tv)", Enabled: true},
 		{Provider: "fanart", BaseURL: "https://webservice.fanart.tv/v3", Description: "Fanart.tv (artwork)", Enabled: true},
+		{Provider: "omdb", BaseURL: "https://www.omdbapi.com/", Description: "OMDb", Enabled: true},
 		{Provider: "openai", BaseURL: "https://api.openai.com/v1", Description: "OpenAI-compatible (smart search)", Enabled: true},
 	}
 	for i := range defaults {
@@ -82,7 +83,7 @@ type PublicView struct {
 func (s *APIConfigService) List(ctx context.Context) ([]PublicView, error) {
 	var rows []model.APIConfig
 	if err := s.repo.DB.WithContext(ctx).
-		Where("provider IN ?", []string{"tmdb", "bangumi", "thetvdb", "fanart", "openai"}).
+		Where("provider IN ?", []string{"tmdb", "bangumi", "thetvdb", "fanart", "omdb", "openai"}).
 		Order("provider asc").Find(&rows).Error; err != nil {
 		return nil, err
 	}

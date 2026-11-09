@@ -7,7 +7,7 @@ import { confirmAction } from './confirmAction'
 
 const PROVIDER_NAMES: Record<string, string> = {
   tmdb: 'TMDb', bangumi: 'Bangumi', fanart: 'Fanart.tv',
-  openai: 'OpenAI 兼容', thetvdb: 'TheTVDB',
+  omdb: 'OMDb', openai: 'OpenAI 兼容', thetvdb: 'TheTVDB',
 }
 
 // Compact inline-editable provider table for use inside AdminPage's "外部API" tab.
@@ -134,6 +134,7 @@ function EditingRow({
 }) {
   const [apiKey, setAPIKey] = useState('')
   const [baseURL, setBaseURL] = useState(item.base_url ?? '')
+  const [dailyLimit, setDailyLimit] = useState(item.extra || '1000')
   const [enabled, setEnabled] = useState(item.enabled)
   const [saving, setSaving] = useState(false)
 
@@ -142,6 +143,7 @@ function EditingRow({
     setSaving(true)
     try {
       const patch: Record<string, unknown> = { base_url: baseURL, enabled }
+      if (item.provider === 'omdb') patch.extra = dailyLimit
       if (apiKey.trim()) patch.api_key = apiKey.trim()
       await apiConfigsAPI.update(item.provider, patch)
       toast.success(`${item.provider} 已保存`)
@@ -171,6 +173,13 @@ function EditingRow({
               onChange={(e) => setAPIKey(e.target.value)}
             />
           </label>
+          {item.provider === 'omdb' ? (
+            <label className="flex-1 text-xs text-ink-50">
+              每日请求上限（UTC）
+              <input className="input-base mt-1" type="number" required min={1} max={1_000_000}
+                value={dailyLimit} onChange={event => setDailyLimit(event.target.value)} />
+            </label>
+          ) : (
           <label className="flex-1 text-xs text-ink-50">
             Base URL
             <input
@@ -180,6 +189,7 @@ function EditingRow({
               onChange={(e) => setBaseURL(e.target.value)}
             />
           </label>
+          )}
           <label className="flex items-center gap-2 text-xs text-ink-50">
             <input
               type="checkbox"

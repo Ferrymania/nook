@@ -103,6 +103,7 @@ func tmdbEpisodeMetadataUpdates(m *model.Media, episode *TMDbEpisodeDetails, mat
 	}
 	if episode.Rating > 0 {
 		updates["rating"] = episode.Rating
+		updates["rating_source"] = "tmdb"
 	}
 	if episode.AirYear > 0 && matchYear <= 0 {
 		updates["year"] = episode.AirYear

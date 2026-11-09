@@ -185,6 +185,7 @@ func (s *ScraperService) applyProviderMatchWithOptions(ctx context.Context, m *m
 		"poster_url":    posterURL,
 		"backdrop_url":  backdropURL,
 		"rating":        match.Rating,
+		"rating_source": match.ratingSource,
 		"year":          match.Year,
 		"scrape_status": "matched",
 	}
@@ -223,6 +224,7 @@ func (s *ScraperService) applyProviderMatchWithOptions(ctx context.Context, m *m
 	}
 	if match.TMDbID > 0 {
 		updates["tm_db_id"] = match.TMDbID
+		updates["tm_db_media_type"] = s.determineMediaTypeForMedia(lib, m, match)
 	}
 	if match.BangumiID > 0 {
 		updates["bangumi_id"] = match.BangumiID
@@ -246,6 +248,9 @@ func (s *ScraperService) applyProviderMatchWithOptions(ctx context.Context, m *m
 		updates["languages"] = strings.Join(match.Languages, ",")
 	}
 	applyScrapeMediaTypeResets(updates, match)
+	if match.TMDbID <= 0 && updates["tm_db_id"] != nil {
+		updates["tm_db_media_type"] = ""
+	}
 	if mediaIsEpisodic(m, lib) && s.determineMediaTypeForMedia(lib, m, match) == "tv" {
 		seriesMedia := *m
 		if options.RebuildIdentity {
@@ -259,6 +264,12 @@ func (s *ScraperService) applyProviderMatchWithOptions(ctx context.Context, m *m
 	if err := s.repo.DB.Model(&model.Media{}).Where("id = ?", m.ID).
 		Updates(updates).Error; err != nil {
 		return err
+	}
+	if s.externalRatings != nil && match.TMDbID > 0 {
+		key := ratingWork{Kind: s.determineMediaTypeForMedia(lib, m, match), TMDbID: match.TMDbID}
+		if _, err := s.externalRatings.enqueue(ctx, []ratingWork{key}); err != nil {
+			s.log.Warn("enqueue external ratings", zap.Int("tmdb_id", match.TMDbID), zap.Error(err))
+		}
 	}
 	s.removeCachedScrapedArtwork(removePoster, removeBackdrop)
 

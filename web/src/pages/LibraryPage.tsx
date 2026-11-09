@@ -14,12 +14,7 @@ import {
   type LibraryFilterParams,
 } from '../utils/libraryFilters'
 import { isTheatricalFeature, type SeriesCard } from '../utils/groupSeries'
-import {
-  sortMediaList,
-  sortSeriesList,
-  type SortField,
-  type SortOrder,
-} from '../utils/mediaSort'
+import { getSortOption, libraryMediaSortField, type SortField, type SortOrder } from '../utils/mediaSort'
 import { LibraryPageDialogs, type LibraryMovieDialog } from './LibraryPageDialogs'
 import { PageBackButton } from '../components/PageBackButton'
 import { MediaFavouriteButton } from '../components/MediaFavouriteButton'
@@ -50,19 +45,15 @@ export function LibraryPage() {
   const [movieDialog, setMovieDialog] = useState<LibraryMovieDialog>(null)
 
   // 排序状态（支持按库记忆）
-  const [sortField, setSortField] = useState<SortField>(() => {
-    const saved = localStorage.getItem(`nook_lib_sort_field_${id}`) || localStorage.getItem('nook_lib_sort_field')
-    return (saved as SortField) || 'title'
+  const [{ field: sortField, order: sortOrder }, setSort] = useState<{ field: SortField; order: SortOrder }>(() => {
+    const savedField = localStorage.getItem(`nook_lib_sort_field_${id}`) || localStorage.getItem('nook_lib_sort_field')
+    const option = getSortOption(savedField)
+    const savedOrder = localStorage.getItem(`nook_lib_sort_order_${id}`) || localStorage.getItem('nook_lib_sort_order')
+    const order = option.id === savedField && (savedOrder === 'asc' || savedOrder === 'desc')
+      ? savedOrder
+      : option.defaultOrder
+    return { field: option.id, order }
   })
-  const [sortOrder, setSortOrder] = useState<SortOrder>(() => {
-    const saved = localStorage.getItem(`nook_lib_sort_order_${id}`) || localStorage.getItem('nook_lib_sort_order')
-    return (saved as SortOrder) || 'asc'
-  })
-  const [randomSeed, setRandomSeed] = useState(() => Date.now())
-  const [lastNonRandomSort, setLastNonRandomSort] = useState<SortField>(sortField === 'random' ? 'release_date' : sortField)
-  const [lastNonRandomOrder, setLastNonRandomOrder] = useState<SortOrder>(sortOrder)
-  const serverSortField = sortField === 'random' ? lastNonRandomSort : sortField
-  const serverSortOrder = sortField === 'random' ? lastNonRandomOrder : sortOrder
 
   // 剧集模式：选中某个剧集后展开详情
   const [selectedSeries, setSelectedSeries] = useState<SeriesCard | null>(null)
@@ -143,7 +134,6 @@ export function LibraryPage() {
     loadingMore,
     hasMore,
     loadMore,
-    loadAll,
     loadingSeriesEpisodes,
     isSeriesLibrary,
     isSeries,
@@ -151,47 +141,23 @@ export function LibraryPage() {
     loadingAllText,
     reloadCurrentLibrary,
     updateLibrary,
-  } = useLibraryData(id, selectedSeries, serverSortField, serverSortOrder, libraryFilters)
+  } = useLibraryData(id, selectedSeries, sortField, sortOrder, libraryFilters)
   const seriesManualScrape = useLibraryManualScrape(id)
 
-  // 常规排序由服务端全局完成；只有 random 模式才在客户端洗牌。
-  const displayedItems = useMemo(() => {
-    return sortField === 'random' ? sortMediaList(items, 'random', sortOrder, randomSeed) : items
-  }, [items, sortField, sortOrder, randomSeed])
-
-  const displayedSeriesCards = useMemo(() => {
-    return sortField === 'random' ? sortSeriesList(seriesCards, 'random', sortOrder, randomSeed) : seriesCards
-  }, [seriesCards, sortField, sortOrder, randomSeed])
-
-  const handleSortChange = useCallback(async (field: SortField, order: SortOrder) => {
-    if (field === 'random') {
-      if (sortField !== 'random') {
-        setLastNonRandomSort(sortField)
-        setLastNonRandomOrder(sortOrder)
-        await loadAll()
-      }
-      setRandomSeed(Date.now())
-    } else {
-      setLastNonRandomSort(field)
-      setLastNonRandomOrder(order)
-    }
-    setSortField(field)
-    setSortOrder(order)
+  const handleSortChange = useCallback((field: SortField, order: SortOrder) => {
+    setSort({ field, order })
     if (id) {
       localStorage.setItem(`nook_lib_sort_field_${id}`, field)
       localStorage.setItem(`nook_lib_sort_order_${id}`, order)
     }
     localStorage.setItem('nook_lib_sort_field', field)
     localStorage.setItem('nook_lib_sort_order', order)
-  }, [id, loadAll, sortField, sortOrder])
+  }, [id])
 
   const handleLoadMore = useCallback(() => {
     void loadMore()
   }, [loadMore])
 
-  const handleReshuffle = () => {
-    setRandomSeed(Date.now())
-  }
   const {
     scanning,
     scanProgress,
@@ -219,7 +185,7 @@ export function LibraryPage() {
     isSeriesLibrary,
     isSeries,
     loading,
-    seriesCards: displayedSeriesCards,
+    seriesCards,
     searchParams,
     setSearchParams,
     selectedSeries,
@@ -230,7 +196,7 @@ export function LibraryPage() {
   })
   const handleCardManualScrape = (media: Media) => {
     const series = isSeries && !isTheatricalFeature(media)
-      ? displayedSeriesCards.find(card => card.rep.id === media.id)
+      ? seriesCards.find(card => card.rep.id === media.id)
       : undefined
     if (series) void seriesManualScrape.open(series)
     else setManualMovie(media)
@@ -320,7 +286,7 @@ export function LibraryPage() {
       {!selectedSeries && (
         <LibraryPageHeader
           library={library}
-          itemCount={isSeries ? displayedSeriesCards.length : total}
+          itemCount={isSeries ? seriesCards.length : total}
           loadingAllText={loadingAllText}
           scanProgress={scanProgress}
           isAdmin={role === 'admin'}
@@ -328,10 +294,10 @@ export function LibraryPage() {
           scanning={scanning}
           scanLabel={scanLabel}
           scraping={scraping}
-          sortField={sortField}
+          sortField={libraryMediaSortField(sortField, isSeriesLibrary)}
           sortOrder={sortOrder}
+          isSeriesLibrary={isSeriesLibrary}
           onSortChange={handleSortChange}
-          onReshuffle={handleReshuffle}
           onScan={handleScan}
           onScrape={handleScrape}
         />
@@ -349,8 +315,8 @@ export function LibraryPage() {
 
       <LibraryMediaSections
         isSeries={isSeries}
-        items={displayedItems}
-        seriesCards={displayedSeriesCards}
+        items={items}
+        seriesCards={seriesCards}
         selectedSeries={selectedSeries}
         loading={loading}
         hasMore={hasMore}

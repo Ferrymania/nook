@@ -47,6 +47,8 @@ func registerAuthedLibraryRoutes(authed *gin.RouterGroup, svc *service.Container
 	authed.DELETE("/libraries/:id/roots/:root_id", middleware.AdminRequired(), deleteLibraryRootHandler(svc))
 	authed.POST("/libraries/:id/roots/:root_id/scan", middleware.AdminRequired(), scanLibraryRootHandler(svc))
 	authed.GET("/libraries/:id/scan-status", middleware.AdminRequired(), libraryScanStatusHandler(svc))
+	authed.GET("/libraries/:id/external-ratings", middleware.AdminRequired(), libraryRatingStatusHandler(svc))
+	authed.POST("/libraries/:id/external-ratings", middleware.AdminRequired(), enqueueLibraryRatingsHandler(svc))
 	authed.GET("/libraries/:id/scrape-status", middleware.AdminRequired(), libraryScrapeStatusHandler(svc))
 	authed.POST("/libraries/:id/scan", middleware.AdminRequired(), scanLibraryHandler(svc))
 	authed.POST("/libraries/:id/scrape", middleware.AdminRequired(), scrapeLibraryHandler(svc))
@@ -61,6 +63,7 @@ func registerAuthedLibraryRoutes(authed *gin.RouterGroup, svc *service.Container
 
 func registerAuthedMediaRoutes(authed *gin.RouterGroup, svc *service.Container) {
 	authed.GET("/media/:id", getMediaHandler(svc))
+	authed.GET("/media/:id/external-ratings", mediaExternalRatingsHandler(svc))
 	authed.GET("/media/:id/episodes", listMediaEpisodesHandler(svc))
 	authed.GET("/media/:id/playback", mediaPlaybackInfoHandler(svc))
 	authed.POST("/media/:id/transcode", mediaTranscodeHandler(svc))

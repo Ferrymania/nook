@@ -10,8 +10,9 @@ import {
   serializeLibraryFilters,
   type LibraryFilterParams,
 } from '../utils/libraryFilters'
-import type { SortField, SortOrder } from '../utils/mediaSort'
+import { libraryMediaSortField, type SortField, type SortOrder } from '../utils/mediaSort'
 import { MAX_RESTORE_PAGES, readListPosition, writeListPosition } from '../hooks/useListPositionMemory'
+import { isSeriesLibraryType } from './librariesPageModel'
 
 export function useLibraryData(
   libraryID: string,
@@ -53,22 +54,26 @@ export function useLibraryData(
   // 分页位置按「媒体库 + 排序 + 筛选」记忆：详情页返回、甚至换完排序或筛选后
   // 再切回来，都能回到上次加载到的页数。
   const filterKey = serializeLibraryFilters(filters)
-  const positionKey = `library:${libraryID}:${sortField}:${sortOrder}:${filterKey}`
+  const getListRequest = useCallback((seriesMode: boolean) => {
+    const sort = libraryMediaSortField(sortField, seriesMode)
+    return {
+      options: { sort, order: sortOrder, filters },
+      positionKey: `library:${libraryID}:${sort}:${sortOrder}:${filterKey}`,
+    }
+  }, [filterKey, filters, libraryID, sortField, sortOrder])
 
   // 拉取并追加下一页。滚动哨兵、按钮和首屏分页恢复共用这一条路径，
   // 避免两套分页逻辑各自算页码。
-  const appendNextPage = useCallback(async (options?: { remember?: boolean }) => {
+  const appendNextPage = useCallback(async () => {
     const lib = libraryRef.current
     if (!lib || !hasMoreRef.current) return false
     const seq = requestSeqRef.current
     const page = nextPageRef.current
+    const seriesMode = modeRef.current === 'series'
+    const { options, positionKey } = getListRequest(seriesMode)
     try {
-      if (modeRef.current === 'series') {
-        const data = await libraryAPI.listSeries(libraryID, page, pageSizeFor(lib), {
-          sort: sortField,
-          order: sortOrder,
-          filters,
-        })
+      if (seriesMode) {
+        const data = await libraryAPI.listSeries(libraryID, page, pageSizeFor(lib), options)
         if (seq !== requestSeqRef.current) return false
         const pageItems = data.items ?? []
         setServerSeriesCards((prev) => [...prev, ...pageItems])
@@ -77,11 +82,7 @@ export function useLibraryData(
         nextPageRef.current = page + 1
         hasMoreRef.current = pageItems.length > 0 && loadedCountRef.current < totalRef.current
       } else {
-        const data = await libraryAPI.listMedia(libraryID, page, pageSizeFor(lib), {
-          sort: sortField,
-          order: sortOrder,
-          filters,
-        })
+        const data = await libraryAPI.listMedia(libraryID, page, pageSizeFor(lib), options)
         if (seq !== requestSeqRef.current) return false
         const pageItems = data.items ?? []
         setItems((prev) => [...prev, ...pageItems])
@@ -92,7 +93,7 @@ export function useLibraryData(
       }
       setTotal(totalRef.current)
       setHasMore(hasMoreRef.current)
-      if (options?.remember !== false) writeListPosition(positionKey, page)
+      writeListPosition(positionKey, page)
       return true
     } catch {
       if (seq === requestSeqRef.current) {
@@ -102,34 +103,19 @@ export function useLibraryData(
       }
       return false
     }
-  }, [libraryID, positionKey, sortField, sortOrder, filters])
+  }, [getListRequest, libraryID])
 
-  const loadMore = useCallback(async (options?: { remember?: boolean }) => {
+  const loadMore = useCallback(async () => {
     if (moreInFlightRef.current || !hasMoreRef.current) return
     moreInFlightRef.current = true
     setLoadingMore(true)
     try {
-      await appendNextPage(options)
+      await appendNextPage()
     } finally {
       moreInFlightRef.current = false
       setLoadingMore(false)
     }
   }, [appendNextPage])
-
-  const loadAll = useCallback(async () => {
-    const seq = requestSeqRef.current
-    setLoadingMore(true)
-    try {
-      while (seq === requestSeqRef.current && hasMoreRef.current) {
-        // 一次拉全量（random 排序前的准备）不代表用户的分页位置，不写入记忆。
-        await loadMore({ remember: false })
-        if (seq !== requestSeqRef.current || !hasMoreRef.current) break
-        await yieldToBrowser()
-      }
-    } finally {
-      if (seq === requestSeqRef.current) setLoadingMore(false)
-    }
-  }, [loadMore])
 
   useEffect(() => {
     if (!libraryID) return
@@ -174,25 +160,18 @@ export function useLibraryData(
 
       const seriesMode = isSeriesLibraryType(lib.type)
       modeRef.current = seriesMode ? 'series' : 'media'
+      const { options, positionKey } = getListRequest(seriesMode)
       const pageSize = pageSizeFor(lib)
       try {
         if (seriesMode) {
-          const data = await libraryAPI.listSeries(libraryID, 1, pageSize, {
-            sort: sortField,
-            order: sortOrder,
-            filters,
-          })
+          const data = await libraryAPI.listSeries(libraryID, 1, pageSize, options)
           if (cancelled || seq !== requestSeqRef.current) return
           const pageItems = data.items ?? []
           setServerSeriesCards(pageItems)
           loadedCountRef.current = pageItems.length
           totalRef.current = data.total ?? pageItems.length
         } else {
-          const data = await libraryAPI.listMedia(libraryID, 1, pageSize, {
-            sort: sortField,
-            order: sortOrder,
-            filters,
-          })
+          const data = await libraryAPI.listMedia(libraryID, 1, pageSize, options)
           if (cancelled || seq !== requestSeqRef.current) return
           const pageItems = data.items ?? []
           setItems(pageItems)
@@ -231,7 +210,7 @@ export function useLibraryData(
       cancelled = true
       requestSeqRef.current += 1
     }
-  }, [appendNextPage, libraryID, positionKey, reloadTick, sortField, sortOrder, filters])
+  }, [appendNextPage, getListRequest, libraryID, reloadTick])
 
   useEffect(() => {
     if (!libraryID || !isSeriesLibrary || !selectedSeries) {
@@ -281,7 +260,6 @@ export function useLibraryData(
     loadingMore,
     hasMore,
     loadMore,
-    loadAll,
     loadingSeriesEpisodes,
     isSeriesLibrary,
     isSeries,
@@ -292,23 +270,9 @@ export function useLibraryData(
   }
 }
 
-function isSeriesLibraryType(type?: string) {
-  return type === 'tv' || type === 'anime' || type === 'variety'
-}
-
 function pageSizeFor(lib: Library): number {
   // 首屏保持一屏多一点，后续统一由底部哨兵按页追加。此前沿用旧的
   // 500/2000 批量值，会让中小型媒体库在第一次请求时就等于全量加载。
   if (lib.is_remote_emby) return 50
   return 60
-}
-
-function yieldToBrowser(): Promise<void> {
-  return new Promise((resolve) => {
-    if (typeof requestIdleCallback !== 'undefined') {
-      requestIdleCallback(() => resolve(), { timeout: 48 })
-    } else {
-      setTimeout(resolve, 0)
-    }
-  })
 }

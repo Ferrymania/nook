@@ -163,6 +163,32 @@ export interface LibraryWithPreview extends Library {
   cards?: SeriesCard[]
 }
 
+export interface ExternalRatings {
+  imdb?: number
+  rotten_tomatoes?: number
+  metacritic?: number
+}
+
+export interface LibraryRatingStatus {
+  total: number
+  unqueried: number
+  pending: number
+  found: number
+  partial: number
+  missing: number
+  failed: number
+  pause_reason?: 'unconfigured' | 'invalid_key' | 'quota'
+}
+
+export const externalRatingsAPI = {
+  libraryStatus: (id: string) =>
+    api.get<LibraryRatingStatus>(`/libraries/${id}/external-ratings`).then(response => response.data),
+  enqueue: (id: string) =>
+    api.post<{ queued: number }>(`/libraries/${id}/external-ratings`).then(response => response.data),
+  media: (id: string, signal: AbortSignal) =>
+    api.get<ExternalRatings>(`/media/${id}/external-ratings`, { signal }).then(response => response.data),
+}
+
 export const libraryAPI = {
   list: (options?: { includeHidden?: boolean; withPreview?: boolean; previewLimit?: number; ids?: string[] }) =>
     api
