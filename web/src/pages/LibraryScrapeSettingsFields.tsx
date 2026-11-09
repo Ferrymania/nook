@@ -11,7 +11,8 @@ export function LibraryScrapeSettingsFields({ data, onChange, showEpisodeImages 
   onConfigure?: () => void
 }) {
   const updateSettings = (patch: Partial<LibraryScrapeSettingsView['settings']>) => onChange({ ...data, settings: { ...data.settings, ...patch } })
-  const available = new Map(data.providers.filter(p => p.available).map(p => [p.id, p]))
+  const available = new Map(data.providers.filter(p => p.available && p.id !== 'fanart').map(p => [p.id, p]))
+  const fanartAvailable = data.providers.some(p => p.id === 'fanart' && p.available)
   const selectedAvailable = data.settings.providers.filter(id => available.has(id))
   const sourceOrder = [...selectedAvailable, ...[...available.keys()].filter(id => !selectedAvailable.includes(id))]
   const moveSource = (id: string, direction: number) => {
@@ -23,8 +24,6 @@ export function LibraryScrapeSettingsFields({ data, onChange, showEpisodeImages 
     ;[selected[index], selected[other]] = [selected[other], selected[index]]
     updateSettings({ providers: selected })
   }
-  const hasAvailableMetadata = sourceOrder.some(id => id !== 'fanart')
-  const hasSelectedMetadata = selectedAvailable.some(id => id !== 'fanart')
   const configureLink = <a href={API_SETTINGS_URL} className="shrink-0 text-xs text-(--app-brand-text) hover:underline" onClick={onConfigure}>去配置</a>
   return <div className="space-y-5">
             <div className="divide-y divide-(--app-border) overflow-hidden rounded-2xl border border-(--app-border)">
@@ -51,7 +50,7 @@ export function LibraryScrapeSettingsFields({ data, onChange, showEpisodeImages 
               </div>
               {sourceOrder.length === 0 ? (
                 <div className="flex items-center justify-between gap-3 rounded-2xl border border-(--app-border) px-3 py-3">
-                  <p role="status" className="text-xs text-(--app-muted)">暂无可用的刮削源。</p>
+                  <p role="status" className="text-xs text-(--app-muted)">暂无可用的元数据刮削源。</p>
                   {configureLink}
                 </div>
               ) : <div className="divide-y divide-(--app-border) overflow-hidden rounded-2xl border border-(--app-border)">
@@ -65,17 +64,22 @@ export function LibraryScrapeSettingsFields({ data, onChange, showEpisodeImages 
                     <label className="flex min-w-0 flex-1 items-center gap-2 text-xs">
                       <input type="checkbox" checked={checked} onChange={event => updateSettings({ providers: event.target.checked ? [...data.settings.providers, id] : data.settings.providers.filter(p => p !== id) })} className="accent-primary-500" />
                       <span>{provider.name}</span>
-                      {id === 'fanart' && <span className="text-[10px] text-(--app-muted)">图片补充</span>}
                     </label>
                     <button type="button" aria-label={`上移 ${provider.name}`} disabled={index <= 0} onClick={() => moveSource(id, -1)} className="p-1 text-(--app-muted) disabled:opacity-25"><ArrowUp size={13} /></button>
                     <button type="button" aria-label={`下移 ${provider.name}`} disabled={!checked || index === selectedAvailable.length - 1} onClick={() => moveSource(id, 1)} className="p-1 text-(--app-muted) disabled:opacity-25"><ArrowDown size={13} /></button>
                   </div>
                 })}
               </div>}
-              {sourceOrder.length > 0 && !hasSelectedMetadata && (
-                <p role="status" className="mt-2 text-xs text-amber-600">{hasAvailableMetadata ? '请选择至少一个元数据刮削源。' : '暂无可用的元数据刮削源。'}</p>
+              {sourceOrder.length > 0 && selectedAvailable.length === 0 && (
+                <p role="status" className="mt-2 text-xs text-amber-600">请选择至少一个元数据刮削源。</p>
               )}
             </section>
+            {fanartAvailable && <section>
+              <h3 className="mb-2 text-sm font-semibold">图片来源</h3>
+              <div className="overflow-hidden rounded-2xl border border-(--app-border)">
+                <ScrapeSwitch label="优先使用 Fanart.tv 图片" description="匹配成功后，查到的海报和背景图会替换本次刮削结果中的对应图片。" checked={data.settings.providers.includes('fanart')} onChange={enabled => updateSettings({ providers: enabled ? [...data.settings.providers, 'fanart'] : data.settings.providers.filter(id => id !== 'fanart') })} />
+              </div>
+            </section>}
             <div className="grid items-end gap-2 sm:grid-cols-[190px_1fr] sm:gap-4">
               <label className="space-y-1.5 text-xs text-(--app-subtle)">TMDb 元数据语言<select value={data.settings.language} onChange={event => updateSettings({ language: event.target.value })} className="input-base w-full py-2.5! text-xs!"><option value="zh-CN">简体中文（zh-CN）</option><option value="zh-TW">繁体中文（zh-TW）</option><option value="en-US">English（en-US）</option><option value="ja-JP">日本語（ja-JP）</option></select></label>
               <p className="pb-1 text-[11px] leading-relaxed text-(--app-muted)">用于 TMDb 标题、简介和剧集资料；<br className="hidden sm:block" />其他来源使用其提供的语言。</p>

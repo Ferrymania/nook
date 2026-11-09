@@ -91,7 +91,6 @@ func (s *MediaService) UpdateMetadata(ctx context.Context, id string, req MediaM
 		id := clampNonNegativeInt(*req.TMDbID)
 		updates["tm_db_id"] = id
 		if id != existing.TMDbID {
-			updates["tm_db_media_type"] = ""
 			updates["rating_source"] = ""
 		}
 	}

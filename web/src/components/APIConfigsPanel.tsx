@@ -8,7 +8,7 @@ import { SettingsSwitch } from './SettingsSection'
 
 const PROVIDER_NAMES: Record<string, string> = {
   tmdb: 'TMDb', bangumi: 'Bangumi', fanart: 'Fanart.tv',
-  omdb: 'OMDb', openai: 'OpenAI 兼容', thetvdb: 'TheTVDB',
+  openai: 'OpenAI 兼容', thetvdb: 'TheTVDB',
 }
 
 // Compact inline-editable provider table for use inside AdminPage's "外部API" tab.
@@ -78,13 +78,13 @@ export function APIConfigsPanel() {
                       {item.has_key ? (
                         <span className="text-brand-500">{item.masked_key}</span>
                       ) : (
-                        <span className="text-(--app-muted)" aria-label="未填写密钥">—</span>
+                        <span className="text-(--app-muted)">{item.key_from_config ? '部署配置' : '—'}</span>
                       )}
                     </td>
                     <td className="whitespace-nowrap px-1 py-3 sm:px-4">
-                      {!item.has_key && item.provider === 'bangumi' ? (
+                      {!item.has_key && !item.key_from_config && item.provider === 'bangumi' ? (
                         <span className="rounded-full bg-emerald-400/10 px-2 py-0.5 text-xs text-emerald-600">无需密钥</span>
-                      ) : item.has_key ? (
+                      ) : item.has_key || item.key_from_config ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 px-2 py-0.5 text-xs text-emerald-400">
                           已配置
                         </span>
@@ -95,11 +95,11 @@ export function APIConfigsPanel() {
                       )}
                     </td>
                     <td className="px-1 py-3 sm:px-4">
-                      <div className="flex justify-center">
+                      <div className="flex justify-center" title={canEnableProvider(item) ? undefined : '请先配置 API 密钥'}>
                         <SettingsSwitch
                           label={`${PROVIDER_NAMES[item.provider] ?? item.provider} 全局启用`}
-                          checked={item.enabled}
-                          disabled={switching.includes(item.id)}
+                          checked={item.enabled && canEnableProvider(item)}
+                          disabled={!canEnableProvider(item) || switching.includes(item.id)}
                           onChange={enabled => void setEnabled(item, enabled)}
                         />
                       </div>
@@ -108,6 +108,7 @@ export function APIConfigsPanel() {
                       <div className="flex items-center justify-end sm:gap-1">
                         <button
                           onClick={() => setEditing(item.provider)}
+                          disabled={switching.includes(item.id)}
                           aria-expanded={editing === item.provider}
                           className="inline-flex h-11 w-10 items-center justify-center rounded-lg text-ink-50 transition hover:bg-(--app-hover) hover:text-(--app-text) sm:h-8 sm:w-8"
                           title="编辑"
@@ -117,14 +118,21 @@ export function APIConfigsPanel() {
                         </button>
                         {item.has_key && (
                           <button
+                            disabled={switching.includes(item.id)}
                             onClick={async () => {
                               if (!(await confirmAction({ title: '清除 API Key', message: `确定清除 ${item.provider} 的 API Key?`, confirmText: '清除' }))) return
+                              setSwitching(current => [...current, item.id])
                               try {
                                 await apiConfigsAPI.remove(item.provider)
-                                updateItem(item.id, { has_key: false, masked_key: undefined })
+                                updateItem(item.id, {
+                                  has_key: false, masked_key: undefined,
+                                  ...(!item.key_from_config && item.provider !== 'bangumi' ? { enabled: false } : {}),
+                                })
                                 toast.success('已清除')
                               } catch (err: unknown) {
                                 toast.error(apiConfigError(err, '清除密钥失败'))
+                              } finally {
+                                setSwitching(current => current.filter(id => id !== item.id))
                               }
                             }}
                             className={`inline-flex h-11 w-10 items-center justify-center rounded-lg text-ink-50 transition hover:bg-red-400/10 hover:text-red-400 sm:h-8 sm:w-8 ${editing === item.provider ? 'invisible' : ''}`}
@@ -143,8 +151,9 @@ export function APIConfigsPanel() {
                       onCancel={() => setEditing(null)}
                       onSaved={saved => {
                         updateItem(item.id, {
-                          base_url: saved.base_url, extra: saved.extra,
+                          base_url: saved.base_url,
                           has_key: saved.has_key, masked_key: saved.masked_key,
+                          key_from_config: saved.key_from_config,
                         })
                         setEditing(current => current === item.provider ? null : current)
                       }}
@@ -158,6 +167,10 @@ export function APIConfigsPanel() {
       )}
     </div>
   )
+}
+
+function canEnableProvider(item: APIConfig) {
+  return item.has_key || item.key_from_config === true || item.provider === 'bangumi'
 }
 
 function apiConfigError(err: unknown, fallback: string) {
@@ -175,14 +188,13 @@ function EditingRow({
 }) {
   const [apiKey, setAPIKey] = useState('')
   const [baseURL, setBaseURL] = useState(item.base_url ?? '')
-  const [dailyLimit, setDailyLimit] = useState(item.extra || '1000')
   const [saving, setSaving] = useState(false)
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setSaving(true)
     try {
-      const patch: APIConfigPatch = item.provider === 'omdb' ? { extra: dailyLimit } : { base_url: baseURL }
+      const patch: APIConfigPatch = { base_url: baseURL }
       if (apiKey.trim()) patch.api_key = apiKey.trim()
       const saved = await apiConfigsAPI.update(item.provider, patch)
       toast.success(`${item.provider} 已保存`)
@@ -208,23 +220,15 @@ function EditingRow({
               onChange={(e) => setAPIKey(e.target.value)}
             />
           </label>
-          {item.provider === 'omdb' ? (
-            <label className="basis-full text-xs text-ink-50 sm:min-w-0 sm:flex-1">
-              每日请求上限（UTC）
-              <input className="input-base mt-1" type="number" required min={1} max={1_000_000}
-                value={dailyLimit} onChange={event => setDailyLimit(event.target.value)} />
-            </label>
-          ) : (
-            <label className="basis-full text-xs text-ink-50 sm:min-w-0 sm:flex-1">
-              Base URL
-              <input
-                className="input-base mt-1"
-                placeholder="https://api.themoviedb.org/3"
-                value={baseURL}
-                onChange={(e) => setBaseURL(e.target.value)}
-              />
-            </label>
-          )}
+          <label className="basis-full text-xs text-ink-50 sm:min-w-0 sm:flex-1">
+            Base URL
+            <input
+              className="input-base mt-1"
+              placeholder="https://api.themoviedb.org/3"
+              value={baseURL}
+              onChange={(e) => setBaseURL(e.target.value)}
+            />
+          </label>
           <button type="submit" disabled={saving} className="neon-button px-3! py-1.5! text-xs!">
             <Save size={12} /> 保存
           </button>

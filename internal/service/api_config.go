@@ -18,6 +18,7 @@ import (
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/repository"
@@ -25,10 +26,11 @@ import (
 
 // APIConfigService coordinates third-party API key storage.
 type APIConfigService struct {
-	log      *zap.Logger
-	repo     *repository.Container
-	crypto   *CryptoService
-	onChange func()
+	log            *zap.Logger
+	repo           *repository.Container
+	crypto         *CryptoService
+	onChange       func()
+	deploymentKeys map[string]bool
 }
 
 // NewAPIConfigService is the constructor.
@@ -43,7 +45,6 @@ func (s *APIConfigService) SeedDefaults(ctx context.Context) error {
 		{Provider: "bangumi", BaseURL: "https://api.bgm.tv", Description: "Bangumi (anime)"},
 		{Provider: "thetvdb", BaseURL: "https://api4.thetvdb.com/v4", Description: "TheTVDB (tv)"},
 		{Provider: "fanart", BaseURL: "https://webservice.fanart.tv/v3", Description: "Fanart.tv (artwork)"},
-		{Provider: "omdb", BaseURL: "https://www.omdbapi.com/", Description: "OMDb"},
 		{Provider: "openai", BaseURL: "https://api.openai.com/v1", Description: "OpenAI-compatible (smart search)"},
 	}
 	for i := range defaults {
@@ -67,23 +68,24 @@ func (s *APIConfigService) SeedDefaults(ctx context.Context) error {
 // PublicView is the safe-to-display projection of an API config row.
 // The plaintext key is never returned — only a mask.
 type PublicView struct {
-	ID          string    `json:"id"`
-	Provider    string    `json:"provider"`
-	BaseURL     string    `json:"base_url,omitempty"`
-	Extra       string    `json:"extra,omitempty"`
-	Enabled     bool      `json:"enabled"`
-	Description string    `json:"description,omitempty"`
-	HasKey      bool      `json:"has_key"`
-	MaskedKey   string    `json:"masked_key,omitempty"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID            string    `json:"id"`
+	Provider      string    `json:"provider"`
+	BaseURL       string    `json:"base_url,omitempty"`
+	Extra         string    `json:"extra,omitempty"`
+	Enabled       bool      `json:"enabled"`
+	Description   string    `json:"description,omitempty"`
+	HasKey        bool      `json:"has_key"`
+	KeyFromConfig bool      `json:"key_from_config,omitempty"`
+	MaskedKey     string    `json:"masked_key,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 // List returns visible API configurations, with configured keys first.
 func (s *APIConfigService) List(ctx context.Context) ([]PublicView, error) {
 	var rows []model.APIConfig
 	if err := s.repo.DB.WithContext(ctx).
-		Where("provider IN ?", []string{"tmdb", "bangumi", "thetvdb", "fanart", "omdb", "openai"}).
+		Where("provider IN ?", []string{"tmdb", "bangumi", "thetvdb", "fanart", "openai"}).
 		Order("provider asc").Find(&rows).Error; err != nil {
 		return nil, err
 	}
@@ -96,7 +98,7 @@ func (s *APIConfigService) List(ctx context.Context) ([]PublicView, error) {
 		out = append(out, *view)
 	}
 	sort.SliceStable(out, func(i, j int) bool {
-		return out[i].HasKey && !out[j].HasKey
+		return (out[i].HasKey || out[i].KeyFromConfig) && !(out[j].HasKey || out[j].KeyFromConfig)
 	})
 	return out, nil
 }
@@ -142,7 +144,7 @@ func (s *APIConfigService) Resolve(ctx context.Context, provider string) (Resolv
 		APIKey:  key,
 		BaseURL: row.BaseURL,
 		Extra:   row.Extra,
-		Enabled: row.Enabled,
+		Enabled: row.Enabled && s.canEnable(provider, key),
 	}
 	s.log.Debug("api_config.resolve: success",
 		zap.String("provider", provider),
@@ -151,8 +153,7 @@ func (s *APIConfigService) Resolve(ctx context.Context, provider string) (Resolv
 	return resolved, nil
 }
 
-// Update upserts a single provider's config. An empty patch.APIKey leaves
-// the existing key untouched; pass "<clear>" sentinel to wipe it.
+// APIConfigPatch updates only the fields provided. An empty key or "<clear>" wipes it.
 type APIConfigPatch struct {
 	APIKey      *string `json:"api_key,omitempty"`
 	BaseURL     *string `json:"base_url,omitempty"`
@@ -168,24 +169,13 @@ func (s *APIConfigService) Update(ctx context.Context, provider string, patch AP
 		return nil, errors.New("provider required")
 	}
 
-	row, err := s.findByProvider(ctx, provider)
-	if err != nil {
-		return nil, err
-	}
-	if row == nil {
-		row = &model.APIConfig{Provider: provider}
-		if err := s.repo.DB.WithContext(ctx).Create(row).Error; err != nil {
-			return nil, err
-		}
-	}
-
 	updates := map[string]any{}
 	if patch.APIKey != nil {
-		v := strings.TrimSpace(*patch.APIKey)
-		if v == "" || v == "<clear>" {
+		value := strings.TrimSpace(*patch.APIKey)
+		if value == "" || value == "<clear>" {
 			updates["api_key"] = ""
 		} else {
-			updates["api_key"] = s.crypto.Encrypt(v)
+			updates["api_key"] = s.crypto.Encrypt(value)
 		}
 	}
 	if patch.BaseURL != nil {
@@ -194,42 +184,77 @@ func (s *APIConfigService) Update(ctx context.Context, provider string, patch AP
 	if patch.Extra != nil {
 		updates["extra"] = *patch.Extra
 	}
-	if patch.Enabled != nil {
-		updates["enabled"] = *patch.Enabled
-	}
 	if patch.Description != nil {
 		updates["description"] = *patch.Description
 	}
-	if len(updates) > 0 {
-		if err := s.repo.DB.WithContext(ctx).
-			Model(&model.APIConfig{}).
-			Where("id = ?", row.ID).
-			Updates(updates).Error; err != nil {
-			return nil, err
+	var view *PublicView
+	err := s.repo.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		row := model.APIConfig{Provider: provider}
+		query := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("provider = ?", provider).Session(&gorm.Session{})
+		if err := query.First(&row).Error; errors.Is(err, gorm.ErrRecordNotFound) {
+			if err := tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "provider"}}, DoNothing: true}).Create(&row).Error; err != nil {
+				return err
+			}
+			row = model.APIConfig{}
+			if err := query.First(&row).Error; err != nil {
+				return err
+			}
+		} else if err != nil {
+			return err
 		}
-	}
-	row, _ = s.findByProvider(ctx, provider)
-	if s.onChange != nil {
-		s.onChange()
-	}
-	return s.toPublic(row)
-}
 
-// Delete clears a provider's API key (the row stays so the masked
-// description is still useful). Non-existent providers are a no-op.
-func (s *APIConfigService) Delete(ctx context.Context, provider string) error {
-	row, err := s.findByProvider(ctx, provider)
-	if err != nil || row == nil {
+		key := row.APIKey
+		if replacement, ok := updates["api_key"].(string); ok {
+			key = replacement
+		}
+		// Preserve the previous effective state unless the caller changes it explicitly.
+		enabled := row.Enabled && s.canEnable(provider, row.APIKey)
+		if patch.Enabled != nil {
+			enabled = *patch.Enabled
+			if enabled && !s.canEnable(provider, key) {
+				return errors.New("请先配置 API 密钥，再启用该服务")
+			}
+		}
+		enabled = enabled && s.canEnable(provider, key)
+		if enabled != row.Enabled {
+			updates["enabled"] = enabled
+		}
+		if len(updates) > 0 {
+			if err := tx.Model(&row).Updates(updates).Error; err != nil {
+				return err
+			}
+		}
+		var err error
+		view, err = s.toPublic(&row)
 		return err
-	}
-	err = s.repo.DB.WithContext(ctx).
-		Model(&model.APIConfig{}).
-		Where("id = ?", row.ID).
-		Update("api_key", "").Error
+	})
 	if err == nil && s.onChange != nil {
 		s.onChange()
 	}
-	return err
+	return view, err
+}
+
+// Delete clears a provider's API key and keeps the configuration row.
+func (s *APIConfigService) Delete(ctx context.Context, provider string) error {
+	updates := map[string]any{"api_key": ""}
+	if !s.canEnable(provider, "") {
+		updates["enabled"] = false
+	}
+	result := s.repo.DB.WithContext(ctx).Model(&model.APIConfig{}).
+		Where("provider = ?", provider).Updates(updates)
+	if result.Error == nil && result.RowsAffected > 0 && s.onChange != nil {
+		s.onChange()
+	}
+	return result.Error
+}
+
+func (s *APIConfigService) canEnable(provider, key string) bool {
+	switch provider {
+	case "tmdb", "thetvdb", "fanart", "openai":
+		return strings.TrimSpace(key) != "" || s.deploymentKeys[provider]
+	default:
+		return true
+	}
 }
 
 func (s *APIConfigService) findByProvider(ctx context.Context, provider string) (*model.APIConfig, error) {
@@ -250,15 +275,16 @@ func (s *APIConfigService) toPublic(r *model.APIConfig) (*PublicView, error) {
 		return nil, fmt.Errorf("读取 %s API 密钥失败: %w", r.Provider, err)
 	}
 	pv := PublicView{
-		ID:          r.ID,
-		Provider:    r.Provider,
-		BaseURL:     r.BaseURL,
-		Extra:       r.Extra,
-		Enabled:     r.Enabled,
-		Description: r.Description,
-		HasKey:      plain != "",
-		CreatedAt:   r.CreatedAt,
-		UpdatedAt:   r.UpdatedAt,
+		ID:            r.ID,
+		Provider:      r.Provider,
+		BaseURL:       r.BaseURL,
+		Extra:         r.Extra,
+		Enabled:       r.Enabled && s.canEnable(r.Provider, plain),
+		KeyFromConfig: s.deploymentKeys[r.Provider],
+		Description:   r.Description,
+		HasKey:        plain != "",
+		CreatedAt:     r.CreatedAt,
+		UpdatedAt:     r.UpdatedAt,
 	}
 	if pv.HasKey {
 		pv.MaskedKey = MaskAPIKey(plain)

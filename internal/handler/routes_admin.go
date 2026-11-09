@@ -148,10 +148,11 @@ func registerAdminBackupRoutes(admin *gin.RouterGroup, svc *service.Container) {
 
 func registerAdminAPIConfigRoutes(admin *gin.RouterGroup, svc *service.Container) {
 	admin.GET("/api-configs", listAPIConfigsHandler(svc))
-	admin.GET("/api-configs/:provider", getAPIConfigHandler(svc))
-	admin.PUT("/api-configs/:provider", updateAPIConfigHandler(svc))
-	admin.DELETE("/api-configs/:provider", deleteAPIConfigHandler(svc))
-	admin.POST("/api-configs/:provider/test", testAPIConfigHandler(svc))
+	provider := admin.Group("/api-configs/:provider", rejectRetiredAPIConfig)
+	provider.GET("", getAPIConfigHandler(svc))
+	provider.PUT("", updateAPIConfigHandler(svc))
+	provider.DELETE("", deleteAPIConfigHandler(svc))
+	provider.POST("/test", testAPIConfigHandler(svc))
 }
 
 func registerAdminRecognitionWordRoutes(admin *gin.RouterGroup, svc *service.Container) {

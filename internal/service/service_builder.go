@@ -80,6 +80,11 @@ func (b *serviceContainerBuilder) initProviderServices() {
 
 	b.c.Crypto = NewCryptoService(b.cfg.Secrets.JWTSecret, b.log)
 	b.c.APIConfig = NewAPIConfigService(b.log, b.repos, b.c.Crypto)
+	b.c.APIConfig.deploymentKeys = map[string]bool{
+		"tmdb":    strings.TrimSpace(b.cfg.Secrets.TMDbAPIKey) != "",
+		"thetvdb": strings.TrimSpace(b.cfg.Secrets.TheTVDBAPIKey) != "",
+		"fanart":  strings.TrimSpace(b.cfg.Secrets.FanartAPIKey) != "",
+	}
 	b.c.TMDb = NewTMDbProvider(b.cfg, b.log, b.c.APIConfig)
 	b.c.Bangumi = NewBangumiProvider(b.cfg, b.log)
 	b.c.TheTVDB = NewTheTVDBProvider(b.cfg, b.log)
@@ -96,8 +101,6 @@ func (b *serviceContainerBuilder) initProviderServices() {
 		b.c.TMDb, b.c.Bangumi, b.c.TheTVDB, b.c.Fanart,
 		b.c.WSHub, adult,
 	)
-	b.c.ExternalRatings = newExternalRatingService(b.repos, b.c.APIConfig, b.c.TMDb, b.log)
-	b.c.Scraper.externalRatings = b.c.ExternalRatings
 	b.c.Scraper.SetRuntimeCache(b.c.Cache)
 	b.c.APIConfig.onChange = b.c.Scraper.lookupCache.clear
 }

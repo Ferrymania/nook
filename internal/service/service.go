@@ -43,7 +43,6 @@ type Container struct {
 	Audit            *AuditService
 	NFO              *NFOService
 	APIConfig        *APIConfigService
-	ExternalRatings  *ExternalRatingService
 	Crypto           *CryptoService
 	FileManager      *FileManagerService
 	Scheduler        *SchedulerService
@@ -132,10 +131,6 @@ func (c *Container) Boot() {
 	// 同步引擎初始化后再接收 Telegram 管理命令。
 	if c.Telegram != nil {
 		c.Telegram.Start(c.stopCtx)
-	}
-
-	if c.ExternalRatings != nil {
-		helper.Go(c.Log, "service.externalRatings", func() { c.ExternalRatings.run(c.stopCtx) })
 	}
 
 	// 启动刮削队列后台消费者

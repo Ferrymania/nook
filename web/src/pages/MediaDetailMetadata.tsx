@@ -1,4 +1,4 @@
-import { MediaExternalRatings } from '../components/MediaExternalRatings'
+import { MediaRating } from '../components/MediaRating'
 
 import type { Media } from '../types'
 import { mediaTechnicalSummary } from '../utils/mediaTechnicalSummary'
@@ -27,7 +27,7 @@ export function MediaDetailMetadata({ media }: MediaDetailMetadataProps) {
             {media.title}
           </p>
         )}
-        <MediaExternalRatings media={media} showMediaInfo />
+        <MediaRating media={media} />
         {technicalSummary.length > 0 && (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-medium text-(--app-subtle) tabular-nums" aria-label="媒体信息">
             {technicalSummary.map((value, index) => <span key={index} className="whitespace-nowrap">{value}</span>)}

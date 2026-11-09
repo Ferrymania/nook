@@ -18,9 +18,11 @@ import (
 func TestRetiredAPIConfigRoutesAreUnavailable(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
+	svc := &service.Container{Log: zap.NewNop()}
+	addAdminRouteTestUser(t, svc, "admin")
 	Register(router, &config.Config{
 		Secrets: config.SecretsConfig{JWTSecret: "test-secret"},
-	}, zap.NewNop(), &service.Container{Log: zap.NewNop()})
+	}, zap.NewNop(), svc)
 
 	for _, route := range router.Routes() {
 		if route.Path == "/api/api-config" || strings.HasPrefix(route.Path, "/api/api-config/") {
@@ -42,12 +44,27 @@ func TestRetiredAPIConfigRoutesAreUnavailable(t *testing.T) {
 		{http.MethodDelete, "/api/api-config/tmdb"},
 		{http.MethodPost, "/api/api-config/tmdb/test"},
 		{http.MethodHead, "/api/api-config/tmdb"},
+		{http.MethodGet, "/api/admin/api-configs/omdb"},
+		{http.MethodPut, "/api/admin/api-configs/OMDb"},
+		{http.MethodDelete, "/api/admin/api-configs/omdb"},
+		{http.MethodPost, "/api/admin/api-configs/omdb/test"},
+		{http.MethodGet, "/api/libraries/test/external-ratings"},
+		{http.MethodPost, "/api/libraries/test/external-ratings"},
+		{http.MethodGet, "/api/media/test/external-ratings"},
 	} {
 		for _, suffix := range []string{"", "/"} {
 			req := httptest.NewRequest(request.method, request.path+suffix, nil)
 			req.Header.Set("Authorization", "Bearer "+token)
 			response := httptest.NewRecorder()
 			router.ServeHTTP(response, req)
+			// The shared admin route still canonicalizes its trailing slash.
+			if suffix != "" && strings.HasPrefix(request.path, "/api/admin/api-configs/") &&
+				(response.Code == http.StatusMovedPermanently || response.Code == http.StatusTemporaryRedirect) {
+				req = httptest.NewRequest(request.method, response.Header().Get("Location"), nil)
+				req.Header.Set("Authorization", "Bearer "+token)
+				response = httptest.NewRecorder()
+				router.ServeHTTP(response, req)
+			}
 			if response.Code != http.StatusNotFound {
 				t.Errorf("%s %s = %d, want 404", request.method, request.path+suffix, response.Code)
 			}
