@@ -60,8 +60,6 @@ func AllModels() []interface{} {
 		&StrmUploadTask{},
 		&StrmDirCache{},
 		&ScrapeTask{},
-		&ExternalRating{},
-		&ExternalRatingBudget{},
 		&EmbyMount{},
 	}
 }

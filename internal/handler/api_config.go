@@ -6,11 +6,18 @@ package handler
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/Ferrymania/nook/internal/service"
 )
+
+func rejectRetiredAPIConfig(c *gin.Context) {
+	if strings.EqualFold(strings.TrimSpace(c.Param("provider")), "omdb") {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "not found"})
+	}
+}
 
 func listAPIConfigsHandler(svc *service.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {

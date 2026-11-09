@@ -8,6 +8,7 @@ export interface APIConfig {
   enabled: boolean
   description?: string
   has_key: boolean
+  key_from_config?: boolean
   masked_key?: string
   created_at: string
   updated_at: string

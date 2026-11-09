@@ -95,7 +95,7 @@ func TestAPIConfigListHidesScraperSourcesAndPrioritizesConfigured(t *testing.T) 
 			t.Fatalf("configured key must remain masked: %s", item.Provider)
 		}
 	}
-	want := []string{"bangumi", "tmdb", "fanart", "omdb", "openai", "thetvdb"}
+	want := []string{"bangumi", "tmdb", "fanart", "openai", "thetvdb"}
 	if !reflect.DeepEqual(providers, want) || !items[0].HasKey || !items[1].HasKey {
 		t.Fatalf("provider order = %v, want %v with configured keys first", providers, want)
 	}
@@ -108,5 +108,54 @@ func TestAPIConfigListHidesScraperSourcesAndPrioritizesConfigured(t *testing.T) 
 	}
 	if items[0].Provider != "tmdb" || !items[0].HasKey || items[1].Provider != "bangumi" || items[1].HasKey {
 		t.Fatal("clearing a key must return its provider to the unconfigured section")
+	}
+}
+
+func TestAPIConfigEnablingRequiresCredentials(t *testing.T) {
+	t.Parallel()
+	db := newServiceTestDB(t)
+	log := zap.NewNop()
+	svc := NewAPIConfigService(log, repository.New(db), NewCryptoService("test-secret", log))
+	svc.deploymentKeys = map[string]bool{"tmdb": true}
+	ctx := t.Context()
+	enabled, key, clear := true, "test-key", "<clear>"
+	for _, provider := range []string{"thetvdb", "fanart", "openai"} {
+		if _, err := svc.Update(ctx, provider, APIConfigPatch{Enabled: &enabled}); err == nil {
+			t.Fatalf("enabled %s without a key", provider)
+		}
+	}
+
+	// Simulate a row enabled before the credential requirement was introduced.
+	if err := db.Create(&model.APIConfig{Provider: "thetvdb", Enabled: true}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if item, err := svc.Get(ctx, "thetvdb"); err != nil || item.Enabled {
+		t.Fatalf("keyless legacy row should appear disabled: %+v, %v", item, err)
+	}
+	if item, err := svc.Update(ctx, "thetvdb", APIConfigPatch{APIKey: &key}); err != nil || item.Enabled || !item.HasKey {
+		t.Fatalf("saving the first key should keep the switch off: %+v, %v", item, err)
+	}
+	if item, err := svc.Update(ctx, "thetvdb", APIConfigPatch{Enabled: &enabled}); err != nil || !item.Enabled {
+		t.Fatalf("saved key should allow enabling: %+v, %v", item, err)
+	}
+	if _, err := svc.Update(ctx, "thetvdb", APIConfigPatch{Enabled: &enabled, APIKey: &clear}); err == nil {
+		t.Fatal("accepted enabling and clearing the key in the same request")
+	}
+	if err := svc.Delete(ctx, "thetvdb"); err != nil {
+		t.Fatal(err)
+	}
+	if item, err := svc.Get(ctx, "thetvdb"); err != nil || item.Enabled || item.HasKey {
+		t.Fatalf("clearing the only key should disable the provider: %+v, %v", item, err)
+	}
+	for _, provider := range []string{"tmdb", "bangumi"} {
+		if item, err := svc.Update(ctx, provider, APIConfigPatch{Enabled: &enabled, APIKey: &key}); err != nil || !item.Enabled {
+			t.Fatalf("enabling %s with a key failed: %+v, %v", provider, item, err)
+		}
+		if err := svc.Delete(ctx, provider); err != nil {
+			t.Fatal(err)
+		}
+		if item, err := svc.Get(ctx, provider); err != nil || !item.Enabled || item.HasKey || item.KeyFromConfig != (provider == "tmdb") {
+			t.Fatalf("%s should remain usable after clearing the saved key: %+v, %v", provider, item, err)
+		}
 	}
 }

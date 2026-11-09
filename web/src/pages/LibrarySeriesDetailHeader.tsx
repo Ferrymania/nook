@@ -6,7 +6,6 @@ import { ARTWORK, imageURL } from '../api/client'
 import { ArtworkImage } from '../components/ArtworkImage'
 import { artworkSources } from '../utils/artworkSources'
 import { ExternalPlayerButton } from '../components/ExternalPlayerButton'
-import { MediaExternalRatings } from '../components/MediaExternalRatings'
 import { MediaFavouriteButton } from '../components/MediaFavouriteButton'
 import { MediaManagementPanel } from '../components/MediaManagementPanel'
 import { MediaSegmentQueryButton } from '../components/MediaSegmentQueryButton'
@@ -84,7 +83,6 @@ export function LibrarySeriesDetailHeader({
           />
         </div>
         <div className="flex-1 space-y-3">
-          <MediaExternalRatings media={series.linkMedia ?? series.rep} />
           <p className="text-sm leading-relaxed text-ink-50">
             {series.rep.overview || '暂无简介'}
           </p>

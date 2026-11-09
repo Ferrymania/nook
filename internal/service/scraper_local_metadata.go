@@ -230,9 +230,6 @@ func (s *ScraperService) applyLocalMetadataMatch(ctx context.Context, m *model.M
 	}
 	if next.TMDbID > 0 {
 		updates["tm_db_id"] = next.TMDbID
-		if next.TMDbID != m.TMDbID {
-			updates["tm_db_media_type"] = ""
-		}
 	}
 	if next.BangumiID > 0 {
 		updates["bangumi_id"] = next.BangumiID
