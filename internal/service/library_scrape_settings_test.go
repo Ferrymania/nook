@@ -133,7 +133,7 @@ func TestLibraryScrapeDefaultsIgnoreRetiredGlobalSettings(t *testing.T) {
 func TestLibraryScrapeSettingsPreserveSavedPreferencesAndIsolateLibraries(t *testing.T) {
 	t.Parallel()
 
-	s, _ := newLibraryScrapeEnv(t)
+	s, api := newLibraryScrapeEnv(t)
 	// Previously inherited values are now stored explicitly in each library.
 	prefs := model.LibraryScrapeSettings{AutoOnScan: true, Language: "ja-JP", Providers: []string{"bangumi", "tmdb"}, DelayMinMS: 1200, DelayMaxMS: 1500}
 	a := model.Library{Name: "A", Path: t.TempDir(), Type: "anime", ScrapeSettings: &prefs}
@@ -176,6 +176,7 @@ func TestLibraryScrapeSettingsPreserveSavedPreferencesAndIsolateLibraries(t *tes
 	if _, err := s.SaveLibraryScrapeSettings(t.Context(), a.ID, invalid, true, nil); err == nil {
 		t.Fatal("artwork-only metadata chain accepted")
 	}
+	setTestProvider(t, api, "bangumi", "", "", true)
 	view, _ := s.GetLibraryScrapeSettings(t.Context(), a.ID)
 	for _, p := range view.Providers {
 		if p.ID == "bangumi" && (!p.Available || p.Status != "可匿名使用") {
@@ -435,7 +436,8 @@ func TestLibraryScrapeUnavailableProviderDoesNotReportOldMatchAsSuccess(t *testi
 func TestLibraryScrapeIncrementalIngestUsesLibrarySwitchAndDeduplicates(t *testing.T) {
 	t.Parallel()
 
-	s, _ := newLibraryScrapeEnv(t)
+	s, api := newLibraryScrapeEnv(t)
+	setTestProvider(t, api, "bangumi", "", "", true)
 	scanner := NewScannerService(s.cfg, s.log, s.repo, s.hub, nil, s)
 	for _, enabled := range []bool{false, true} {
 		settings := model.LibraryScrapeSettings{AutoOnScan: enabled, Providers: []string{"bangumi"}, Language: "zh-CN"}

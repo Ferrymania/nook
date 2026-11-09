@@ -66,9 +66,17 @@ func TestAPIConfigListHidesScraperSourcesAndPrioritizesConfigured(t *testing.T) 
 	}
 	for _, provider := range []string{"tmdb", "bangumi", "adult", "douban", "retired_source"} {
 		key := "configured-" + provider + "-key"
-		if _, err := svc.Update(ctx, provider, APIConfigPatch{APIKey: &key}); err != nil {
+		item, err := svc.Update(ctx, provider, APIConfigPatch{APIKey: &key})
+		if err != nil {
 			t.Fatal(err)
 		}
+		if item.Enabled {
+			t.Fatalf("saving a key enabled %s without an explicit choice", provider)
+		}
+	}
+	enabled := true
+	if _, err := svc.Update(ctx, "bangumi", APIConfigPatch{Enabled: &enabled}); err != nil {
+		t.Fatal(err)
 	}
 	if err := svc.SeedDefaults(ctx); err != nil {
 		t.Fatal(err)
@@ -80,6 +88,9 @@ func TestAPIConfigListHidesScraperSourcesAndPrioritizesConfigured(t *testing.T) 
 	providers := make([]string, 0, len(items))
 	for _, item := range items {
 		providers = append(providers, item.Provider)
+		if item.Enabled != (item.Provider == "bangumi") {
+			t.Fatalf("provider %s enabled = %t after reseeding", item.Provider, item.Enabled)
+		}
 		if item.HasKey && (item.MaskedKey == "" || item.MaskedKey == "configured-"+item.Provider+"-key") {
 			t.Fatalf("configured key must remain masked: %s", item.Provider)
 		}

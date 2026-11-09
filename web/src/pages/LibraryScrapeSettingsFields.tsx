@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Info, ShieldAlert } from 'lucide-react'
+import { ArrowDown, ArrowUp, ShieldAlert } from 'lucide-react'
 import type { LibraryScrapeSettingsView } from '../api/library'
 
 const API_SETTINGS_URL = '/settings?group=api-configs'
@@ -11,15 +11,21 @@ export function LibraryScrapeSettingsFields({ data, onChange, showEpisodeImages 
   onConfigure?: () => void
 }) {
   const updateSettings = (patch: Partial<LibraryScrapeSettingsView['settings']>) => onChange({ ...data, settings: { ...data.settings, ...patch } })
-  const sourceOrder = [...data.settings.providers, ...data.providers.map(p => p.id).filter(id => !data.settings.providers.includes(id))]
+  const available = new Map(data.providers.filter(p => p.available).map(p => [p.id, p]))
+  const selectedAvailable = data.settings.providers.filter(id => available.has(id))
+  const sourceOrder = [...selectedAvailable, ...[...available.keys()].filter(id => !selectedAvailable.includes(id))]
   const moveSource = (id: string, direction: number) => {
+    const visibleIndex = selectedAvailable.indexOf(id)
+    const neighbor = selectedAvailable[visibleIndex + direction]
+    if (visibleIndex < 0 || !neighbor) return
     const selected = [...data.settings.providers]
-    const index = selected.indexOf(id), other = index + direction
-    if (index < 0 || other < 0 || other >= selected.length) return
+    const index = selected.indexOf(id), other = selected.indexOf(neighbor)
     ;[selected[index], selected[other]] = [selected[other], selected[index]]
     updateSettings({ providers: selected })
   }
-  const hasAvailableMetadata = data.providers.some(p => p.id !== 'fanart' && p.available && data.settings.providers.includes(p.id))
+  const hasAvailableMetadata = sourceOrder.some(id => id !== 'fanart')
+  const hasSelectedMetadata = selectedAvailable.some(id => id !== 'fanart')
+  const configureLink = <a href={API_SETTINGS_URL} className="shrink-0 text-xs text-(--app-brand-text) hover:underline" onClick={onConfigure}>去配置</a>
   return <div className="space-y-5">
             <div className="divide-y divide-(--app-border) overflow-hidden rounded-2xl border border-(--app-border)">
               <ScrapeSwitch label="扫描后自动刮削" description="扫描发现新增或变化的媒体后，自动补充影片资料。" checked={data.settings.auto_on_scan} onChange={value => updateSettings({ auto_on_scan: value })} />
@@ -39,12 +45,20 @@ export function LibraryScrapeSettingsFields({ data, onChange, showEpisodeImages 
               </div>
             </section>}
             <section>
-              <h3 className="mb-2 text-sm font-semibold">刮削源与优先级</h3>
-              <div className="divide-y divide-(--app-border) overflow-hidden rounded-2xl border border-(--app-border)">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold">刮削源与优先级</h3>
+                {sourceOrder.length > 0 && configureLink}
+              </div>
+              {sourceOrder.length === 0 ? (
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-(--app-border) px-3 py-3">
+                  <p role="status" className="text-xs text-(--app-muted)">暂无可用的刮削源。</p>
+                  {configureLink}
+                </div>
+              ) : <div className="divide-y divide-(--app-border) overflow-hidden rounded-2xl border border-(--app-border)">
                 {sourceOrder.map(id => {
-                  const provider = data.providers.find(p => p.id === id)
+                  const provider = available.get(id)
                   if (!provider) return null
-                  const index = data.settings.providers.indexOf(id)
+                  const index = selectedAvailable.indexOf(id)
                   const checked = index >= 0
                   return <div key={id} className="flex items-center gap-2 px-3 py-2">
                     <span className="w-3 text-[11px] text-(--app-muted)">{checked ? index + 1 : '–'}</span>
@@ -53,15 +67,14 @@ export function LibraryScrapeSettingsFields({ data, onChange, showEpisodeImages 
                       <span>{provider.name}</span>
                       {id === 'fanart' && <span className="text-[10px] text-(--app-muted)">图片补充</span>}
                     </label>
-                    <span className={`rounded-md px-1.5 py-0.5 text-[10px] ${provider.available ? 'bg-emerald-500/10 text-emerald-600' : 'bg-(--app-panel-soft) text-(--app-muted)'}`}>{provider.status}</span>
-                    {!provider.available && <a href={API_SETTINGS_URL} className="text-[10px] text-(--app-brand-text)" onClick={onConfigure}>去配置</a>}
                     <button type="button" aria-label={`上移 ${provider.name}`} disabled={index <= 0} onClick={() => moveSource(id, -1)} className="p-1 text-(--app-muted) disabled:opacity-25"><ArrowUp size={13} /></button>
-                    <button type="button" aria-label={`下移 ${provider.name}`} disabled={!checked || index === data.settings.providers.length - 1} onClick={() => moveSource(id, 1)} className="p-1 text-(--app-muted) disabled:opacity-25"><ArrowDown size={13} /></button>
+                    <button type="button" aria-label={`下移 ${provider.name}`} disabled={!checked || index === selectedAvailable.length - 1} onClick={() => moveSource(id, 1)} className="p-1 text-(--app-muted) disabled:opacity-25"><ArrowDown size={13} /></button>
                   </div>
                 })}
-              </div>
-              <p className="mt-2 text-[11px] leading-relaxed text-(--app-muted)">按顺序尝试勾选的来源；不可用来源会跳过。勾选不会开启系统中已关闭的服务。</p>
-              {!hasAvailableMetadata && <p role="status" className="mt-1 text-xs text-amber-600">所选元数据来源均不可用，请先到系统设置启用服务或配置 API。</p>}
+              </div>}
+              {sourceOrder.length > 0 && !hasSelectedMetadata && (
+                <p role="status" className="mt-2 text-xs text-amber-600">{hasAvailableMetadata ? '请选择至少一个元数据刮削源。' : '暂无可用的元数据刮削源。'}</p>
+              )}
             </section>
             <div className="grid items-end gap-2 sm:grid-cols-[190px_1fr] sm:gap-4">
               <label className="space-y-1.5 text-xs text-(--app-subtle)">TMDb 元数据语言<select value={data.settings.language} onChange={event => updateSettings({ language: event.target.value })} className="input-base w-full py-2.5! text-xs!"><option value="zh-CN">简体中文（zh-CN）</option><option value="zh-TW">繁体中文（zh-TW）</option><option value="en-US">English（en-US）</option><option value="ja-JP">日本語（ja-JP）</option></select></label>
@@ -71,7 +84,6 @@ export function LibraryScrapeSettingsFields({ data, onChange, showEpisodeImages 
               <label className="space-y-1.5 text-xs text-(--app-subtle)">最小间隔（毫秒）<input type="number" required min={0} max={300000} value={data.settings.delay_min_ms} onChange={event => updateSettings({ delay_min_ms: Number(event.target.value) })} className="input-base w-full py-2.5! text-xs!" /></label>
               <label className="space-y-1.5 text-xs text-(--app-subtle)">最大间隔（毫秒）<input type="number" required min={data.settings.delay_min_ms} max={300000} value={data.settings.delay_max_ms} onChange={event => updateSettings({ delay_max_ms: Number(event.target.value) })} className="input-base w-full py-2.5! text-xs!" /></label>
             </div><p className="mt-2 text-[11px] text-(--app-muted)">两次媒体刮削开始之间随机等待 {data.settings.delay_min_ms}–{data.settings.delay_max_ms} 毫秒，手动与自动刮削共用。</p></section>
-            <p className="flex items-center gap-2 rounded-xl bg-(--app-panel-soft) px-3 py-2.5 text-[11px] text-(--app-muted)"><Info size={13} className="shrink-0" /><span>API 凭据统一在 <a href={API_SETTINGS_URL} onClick={onConfigure} className="text-(--app-brand-text)">系统设置 → 外部 API</a> 中管理。</span></p>
   </div>
 }
 

@@ -36,15 +36,15 @@ func NewAPIConfigService(log *zap.Logger, repo *repository.Container, crypto *Cr
 	return &APIConfigService{log: log, repo: repo, crypto: crypto}
 }
 
-// SeedDefaults inserts a row for every well-known provider on first run.
+// SeedDefaults adds disabled providers without changing existing configurations.
 func (s *APIConfigService) SeedDefaults(ctx context.Context) error {
 	defaults := []model.APIConfig{
-		{Provider: "tmdb", BaseURL: "https://api.themoviedb.org/3", Description: "TMDb (movies + tv)", Enabled: true},
-		{Provider: "bangumi", BaseURL: "https://api.bgm.tv", Description: "Bangumi (anime)", Enabled: true},
-		{Provider: "thetvdb", BaseURL: "https://api4.thetvdb.com/v4", Description: "TheTVDB (tv)", Enabled: true},
-		{Provider: "fanart", BaseURL: "https://webservice.fanart.tv/v3", Description: "Fanart.tv (artwork)", Enabled: true},
-		{Provider: "omdb", BaseURL: "https://www.omdbapi.com/", Description: "OMDb", Enabled: true},
-		{Provider: "openai", BaseURL: "https://api.openai.com/v1", Description: "OpenAI-compatible (smart search)", Enabled: true},
+		{Provider: "tmdb", BaseURL: "https://api.themoviedb.org/3", Description: "TMDb (movies + tv)"},
+		{Provider: "bangumi", BaseURL: "https://api.bgm.tv", Description: "Bangumi (anime)"},
+		{Provider: "thetvdb", BaseURL: "https://api4.thetvdb.com/v4", Description: "TheTVDB (tv)"},
+		{Provider: "fanart", BaseURL: "https://webservice.fanart.tv/v3", Description: "Fanart.tv (artwork)"},
+		{Provider: "omdb", BaseURL: "https://www.omdbapi.com/", Description: "OMDb"},
+		{Provider: "openai", BaseURL: "https://api.openai.com/v1", Description: "OpenAI-compatible (smart search)"},
 	}
 	for i := range defaults {
 		var existing model.APIConfig
@@ -173,7 +173,7 @@ func (s *APIConfigService) Update(ctx context.Context, provider string, patch AP
 		return nil, err
 	}
 	if row == nil {
-		row = &model.APIConfig{Provider: provider, Enabled: true}
+		row = &model.APIConfig{Provider: provider}
 		if err := s.repo.DB.WithContext(ctx).Create(row).Error; err != nil {
 			return nil, err
 		}

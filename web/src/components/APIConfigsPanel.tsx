@@ -1,9 +1,10 @@
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, Fragment, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { Pencil, Save, Trash2, X } from 'lucide-react'
 
-import { apiConfigsAPI, type APIConfig } from '../api/api_configs'
+import { apiConfigsAPI, type APIConfig, type APIConfigPatch } from '../api/api_configs'
 import { confirmAction } from './confirmAction'
+import { SettingsSwitch } from './SettingsSection'
 
 const PROVIDER_NAMES: Record<string, string> = {
   tmdb: 'TMDb', bangumi: 'Bangumi', fanart: 'Fanart.tv',
@@ -15,6 +16,7 @@ export function APIConfigsPanel() {
   const [items, setItems] = useState<APIConfig[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<string | null>(null)
+  const [switching, setSwitching] = useState<string[]>([])
 
   const refresh = () =>
     apiConfigsAPI
@@ -26,6 +28,22 @@ export function APIConfigsPanel() {
     refresh().catch(() => undefined)
   }, [])
 
+  const updateItem = (id: string, changes: Partial<APIConfig>) => {
+    setItems(rows => rows.map(row => row.id === id ? { ...row, ...changes } : row))
+  }
+
+  const setEnabled = async (item: APIConfig, enabled: boolean) => {
+    setSwitching(current => [...current, item.id])
+    try {
+      const saved = await apiConfigsAPI.update(item.provider, { enabled })
+      updateItem(item.id, { enabled: saved.enabled })
+    } catch (err: unknown) {
+      toast.error(apiConfigError(err, '更新启用状态失败'))
+    } finally {
+      setSwitching(current => current.filter(id => id !== item.id))
+    }
+  }
+
   return (
     <div className="space-y-4">
       {loading && (
@@ -33,48 +51,39 @@ export function APIConfigsPanel() {
       )}
 
       {!loading && (
-        <div className="glass-panel table-scroll">
-          <table className="min-w-[640px] w-full text-left text-sm">
+        <div className="glass-panel table-scroll max-sm:px-2">
+          <table className="w-full text-left text-sm">
             <thead className="border-b border-gray-200 text-xs text-sand-500">
               <tr>
-                <th className="px-4 py-3">服务</th>
-                <th className="px-4 py-3">密钥</th>
-                <th className="px-4 py-3">状态</th>
-                <th className="px-4 py-3 text-right">操作</th>
+                <th className="px-2 py-3 sm:px-4">服务</th>
+                <th className="hidden px-4 py-3 sm:table-cell">密钥</th>
+                <th className="px-1 py-3 sm:px-4">配置状态</th>
+                <th className="whitespace-nowrap px-1 py-3 text-center sm:px-4">全局启用</th>
+                <th className="px-2 py-3 text-right sm:px-4">操作</th>
               </tr>
             </thead>
             <tbody>
-              {items.map((item) =>
-                editing === item.provider ? (
-                  <EditingRow
-                    key={item.id}
-                    item={item}
-                    onCancel={() => setEditing(null)}
-                    onSaved={() => {
-                      setEditing(null)
-                      refresh()
-                    }}
-                  />
-                ) : (
+              {items.map(item => (
+                <Fragment key={item.id}>
                   <tr
-                    key={item.id}
                     className="border-t border-gray-200 transition hover:bg-gray-50"
                   >
-                    <td className="px-4 py-3">
+                    <td className="px-2 py-3 sm:px-4">
                       <span className="font-medium text-ink-600">{PROVIDER_NAMES[item.provider] ?? item.provider}</span>
+                      {item.has_key && (
+                        <span className="block font-mono text-xs text-brand-500 sm:hidden">{item.masked_key}</span>
+                      )}
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs">
+                    <td className="hidden px-4 py-3 font-mono text-xs sm:table-cell">
                       {item.has_key ? (
                         <span className="text-brand-500">{item.masked_key}</span>
                       ) : (
                         <span className="text-(--app-muted)" aria-label="未填写密钥">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
-                      {!item.enabled ? (
-                        <span className="rounded-full bg-sand-300/40 px-2 py-0.5 text-xs text-sand-500">全局已关闭</span>
-                      ) : !item.has_key && item.provider === 'bangumi' ? (
-                        <span className="rounded-full bg-emerald-400/10 px-2 py-0.5 text-xs text-emerald-600">可匿名使用</span>
+                    <td className="whitespace-nowrap px-1 py-3 sm:px-4">
+                      {!item.has_key && item.provider === 'bangumi' ? (
+                        <span className="rounded-full bg-emerald-400/10 px-2 py-0.5 text-xs text-emerald-600">无需密钥</span>
                       ) : item.has_key ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 px-2 py-0.5 text-xs text-emerald-400">
                           已配置
@@ -85,11 +94,22 @@ export function APIConfigsPanel() {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
+                    <td className="px-1 py-3 sm:px-4">
+                      <div className="flex justify-center">
+                        <SettingsSwitch
+                          label={`${PROVIDER_NAMES[item.provider] ?? item.provider} 全局启用`}
+                          checked={item.enabled}
+                          disabled={switching.includes(item.id)}
+                          onChange={enabled => void setEnabled(item, enabled)}
+                        />
+                      </div>
+                    </td>
+                    <td className="px-1 py-3 text-right sm:px-4">
+                      <div className="flex items-center justify-end sm:gap-1">
                         <button
                           onClick={() => setEditing(item.provider)}
-                          className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink-50 transition hover:bg-(--app-hover) hover:text-(--app-text) sm:h-8 sm:w-8"
+                          aria-expanded={editing === item.provider}
+                          className="inline-flex h-11 w-10 items-center justify-center rounded-lg text-ink-50 transition hover:bg-(--app-hover) hover:text-(--app-text) sm:h-8 sm:w-8"
                           title="编辑"
                           aria-label={`编辑 ${PROVIDER_NAMES[item.provider] ?? item.provider}`}
                         >
@@ -99,11 +119,15 @@ export function APIConfigsPanel() {
                           <button
                             onClick={async () => {
                               if (!(await confirmAction({ title: '清除 API Key', message: `确定清除 ${item.provider} 的 API Key?`, confirmText: '清除' }))) return
-                              await apiConfigsAPI.remove(item.provider)
-                              toast.success('已清除')
-                              refresh()
+                              try {
+                                await apiConfigsAPI.remove(item.provider)
+                                updateItem(item.id, { has_key: false, masked_key: undefined })
+                                toast.success('已清除')
+                              } catch (err: unknown) {
+                                toast.error(apiConfigError(err, '清除密钥失败'))
+                              }
                             }}
-                            className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink-50 transition hover:bg-red-400/10 hover:text-red-400 sm:h-8 sm:w-8"
+                            className={`inline-flex h-11 w-10 items-center justify-center rounded-lg text-ink-50 transition hover:bg-red-400/10 hover:text-red-400 sm:h-8 sm:w-8 ${editing === item.provider ? 'invisible' : ''}`}
                             title="清除密钥"
                             aria-label={`清除 ${PROVIDER_NAMES[item.provider] ?? item.provider} 密钥`}
                           >
@@ -113,14 +137,31 @@ export function APIConfigsPanel() {
                       </div>
                     </td>
                   </tr>
-                ),
-              )}
+                  {editing === item.provider && (
+                    <EditingRow
+                      item={item}
+                      onCancel={() => setEditing(null)}
+                      onSaved={saved => {
+                        updateItem(item.id, {
+                          base_url: saved.base_url, extra: saved.extra,
+                          has_key: saved.has_key, masked_key: saved.masked_key,
+                        })
+                        setEditing(current => current === item.provider ? null : current)
+                      }}
+                    />
+                  )}
+                </Fragment>
+              ))}
             </tbody>
           </table>
         </div>
       )}
     </div>
   )
+}
+
+function apiConfigError(err: unknown, fallback: string) {
+  return (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? fallback
 }
 
 function EditingRow({
@@ -130,29 +171,24 @@ function EditingRow({
 }: {
   item: APIConfig
   onCancel: () => void
-  onSaved: () => void
+  onSaved: (saved: APIConfig) => void
 }) {
   const [apiKey, setAPIKey] = useState('')
   const [baseURL, setBaseURL] = useState(item.base_url ?? '')
   const [dailyLimit, setDailyLimit] = useState(item.extra || '1000')
-  const [enabled, setEnabled] = useState(item.enabled)
   const [saving, setSaving] = useState(false)
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setSaving(true)
     try {
-      const patch: Record<string, unknown> = { base_url: baseURL, enabled }
-      if (item.provider === 'omdb') patch.extra = dailyLimit
+      const patch: APIConfigPatch = item.provider === 'omdb' ? { extra: dailyLimit } : { base_url: baseURL }
       if (apiKey.trim()) patch.api_key = apiKey.trim()
-      await apiConfigsAPI.update(item.provider, patch)
+      const saved = await apiConfigsAPI.update(item.provider, patch)
       toast.success(`${item.provider} 已保存`)
-      onSaved()
+      onSaved(saved)
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-        '保存失败'
-      toast.error(msg)
+      toast.error(apiConfigError(err, '保存失败'))
     } finally {
       setSaving(false)
     }
@@ -160,10 +196,9 @@ function EditingRow({
 
   return (
     <tr className="border-t border-gray-200 bg-primary-400/5">
-      <td colSpan={4} className="px-4 py-3">
+      <td colSpan={5} className="px-2 py-3 sm:px-4">
         <form onSubmit={submit} className="flex flex-wrap items-end gap-3">
-          <span className="text-sm font-medium text-ink-600">{PROVIDER_NAMES[item.provider] ?? item.provider}</span>
-          <label className="flex-1 text-xs text-ink-50">
+          <label className="basis-full text-xs text-ink-50 sm:min-w-0 sm:flex-1">
             {item.provider === 'bangumi' ? 'Access Token（可选）' : 'API Key'}
             <input
               className="input-base mt-1"
@@ -174,30 +209,22 @@ function EditingRow({
             />
           </label>
           {item.provider === 'omdb' ? (
-            <label className="flex-1 text-xs text-ink-50">
+            <label className="basis-full text-xs text-ink-50 sm:min-w-0 sm:flex-1">
               每日请求上限（UTC）
               <input className="input-base mt-1" type="number" required min={1} max={1_000_000}
                 value={dailyLimit} onChange={event => setDailyLimit(event.target.value)} />
             </label>
           ) : (
-          <label className="flex-1 text-xs text-ink-50">
-            Base URL
-            <input
-              className="input-base mt-1"
-              placeholder="https://api.themoviedb.org/3"
-              value={baseURL}
-              onChange={(e) => setBaseURL(e.target.value)}
-            />
-          </label>
+            <label className="basis-full text-xs text-ink-50 sm:min-w-0 sm:flex-1">
+              Base URL
+              <input
+                className="input-base mt-1"
+                placeholder="https://api.themoviedb.org/3"
+                value={baseURL}
+                onChange={(e) => setBaseURL(e.target.value)}
+              />
+            </label>
           )}
-          <label className="flex items-center gap-2 text-xs text-ink-50">
-            <input
-              type="checkbox"
-              checked={enabled}
-              onChange={(e) => setEnabled(e.target.checked)}
-            />
-            全局启用
-          </label>
           <button type="submit" disabled={saving} className="neon-button px-3! py-1.5! text-xs!">
             <Save size={12} /> 保存
           </button>
