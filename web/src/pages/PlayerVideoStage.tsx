@@ -179,6 +179,9 @@ type PlayerVideoStageProps = {
   onPlayerVolumeCommit: (volume: number) => void
   playerPlaybackRate: number
   onPlayerPlaybackRateChange: (rate: number) => void
+  autoSkipIntro?: boolean
+  autoSkipIntroBusy?: boolean
+  onAutoSkipIntroChange?: (enabled: boolean) => void
   danmakuEnabled: boolean
   danmakuOpacity: number
   danmakuFontSize: number
@@ -262,6 +265,9 @@ export function PlayerVideoStage({
   onPlayerVolumeCommit,
   playerPlaybackRate,
   onPlayerPlaybackRateChange,
+  autoSkipIntro,
+  autoSkipIntroBusy,
+  onAutoSkipIntroChange,
   danmakuEnabled,
   danmakuOpacity,
   danmakuFontSize,
@@ -853,6 +859,9 @@ export function PlayerVideoStage({
             onVolumeCommit={onPlayerVolumeCommit}
             playbackRate={playerPlaybackRate}
             onPlaybackRateChange={onPlayerPlaybackRateChange}
+            autoSkipIntro={autoSkipIntro}
+            autoSkipIntroBusy={autoSkipIntroBusy}
+            onAutoSkipIntroChange={onAutoSkipIntroChange}
             uiVisible={showControls}
             onUiVisibleChange={setControlsVisible}
             uiHold={vrUiHovered}

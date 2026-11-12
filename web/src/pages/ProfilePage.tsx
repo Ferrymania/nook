@@ -15,6 +15,7 @@ const PROFILE_TABS = [
   { value: 'info', label: '资料与安全' },
   { value: 'playback', label: '播放设置' },
   { value: 'devices', label: '我的设备' },
+  { value: 'history', label: '观看历史' },
 ] as const
 
 type ProfileTab = typeof PROFILE_TABS[number]['value']
@@ -338,7 +339,9 @@ export function ProfilePage() {
         {activeTab === 'devices' && <MyDevicesPanel />}
       </div>
 
-      <WatchHistoryPanel embedded />
+      <div id="profile-panel-history" role="tabpanel" aria-labelledby="profile-tab-history" hidden={activeTab !== 'history'}>
+        {activeTab === 'history' && <WatchHistoryPanel embedded />}
+      </div>
     </div>
   )
 }

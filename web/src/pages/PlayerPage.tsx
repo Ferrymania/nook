@@ -907,17 +907,40 @@ export function PlayerPage() {
   }, [playbackInfo])
 
   // ── 片头/片尾跳过 ──────────────────────────────────────────────────────────
-  // 原始片段（服务端单位）与当前生效档案的「自动跳过片头」开关。
+  // 原始片段（服务端单位）与当前账号的「自动跳过片头」开关。
   const [rawSkipSegments, setRawSkipSegments] = useState<PlaybackSegment[]>([])
   const [autoSkipIntro, setAutoSkipIntro] = useState(false)
+  const [autoSkipIntroSaving, setAutoSkipIntroSaving] = useState(false)
+  const [playbackSettingsLoading, setPlaybackSettingsLoading] = useState(true)
   const [autoplayNext, setAutoplayNext] = useState(true)
   useEffect(() => {
     let active = true
     playbackSettingsAPI.get().then((settings) => {
-      if (active) setAutoplayNext(settings.autoplay_next)
-    }).catch(() => undefined)
+      if (active) {
+        setAutoplayNext(settings.autoplay_next)
+        setAutoSkipIntro(settings.skip_intro)
+      }
+    }).catch(() => undefined).finally(() => {
+      if (active) setPlaybackSettingsLoading(false)
+    })
     return () => { active = false }
   }, [])
+
+  const changeAutoSkipIntro = useCallback(async (enabled: boolean) => {
+    if (autoSkipIntroSaving || playbackSettingsLoading) return
+    setAutoSkipIntroSaving(true)
+    try {
+      // Read current preferences before saving so unrelated playback choices
+      // changed since this player opened are retained.
+      const settings = await playbackSettingsAPI.get()
+      const saved = await playbackSettingsAPI.save({ ...settings, skip_intro: enabled })
+      setAutoSkipIntro(saved.skip_intro)
+    } catch (err: unknown) {
+      toast.error((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? '自动跳过设置保存失败，请重试')
+    } finally {
+      setAutoSkipIntroSaving(false)
+    }
+  }, [autoSkipIntroSaving, playbackSettingsLoading])
   // 当前落进的跳过提示；不在任何区间时为 null。
   const [activeSkip, setActiveSkip] = useState<SkipPrompt | null>(null)
   // 自动跳过后的撤销提示。
@@ -946,7 +969,6 @@ export function PlayerPage() {
     if (!mediaId) return
     let cancelled = false
     setRawSkipSegments([])
-    setAutoSkipIntro(false)
     setActiveSkip(null)
     setSkipNotice(null)
     setDismissedSkipKinds([])
@@ -956,7 +978,6 @@ export function PlayerPage() {
       .segments(mediaId)
       .then((res) => {
         if (cancelled) return
-        setAutoSkipIntro(Boolean(res.auto_skip))
         setRawSkipSegments(res.segments ?? [])
       })
       .catch(() => undefined)
@@ -2219,7 +2240,7 @@ export function PlayerPage() {
     seekPlaybackTo(notice.startSec)
   }, [seekPlaybackTo, skipNotice])
 
-  // 自动跳过只针对片头（含回顾）：播放设置里的开关本身就叫「自动跳过片头」，而且自动
+  // 自动跳过只针对片头（含回顾）：播放器里的开关本身就叫「自动跳过片头」，而且自动
   // 跳到结尾会让没开自动连播的用户莫名其妙。片尾始终只提供按钮。
   useEffect(() => {
     if (!autoSkipIntro || !activeSkip) return
@@ -2410,6 +2431,9 @@ export function PlayerPage() {
         onPlayerVolumeCommit={commitPlayerVolume}
         playerPlaybackRate={playerPlaybackRate}
         onPlayerPlaybackRateChange={changePlayerPlaybackRate}
+        autoSkipIntro={autoSkipIntro}
+        autoSkipIntroBusy={autoSkipIntroSaving || playbackSettingsLoading}
+        onAutoSkipIntroChange={changeAutoSkipIntro}
         danmakuEnabled={danmakuEnabled}
         danmakuOpacity={danmakuOpacity}
         danmakuFontSize={danmakuFontSize}

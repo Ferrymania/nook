@@ -135,6 +135,10 @@ type PlayerControlsProps = {
   /** 播放倍速（1x = 原速）。只作用于当前视频，不落库。 */
   playbackRate?: number
   onPlaybackRateChange?: (rate: number) => void
+  /** 当前账号的网页播放器片头跳过偏好，保存后立即生效。 */
+  autoSkipIntro?: boolean
+  autoSkipIntroBusy?: boolean
+  onAutoSkipIntroChange?: (enabled: boolean) => void
   uiVisible: boolean
   onUiVisibleChange: (visible: boolean) => void
   /** 外部浮层（VR 工具条/设置面板）正被鼠标悬停：此时控制栏不自动隐藏。 */
@@ -210,6 +214,9 @@ export function PlayerControls({
   onVolumeCommit,
   playbackRate: playbackRateProp = 1,
   onPlaybackRateChange,
+  autoSkipIntro = false,
+  autoSkipIntroBusy = false,
+  onAutoSkipIntroChange,
   uiVisible,
   onUiVisibleChange,
   uiHold = false,
@@ -960,6 +967,29 @@ export function PlayerControls({
   const settingsPanel = (
     <div className="p-1">
       {compactOnlySections}
+
+      {onAutoSkipIntroChange && (
+        <div>
+          <p className={PLAYER_MENU_LABEL}>播放</p>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={autoSkipIntro}
+            aria-label="自动跳过片头"
+            disabled={autoSkipIntroBusy}
+            onClick={() => onAutoSkipIntroChange(!autoSkipIntro)}
+            className={`${PLAYER_MENU_ITEM} disabled:cursor-wait disabled:opacity-50`}
+          >
+            <SkipForward size={14} className="shrink-0 text-white/50" />
+            <span className="min-w-0 flex-1 truncate">自动跳过片头</span>
+            {autoSkipIntroBusy ? <Loader2 size={14} className="shrink-0 animate-spin text-white/60" /> : (
+              <span aria-hidden="true" className={`flex h-4 w-7 shrink-0 items-center rounded-full p-0.5 ${autoSkipIntro ? 'bg-rose-500' : 'bg-white/25'}`}>
+                <span className={`h-3 w-3 rounded-full bg-white transition-transform ${autoSkipIntro ? 'translate-x-3' : ''}`} />
+              </span>
+            )}
+          </button>
+        </div>
+      )}
 
       {playbackModeLabel && (
         <div>
