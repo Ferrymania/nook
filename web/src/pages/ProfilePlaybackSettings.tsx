@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 
 import { playbackSettingsAPI, type PlaybackSettings } from '../api/playbackSettings'
 import type { Library } from '../types'
+import { isPlaybackLibraryHidden, setPlaybackLibraryHidden } from '../utils/playbackLibraryVisibility'
 
 export function ProfilePlaybackSettings({ active }: { active: boolean }) {
   const [form, setForm] = useState<PlaybackSettings | null>(null)
@@ -71,7 +72,6 @@ export function ProfilePlaybackSettings({ active }: { active: boolean }) {
             </div>
             <div className="mt-3 divide-y divide-(--app-border)">
               <SettingToggle label="自动播放下一集" checked={form.autoplay_next} onChange={(value) => update({ autoplay_next: value })} />
-              <SettingToggle label="自动跳过片头" hint="用于 Nook 网页播放器；第三方客户端使用各自的跳过设置。" checked={form.skip_intro} onChange={(value) => update({ skip_intro: value })} />
             </div>
           </section>
           <section className="rounded-xl bg-(--app-panel) p-4 sm:p-5">
@@ -86,13 +86,13 @@ export function ProfilePlaybackSettings({ active }: { active: boolean }) {
               <p className="mt-2 text-xs leading-5 text-(--app-muted)">保留此项偏好，内容分级过滤暂未启用。</p>
             </div>
             <div className="border-t border-(--app-border) pt-3">
-              <h3 className="text-sm font-medium">允许访问的媒体库</h3>
-              <p className="mt-1 text-xs leading-5 text-(--app-muted)">未选择时显示账号有权访问的全部媒体库，选择范围不会扩大管理员授予的权限。</p>
+              <h3 className="text-sm font-medium">隐藏的媒体库</h3>
+              <p className="mt-1 text-xs leading-5 text-(--app-muted)">勾选后隐藏，取消勾选恢复显示。仅影响当前账号。</p>
               {libraries.length ? (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {libraries.map((library) => (
                     <label key={library.id} className="flex min-h-10 max-w-full cursor-pointer items-center gap-2 rounded-lg border border-(--app-border) px-3 py-2 text-sm hover:bg-(--app-hover)">
-                      <input type="checkbox" className="h-4 w-4 shrink-0 accent-brand-500" checked={form.allowed_library_ids.includes(library.id)} onChange={(event) => update({ allowed_library_ids: event.target.checked ? [...form.allowed_library_ids, library.id] : form.allowed_library_ids.filter((id) => id !== library.id) })} />
+                      <input type="checkbox" className="h-4 w-4 shrink-0 accent-brand-500" checked={isPlaybackLibraryHidden(form.allowed_library_ids, library.id)} onChange={(event) => update({ allowed_library_ids: setPlaybackLibraryHidden(form.allowed_library_ids, libraries.map((item) => item.id), library.id, event.target.checked) })} />
                       <span className="min-w-0 break-words">{library.name}</span>
                     </label>
                   ))}
