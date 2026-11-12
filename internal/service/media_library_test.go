@@ -60,7 +60,7 @@ func TestListLibrariesWithPreview(t *testing.T) {
 
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos)
 
-	previews, err := svc.ListLibrariesWithPreview(t.Context(), []model.Library{lib1, lib2}, MediaVisibility{IncludeNSFW: true}, 10)
+	previews, err := svc.ListLibrariesWithPreview(t.Context(), []model.Library{lib1, lib2}, MediaVisibility{}, 10)
 	if err != nil {
 		t.Fatalf("ListLibrariesWithPreview failed: %v", err)
 	}
@@ -140,7 +140,7 @@ func TestListLibrariesWithPreviewLongSeriesCompletion(t *testing.T) {
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos)
 
 	// 请求 10 部卡片
-	previews, err := svc.ListLibrariesWithPreview(t.Context(), []model.Library{lib}, MediaVisibility{IncludeNSFW: true}, 10)
+	previews, err := svc.ListLibrariesWithPreview(t.Context(), []model.Library{lib}, MediaVisibility{}, 10)
 	if err != nil {
 		t.Fatalf("ListLibrariesWithPreview failed: %v", err)
 	}
@@ -178,7 +178,7 @@ func TestListLibraryPreviewsSkipsTotals(t *testing.T) {
 	}
 
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos)
-	previews, err := svc.ListLibraryPreviews(t.Context(), []model.Library{lib}, MediaVisibility{IncludeNSFW: true}, 10)
+	previews, err := svc.ListLibraryPreviews(t.Context(), []model.Library{lib}, MediaVisibility{}, 10)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -206,11 +206,11 @@ func TestListLibraryPreviewsCachesEachLibraryIndependently(t *testing.T) {
 
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos).
 		SetRuntimeCache(NewRuntimeCacheService(&config.Config{}))
-	visibility := MediaVisibility{IncludeNSFW: true}
+	visibility := MediaVisibility{}
 	if _, err := svc.ListLibraryPreviews(t.Context(), []model.Library{lib}, visibility, 10); err != nil {
 		t.Fatal(err)
 	}
-	filter := repository.MediaQueryFilter{IncludeNSFW: true}
+	filter := repository.MediaQueryFilter{}
 	key := svc.libraryPreviewCacheKey([]model.Library{lib}, 10, filter, false)
 	var cached LibraryPreviewItem
 	if !svc.cache.GetJSON(t.Context(), key, &cached) || len(cached.Cards) != 1 {
@@ -265,7 +265,7 @@ func TestLibraryPreviewsOrderByLastAddedTime(t *testing.T) {
 		t.Fatal(err)
 	}
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos)
-	visibility := MediaVisibility{IncludeNSFW: true}
+	visibility := MediaVisibility{}
 	check := func() {
 		t.Helper()
 		for _, includeCounts := range []bool{false, true} {

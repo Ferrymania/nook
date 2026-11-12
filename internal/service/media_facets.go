@@ -19,9 +19,7 @@ type LibraryFacets struct {
 // 与列表查询保持完全一致的语义。
 func libraryFilterFrom(visibility MediaVisibility, filters MediaListFilters) repository.MediaQueryFilter {
 	return filters.apply(repository.MediaQueryFilter{
-		IncludeNSFW:       visibility.IncludeNSFW,
 		AllowedLibraryIDs: visibility.AllowedLibraryIDs,
-		HiddenLibraryIDs:  visibility.HiddenLibraryIDs,
 	})
 }
 

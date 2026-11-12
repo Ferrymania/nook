@@ -11,7 +11,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/Ferrymania/nook/internal/config"
-	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/service"
 )
 
@@ -60,18 +59,9 @@ func updateSettingHandler(svc *service.Container) gin.HandlerFunc {
 			c.Status(http.StatusNoContent)
 			return
 		}
-		oldValue := ""
-		if req.Key == service.AdultLibraryIDsSettingKey {
-			oldValue, _ = svc.Repo.Setting.Get(c.Request.Context(), req.Key)
-		}
 		if err := svc.Repo.Setting.Set(c.Request.Context(), req.Key, req.Value); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
-		}
-		oldAdultLibraryIDs := service.DecodeAllowedLibraryIDs(oldValue)
-		newAdultLibraryIDs := service.DecodeAllowedLibraryIDs(req.Value)
-		if req.Key == service.AdultLibraryIDsSettingKey && len(oldAdultLibraryIDs) == 0 && len(newAdultLibraryIDs) > 0 {
-			_ = svc.Repo.DB.WithContext(c.Request.Context()).Model(&model.User{}).Where("hide_adult = ?", false).Update("hide_adult", true).Error
 		}
 		service.ApplyRuntimeSetting(svc.Cfg, req.Key, req.Value)
 		if err := applyHTTPSetting(svc, req.Key, req.Value); err != nil {

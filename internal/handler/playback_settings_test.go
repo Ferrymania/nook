@@ -13,21 +13,12 @@ import (
 	"github.com/Ferrymania/nook/internal/service"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/bcrypt"
 )
 
-func TestPlaybackSettingsRoutesAreAccountScopedAndProtectAdultAccess(t *testing.T) {
+func TestPlaybackSettingsRoutesAreAccountScoped(t *testing.T) {
 	router, svc := newDeviceTestEnv(t)
 	seedDeviceUsers(t, svc)
 	svc.Profile = service.NewProfileService(zap.NewNop(), svc.Repo)
-	svc.Auth = service.NewAuthService(&config.Config{}, zap.NewNop(), svc.Repo, nil, nil)
-	hash, err := bcrypt.GenerateFromPassword([]byte("test-password"), bcrypt.MinCost)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := svc.Repo.User.UpdateFields(t.Context(), "user-a", map[string]any{"password_hash": string(hash)}); err != nil {
-		t.Fatal(err)
-	}
 	request := func(body string) *httptest.ResponseRecorder {
 		t.Helper()
 		req := httptest.NewRequest(http.MethodPut, "/api/me/playback-settings", strings.NewReader(body))
@@ -37,7 +28,7 @@ func TestPlaybackSettingsRoutesAreAccountScopedAndProtectAdultAccess(t *testing.
 		router.ServeHTTP(w, req)
 		return w
 	}
-	w := request(`{"user_id":"user-b","allow_adult":false,"autoplay_next":false,"skip_intro":true,"preferred_audio_lang":"ja","allowed_library_ids":[]}`)
+	w := request(`{"user_id":"user-b","autoplay_next":false,"skip_intro":true,"preferred_audio_lang":"ja","allowed_library_ids":[]}`)
 	if w.Code != http.StatusOK {
 		t.Fatalf("status = %d body = %s", w.Code, w.Body.String())
 	}
@@ -52,16 +43,6 @@ func TestPlaybackSettingsRoutesAreAccountScopedAndProtectAdultAccess(t *testing.
 	other, err := svc.Profile.GetPlaybackSettings(t.Context(), "user-b")
 	if err != nil || other.SkipIntro || !other.AutoplayNext {
 		t.Fatalf("another account changed: %+v %v", other, err)
-	}
-	if w := request(`{"allow_adult":true,"autoplay_next":true}`); w.Code != http.StatusUnauthorized {
-		t.Fatalf("adult access changed without password: %d %s", w.Code, w.Body.String())
-	}
-	if w := request(`{"allow_adult":true,"autoplay_next":true,"password":"test-password"}`); w.Code != http.StatusOK {
-		t.Fatalf("confirmed change failed: %d %s", w.Code, w.Body.String())
-	}
-	user, err := svc.Repo.User.FindByID(t.Context(), "user-a")
-	if err != nil || user.HideAdult {
-		t.Fatalf("account visibility did not update: %+v %v", user, err)
 	}
 }
 

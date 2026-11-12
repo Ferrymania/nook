@@ -9,7 +9,7 @@ import (
 
 // SearchMedia performs a simple LIKE search across titles.
 func (s *MediaService) SearchMedia(ctx context.Context, query string, limit int) ([]model.Media, error) {
-	return s.SearchMediaVisible(ctx, query, limit, MediaVisibility{IncludeNSFW: true})
+	return s.SearchMediaVisible(ctx, query, limit, MediaVisibility{})
 }
 
 func (s *MediaService) SearchMediaVisible(ctx context.Context, query string, limit int, visibility MediaVisibility) ([]model.Media, error) {
@@ -20,9 +20,7 @@ func (s *MediaService) SearchMediaVisible(ctx context.Context, query string, lim
 	}
 	visibility = ExpandMediaVisibilityForMergedCloudLibraries(ctx, s.repo, visibility)
 	items, err := s.repo.Media.SearchFiltered(ctx, query, limit, repository.MediaQueryFilter{
-		IncludeNSFW:       visibility.IncludeNSFW,
 		AllowedLibraryIDs: visibility.AllowedLibraryIDs,
-		HiddenLibraryIDs:  visibility.HiddenLibraryIDs,
 	})
 	if err != nil {
 		return nil, err
@@ -56,9 +54,7 @@ func (s *MediaService) SearchMediaVisiblePage(ctx context.Context, query string,
 	}
 	visibility = ExpandMediaVisibilityForMergedCloudLibraries(ctx, s.repo, visibility)
 	items, total, err := s.repo.Media.SearchFilteredPage(ctx, query, (page-1)*pageSize, pageSize, repository.MediaQueryFilter{
-		IncludeNSFW:       visibility.IncludeNSFW,
 		AllowedLibraryIDs: visibility.AllowedLibraryIDs,
-		HiddenLibraryIDs:  visibility.HiddenLibraryIDs,
 	})
 	if err != nil {
 		return nil, 0, err

@@ -149,7 +149,7 @@ func TestEmbySenPlayerMixedTypesIncludeMoviesAndSeries(t *testing.T) {
 	if err := e.repo.DB.Create(&tv).Error; err != nil {
 		t.Fatal(err)
 	}
-	u := model.User{Username: "viewer", PasswordHash: "unused", HideAdult: true}
+	u := model.User{Username: "viewer", PasswordHash: "unused"}
 	if err := e.repo.DB.Create(&u).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +166,7 @@ func TestEmbySenPlayerMixedTypesIncludeMoviesAndSeries(t *testing.T) {
 	for _, tc := range []struct {
 		parent, wantType string
 		want             int
-	}{{movies.ID, "Movie", 1}, {tv.ID, "Series", 1}, {"", "", 2}} {
+	}{{movies.ID, "Movie", 2}, {tv.ID, "Series", 1}, {"", "", 3}} {
 		p.ParentID = tc.parent
 		out, err := e.Items(t.Context(), p)
 		if err != nil {
@@ -185,7 +185,7 @@ func TestEmbySenPlayerMixedTypesIncludeMoviesAndSeries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if out["TotalRecordCount"] != 2 || len(out["Items"].([]map[string]any)) != 1 || out["Items"].([]map[string]any)[0]["Type"] != "Series" {
+	if out["TotalRecordCount"] != 3 || len(out["Items"].([]map[string]any)) != 1 || out["Items"].([]map[string]any)[0]["Type"] != "Series" {
 		t.Fatalf("mixed pagination/sorting failed: %+v", out)
 	}
 }

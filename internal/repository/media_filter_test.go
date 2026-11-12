@@ -68,7 +68,7 @@ func TestFilterByGenreOR(t *testing.T) {
 		&model.Media{Title: "剧情", Genres: "Drama", Path: "/c.mkv", LibraryID: "lib-1"},
 	)
 
-	got := listFiltered(t, db, MediaQueryFilter{IncludeNSFW: true, Genres: []string{"Action", "Comedy"}})
+	got := listFiltered(t, db, MediaQueryFilter{Genres: []string{"Action", "Comedy"}})
 	if !hasTitle(got, "动作") || !hasTitle(got, "喜剧") {
 		t.Fatalf("result = %v, want both 动作 and 喜剧", got)
 	}
@@ -85,7 +85,7 @@ func TestFilterByGenreDoesNotMatchSubstring(t *testing.T) {
 		&model.Media{Title: "拼接", Genres: "ActionComedy", Path: "/b.mkv", LibraryID: "lib-1"},
 	)
 
-	got := listFiltered(t, db, MediaQueryFilter{IncludeNSFW: true, Genres: []string{"Action"}})
+	got := listFiltered(t, db, MediaQueryFilter{Genres: []string{"Action"}})
 	if !hasTitle(got, "精确") {
 		t.Fatalf("result = %v, want 精确", got)
 	}
@@ -130,7 +130,7 @@ func TestGenreAliasesMatchWholeTokensWithoutChangingStoredValues(t *testing.T) {
 		{[]string{"HorrorComedy"}, []string{"WildcardDecoy"}},
 		{[]string{" ", "；"}, []string{}},
 	} {
-		got := listFiltered(t, db, MediaQueryFilter{IncludeNSFW: true, Genres: tc.filters})
+		got := listFiltered(t, db, MediaQueryFilter{Genres: tc.filters})
 		if !slices.Equal(got, tc.want) {
 			t.Fatalf("filter %v = %v, want %v", tc.filters, got, tc.want)
 		}
@@ -149,12 +149,12 @@ func TestFilterYearAndRating(t *testing.T) {
 		&model.Media{Title: "新片", Year: 2023, Rating: 8, Path: "/c.mkv", LibraryID: "lib-1"},
 	)
 
-	got := listFiltered(t, db, MediaQueryFilter{IncludeNSFW: true, YearMin: 2000, YearMax: 2020})
+	got := listFiltered(t, db, MediaQueryFilter{YearMin: 2000, YearMax: 2020})
 	if len(got) != 1 || got[0] != "中年" {
 		t.Fatalf("year filter result = %v, want [中年]", got)
 	}
 
-	got = listFiltered(t, db, MediaQueryFilter{IncludeNSFW: true, RatingMin: 8})
+	got = listFiltered(t, db, MediaQueryFilter{RatingMin: 8})
 	if len(got) != 2 {
 		t.Fatalf("rating filter result = %v, want 2 entries", got)
 	}
@@ -182,7 +182,7 @@ func TestFilterUnwatchedExcludesCompleted(t *testing.T) {
 	}
 
 	got := listFiltered(t, db, MediaQueryFilter{
-		IncludeNSFW: true, UnwatchedOnly: true, UnwatchedUserID: "u1",
+		UnwatchedOnly: true, UnwatchedUserID: "u1",
 	})
 	if hasTitle(got, "看完") {
 		t.Fatalf("result = %v, must exclude completed media", got)
@@ -200,7 +200,7 @@ func TestFilterByGenreMultiWordExactToken(t *testing.T) {
 		&model.Media{Title: "动作", Genres: "Action", Path: "/b.mkv", LibraryID: "lib-1"},
 	)
 
-	got := listFiltered(t, db, MediaQueryFilter{IncludeNSFW: true, Genres: []string{"Science Fiction"}})
+	got := listFiltered(t, db, MediaQueryFilter{Genres: []string{"Science Fiction"}})
 	if !hasTitle(got, "科幻") {
 		t.Fatalf("result = %v, want 科幻 (multi-word genre must match as a whole token)", got)
 	}
@@ -214,7 +214,7 @@ func TestFilterUnwatchedWithoutUserIsIgnored(t *testing.T) {
 	db := newMediaFilterTestDB(t)
 	seedFilterMedia(t, db, &model.Media{Title: "片", Path: "/a.mkv", LibraryID: "lib-1"})
 
-	got := listFiltered(t, db, MediaQueryFilter{IncludeNSFW: true, UnwatchedOnly: true})
+	got := listFiltered(t, db, MediaQueryFilter{UnwatchedOnly: true})
 	if len(got) != 1 {
 		t.Fatalf("result = %v, want the row to be returned", got)
 	}

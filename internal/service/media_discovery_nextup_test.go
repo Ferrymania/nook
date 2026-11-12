@@ -88,7 +88,7 @@ func TestNextUpPicksNextEpisode(t *testing.T) {
 	seedEpisode(t, repos, libID, "series-1", "剧一", 1, 3, nil, false)
 
 	svc := NewMediaDiscoveryService(zap.NewNop(), repos)
-	got := nextUpIDs(t, svc, MediaVisibility{IncludeNSFW: true})
+	got := nextUpIDs(t, svc, MediaVisibility{})
 	if len(got) != 1 || got[0] != "S1E2" {
 		t.Fatalf("next up = %v, want [S1E2]", got)
 	}
@@ -108,7 +108,7 @@ func TestNextUpKeepsPartiallyWatchedEpisode(t *testing.T) {
 	seedEpisode(t, repos, libID, "series-1", "剧一", 1, 3, nil, false)
 
 	svc := NewMediaDiscoveryService(zap.NewNop(), repos)
-	got := nextUpIDs(t, svc, MediaVisibility{IncludeNSFW: true})
+	got := nextUpIDs(t, svc, MediaVisibility{})
 	if len(got) != 1 || got[0] != "S1E2" {
 		t.Fatalf("next up = %v, want [S1E2] (未看完的那一集不能跳过)", got)
 	}
@@ -126,7 +126,7 @@ func TestNextUpKeepsPartiallyWatchedFinalEpisode(t *testing.T) {
 	seedEpisode(t, repos, libID, "series-1", "剧一", 1, 2, &watchedAt, false) // 最后一集未看完
 
 	svc := NewMediaDiscoveryService(zap.NewNop(), repos)
-	got := nextUpIDs(t, svc, MediaVisibility{IncludeNSFW: true})
+	got := nextUpIDs(t, svc, MediaVisibility{})
 	if len(got) != 1 || got[0] != "S1E2" {
 		t.Fatalf("next up = %v, want [S1E2]", got)
 	}
@@ -143,7 +143,7 @@ func TestNextUpSkipsMovies(t *testing.T) {
 	seedEpisode(t, repos, libID, "", "电影", 0, 0, &watchedAt, false)
 
 	svc := NewMediaDiscoveryService(zap.NewNop(), repos)
-	if got := nextUpIDs(t, svc, MediaVisibility{IncludeNSFW: true}); len(got) != 0 {
+	if got := nextUpIDs(t, svc, MediaVisibility{}); len(got) != 0 {
 		t.Fatalf("next up = %v, want empty", got)
 	}
 }
@@ -166,7 +166,7 @@ func TestNextUpOneEntryPerSeries(t *testing.T) {
 	seedEpisode(t, repos, libID, "series-1", "剧一", 1, 3, nil, false)
 
 	svc := NewMediaDiscoveryService(zap.NewNop(), repos)
-	got := nextUpIDs(t, svc, MediaVisibility{IncludeNSFW: true})
+	got := nextUpIDs(t, svc, MediaVisibility{})
 	if len(got) != 1 || got[0] != "S1E2" {
 		t.Fatalf("next up = %v, want [S1E2]", got)
 	}
@@ -185,7 +185,7 @@ func TestNextUpCrossesSeason(t *testing.T) {
 	seedEpisode(t, repos, libID, "series-1", "剧一", 2, 2, nil, false)
 
 	svc := NewMediaDiscoveryService(zap.NewNop(), repos)
-	got := nextUpIDs(t, svc, MediaVisibility{IncludeNSFW: true})
+	got := nextUpIDs(t, svc, MediaVisibility{})
 	if len(got) != 1 || got[0] != "S2E1" {
 		t.Fatalf("next up = %v, want [S2E1]", got)
 	}
@@ -204,7 +204,7 @@ func TestNextUpSkipsCompletedEpisode(t *testing.T) {
 	seedEpisode(t, repos, libID, "series-1", "剧一", 1, 3, nil, false)
 
 	svc := NewMediaDiscoveryService(zap.NewNop(), repos)
-	got := nextUpIDs(t, svc, MediaVisibility{IncludeNSFW: true})
+	got := nextUpIDs(t, svc, MediaVisibility{})
 	if len(got) != 1 || got[0] != "S1E3" {
 		t.Fatalf("next up = %v, want [S1E3]", got)
 	}
@@ -221,7 +221,7 @@ func TestNextUpEmptyAtSeriesEnd(t *testing.T) {
 	seedEpisode(t, repos, libID, "series-1", "剧一", 1, 3, &watchedAt, true)
 
 	svc := NewMediaDiscoveryService(zap.NewNop(), repos)
-	if got := nextUpIDs(t, svc, MediaVisibility{IncludeNSFW: true}); len(got) != 0 {
+	if got := nextUpIDs(t, svc, MediaVisibility{}); len(got) != 0 {
 		t.Fatalf("next up = %v, want empty", got)
 	}
 }
@@ -239,7 +239,7 @@ func TestNextUpRespectsVisibility(t *testing.T) {
 	seedEpisode(t, repos, hiddenLib, "series-1", "剧一", 1, 2, nil, false)
 
 	svc := NewMediaDiscoveryService(zap.NewNop(), repos)
-	got := nextUpIDs(t, svc, MediaVisibility{IncludeNSFW: true, AllowedLibraryIDs: []string{visibleLib}})
+	got := nextUpIDs(t, svc, MediaVisibility{AllowedLibraryIDs: []string{visibleLib}})
 	if len(got) != 0 {
 		t.Fatalf("next up = %v, want empty (hidden library)", got)
 	}
@@ -260,7 +260,7 @@ func TestNextUpAfterCompletedEpisode(t *testing.T) {
 	seedEpisode(t, repos, libID, "series-1", "剧一", 1, 3, nil, false)
 
 	svc := NewMediaDiscoveryService(zap.NewNop(), repos)
-	got := nextUpIDs(t, svc, MediaVisibility{IncludeNSFW: true})
+	got := nextUpIDs(t, svc, MediaVisibility{})
 	if len(got) != 1 || got[0] != "S1E2" {
 		t.Fatalf("next up after completed S1E1 = %v, want [S1E2]", got)
 	}
@@ -278,7 +278,7 @@ func TestNextUpSeriesFullyWatchedIsEmpty(t *testing.T) {
 	seedEpisode(t, repos, libID, "series-1", "剧一", 1, 2, &watchedAt, true) // 最近看完的最后一集
 
 	svc := NewMediaDiscoveryService(zap.NewNop(), repos)
-	if got := nextUpIDs(t, svc, MediaVisibility{IncludeNSFW: true}); len(got) != 0 {
+	if got := nextUpIDs(t, svc, MediaVisibility{}); len(got) != 0 {
 		t.Fatalf("next up for fully-watched series = %v, want empty", got)
 	}
 }
@@ -298,7 +298,7 @@ func TestNextUpOrdersByRecency(t *testing.T) {
 	seedEpisode(t, repos, libID, "series-b", "剧B", 1, 2, nil, false)
 
 	svc := NewMediaDiscoveryService(zap.NewNop(), repos)
-	rows, err := svc.NextUpCandidates(context.Background(), "user-1", 20, MediaVisibility{IncludeNSFW: true})
+	rows, err := svc.NextUpCandidates(context.Background(), "user-1", 20, MediaVisibility{})
 	if err != nil {
 		t.Fatal(err)
 	}

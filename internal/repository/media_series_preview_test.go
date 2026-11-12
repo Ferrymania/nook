@@ -7,13 +7,13 @@ import (
 
 func TestSeriesPreviewQueriesKeepScopeAndTrimColumns(t *testing.T) {
 	repos, log := newPostgresDryRunRepos(t)
-	filter := MediaQueryFilter{AllowedLibraryIDs: []string{"allowed"}, HiddenLibraryIDs: []string{"hidden"}}
+	filter := MediaQueryFilter{AllowedLibraryIDs: []string{"allowed"}}
 	if _, err := repos.Media.ListSeriesPreviewRows(t.Context(), []string{"allowed", "hidden"}, filter); err != nil {
 		t.Fatal(err)
 	}
 	sql := log.all()
 	for _, want := range []string{"\"title\"", "\"path\"", "\"poster_url\"", "\"tm_db_id\"", "\"thetvdb_id\"",
-		"library_id IN", "library_id NOT IN", "nsfw = false", "deleted_at", "release_date DESC"} {
+		"library_id IN", "deleted_at", "release_date DESC"} {
 		if !strings.Contains(sql, want) {
 			t.Fatalf("preview SQL missing %q: %s", want, sql)
 		}
@@ -30,7 +30,7 @@ func TestSeriesPreviewQueriesKeepScopeAndTrimColumns(t *testing.T) {
 		t.Fatal(err)
 	}
 	sql = log.all()
-	for _, want := range []string{"id IN ('selected')", "library_id IN ('allowed')", "library_id NOT IN ('hidden')", "nsfw = false", "deleted_at"} {
+	for _, want := range []string{"id IN ('selected')", "library_id IN ('allowed')", "deleted_at"} {
 		if !strings.Contains(sql, want) {
 			t.Fatalf("selected-card SQL missing %q: %s", want, sql)
 		}

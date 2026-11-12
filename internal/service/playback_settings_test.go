@@ -15,7 +15,7 @@ func TestPlaybackSettingsPersistPerUserAndNarrowAdminAccess(t *testing.T) {
 	repos := repository.New(db)
 	svc := NewProfileService(zap.NewNop(), repos)
 	for _, id := range []string{"viewer-a", "viewer-b"} {
-		if err := repos.User.Create(t.Context(), &model.User{Base: model.Base{ID: id}, Username: id, PasswordHash: "x", Role: "user", HideAdult: true, AllowedLibraryIDs: `["lib-a"]`}); err != nil {
+		if err := repos.User.Create(t.Context(), &model.User{Base: model.Base{ID: id}, Username: id, PasswordHash: "x", Role: "user", AllowedLibraryIDs: `["lib-a"]`}); err != nil {
 			t.Fatal(err)
 		}
 	}

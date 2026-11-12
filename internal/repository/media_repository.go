@@ -17,12 +17,9 @@ type MediaRepository struct {
 	db *gorm.DB
 }
 
-// MediaQueryFilter is applied to user-facing media queries so NSFW items and
-// profile-restricted libraries are filtered in SQL instead of only in React.
+// MediaQueryFilter applies library permissions and user-facing filters in SQL.
 type MediaQueryFilter struct {
-	IncludeNSFW       bool
 	AllowedLibraryIDs []string
-	HiddenLibraryIDs  []string
 	SeriesID          string
 	// LibraryID 是精确匹配的单个库过滤，用于库内场景（例如媒体库页筛选）。
 	// 它与 AllowedLibraryIDs 是「与」关系：可见性仍由后者兜底，避免越权。
@@ -42,12 +39,6 @@ type MediaQueryFilter struct {
 }
 
 func applyMediaQueryFilter(q *gorm.DB, filter MediaQueryFilter) *gorm.DB {
-	if !filter.IncludeNSFW {
-		q = q.Where("nsfw = ?", false)
-	}
-	if len(filter.HiddenLibraryIDs) > 0 {
-		q = q.Where("library_id NOT IN ?", filter.HiddenLibraryIDs)
-	}
 	if len(filter.AllowedLibraryIDs) > 0 {
 		q = q.Where("library_id IN ?", filter.AllowedLibraryIDs)
 	}
@@ -206,7 +197,7 @@ func (r *MediaRepository) ListSeasonSiblings(ctx context.Context, m *model.Media
 
 // ListByLibrary returns paginated media items for a library.
 func (r *MediaRepository) ListByLibrary(ctx context.Context, libraryID string, offset, limit int) ([]model.Media, int64, error) {
-	return r.ListByLibraryFiltered(ctx, libraryID, offset, limit, MediaQueryFilter{IncludeNSFW: true})
+	return r.ListByLibraryFiltered(ctx, libraryID, offset, limit, MediaQueryFilter{})
 }
 
 func (r *MediaRepository) ListByLibraryFiltered(ctx context.Context, libraryID string, offset, limit int, filter MediaQueryFilter) ([]model.Media, int64, error) {
@@ -371,14 +362,6 @@ func (r *MediaRepository) ListRecentByLibraries(ctx context.Context, libraryIDs 
 func mediaQueryFilterSQL(filter MediaQueryFilter) (string, []interface{}) {
 	var parts []string
 	var args []interface{}
-	if !filter.IncludeNSFW {
-		parts = append(parts, "nsfw = ?")
-		args = append(args, false)
-	}
-	if len(filter.HiddenLibraryIDs) > 0 {
-		parts = append(parts, "library_id NOT IN ?")
-		args = append(args, filter.HiddenLibraryIDs)
-	}
 	if len(filter.AllowedLibraryIDs) > 0 {
 		parts = append(parts, "library_id IN ?")
 		args = append(args, filter.AllowedLibraryIDs)

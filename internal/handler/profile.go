@@ -26,17 +26,12 @@ func updateProfileHandler(svc *service.Container) gin.HandlerFunc {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			return
 		}
-		hideAdultChanged, err := profileHideAdultChanged(c.Request.Context(), svc, userID, patch)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
 		usernameChanged, err := profileUsernameChanged(c.Request.Context(), svc, userID, patch)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		if hideAdultChanged || usernameChanged {
+		if usernameChanged {
 			if err := svc.Auth.VerifyPassword(c.Request.Context(), userID, patch.Password); err != nil {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "需要输入当前账号密码确认"})
 				return
@@ -53,20 +48,6 @@ func updateProfileHandler(svc *service.Container) gin.HandlerFunc {
 		}
 		c.JSON(http.StatusOK, u)
 	}
-}
-
-func profileHideAdultChanged(ctx context.Context, svc *service.Container, userID string, patch service.ProfileUpdate) (bool, error) {
-	if patch.HideAdult == nil {
-		return false, nil
-	}
-	user, err := svc.Repo.User.FindByID(ctx, userID)
-	if err != nil {
-		return false, err
-	}
-	if user == nil {
-		return false, errors.New("user not found")
-	}
-	return user.HideAdult != *patch.HideAdult, nil
 }
 
 func profileUsernameChanged(ctx context.Context, svc *service.Container, userID string, patch service.ProfileUpdate) (bool, error) {

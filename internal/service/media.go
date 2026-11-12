@@ -21,9 +21,7 @@ type MediaService struct {
 }
 
 type MediaVisibility struct {
-	IncludeNSFW       bool
 	AllowedLibraryIDs []string
-	HiddenLibraryIDs  []string
 }
 
 const maxMediaSearchLimit = 50000
@@ -32,14 +30,6 @@ const maxMediaSearchPageSize = 2000
 func (v MediaVisibility) Allows(media *model.Media) bool {
 	if media == nil {
 		return false
-	}
-	if !v.IncludeNSFW && media.NSFW {
-		return false
-	}
-	for _, id := range v.HiddenLibraryIDs {
-		if id == media.LibraryID {
-			return false
-		}
 	}
 	if len(v.AllowedLibraryIDs) == 0 {
 		return true

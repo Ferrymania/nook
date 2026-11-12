@@ -105,7 +105,7 @@ func TestEmbySeriesSeasonEpisodeGenresAndVisibility(t *testing.T) {
 	svc.cache = newRuntimeCacheForTest(t, 8)
 	libID := seedDiscoveryLibrary(t, svc.repo, "tv")
 	hidden := seedDiscoveryLibrary(t, svc.repo, "tv")
-	user := model.User{Base: model.Base{ID: "genre-viewer"}, Username: "genre-viewer", Role: "user", PasswordHash: "x", HideAdult: true, AllowedLibraryIDs: fmt.Sprintf("[%q]", libID)}
+	user := model.User{Base: model.Base{ID: "genre-viewer"}, Username: "genre-viewer", Role: "user", PasswordHash: "x", AllowedLibraryIDs: fmt.Sprintf("[%q]", libID)}
 	if err := svc.repo.DB.Create(&user).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -136,12 +136,12 @@ func TestEmbySeriesSeasonEpisodeGenresAndVisibility(t *testing.T) {
 		id     string
 		genres []string
 	}{
-		{"genre-show", []string{"剧情", "犯罪", "喜剧"}},
+		{"genre-show", []string{"剧情", "犯罪", "喜剧", "成人类型"}},
 		{seasonID("genre-show", 1), []string{"剧情", "犯罪"}},
 		{seasonID("genre-show", 2), []string{"喜剧"}},
-		{seasonID("genre-show", 3), []string{"剧情", "犯罪", "喜剧"}},
+		{seasonID("genre-show", 3), []string{"剧情", "犯罪", "喜剧", "成人类型"}},
 		{"genre-s1e1", []string{"剧情", "犯罪"}},
-		{"genre-s1e2", []string{"剧情", "犯罪", "喜剧"}},
+		{"genre-s1e2", []string{"剧情", "犯罪", "喜剧", "成人类型"}},
 	}
 	for range 2 {
 		for _, check := range checks {
@@ -155,14 +155,14 @@ func TestEmbySeriesSeasonEpisodeGenresAndVisibility(t *testing.T) {
 		if err != nil || len(latest) != 1 {
 			t.Fatalf("latest: %v %v", latest, err)
 		}
-		assertEmbyGenres(t, latest[0], "剧情", "犯罪", "喜剧")
+		assertEmbyGenres(t, latest[0], "剧情", "犯罪", "喜剧", "成人类型")
 		out, err := svc.Items(t.Context(), ItemsParams{UserID: user.ID, ParentID: "genre-show", IncludeItemTypes: []string{"Episode"}, Recursive: true})
 		if err != nil {
 			t.Fatal(err)
 		}
 		for _, item := range similarResponseItems(t, out) {
 			if item["Id"] == "genre-s1e2" {
-				assertEmbyGenres(t, item, "剧情", "犯罪", "喜剧")
+				assertEmbyGenres(t, item, "剧情", "犯罪", "喜剧", "成人类型")
 			}
 		}
 	}

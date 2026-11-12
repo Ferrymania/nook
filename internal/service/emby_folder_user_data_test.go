@@ -251,7 +251,7 @@ func TestEmbyFolderCountsRespectVisibilitySpecialsAndDeletedMedia(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertEmbyFolderCounts(t, item, 6, 5)
+	assertEmbyFolderCounts(t, item, 7, 6)
 	if item["ChildCount"] != 3 {
 		t.Fatalf("normal, specials and OVA must stay separate: %#v", item)
 	}

@@ -8,7 +8,6 @@ export interface User {
   nickname?: string
   email?: string
   avatar_url?: string
-  hide_adult?: boolean
   /** 本地缓存的播放器音量，服务端配置接口会刷新。 */
   player_volume?: number
   force_password_reset: boolean

@@ -11,40 +11,6 @@ import (
 	"github.com/Ferrymania/nook/internal/service"
 )
 
-func TestProfileHideAdultRequiresPasswordOnlyWhenChanged(t *testing.T) {
-	db, err := testutil.Open(t, &gorm.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := db.AutoMigrate(&model.User{}); err != nil {
-		t.Fatal(err)
-	}
-	repos := repository.New(db)
-	user := &model.User{Username: "viewer", PasswordHash: "hash", Role: "user", HideAdult: true}
-	if err := repos.User.Create(t.Context(), user); err != nil {
-		t.Fatal(err)
-	}
-	svc := &service.Container{Repo: repos}
-
-	same := true
-	changed, err := profileHideAdultChanged(t.Context(), svc, user.ID, service.ProfileUpdate{HideAdult: &same})
-	if err != nil {
-		t.Fatalf("same value returned error: %v", err)
-	}
-	if changed {
-		t.Fatal("same hide_adult value should not require password")
-	}
-
-	next := false
-	changed, err = profileHideAdultChanged(t.Context(), svc, user.ID, service.ProfileUpdate{HideAdult: &next})
-	if err != nil {
-		t.Fatalf("changed value returned error: %v", err)
-	}
-	if !changed {
-		t.Fatal("changed hide_adult value should require password")
-	}
-}
-
 func TestProfileUsernameChangeRequiresPasswordOnlyWhenChanged(t *testing.T) {
 	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
@@ -54,7 +20,7 @@ func TestProfileUsernameChangeRequiresPasswordOnlyWhenChanged(t *testing.T) {
 		t.Fatal(err)
 	}
 	repos := repository.New(db)
-	user := &model.User{Username: "viewer", PasswordHash: "hash", Role: "user", HideAdult: true}
+	user := &model.User{Username: "viewer", PasswordHash: "hash", Role: "user"}
 	if err := repos.User.Create(t.Context(), user); err != nil {
 		t.Fatal(err)
 	}

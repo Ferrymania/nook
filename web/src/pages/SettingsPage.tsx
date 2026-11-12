@@ -4,11 +4,9 @@ import { Loader2, Save } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 import { adminAPI } from '../api/admin'
-import { libraryAPI } from '../api/library'
-import type { Library, Setting } from '../types'
+import type { Setting } from '../types'
 import { APIConfigsPanel } from '../components/APIConfigsPanel'
 import { AboutSettingsPanel } from './AboutSettingsPanel'
-import { AdultSettingsPanel } from './AdultSettingsPanel'
 import { DatabaseSettingsPanel } from './DatabaseSettingsPanel'
 import { RecognitionWordsPanel } from './RecognitionWordsPanel'
 import { GeneralSettingsPanel } from './GeneralSettingsPanel'
@@ -30,7 +28,6 @@ export function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [toolsStatusRevision, setToolsStatusRevision] = useState(0)
   const [toolsBusy, setToolsBusy] = useState(false)
-  const [libraries, setLibraries] = useState<Library[]>([])
   const visibleDirtyCount = dirty.size - (dirty.has('playback.direct_only') && dirty.has('transcode.enabled') ? 1 : 0)
   const httpsEnabled = ['true', '1', 'on'].includes(values['https.enabled'] ?? '')
 
@@ -44,10 +41,7 @@ export function SettingsPage() {
   const refresh = async () => {
     setLoading(true)
     try {
-      const [all, libs] = await Promise.all([
-        adminAPI.listSettings(),
-        libraryAPI.list({ includeHidden: true }).catch(() => [] as Library[]),
-      ])
+      const all = await adminAPI.listSettings()
       const idx: Record<string, string> = {}
       for (const s of all as Setting[]) {
         if (ALL_KEYS.has(s.key)) idx[s.key] = s.value
@@ -55,7 +49,6 @@ export function SettingsPage() {
       setValues(idx)
       latestValues.current = idx
       setSavedValues(idx)
-      setLibraries(libs as Library[])
       setDirty(new Set())
     } finally {
       setLoading(false)
@@ -160,7 +153,6 @@ export function SettingsPage() {
       def={it}
       value={values[it.key] ?? it.defaultValue ?? ''}
       onChange={(v) => onChange(it.key, v)}
-      libraries={libraries}
       showKey={group.key !== 'device-notify'}
       align={group.key === 'device-notify' && it.type !== 'toggle' ? 'center' : 'start'}
     />
@@ -214,9 +206,8 @@ export function SettingsPage() {
           {group.key === 'database' && <DatabaseSettingsPanel />}
           {group.key === 'api-configs' && <APIConfigsPanel />}
           {group.key === 'recognition-words' && <RecognitionWordsPanel />}
-          {group.key === 'adult' && <AdultSettingsPanel />}
           {group.key === 'about' && <AboutSettingsPanel />}
-          {group.key !== 'adult' && group.key !== 'library' && group.items.length > 0 && (
+          {group.key !== 'library' && group.items.length > 0 && (
             <form onSubmit={onSave} className={group.key === 'general' ? 'general-settings space-y-4' : 'space-y-4'}>
               {group.key === 'general' ? (
                 <>

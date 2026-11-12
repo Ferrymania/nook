@@ -20,17 +20,14 @@ type mediaListCacheValue struct {
 
 func (s *MediaService) mediaListCacheKey(libraryID string, libraryIDs []string, page, pageSize int, filter repository.MediaQueryFilter) string {
 	allowed := append([]string(nil), filter.AllowedLibraryIDs...)
-	hidden := append([]string(nil), filter.HiddenLibraryIDs...)
 	libs := append([]string(nil), libraryIDs...)
 	sort.Strings(allowed)
-	sort.Strings(hidden)
 	sort.Strings(libs)
 	sum := sha1.Sum([]byte(strings.Join([]string{
 		libraryID,
 		strings.Join(libs, ","),
-		fmt.Sprintf("%d:%d:%t", page, pageSize, filter.IncludeNSFW),
+		fmt.Sprintf("%d:%d", page, pageSize),
 		strings.Join(allowed, ","),
-		strings.Join(hidden, ","),
 		filter.SeriesID,
 		filterFingerprint(filter),
 	}, "|")))
@@ -59,15 +56,12 @@ func (s *MediaService) libraryPreviewCacheKey(libraries []model.Library, cardLim
 	}
 	sort.Strings(libIDs)
 	allowed := append([]string(nil), filter.AllowedLibraryIDs...)
-	hidden := append([]string(nil), filter.HiddenLibraryIDs...)
 	sort.Strings(allowed)
-	sort.Strings(hidden)
 	sum := sha1.Sum([]byte(strings.Join([]string{
 		"preview:recent-added:v2:canonical-series",
 		strings.Join(libIDs, ","),
-		fmt.Sprintf("%d:%t:%t", cardLimit, filter.IncludeNSFW, includeCounts),
+		fmt.Sprintf("%d:%t", cardLimit, includeCounts),
 		strings.Join(allowed, ","),
-		strings.Join(hidden, ","),
 		filter.SeriesID,
 	}, "|")))
 	return "media:preview:" + hex.EncodeToString(sum[:])
@@ -75,14 +69,10 @@ func (s *MediaService) libraryPreviewCacheKey(libraries []model.Library, cardLim
 
 func (s *MediaService) seriesCardsCacheKey(libraryID string, visibility MediaVisibility) string {
 	allowed := append([]string(nil), visibility.AllowedLibraryIDs...)
-	hidden := append([]string(nil), visibility.HiddenLibraryIDs...)
 	sort.Strings(allowed)
-	sort.Strings(hidden)
 	sum := sha1.Sum([]byte(strings.Join([]string{
 		libraryID,
-		fmt.Sprintf("%t", visibility.IncludeNSFW),
 		strings.Join(allowed, ","),
-		strings.Join(hidden, ","),
 	}, "|")))
 	return "media:series-cards:" + hex.EncodeToString(sum[:])
 }
@@ -90,16 +80,12 @@ func (s *MediaService) seriesCardsCacheKey(libraryID string, visibility MediaVis
 func (s *MediaService) libraryCountCacheKey(libraryIDs []string, filter repository.MediaQueryFilter) string {
 	ids := append([]string(nil), libraryIDs...)
 	allowed := append([]string(nil), filter.AllowedLibraryIDs...)
-	hidden := append([]string(nil), filter.HiddenLibraryIDs...)
 	sort.Strings(ids)
 	sort.Strings(allowed)
-	sort.Strings(hidden)
 	sum := sha1.Sum([]byte(strings.Join([]string{
 		"counts",
 		strings.Join(ids, ","),
-		fmt.Sprintf("%t", filter.IncludeNSFW),
 		strings.Join(allowed, ","),
-		strings.Join(hidden, ","),
 		filter.SeriesID,
 	}, "|")))
 	return "media:lib-counts:" + hex.EncodeToString(sum[:])
@@ -144,15 +130,11 @@ func (s *MediaService) groupedItemsCacheKey(libraryID string, libraryIDs []strin
 	libs := append([]string(nil), libraryIDs...)
 	sort.Strings(libs)
 	allowed := append([]string(nil), filter.AllowedLibraryIDs...)
-	hidden := append([]string(nil), filter.HiddenLibraryIDs...)
 	sort.Strings(allowed)
-	sort.Strings(hidden)
 	return "media:obj:grouped-items:" + hashObjectCacheKey([]string{
 		libraryID,
 		strings.Join(libs, ","),
-		fmt.Sprintf("%t", filter.IncludeNSFW),
 		strings.Join(allowed, ","),
-		strings.Join(hidden, ","),
 		filter.SeriesID,
 		filterFingerprint(filter),
 	})
@@ -162,14 +144,10 @@ func (s *MediaService) groupedItemsCacheKey(libraryID string, libraryIDs []strin
 // 列表共用一次 SQL 加载与一次 key 解析）。
 func (s *MediaService) libraryRowsCacheKey(libraryID string, visibility MediaVisibility) string {
 	allowed := append([]string(nil), visibility.AllowedLibraryIDs...)
-	hidden := append([]string(nil), visibility.HiddenLibraryIDs...)
 	sort.Strings(allowed)
-	sort.Strings(hidden)
 	return "media:obj:library-rows:" + hashObjectCacheKey([]string{
 		libraryID,
-		fmt.Sprintf("%t", visibility.IncludeNSFW),
 		strings.Join(allowed, ","),
-		strings.Join(hidden, ","),
 	})
 }
 

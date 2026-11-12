@@ -1,10 +1,9 @@
 import { useId } from 'react'
-import type { Library } from '../types'
 
 export interface SettingDef {
   key: string
   label: string
-  type: 'text' | 'select' | 'toggle' | 'number' | 'textarea' | 'library-multiselect'
+  type: 'text' | 'select' | 'toggle' | 'number' | 'textarea'
   hint?: string
   defaultValue?: string
   options?: { value: string; label: string }[]
@@ -15,7 +14,6 @@ type SettingsRowProps = {
   def: SettingDef
   value: string
   onChange: (value: string) => void
-  libraries?: Library[]
   disabled?: boolean
   showKey?: boolean
   showHint?: boolean
@@ -24,16 +22,9 @@ type SettingsRowProps = {
   unit?: string
 }
 
-export function SettingRow({ def, value, onChange, libraries = [], disabled = false, showKey = true, showHint = true, layout = 'horizontal', align = 'start', unit }: SettingsRowProps) {
+export function SettingRow({ def, value, onChange, disabled = false, showKey = true, showHint = true, layout = 'horizontal', align = 'start', unit }: SettingsRowProps) {
   const controlID = useId()
   const toggleOn = value === 'true' || value === '1' || value === 'on'
-  const selectedLibraryIDs = parseLibraryIDs(value)
-  const toggleLibrary = (id: string, checked: boolean) => {
-    const next = checked
-      ? Array.from(new Set([...selectedLibraryIDs, id]))
-      : selectedLibraryIDs.filter((item) => item !== id)
-    onChange(JSON.stringify(next))
-  }
   return (
     <fieldset disabled={disabled} className={`grid min-w-0 items-start gap-2 ${layout === 'horizontal' ? `md:grid-cols-[280px_1fr] ${align === 'center' ? 'md:items-center' : ''}` : ''} ${disabled ? 'opacity-60' : ''}`}>
       <label htmlFor={controlID} className="text-sm text-ink-100">
@@ -95,64 +86,7 @@ export function SettingRow({ def, value, onChange, libraries = [], disabled = fa
             <span className="text-sm text-ink-100">{disabled ? `${toggleOn ? '已开启' : '已关闭'} · 暂不生效` : toggleOn ? '已启用' : '已关闭'}</span>
           </label>
         )}
-        {def.type === 'library-multiselect' && (
-          <LibraryMultiSelect
-            libraries={libraries}
-            selectedLibraryIDs={selectedLibraryIDs}
-            onToggle={toggleLibrary}
-          />
-        )}
       </div>
     </fieldset>
   )
-}
-
-function LibraryMultiSelect({
-  libraries,
-  selectedLibraryIDs,
-  onToggle,
-}: {
-  libraries: Library[]
-  selectedLibraryIDs: string[]
-  onToggle: (id: string, checked: boolean) => void
-}) {
-  return (
-    <div className="space-y-2 rounded-2xl border border-gray-200 bg-white/70 p-3">
-      {libraries.length === 0 && (
-        <div className="text-sm text-ink-50">暂无媒体库，请先到「媒体与用户 → 媒体库」添加。</div>
-      )}
-      {libraries.map((lib) => (
-        <label key={lib.id} className="flex cursor-pointer items-start gap-3 rounded-xl px-2 py-2 hover:bg-sand-100/50">
-          <input
-            type="checkbox"
-            className="mt-1 h-4 w-4 accent-primary-400"
-            checked={selectedLibraryIDs.includes(lib.id)}
-            onChange={(event) => onToggle(lib.id, event.target.checked)}
-          />
-          <span className="min-w-0">
-            <span className="block text-sm font-medium text-ink-600">{lib.name}</span>
-            <span className="block truncate font-mono text-xs text-ink-50">{lib.path}</span>
-          </span>
-        </label>
-      ))}
-      <div className="text-xs text-sand-500">
-        已选择 {selectedLibraryIDs.length} 个成人媒体库；新用户默认隐藏，用户可在个人资料或 Bot 中显示/隐藏。
-      </div>
-    </div>
-  )
-}
-
-function parseLibraryIDs(raw: string): string[] {
-  try {
-    const parsed = JSON.parse(raw || '[]')
-    if (Array.isArray(parsed)) {
-      return parsed.map((item) => String(item).trim()).filter(Boolean)
-    }
-  } catch {
-    return raw
-      .split(/[,\n;，]/)
-      .map((item) => item.trim())
-      .filter(Boolean)
-  }
-  return []
 }

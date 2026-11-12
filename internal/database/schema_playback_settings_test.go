@@ -19,8 +19,8 @@ func TestStartupPreservesCurrentSettingsAndLeavesLegacyProfilesUntouched(t *test
 	}
 	currentSettings := `{"preferred_audio_lang":"ja","autoplay_next":false,"skip_intro":true}`
 	for _, user := range []model.User{
-		{Base: model.Base{ID: "configured"}, Username: "configured", PasswordHash: "x", HideAdult: true, PlaybackSettings: currentSettings},
-		{Base: model.Base{ID: "unconfigured"}, Username: "unconfigured", PasswordHash: "x", HideAdult: true},
+		{Base: model.Base{ID: "configured"}, Username: "configured", PasswordHash: "x", PlaybackSettings: currentSettings},
+		{Base: model.Base{ID: "unconfigured"}, Username: "unconfigured", PasswordHash: "x"},
 	} {
 		if err := db.Create(&user).Error; err != nil {
 			t.Fatal(err)
@@ -48,8 +48,8 @@ func TestStartupPreservesCurrentSettingsAndLeavesLegacyProfilesUntouched(t *test
 		if err := db.First(&user, "id = ?", id).Error; err != nil {
 			t.Fatal(err)
 		}
-		if user.PlaybackSettings != want || !user.HideAdult {
-			t.Fatalf("startup changed account %s: settings=%q hide_adult=%t", id, user.PlaybackSettings, user.HideAdult)
+		if user.PlaybackSettings != want {
+			t.Fatalf("startup changed account %s: settings=%q", id, user.PlaybackSettings)
 		}
 	}
 	var count int64

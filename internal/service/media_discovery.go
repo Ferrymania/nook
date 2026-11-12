@@ -36,12 +36,10 @@ func NewMediaDiscoveryService(log *zap.Logger, repo *repository.Container) *Medi
 }
 
 // mediaFilterFromVisibility 把可见性翻译成仓储过滤条件。所有发现类查询都必须
-// 经过这里，避免某一处忘记过滤 NSFW 或受限媒体库。
+// 经过这里，避免某一处遗漏媒体库权限过滤。
 func mediaFilterFromVisibility(visibility MediaVisibility) repository.MediaQueryFilter {
 	return repository.MediaQueryFilter{
-		IncludeNSFW:       visibility.IncludeNSFW,
 		AllowedLibraryIDs: visibility.AllowedLibraryIDs,
-		HiddenLibraryIDs:  visibility.HiddenLibraryIDs,
 	}
 }
 
@@ -296,12 +294,6 @@ func (s *MediaDiscoveryService) nextUpFromHistories(ctx context.Context, userID 
 
 // applyDiscoveryVisibility 把可见性过滤应用到查询上。
 func applyDiscoveryVisibility(q *gorm.DB, filter repository.MediaQueryFilter) *gorm.DB {
-	if !filter.IncludeNSFW {
-		q = q.Where("nsfw = ?", false)
-	}
-	if len(filter.HiddenLibraryIDs) > 0 {
-		q = q.Where("library_id NOT IN ?", filter.HiddenLibraryIDs)
-	}
 	if len(filter.AllowedLibraryIDs) > 0 {
 		q = q.Where("library_id IN ?", filter.AllowedLibraryIDs)
 	}
