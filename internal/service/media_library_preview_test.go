@@ -78,50 +78,48 @@ func TestSeriesPreviewMatchesCompleteLibraryCards(t *testing.T) {
 	if err := db.Create(&series).Error; err != nil {
 		t.Fatal(err)
 	}
-	for _, includeNSFW := range []bool{false, true} {
-		for _, limit := range []int{1, 4, 10} {
-			t.Run(fmt.Sprintf("adult=%t/limit=%d", includeNSFW, limit), func(t *testing.T) {
-				visibility := MediaVisibility{IncludeNSFW: includeNSFW, AllowedLibraryIDs: []string{lib.ID}}
-				baseline := NewMediaService(&config.Config{}, zap.NewNop(), repos)
-				all, _, err := baseline.ListLibrarySeriesCards(t.Context(), lib.ID, visibility)
-				if err != nil {
-					t.Fatal(err)
+	for _, limit := range []int{1, 4, 10} {
+		t.Run(fmt.Sprintf("limit=%d", limit), func(t *testing.T) {
+			visibility := MediaVisibility{AllowedLibraryIDs: []string{lib.ID}}
+			baseline := NewMediaService(&config.Config{}, zap.NewNop(), repos)
+			all, _, err := baseline.ListLibrarySeriesCards(t.Context(), lib.ID, visibility)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := latestLibraryCards(all, limit)
+			svc := NewMediaService(&config.Config{}, zap.NewNop(), repos).
+				SetRuntimeCache(NewRuntimeCacheService(&config.Config{}))
+			var hydrated int64
+			callback := "test:preview-full-rows"
+			if err := db.Callback().Query().After("gorm:query").Register(callback, func(tx *gorm.DB) {
+				if _, ok := tx.Statement.Dest.(*[]model.Media); ok {
+					hydrated += tx.RowsAffected
 				}
-				want := latestLibraryCards(all, limit)
-				svc := NewMediaService(&config.Config{}, zap.NewNop(), repos).
-					SetRuntimeCache(NewRuntimeCacheService(&config.Config{}))
-				var hydrated int64
-				callback := "test:preview-full-rows"
-				if err := db.Callback().Query().After("gorm:query").Register(callback, func(tx *gorm.DB) {
-					if _, ok := tx.Statement.Dest.(*[]model.Media); ok {
-						hydrated += tx.RowsAffected
-					}
-				}); err != nil {
-					t.Fatal(err)
-				}
-				defer db.Callback().Query().Remove(callback)
-				previews, err := svc.ListLibraryPreviews(t.Context(), []model.Library{lib}, visibility, limit)
-				if err != nil {
-					t.Fatal(err)
-				}
-				if !reflect.DeepEqual(previews[0].Cards, want) {
-					t.Fatalf("preview differs from complete grouping\ngot: %#v\nwant: %#v", previews[0].Cards, want)
-				}
-				if hydrated > int64(2*len(want)) || hydrated == 0 {
-					t.Fatalf("loaded %d complete rows for %d cards", hydrated, len(want))
-				}
-				if _, ok := svc.cache.GetObject(svc.libraryRowsCacheKey(lib.ID, visibility)); ok {
-					t.Fatal("preview retained the full library episode cache")
-				}
-				before := hydrated
-				if _, err := svc.ListLibraryPreviews(t.Context(), []model.Library{lib}, visibility, limit); err != nil {
-					t.Fatal(err)
-				}
-				if hydrated != before {
-					t.Fatal("cached preview queried complete media rows again")
-				}
-			})
-		}
+			}); err != nil {
+				t.Fatal(err)
+			}
+			defer db.Callback().Query().Remove(callback)
+			previews, err := svc.ListLibraryPreviews(t.Context(), []model.Library{lib}, visibility, limit)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(previews[0].Cards, want) {
+				t.Fatalf("preview differs from complete grouping\ngot: %#v\nwant: %#v", previews[0].Cards, want)
+			}
+			if hydrated > int64(2*len(want)) || hydrated == 0 {
+				t.Fatalf("loaded %d complete rows for %d cards", hydrated, len(want))
+			}
+			if _, ok := svc.cache.GetObject(svc.libraryRowsCacheKey(lib.ID, visibility)); ok {
+				t.Fatal("preview retained the full library episode cache")
+			}
+			before := hydrated
+			if _, err := svc.ListLibraryPreviews(t.Context(), []model.Library{lib}, visibility, limit); err != nil {
+				t.Fatal(err)
+			}
+			if hydrated != before {
+				t.Fatal("cached preview queried complete media rows again")
+			}
+		})
 	}
 }
 
@@ -158,7 +156,7 @@ func BenchmarkLibrarySeriesPreview(b *testing.B) {
 	if err := db.CreateInBatches(rows, 100).Error; err != nil {
 		b.Fatal(err)
 	}
-	visibility := MediaVisibility{IncludeNSFW: true}
+	visibility := MediaVisibility{}
 	b.Run("complete-library", func(b *testing.B) {
 		svc := NewMediaService(&config.Config{}, zap.NewNop(), repos)
 		b.ReportAllocs()

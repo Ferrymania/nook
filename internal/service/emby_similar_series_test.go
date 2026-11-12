@@ -103,7 +103,7 @@ func TestSimilarSeriesExpandsAfterDeduplication(t *testing.T) {
 			sourceID = m.ID
 		}
 	}
-	for _, visibility := range []MediaVisibility{{IncludeNSFW: true}, {IncludeNSFW: true, AllowedLibraryIDs: []string{local}}} {
+	for _, visibility := range []MediaVisibility{{}, {AllowedLibraryIDs: []string{local}}} {
 		rows, err := svc.discoveryService().SimilarCandidates(t.Context(), sourceID, 2, visibility)
 		if err != nil {
 			t.Fatal(err)

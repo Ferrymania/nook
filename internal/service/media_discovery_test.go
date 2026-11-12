@@ -55,7 +55,7 @@ func TestAggregateGenresSplitsAndCounts(t *testing.T) {
 	})
 
 	svc := NewMediaDiscoveryService(zap.NewNop(), repos)
-	genres, err := svc.AggregateGenres(context.Background(), MediaVisibility{IncludeNSFW: true}, "")
+	genres, err := svc.AggregateGenres(context.Background(), MediaVisibility{}, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func TestAggregateGenresHandlesFullWidthComma(t *testing.T) {
 	})
 
 	svc := NewMediaDiscoveryService(zap.NewNop(), repos)
-	genres, err := svc.AggregateGenres(context.Background(), MediaVisibility{IncludeNSFW: true}, "")
+	genres, err := svc.AggregateGenres(context.Background(), MediaVisibility{}, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +105,7 @@ func TestAggregateGenresScopedToLibrary(t *testing.T) {
 	})
 
 	svc := NewMediaDiscoveryService(zap.NewNop(), repos)
-	genres, err := svc.AggregateGenres(context.Background(), MediaVisibility{IncludeNSFW: true}, movieLib)
+	genres, err := svc.AggregateGenres(context.Background(), MediaVisibility{}, movieLib)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +134,7 @@ func TestAggregateGenresRespectsVisibility(t *testing.T) {
 
 	svc := NewMediaDiscoveryService(zap.NewNop(), repos)
 	genres, err := svc.AggregateGenres(context.Background(),
-		MediaVisibility{IncludeNSFW: true, AllowedLibraryIDs: []string{allowedLib}}, "")
+		MediaVisibility{AllowedLibraryIDs: []string{allowedLib}}, "")
 	if err != nil {
 		t.Fatal(err)
 	}

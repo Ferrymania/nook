@@ -13,7 +13,7 @@ import (
 // Search runs a LIKE search against the title field. Empty query returns the
 // most recently added items.
 func (r *MediaRepository) Search(ctx context.Context, query string, limit int) ([]model.Media, error) {
-	return r.SearchFiltered(ctx, query, limit, MediaQueryFilter{IncludeNSFW: true})
+	return r.SearchFiltered(ctx, query, limit, MediaQueryFilter{})
 }
 
 func (r *MediaRepository) SearchFiltered(ctx context.Context, query string, limit int, filter MediaQueryFilter) ([]model.Media, error) {

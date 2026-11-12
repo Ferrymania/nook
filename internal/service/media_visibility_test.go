@@ -11,123 +11,65 @@ import (
 	"go.uber.org/zap"
 )
 
-func TestMediaVisibilityFiltersNSFWAndLibraries(t *testing.T) {
+func TestMediaVisibilityUsesLibraryPermissionsRegardlessOfAdultMetadata(t *testing.T) {
 	t.Parallel()
-
-	db := newServiceTestDB(t, &model.Library{}, &model.Media{}, &model.Setting{})
+	db := newServiceTestDB(t, &model.User{}, &model.Library{}, &model.Media{}, &model.Setting{})
 	repos := repository.New(db)
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos)
-
-	libA := model.Library{Name: "电影", Path: "/media/movies", Type: "movie", Enabled: true}
-	libB := model.Library{Name: "成人", Path: "/media/adult", Type: "movie", Enabled: true}
-	if err := db.Create(&libA).Error; err != nil {
-		t.Fatal(err)
+	for _, lib := range []model.Library{
+		{Base: model.Base{ID: "allowed"}, Name: "成人 9KG", Path: "/media/adult", Type: "movie", Enabled: true},
+		{Base: model.Base{ID: "denied"}, Name: "电影", Path: "/media/movies", Type: "movie", Enabled: true},
+	} {
+		if err := repos.Library.Create(t.Context(), &lib); err != nil {
+			t.Fatal(err)
+		}
 	}
-	if err := db.Create(&libB).Error; err != nil {
-		t.Fatal(err)
+	for key, value := range map[string]string{"adult.enabled": "false", "adult.library_ids": `["allowed"]`, "adult.require_pin": "true", "adult.pin": "1234"} {
+		if err := repos.Setting.Set(t.Context(), key, value); err != nil {
+			t.Fatal(err)
+		}
 	}
-	if err := repos.Setting.Set(t.Context(), AdultLibraryIDsSettingKey, `["`+libB.ID+`"]`); err != nil {
+	viewer := model.User{Username: "viewer", PasswordHash: "x", Role: "user", AllowedLibraryIDs: `["allowed"]`}
+	if err := repos.User.Create(t.Context(), &viewer); err != nil {
 		t.Fatal(err)
 	}
 	rows := []model.Media{
-		{LibraryID: libA.ID, Title: "普通电影", Path: "/media/movies/a.mkv"},
-		{LibraryID: libA.ID, Title: "成人电影", Path: "/media/movies/b.mkv", NSFW: true},
-		{LibraryID: libB.ID, Title: "限制媒体库电影", Path: "/media/adult/c.mkv"},
+		{LibraryID: "allowed", Title: "普通电影", Path: "/media/adult/a.mkv"},
+		{LibraryID: "allowed", Title: "成人电影", Path: "/media/adult/b.mkv", NSFW: true},
+		{LibraryID: "denied", Title: "未授权电影", Path: "/media/movies/c.mkv"},
 	}
 	if err := db.Create(&rows).Error; err != nil {
 		t.Fatal(err)
 	}
-
-	hiddenAdultLibraries := AdultLibraryIDs(t.Context(), repos)
-	items, err := svc.SearchMediaVisible(t.Context(), "电影", 20, MediaVisibility{
-		IncludeNSFW:      false,
-		HiddenLibraryIDs: hiddenAdultLibraries,
-	})
+	visibility := UserDefaultMediaVisibility(t.Context(), repos, viewer.ID)
+	for i := range rows {
+		if got, want := visibility.Allows(&rows[i]), rows[i].LibraryID == "allowed"; got != want {
+			t.Fatalf("media %q visibility=%t, want %t", rows[i].Title, got, want)
+		}
+	}
+	libs, err := repos.Library.List(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := sortedMediaTitles(items); !slices.Equal(got, []string{"普通电影"}) {
-		t.Fatalf("NSFW-filtered search = %#v", got)
+	for _, lib := range libs {
+		if got, want := LibraryVisibleForUser(t.Context(), repos, lib, visibility), lib.ID == "allowed"; got != want {
+			t.Fatalf("library %q visibility=%t, want %t", lib.Name, got, want)
+		}
 	}
-
-	items, err = svc.SearchMediaVisible(t.Context(), "电影", 20, MediaVisibility{
-		IncludeNSFW:       true,
-		AllowedLibraryIDs: []string{libA.ID},
-	})
+	items, err := svc.SearchMediaVisible(t.Context(), "电影", 20, visibility)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got := sortedMediaTitles(items); !slices.Equal(got, []string{"成人电影", "普通电影"}) {
-		t.Fatalf("library-filtered search = %#v", got)
+		t.Fatalf("search=%v", got)
 	}
-
-	listed, total, err := svc.ListMediaVisible(t.Context(), libA.ID, 1, 20, MediaVisibility{
-		IncludeNSFW:      false,
-		HiddenLibraryIDs: hiddenAdultLibraries,
-	})
-	if err != nil {
-		t.Fatal(err)
+	listed, total, err := svc.ListMediaVisible(t.Context(), "allowed", 1, 20, visibility)
+	if err != nil || total != 2 || len(listed) != 2 {
+		t.Fatalf("allowed list total=%d len=%d err=%v", total, len(listed), err)
 	}
-	if total != 1 || len(listed) != 1 || listed[0].Title != "普通电影" {
-		t.Fatalf("NSFW-filtered list total=%d rows=%#v", total, sortedMediaTitles(listed))
-	}
-
-	listed, total, err = svc.ListMediaVisible(t.Context(), libB.ID, 1, 20, MediaVisibility{
-		IncludeNSFW:      false,
-		HiddenLibraryIDs: hiddenAdultLibraries,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if total != 0 || len(listed) != 0 {
-		t.Fatalf("adult library should be hidden total=%d rows=%#v", total, sortedMediaTitles(listed))
-	}
-}
-
-func TestConfiguredAdultLibrariesDoNotHideSafeLibraryWithNSFWItems(t *testing.T) {
-	t.Parallel()
-
-	db := newServiceTestDB(t, &model.User{}, &model.Library{}, &model.Media{}, &model.Setting{})
-	repos := repository.New(db)
-
-	safe := model.Library{Name: "电影", Path: "/media/movie", Type: "movie", Enabled: true}
-	adult := model.Library{Name: "9KG", Path: "/media/9KG", Type: "movie", Enabled: true}
-	if err := repos.Library.Create(t.Context(), &safe); err != nil {
-		t.Fatal(err)
-	}
-	if err := repos.Library.Create(t.Context(), &adult); err != nil {
-		t.Fatal(err)
-	}
-	if err := repos.Setting.Set(t.Context(), AdultLibraryIDsSettingKey, `["`+adult.ID+`"]`); err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Create(&[]model.Media{
-		{LibraryID: safe.ID, Title: "普通电影", Path: "/media/movie/a.mkv"},
-		{LibraryID: safe.ID, Title: "误入普通库的成人条目", Path: "/media/movie/b.mkv", NSFW: true},
-		{LibraryID: adult.ID, Title: "成人影片", Path: "/media/9KG/c.mkv"},
-	}).Error; err != nil {
-		t.Fatal(err)
-	}
-	viewer := &model.User{Username: "viewer", PasswordHash: "hash", Role: "user", HideAdult: true}
-	if err := repos.User.Create(t.Context(), viewer); err != nil {
-		t.Fatal(err)
-	}
-
-	visibility := UserDefaultMediaVisibility(t.Context(), repos, viewer.ID)
-	if LibraryVisibleForUser(t.Context(), repos, safe, visibility) != true {
-		t.Fatal("configured adult libraries should not hide a safe library just because it contains NSFW items")
-	}
-	if LibraryVisibleForUser(t.Context(), repos, adult, visibility) != false {
-		t.Fatal("configured adult library should be hidden when the user hides adult content")
-	}
-
-	items, err := NewMediaService(&config.Config{}, zap.NewNop(), repos).
-		SearchMediaVisible(t.Context(), "电影", 20, visibility)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := sortedMediaTitles(items); !slices.Equal(got, []string{"普通电影"}) {
-		t.Fatalf("safe library should stay visible while NSFW media is filtered, got %#v", got)
+	listed, total, err = svc.ListMediaVisible(t.Context(), "denied", 1, 20, visibility)
+	if err != nil || total != 0 || len(listed) != 0 {
+		t.Fatalf("denied list total=%d len=%d err=%v", total, len(listed), err)
 	}
 }
 
@@ -153,7 +95,7 @@ func TestSearchMediaVisibleHonorsLargePosterWallLimit(t *testing.T) {
 	}
 
 	items, err := NewMediaService(&config.Config{}, zap.NewNop(), repos).
-		SearchMediaVisible(t.Context(), "", 240, MediaVisibility{IncludeNSFW: true})
+		SearchMediaVisible(t.Context(), "", 240, MediaVisibility{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,7 +129,7 @@ func TestSearchMediaVisibleCanReturnHugeLibraryResultsWhenRequested(t *testing.T
 	}
 
 	items, err := NewMediaService(&config.Config{}, zap.NewNop(), repos).
-		SearchMediaVisible(t.Context(), "海量剧集", total, MediaVisibility{IncludeNSFW: true})
+		SearchMediaVisible(t.Context(), "海量剧集", total, MediaVisibility{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,7 +138,7 @@ func TestSearchMediaVisibleCanReturnHugeLibraryResultsWhenRequested(t *testing.T
 	}
 
 	firstPage, totalRows, err := NewMediaService(&config.Config{}, zap.NewNop(), repos).
-		SearchMediaVisiblePage(t.Context(), "海量剧集", 1, 2000, MediaVisibility{IncludeNSFW: true})
+		SearchMediaVisiblePage(t.Context(), "海量剧集", 1, 2000, MediaVisibility{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -204,7 +146,7 @@ func TestSearchMediaVisibleCanReturnHugeLibraryResultsWhenRequested(t *testing.T
 		t.Fatalf("huge search page 1 len=%d total=%d, want len=2000 total=%d", len(firstPage), totalRows, total)
 	}
 	secondPage, totalRows, err := NewMediaService(&config.Config{}, zap.NewNop(), repos).
-		SearchMediaVisiblePage(t.Context(), "海量剧集", 2, 2000, MediaVisibility{IncludeNSFW: true})
+		SearchMediaVisiblePage(t.Context(), "海量剧集", 2, 2000, MediaVisibility{})
 	if err != nil {
 		t.Fatal(err)
 	}

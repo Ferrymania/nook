@@ -42,7 +42,7 @@ func TestListRecentSeriesCardsCountsAllEpisodesInSeries(t *testing.T) {
 	}
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos)
 
-	cards, err := svc.ListRecentSeriesCards(t.Context(), 24, MediaVisibility{IncludeNSFW: true})
+	cards, err := svc.ListRecentSeriesCards(t.Context(), 24, MediaVisibility{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -621,7 +621,7 @@ func TestListMediaEpisodesKeepsIndependentMoviesSeparate(t *testing.T) {
 	}
 
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos)
-	eps, err := svc.ListMediaEpisodes(t.Context(), "m1", MediaVisibility{IncludeNSFW: true})
+	eps, err := svc.ListMediaEpisodes(t.Context(), "m1", MediaVisibility{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -651,14 +651,14 @@ func TestListMediaEpisodesMovieTypeSkipsFullLibraryIndex(t *testing.T) {
 
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos).
 		SetRuntimeCache(NewRuntimeCacheService(&config.Config{}))
-	eps, err := svc.ListMediaEpisodes(t.Context(), movie.ID, MediaVisibility{IncludeNSFW: true})
+	eps, err := svc.ListMediaEpisodes(t.Context(), movie.ID, MediaVisibility{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(eps) != 1 || eps[0].ID != movie.ID {
 		t.Fatalf("ListMediaEpisodes got %#v, want the movie itself", eps)
 	}
-	if _, ok := svc.cache.GetObject(svc.libraryRowsCacheKey(lib.ID, MediaVisibility{IncludeNSFW: true})); ok {
+	if _, ok := svc.cache.GetObject(svc.libraryRowsCacheKey(lib.ID, MediaVisibility{})); ok {
 		t.Fatal("movie detail should not build a full-library episode index")
 	}
 }
@@ -705,14 +705,14 @@ func TestListMediaEpisodesUsesSeriesIDFastPath(t *testing.T) {
 
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos).
 		SetRuntimeCache(NewRuntimeCacheService(&config.Config{}))
-	eps, err := svc.ListMediaEpisodes(t.Context(), "episode-1", MediaVisibility{IncludeNSFW: true})
+	eps, err := svc.ListMediaEpisodes(t.Context(), "episode-1", MediaVisibility{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(eps) != 2 || eps[0].ID != "episode-1" || eps[1].ID != "episode-2" {
 		t.Fatalf("SeriesID fast path got %#v, want both episodes in order", eps)
 	}
-	if _, ok := svc.cache.GetObject(svc.libraryRowsCacheKey(lib.ID, MediaVisibility{IncludeNSFW: true})); ok {
+	if _, ok := svc.cache.GetObject(svc.libraryRowsCacheKey(lib.ID, MediaVisibility{})); ok {
 		t.Fatal("SeriesID detail fast path should not build a full-library episode index")
 	}
 }
@@ -736,7 +736,7 @@ func TestListLibrarySeriesCardsCachesPrecomputedCards(t *testing.T) {
 
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos).
 		SetRuntimeCache(NewRuntimeCacheService(&config.Config{}))
-	visibility := MediaVisibility{IncludeNSFW: true}
+	visibility := MediaVisibility{}
 	cards, total, err := svc.ListLibrarySeriesCards(t.Context(), lib.ID, visibility)
 	if err != nil {
 		t.Fatal(err)

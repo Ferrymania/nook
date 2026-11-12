@@ -373,7 +373,7 @@ func TestRemoteSearchMedia(t *testing.T) {
 	}
 
 	// 1. 正常搜索
-	items, err := svc.RemoteSearchMedia(t.Context(), "碧蓝之海", 10, MediaVisibility{IncludeNSFW: true})
+	items, err := svc.RemoteSearchMedia(t.Context(), "碧蓝之海", 10, MediaVisibility{})
 	if err != nil {
 		t.Fatalf("RemoteSearchMedia failed: %v", err)
 	}
@@ -389,7 +389,7 @@ func TestRemoteSearchMedia(t *testing.T) {
 	}
 
 	// 2. 搜索不到的内容
-	notFound, err := svc.RemoteSearchMedia(t.Context(), "其它不存在的剧", 10, MediaVisibility{IncludeNSFW: true})
+	notFound, err := svc.RemoteSearchMedia(t.Context(), "其它不存在的剧", 10, MediaVisibility{})
 	if err != nil {
 		t.Fatalf("RemoteSearchMedia failed: %v", err)
 	}
@@ -400,7 +400,6 @@ func TestRemoteSearchMedia(t *testing.T) {
 	// 3. 白名单过滤：当白名单不包含该挂载虚拟库 ID 时应过滤掉
 	allowedLibID := "local-lib-1"
 	filtered, err := svc.RemoteSearchMedia(t.Context(), "碧蓝之海", 10, MediaVisibility{
-		IncludeNSFW:       true,
 		AllowedLibraryIDs: []string{allowedLibID},
 	})
 	if err != nil {
@@ -410,18 +409,6 @@ func TestRemoteSearchMedia(t *testing.T) {
 		t.Fatalf("expected 0 items due to AllowedLibraryIDs, got %d", len(filtered))
 	}
 
-	// 4. 黑名单过滤：当黑名单包含该挂载虚拟库 ID 时应过滤掉
-	mountLibID := EncodeEmbyRemoteID("mount-1", "view-1")
-	hiddenFiltered, err := svc.RemoteSearchMedia(t.Context(), "碧蓝之海", 10, MediaVisibility{
-		IncludeNSFW:      true,
-		HiddenLibraryIDs: []string{mountLibID},
-	})
-	if err != nil {
-		t.Fatalf("RemoteSearchMedia with hidden filter failed: %v", err)
-	}
-	if len(hiddenFiltered) != 0 {
-		t.Fatalf("expected 0 items due to HiddenLibraryIDs, got %d", len(hiddenFiltered))
-	}
 }
 
 func TestRemoteLatestCardsTvShowsYearAndPoster(t *testing.T) {

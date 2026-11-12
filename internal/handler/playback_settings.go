@@ -21,27 +21,13 @@ func getPlaybackSettingsHandler(svc *service.Container) gin.HandlerFunc {
 
 func updatePlaybackSettingsHandler(svc *service.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var req struct {
-			model.PlaybackSettings
-			Password string `json:"password"`
-		}
+		var req model.PlaybackSettings
 		if err := c.ShouldBindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		userID := currentUserID(c)
-		current, err := svc.Profile.GetPlaybackSettings(c.Request.Context(), userID)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		if current.AllowAdult != req.AllowAdult {
-			if err := svc.Auth.VerifyPassword(c.Request.Context(), userID, req.Password); err != nil {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "需要输入当前账号密码确认"})
-				return
-			}
-		}
-		settings, err := svc.Profile.UpdatePlaybackSettings(c.Request.Context(), userID, req.PlaybackSettings)
+		settings, err := svc.Profile.UpdatePlaybackSettings(c.Request.Context(), userID, req)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return

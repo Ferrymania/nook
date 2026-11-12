@@ -51,7 +51,7 @@ func TestSeriesPreviewMatchesCompleteLibraryGroup(t *testing.T) {
 	}
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos).
 		SetRuntimeCache(NewRuntimeCacheService(&config.Config{}))
-	visibility := MediaVisibility{IncludeNSFW: true}
+	visibility := MediaVisibility{}
 	cards, _, err := svc.ListLibrarySeriesCards(t.Context(), lib.ID, visibility)
 	if err != nil {
 		t.Fatal(err)
@@ -165,9 +165,8 @@ func TestSeriesMediaAnchorHonorsVisibility(t *testing.T) {
 		want       bool
 	}{
 		{"safe", MediaVisibility{AllowedLibraryIDs: []string{lib.ID}}, true},
-		{"adult", MediaVisibility{IncludeNSFW: true, AllowedLibraryIDs: []string{lib.ID}}, true},
-		{"adult", MediaVisibility{AllowedLibraryIDs: []string{lib.ID}}, false},
-		{"safe", MediaVisibility{HiddenLibraryIDs: []string{lib.ID}}, false},
+		{"adult", MediaVisibility{AllowedLibraryIDs: []string{lib.ID}}, true},
+		{"adult", MediaVisibility{AllowedLibraryIDs: []string{lib.ID}}, true},
 		{"safe", MediaVisibility{AllowedLibraryIDs: []string{"another"}}, false},
 	} {
 		card, err := svc.ResolveLibrarySeriesCard(t.Context(), lib.ID, "obsolete", tc.mediaID, tc.visibility)

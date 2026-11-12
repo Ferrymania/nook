@@ -129,7 +129,6 @@ func TestPostgresLogicalBackupRoundTrip(t *testing.T) {
 		Role:                 "user",
 		AllowedLibraryIDs:    `["lib-1"]`,
 		PinnedLibraryIDs:     `["lib-1"]`,
-		HideAdult:            true,
 		IsActive:             true,
 		DanmakuEnabled:       true,
 		PlayerVr360GuideSeen: true,
@@ -221,7 +220,7 @@ func TestPostgresLogicalBackupRoundTrip(t *testing.T) {
 	if restoredUser.PinnedLibraryIDs != `["lib-1"]` {
 		t.Fatalf(`pinned library ids = %q, want ["lib-1"]`, restoredUser.PinnedLibraryIDs)
 	}
-	if !restoredUser.HideAdult || !restoredUser.IsActive || !restoredUser.DanmakuEnabled || !restoredUser.PlayerVr360GuideSeen {
+	if !restoredUser.IsActive || !restoredUser.DanmakuEnabled || !restoredUser.PlayerVr360GuideSeen {
 		t.Fatalf("boolean columns lost: %+v", restoredUser)
 	}
 

@@ -9,7 +9,6 @@ export const profileAPI = {
     nickname?: string
     email?: string
     avatar_url?: string
-    hide_adult?: boolean
     password?: string
   }) =>
     api.patch<User>('/me', patch).then((r) => r.data),

@@ -697,16 +697,6 @@ func (r *EmbyRemoteService) RemoteSearchMedia(ctx context.Context, query string,
 			continue
 		}
 		libID := EncodeEmbyRemoteID(m.ID, m.RemoteViewID)
-		hidden := false
-		for _, hid := range visibility.HiddenLibraryIDs {
-			if hid == libID {
-				hidden = true
-				break
-			}
-		}
-		if hidden {
-			continue
-		}
 		if len(visibility.AllowedLibraryIDs) > 0 {
 			allowed := false
 			for _, aid := range visibility.AllowedLibraryIDs {

@@ -141,9 +141,7 @@ func listLibrariesWithVisibilityHandler(svc *service.Container, visibilityForReq
 				libIDs[i] = l.ID
 			}
 			counts, _ := svc.Media.CountLibrariesCached(ctx, libIDs, repository.MediaQueryFilter{
-				IncludeNSFW:       visibility.IncludeNSFW,
 				AllowedLibraryIDs: visibility.AllowedLibraryIDs,
-				HiddenLibraryIDs:  visibility.HiddenLibraryIDs,
 			})
 			for _, l := range libs {
 				var total int64

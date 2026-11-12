@@ -61,7 +61,7 @@ func TestListRecentByLibraries(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	filter := MediaQueryFilter{IncludeNSFW: true}
+	filter := MediaQueryFilter{}
 	got, err := repos.Media.ListRecentByLibraries(t.Context(), []string{lib1.ID, lib2.ID}, 3, filter)
 	if err != nil {
 		t.Fatalf("ListRecentByLibraries failed: %v", err)

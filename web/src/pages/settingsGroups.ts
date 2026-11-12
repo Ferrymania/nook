@@ -1,4 +1,3 @@
-import { adultSettingsGroup } from './settingsGroupAccess'
 import { apiConfigsSettingsGroup } from './settingsGroupAPIConfigs'
 import { deviceNotifySettingsGroup } from './settingsGroupDeviceNotify'
 import { generalSettingsGroup } from './settingsGroupGeneral'
@@ -27,7 +26,6 @@ export const GROUPS: SettingGroup[] = [
   databaseSettingsGroup,
   apiConfigsSettingsGroup,
   recognitionWordsSettingsGroup,
-  adultSettingsGroup,
   aboutSettingsGroup,
 ]
 

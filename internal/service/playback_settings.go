@@ -58,7 +58,7 @@ func (p *ProfileService) UpdatePlaybackSettings(ctx context.Context, userID stri
 		return model.PlaybackSettings{}, err
 	}
 	if err := p.repo.User.UpdateFields(ctx, userID, map[string]any{
-		"playback_settings": string(raw), "hide_adult": !settings.AllowAdult,
+		"playback_settings": string(raw),
 	}); err != nil {
 		return model.PlaybackSettings{}, err
 	}

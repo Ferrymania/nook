@@ -364,9 +364,7 @@ func (s *MediaService) ListMediaEpisodes(ctx context.Context, mediaID string, vi
 		libraryIDs, err := MergedLibraryIDsForLibrary(ctx, s.repo, target.LibraryID)
 		if err == nil && len(libraryIDs) > 0 {
 			rows, queryErr := s.repo.Media.ListByLibrariesFilteredNoCount(ctx, libraryIDs, 0, maxMediaSearchLimit, repository.MediaQueryFilter{
-				IncludeNSFW:       visibility.IncludeNSFW,
 				AllowedLibraryIDs: visibility.AllowedLibraryIDs,
-				HiddenLibraryIDs:  visibility.HiddenLibraryIDs,
 				SeriesID:          seriesID,
 			})
 			if queryErr == nil && len(rows) > 1 {
@@ -469,9 +467,7 @@ func (s *MediaService) listAllMediaVisible(ctx context.Context, libraryID string
 		return nil, 0, err
 	}
 	filter := repository.MediaQueryFilter{
-		IncludeNSFW:       visibility.IncludeNSFW,
 		AllowedLibraryIDs: visibility.AllowedLibraryIDs,
-		HiddenLibraryIDs:  visibility.HiddenLibraryIDs,
 	}
 	rows, err := s.repo.Media.ListAllByLibrariesFilteredNoCount(ctx, libraryIDs, filter)
 	if err != nil {

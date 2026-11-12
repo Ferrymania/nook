@@ -17,7 +17,6 @@ type User struct {
 	Nickname           string     `gorm:"size:128" json:"nickname,omitempty"`
 	Email              string     `gorm:"size:128" json:"email,omitempty"`
 	AvatarURL          string     `gorm:"size:255" json:"avatar_url,omitempty"`
-	HideAdult          bool       `gorm:"default:true" json:"hide_adult"`
 	ForcePasswordReset bool       `gorm:"default:false" json:"force_password_reset"`
 	IsActive           bool       `gorm:"default:true" json:"is_active"`
 	LastLoginAt        *time.Time `json:"last_login_at,omitempty"`

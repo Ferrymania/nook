@@ -55,7 +55,7 @@ func (f MediaListFilters) apply(filter repository.MediaQueryFilter) repository.M
 }
 
 func (s *MediaService) ListMedia(ctx context.Context, libraryID string, page, pageSize int) ([]model.Media, int64, error) {
-	return s.ListMediaVisible(ctx, libraryID, page, pageSize, MediaVisibility{IncludeNSFW: true})
+	return s.ListMediaVisible(ctx, libraryID, page, pageSize, MediaVisibility{})
 }
 
 func (s *MediaService) ListMediaVisible(ctx context.Context, libraryID string, page, pageSize int, visibility MediaVisibility) ([]model.Media, int64, error) {
@@ -85,9 +85,7 @@ func (s *MediaService) ListMediaVisibleFiltered(
 		return nil, 0, err
 	}
 	filter := filters.apply(repository.MediaQueryFilter{
-		IncludeNSFW:       visibility.IncludeNSFW,
 		AllowedLibraryIDs: visibility.AllowedLibraryIDs,
-		HiddenLibraryIDs:  visibility.HiddenLibraryIDs,
 	})
 	cacheKey := s.mediaListCacheKey(libraryID, libraryIDs, page, pageSize, filter)
 	var cached mediaListCacheValue
@@ -136,9 +134,7 @@ func (s *MediaService) GroupedMediaVisibleFiltered(
 		return nil, err
 	}
 	filter := filters.apply(repository.MediaQueryFilter{
-		IncludeNSFW:       visibility.IncludeNSFW,
 		AllowedLibraryIDs: visibility.AllowedLibraryIDs,
-		HiddenLibraryIDs:  visibility.HiddenLibraryIDs,
 	})
 	itemsCacheKey := s.groupedItemsCacheKey(libraryID, libraryIDs, filter)
 	value, err, _ := s.groupedMediaFlight.Do(itemsCacheKey, func() (any, error) {
@@ -177,9 +173,7 @@ func (s *MediaService) listMediaVisibleForGrouping(ctx context.Context, libraryI
 		return nil, err
 	}
 	filter := filters.apply(repository.MediaQueryFilter{
-		IncludeNSFW:       visibility.IncludeNSFW,
 		AllowedLibraryIDs: visibility.AllowedLibraryIDs,
-		HiddenLibraryIDs:  visibility.HiddenLibraryIDs,
 	})
 	// 版本分组的 URL 分页发生在 Go 进程内，响应里的 total 是分组后的数量，
 	// 不需要数据库再为原始行做一次 COUNT(*)。全量 COUNT 在超大媒体库上
@@ -243,7 +237,7 @@ func (s *MediaService) listVersionSiblings(ctx context.Context, media *model.Med
 	if len(libraryIDs) == 0 {
 		libraryIDs = []string{media.LibraryID}
 	}
-	filter := repository.MediaQueryFilter{IncludeNSFW: true}
+	filter := repository.MediaQueryFilter{}
 	// 成人条目按路径或标题中的番号分组。本地 NFO 不一定包含外部 ID，若按外部
 	// ID 预先收窄候选集，同番号的其它分片会被 SQL 直接排除，表现就是库里折叠
 	// 出了 N 个版本、详情页却只列出带 ID 的那几个。因此成人条目不预先收窄，

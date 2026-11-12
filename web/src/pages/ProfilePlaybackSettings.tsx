@@ -3,12 +3,9 @@ import { Loader2, Save } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 import { playbackSettingsAPI, type PlaybackSettings } from '../api/playbackSettings'
-import { requestPassword } from '../components/requestPassword'
-import { useAuthStore } from '../stores/auth'
 import type { Library } from '../types'
 
 export function ProfilePlaybackSettings({ active }: { active: boolean }) {
-  const setUser = useAuthStore((s) => s.setUser)
   const [form, setForm] = useState<PlaybackSettings | null>(null)
   const [saved, setSaved] = useState<PlaybackSettings | null>(null)
   const [libraries, setLibraries] = useState<Library[]>([])
@@ -43,21 +40,9 @@ export function ProfilePlaybackSettings({ active }: { active: boolean }) {
     if (!form || !saved || saving) return
     setSaving(true)
     try {
-      let password: string | undefined
-      if (form.allow_adult !== saved.allow_adult) {
-        const value = await requestPassword({
-          title: '修改成人内容访问',
-          message: '此设置会影响网页和第三方客户端，请输入当前账号密码确认。',
-          confirmText: '保存设置',
-        })
-        if (!value) return
-        password = value
-      }
-      const result = await playbackSettingsAPI.save(form, password)
+      const result = await playbackSettingsAPI.save(form)
       setForm(result)
       setSaved(result)
-      const currentUser = useAuthStore.getState().user
-      if (currentUser) setUser({ ...currentUser, hide_adult: !result.allow_adult })
       toast.success('播放设置已保存')
     } catch (err: unknown) {
       toast.error((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? '保存失败，请重试')
@@ -100,7 +85,6 @@ export function ProfilePlaybackSettings({ active }: { active: boolean }) {
               </Field>
               <p className="mt-2 text-xs leading-5 text-(--app-muted)">保留此项偏好，内容分级过滤暂未启用。</p>
             </div>
-            <SettingToggle label="允许成人内容" hint="关闭后，网页与第三方客户端均隐藏成人目录和 NSFW 条目；仍受系统设置限制。" checked={form.allow_adult} onChange={(value) => update({ allow_adult: value })} />
             <div className="border-t border-(--app-border) pt-3">
               <h3 className="text-sm font-medium">允许访问的媒体库</h3>
               <p className="mt-1 text-xs leading-5 text-(--app-muted)">未选择时显示账号有权访问的全部媒体库，选择范围不会扩大管理员授予的权限。</p>

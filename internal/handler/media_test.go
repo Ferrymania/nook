@@ -66,7 +66,7 @@ func TestQueueLibraryRootScanImportsNewLibraryMedia(t *testing.T) {
 	t.Fatal("initial library scan did not import the media file")
 }
 
-func TestListLibrariesHidesAdultDirectoriesUnlessAdminRequestsAll(t *testing.T) {
+func TestListLibrariesIncludesAdultDirectories(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
@@ -76,7 +76,7 @@ func TestListLibrariesHidesAdultDirectoriesUnlessAdminRequestsAll(t *testing.T) 
 		t.Fatal(err)
 	}
 	repos := repository.New(db)
-	viewer := &model.User{Username: "viewer", PasswordHash: "hash", Role: "admin", HideAdult: true}
+	viewer := &model.User{Username: "viewer", PasswordHash: "hash", Role: "admin"}
 	if err := repos.User.Create(t.Context(), viewer); err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestListLibrariesHidesAdultDirectoriesUnlessAdminRequestsAll(t *testing.T) 
 	if err := repos.Library.Create(t.Context(), &adult); err != nil {
 		t.Fatal(err)
 	}
-	if err := repos.Setting.Set(t.Context(), service.AdultLibraryIDsSettingKey, `["`+adult.ID+`"]`); err != nil {
+	if err := repos.Setting.Set(t.Context(), "adult.library_ids", `["`+adult.ID+`"]`); err != nil {
 		t.Fatal(err)
 	}
 	if err := repos.Media.Upsert(t.Context(), &model.Media{LibraryID: safe.ID, Title: "误入普通库的成人条目", Path: "/media/movie/nsfw.mkv", NSFW: true}); err != nil {
@@ -100,8 +100,8 @@ func TestListLibrariesHidesAdultDirectoriesUnlessAdminRequestsAll(t *testing.T) 
 	}
 
 	visible := requestLibraries(t, svc, viewer.ID, "admin", "/api/libraries")
-	if len(visible) != 1 || visible[0].ID != safe.ID {
-		t.Fatalf("watching library list should hide adult directories, got %#v", visible)
+	if len(visible) != 2 {
+		t.Fatalf("watching library list should include all authorized directories, got %#v", visible)
 	}
 
 	all := requestLibraries(t, svc, viewer.ID, "admin", "/api/libraries?include_hidden=1")

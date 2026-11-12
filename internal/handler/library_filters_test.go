@@ -118,7 +118,7 @@ func TestLibraryGenreAliasesAgreeAcrossFacetsFiltersAndDetail(t *testing.T) {
 	m := &model.Media{LibraryID: libID, Title: "English", Genres: rawGenres, Path: "/english.mkv"}
 	seedLibraryMedia(t, svc, m,
 		&model.Media{LibraryID: libID, Title: "Chinese", Genres: "恐怖", Path: "/chinese.mkv"},
-		&model.Media{LibraryID: libID, Title: "Hidden", Genres: "Horror", Path: "/hidden.mkv", NSFW: true},
+		&model.Media{LibraryID: libID, Title: "Adult metadata", Genres: "Horror", Path: "/hidden.mkv", NSFW: true},
 		&model.Media{LibraryID: "other-library", Title: "Other", Genres: "Horror", Path: "/other.mkv"},
 	)
 	code, body := getJSON(t, router, "/api/libraries/"+libID+"/facets")
@@ -126,8 +126,8 @@ func TestLibraryGenreAliasesAgreeAcrossFacetsFiltersAndDetail(t *testing.T) {
 	if err := json.Unmarshal(body, &facets); err != nil || code != http.StatusOK {
 		t.Fatalf("facets: %d %s, err=%v", code, body, err)
 	}
-	if len(facets.Genres) != 2 || facets.Genres[0].Name != "恐怖" || facets.Genres[0].Count != 2 || !slices.Contains(facets.Genres[0].Aliases, "Horror") {
-		t.Fatalf("facets include duplicates or hidden media: %+v", facets.Genres)
+	if len(facets.Genres) != 2 || facets.Genres[0].Name != "恐怖" || facets.Genres[0].Count != 3 || !slices.Contains(facets.Genres[0].Aliases, "Horror") {
+		t.Fatalf("facets must deduplicate aliases and include authorized NSFW media: %+v", facets.Genres)
 	}
 	for _, query := range []string{"恐怖", "Horror", "horror", "27"} {
 		for _, grouped := range []string{"0", "1"} {
@@ -136,7 +136,7 @@ func TestLibraryGenreAliasesAgreeAcrossFacetsFiltersAndDetail(t *testing.T) {
 				Items []model.Media
 				Total int64
 			}
-			if err := json.Unmarshal(body, &page); err != nil || code != http.StatusOK || len(page.Items) != 2 || page.Total != 2 {
+			if err := json.Unmarshal(body, &page); err != nil || code != http.StatusOK || len(page.Items) != 3 || page.Total != 3 {
 				t.Fatalf("filter %q grouped=%s: %d %s, err=%v", query, grouped, code, body, err)
 			}
 		}
@@ -220,7 +220,7 @@ func TestListMediaIgnoresRemovedUnmatchedFilter(t *testing.T) {
 		&model.Media{Base: model.Base{ID: "pending"}, LibraryID: libID, Title: "Pending", Path: "/pending.mkv", ScrapeStatus: "pending"},
 		&model.Media{Base: model.Base{ID: "legacy"}, LibraryID: libID, Title: "Legacy", Path: "/legacy.mkv"},
 		&model.Media{LibraryID: "other-library", Title: "Other", Path: "/other.mkv", ScrapeStatus: "no_match", Genres: "Comedy"},
-		&model.Media{LibraryID: libID, Title: "Hidden", Path: "/hidden.mkv", ScrapeStatus: "no_match", Genres: "Comedy", NSFW: true},
+		&model.Media{LibraryID: libID, Base: model.Base{ID: "adult"}, Title: "Adult metadata", Path: "/hidden.mkv", ScrapeStatus: "no_match", Genres: "Comedy", NSFW: true},
 	)
 	if err := svc.Repo.DB.Model(&model.Media{}).Where("id = ?", "legacy").UpdateColumn("scrape_status", nil).Error; err != nil {
 		t.Fatal(err)
@@ -242,18 +242,19 @@ func TestListMediaIgnoresRemovedUnmatchedFilter(t *testing.T) {
 		return ids
 	}
 	for _, grouping := range []string{"group_versions=0&", ""} {
-		all := read(grouping+"page_size=10", 4)
-		legacy := read(grouping+"unmatched=1&page_size=10", 4)
+		all := read(grouping+"page_size=10", 5)
+		legacy := read(grouping+"unmatched=1&page_size=10", 5)
 		if !slices.Equal(all, legacy) || !slices.Contains(legacy, "matched") {
 			t.Fatalf("removed filter changed visible media: baseline=%v legacy=%v", all, legacy)
 		}
-		page := read(grouping+"page_size=1&page=2", 4)
-		legacyPage := read(grouping+"unmatched=1&page_size=1&page=2", 4)
+		page := read(grouping+"page_size=1&page=2", 5)
+		legacyPage := read(grouping+"unmatched=1&page_size=1&page=2", 5)
 		if len(page) != 1 || !slices.Equal(page, legacyPage) {
 			t.Fatalf("removed filter changed pagination: baseline=%v legacy=%v", page, legacyPage)
 		}
-		filtered := read(grouping+"unmatched=1&genre=Comedy", 1)
-		if !slices.Equal(filtered, []string{"matched"}) {
+		filtered := read(grouping+"unmatched=1&genre=Comedy", 2)
+		slices.Sort(filtered)
+		if !slices.Equal(filtered, []string{"adult", "matched"}) {
 			t.Fatalf("remaining genre and visibility filters changed: %v", filtered)
 		}
 	}

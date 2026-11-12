@@ -236,7 +236,7 @@ func (e *EmbyService) libraryCoverArtwork(ctx context.Context, id string) string
 		return cover
 	}
 	var cover string
-	if rows, _, err := e.repo.Media.ListByLibraryFiltered(ctx, id, 0, 12, repository.MediaQueryFilter{IncludeNSFW: true}); err == nil {
+	if rows, _, err := e.repo.Media.ListByLibraryFiltered(ctx, id, 0, 12, repository.MediaQueryFilter{}); err == nil {
 		var bestScore = -1
 		for i := range rows {
 			score := seriesArtworkScore(rows[i])

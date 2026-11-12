@@ -78,7 +78,7 @@ func TestSimilarExcludesSelfAndSameSeries(t *testing.T) {
 	}
 
 	svc := NewMediaDiscoveryService(zap.NewNop(), repos)
-	got := similarTitles(t, svc, source.ID, MediaVisibility{IncludeNSFW: true})
+	got := similarTitles(t, svc, source.ID, MediaVisibility{})
 
 	if containsTitle(got, "剧一 E01") {
 		t.Fatalf("result must exclude the source itself: %v", got)
@@ -103,7 +103,7 @@ func TestSimilarPrefersGenreOverlap(t *testing.T) {
 	seedSimilarMedia(t, repos, libID, "弱相关", "Comedy", 2010, 7)
 
 	svc := NewMediaDiscoveryService(zap.NewNop(), repos)
-	got := similarTitles(t, svc, source.ID, MediaVisibility{IncludeNSFW: true})
+	got := similarTitles(t, svc, source.ID, MediaVisibility{})
 
 	if len(got) < 2 {
 		t.Fatalf("result = %v, want at least 2 entries", got)
@@ -125,7 +125,7 @@ func TestSimilarRespectsVisibility(t *testing.T) {
 	seedSimilarMedia(t, repos, hiddenLib, "隐藏片", "Action", 2010, 7)
 
 	svc := NewMediaDiscoveryService(zap.NewNop(), repos)
-	got := similarTitles(t, svc, source.ID, MediaVisibility{IncludeNSFW: true, AllowedLibraryIDs: []string{sourceLib}})
+	got := similarTitles(t, svc, source.ID, MediaVisibility{AllowedLibraryIDs: []string{sourceLib}})
 
 	if containsTitle(got, "隐藏片") {
 		t.Fatalf("hidden library leaked into similar: %v", got)
@@ -139,7 +139,7 @@ func TestSimilarUnknownSourceReturnsEmpty(t *testing.T) {
 	repos := newDiscoveryTestDB(t)
 	svc := NewMediaDiscoveryService(zap.NewNop(), repos)
 
-	rows, err := svc.SimilarCandidates(context.Background(), "missing", 12, MediaVisibility{IncludeNSFW: true})
+	rows, err := svc.SimilarCandidates(context.Background(), "missing", 12, MediaVisibility{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +160,7 @@ func TestSimilarHonoursLimit(t *testing.T) {
 	}
 
 	svc := NewMediaDiscoveryService(zap.NewNop(), repos)
-	rows, err := svc.SimilarCandidates(context.Background(), source.ID, 3, MediaVisibility{IncludeNSFW: true})
+	rows, err := svc.SimilarCandidates(context.Background(), source.ID, 3, MediaVisibility{})
 	if err != nil {
 		t.Fatal(err)
 	}

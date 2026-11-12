@@ -223,7 +223,7 @@ func TestHistoryStatsBreakdownsVisibilityFilter(t *testing.T) {
 
 	// visibility that hides hiddenLib
 	vis := service.MediaVisibility{
-		HiddenLibraryIDs: []string{hiddenLib.ID},
+		AllowedLibraryIDs: []string{allowedLib.ID},
 	}
 
 	_, byType, recent := historyStatsBreakdowns(ctx, svc, userID, vis)

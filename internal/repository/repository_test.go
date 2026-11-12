@@ -395,7 +395,7 @@ func TestMediaSearchFilteredSupportsChineseFuzzyTerms(t *testing.T) {
 		}
 	}
 
-	items, err := repos.Media.SearchFiltered(t.Context(), "灵魂 十年", 10, MediaQueryFilter{IncludeNSFW: true})
+	items, err := repos.Media.SearchFiltered(t.Context(), "灵魂 十年", 10, MediaQueryFilter{})
 	if err != nil {
 		t.Fatalf("search chinese terms: %v", err)
 	}
@@ -403,7 +403,7 @@ func TestMediaSearchFilteredSupportsChineseFuzzyTerms(t *testing.T) {
 		t.Fatalf("chinese fuzzy search missed target: %#v", items)
 	}
 
-	items, err = repos.Media.SearchFiltered(t.Context(), "Ferry", 10, MediaQueryFilter{IncludeNSFW: true})
+	items, err = repos.Media.SearchFiltered(t.Context(), "Ferry", 10, MediaQueryFilter{})
 	if err != nil {
 		t.Fatalf("search original name: %v", err)
 	}
@@ -411,7 +411,7 @@ func TestMediaSearchFilteredSupportsChineseFuzzyTerms(t *testing.T) {
 		t.Fatalf("original-name search missed target: %#v", items)
 	}
 
-	items, err = repos.Media.SearchFiltered(t.Context(), "悬疑", 10, MediaQueryFilter{IncludeNSFW: true})
+	items, err = repos.Media.SearchFiltered(t.Context(), "悬疑", 10, MediaQueryFilter{})
 	if err != nil {
 		t.Fatalf("search genre: %v", err)
 	}
