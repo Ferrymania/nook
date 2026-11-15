@@ -1,8 +1,10 @@
 package service
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -27,7 +29,7 @@ type embyCountsCacheValue struct {
 	ItemCount    int64 `json:"item_count"`
 }
 
-func (e *EmbyService) embyItemsCacheKey(kind string, p ItemsParams) string {
+func (e *EmbyService) embyItemsCacheKey(ctx context.Context, kind string, p ItemsParams) string {
 	includeTypes := append([]string(nil), p.IncludeItemTypes...)
 	filters := append([]string(nil), p.Filters...)
 	ids := append([]string(nil), p.IDs...)
@@ -35,6 +37,7 @@ func (e *EmbyService) embyItemsCacheKey(kind string, p ItemsParams) string {
 	sort.Strings(filters)
 	sort.Strings(ids)
 	sum := sha256.Sum256([]byte(strings.Join([]string{
+		e.contentRatingCachePart(ctx, p.UserID),
 		kind,
 		p.UserID,
 		p.ParentID,
@@ -61,9 +64,9 @@ func formatSeasonIndexCacheKeyPart(seasonIndex *int) string {
 	return "season:" + strconv.Itoa(*seasonIndex)
 }
 
-func (e *EmbyService) embyLatestCacheKey(userID, parentID string, limit int) string {
+func (e *EmbyService) embyLatestCacheKey(ctx context.Context, userID, parentID string, limit int) string {
 	// v3: series metadata and source-dependent artwork tags replace episode stills.
-	sum := sha256.Sum256([]byte(strings.Join([]string{"latest-v3", userID, parentID, strconv.Itoa(limit)}, "|")))
+	sum := sha256.Sum256([]byte(strings.Join([]string{"latest-v3", e.contentRatingCachePart(ctx, userID), userID, parentID, strconv.Itoa(limit)}, "|")))
 	return "media:emby:" + hex.EncodeToString(sum[:])
 }
 
@@ -71,9 +74,9 @@ func (e *EmbyService) embyLatestCacheKey(userID, parentID string, limit int) str
 //
 // userID 必须参与键名：候选集的可见性（AllowedLibraryIDs、NSFW）由用户决定，
 // 混用会把别的用户可见的条目推荐给当前用户。limit 同理影响结果条数与排序。
-func (e *EmbyService) embySimilarCacheKey(mediaID, userID string, limit int) string {
+func (e *EmbyService) embySimilarCacheKey(ctx context.Context, mediaID, userID string, limit int) string {
 	// v2 returns whole Series cards and keeps their artwork with the cached DTO.
-	sum := sha256.Sum256([]byte(strings.Join([]string{"similar-v2", mediaID, userID, strconv.Itoa(limit)}, "|")))
+	sum := sha256.Sum256([]byte(strings.Join([]string{"similar-v2", e.contentRatingCachePart(ctx, userID), mediaID, userID, strconv.Itoa(limit)}, "|")))
 	return "media:emby:" + hex.EncodeToString(sum[:])
 }
 
@@ -96,4 +99,9 @@ func (e *EmbyService) mediaCacheTTLSeconds() int {
 		return 90
 	}
 	return e.cfg.Cache.MediaTTLSeconds
+}
+
+func (e *EmbyService) contentRatingCachePart(ctx context.Context, userID string) string {
+	v := e.mediaVisibility(ctx, userID)
+	return fmt.Sprintf("rating:%d:%t", v.MaxContentRatingLevel, v.HideUnrated)
 }

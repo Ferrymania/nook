@@ -181,7 +181,9 @@ func (r *EmbyRemoteService) remoteMediaCacheTTL() time.Duration {
 	return time.Duration(seconds) * time.Second
 }
 
-func (r *EmbyRemoteService) remoteCacheKey(parts ...string) string {
+func (r *EmbyRemoteService) remoteCacheKey(ctx context.Context, parts ...string) string {
+	p := contentRatingPolicyFromContext(ctx)
+	parts = append(parts, fmt.Sprintf("rating:%d:%t", p.MaxContentRatingLevel, p.HideUnrated))
 	sum := sha1.Sum([]byte(strings.Join(parts, "|")))
 	return "media:embyremote:" + hex.EncodeToString(sum[:])
 }
@@ -732,7 +734,7 @@ func (r *EmbyRemoteService) persistToken(ctx context.Context, acct *model.StrmAc
 
 // doGet 向远程 Emby 发起带 api_key 的 GET，把响应 JSON 解码到 out。
 // 401 时自动重认证一次再重试（凭据过期场景）。连接失败时按线路优先级自动切换。
-func (r *EmbyRemoteService) doGet(ctx context.Context, acct *model.StrmAccount, cfg *EmbyRemoteConfig, path string, q url.Values, out any) error {
+func (r *EmbyRemoteService) doGetUnfiltered(ctx context.Context, acct *model.StrmAccount, cfg *EmbyRemoteConfig, path string, q url.Values, out any) error {
 	var lastErr error
 	for _, lineIdx := range r.lineOrder(cfg) {
 		lineCfg := r.withLine(cfg, lineIdx)
@@ -849,7 +851,7 @@ func (r *EmbyRemoteService) RemoteViews(ctx context.Context, acct *model.StrmAcc
 	if err != nil {
 		return nil, err
 	}
-	cacheKey := r.remoteCacheKey("views", acct.ID, r.remoteUserID(cfg))
+	cacheKey := r.remoteCacheKey(ctx, "views", acct.ID, r.remoteUserID(cfg))
 	var cached []map[string]any
 	if r.cache != nil && r.cache.GetJSON(ctx, cacheKey, &cached) {
 		return cached, nil
@@ -960,11 +962,14 @@ func (r *EmbyRemoteService) RemoteSearchMount(ctx context.Context, mount *model.
 func (r *EmbyRemoteService) RemoteItem(ctx context.Context, mount *model.EmbyMount, acct *model.StrmAccount, remoteID string) (map[string]any, error) {
 	cacheKey := ""
 	if r != nil && r.cache != nil && mount != nil && remoteID != "" {
-		cacheKey = r.remoteCacheKey("item", mount.ID, remoteID)
+		cacheKey = r.remoteCacheKey(ctx, "item", mount.ID, remoteID)
 		var cached map[string]any
 		if r.cache.GetJSON(ctx, cacheKey, &cached) && len(cached) > 0 {
 			r.rememberRemotePeople(mount, cached)
 			r.rememberRemoteImageTags(embyRemoteAccountID(acct), cached)
+			if !remoteRatingAllowed(ctx, cached) {
+				return nil, ErrEmbyRemoteNotFound
+			}
 			return cached, nil
 		}
 	}

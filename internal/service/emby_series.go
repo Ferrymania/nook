@@ -12,6 +12,8 @@ import (
 )
 
 type embySeriesGroup struct {
+	model.ContentRatingPolicy
+	model.ContentRating
 	ID                 string
 	LibraryID          string
 	Name               string
@@ -43,7 +45,7 @@ func (e *EmbyService) findSeriesGroup(ctx context.Context, id, userID string) (e
 		return embySeriesGroup{}, false, nil
 	}
 	if strings.HasPrefix(id, embyVirtualSeriesPrefix) {
-		if group, ok := e.cachedSeriesGroup(id); ok {
+		if group, ok := e.cachedSeriesGroup(id); ok && !group.Restricted() && !e.mediaVisibility(ctx, userID).Restricted() {
 			return group, true, nil
 		}
 	}
@@ -70,19 +72,24 @@ func (e *EmbyService) findSeriesGroup(ctx context.Context, id, userID string) (e
 		if series, err := e.repo.Series.FindByID(ctx, id); err != nil {
 			return embySeriesGroup{}, false, err
 		} else if series != nil {
+			if !e.mediaVisibility(ctx, userID).AllowsContentRating(series.ContentRatingLevel) {
+				return embySeriesGroup{}, false, nil
+			}
 			return embySeriesGroup{
-				ID:                 series.ID,
-				LibraryID:          series.LibraryID,
-				Name:               series.Title,
-				PosterURL:          series.PosterURL,
-				BackdropURL:        series.BackdropURL,
-				Overview:           series.Overview,
-				Rating:             series.Rating,
-				Year:               series.Year,
-				TMDbID:             series.TMDbID,
-				BangumiID:          series.BangumiID,
-				CreatedAt:          series.CreatedAt,
-				DateLastMediaAdded: series.CreatedAt,
+				ID:                  series.ID,
+				ContentRating:       series.ContentRating,
+				ContentRatingPolicy: contentRatingPolicyFromContext(ctx),
+				LibraryID:           series.LibraryID,
+				Name:                series.Title,
+				PosterURL:           series.PosterURL,
+				BackdropURL:         series.BackdropURL,
+				Overview:            series.Overview,
+				Rating:              series.Rating,
+				Year:                series.Year,
+				TMDbID:              series.TMDbID,
+				BangumiID:           series.BangumiID,
+				CreatedAt:           series.CreatedAt,
+				DateLastMediaAdded:  series.CreatedAt,
 			}, true, nil
 		}
 	}
@@ -93,7 +100,7 @@ func (e *EmbyService) findSeasonGroup(ctx context.Context, id, userID string) (e
 	if strings.TrimSpace(id) == "" || !strings.HasPrefix(id, embyVirtualSeasonPrefix) {
 		return embySeasonGroup{}, false, nil
 	}
-	if season, ok := e.cachedSeasonGroup(id); ok {
+	if season, ok := e.cachedSeasonGroup(id); ok && !season.Series.Restricted() && !e.mediaVisibility(ctx, userID).Restricted() {
 		return season, true, nil
 	}
 	// 虚拟 Season ID 是 hash(seriesKey, seasonNum)，无法反解出 series。
@@ -197,15 +204,17 @@ func (e *EmbyService) seriesGroupsFromMedia(ctx context.Context, rows []model.Me
 		group, ok := byID[seriesID]
 		if !ok {
 			group = &embySeriesGroup{
-				ID:                 seriesID,
-				LibraryID:          row.LibraryID,
-				Name:               e.seriesNameForMedia(ctx, &row),
-				Year:               row.Year,
-				ReleaseDate:        row.ReleaseDate,
-				TMDbID:             row.TMDbID,
-				BangumiID:          row.BangumiID,
-				CreatedAt:          row.CreatedAt,
-				DateLastMediaAdded: row.CreatedAt,
+				ID:                  seriesID,
+				ContentRating:       row.ContentRating,
+				ContentRatingPolicy: contentRatingPolicyFromContext(ctx),
+				LibraryID:           row.LibraryID,
+				Name:                e.seriesNameForMedia(ctx, &row),
+				Year:                row.Year,
+				ReleaseDate:         row.ReleaseDate,
+				TMDbID:              row.TMDbID,
+				BangumiID:           row.BangumiID,
+				CreatedAt:           row.CreatedAt,
+				DateLastMediaAdded:  row.CreatedAt,
 			}
 			byID[seriesID] = group
 			order = append(order, seriesID)

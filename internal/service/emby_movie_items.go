@@ -36,7 +36,7 @@ func (e *EmbyService) movieLibraryHasEpisodicContent(ctx context.Context, librar
 // 与 mediaItems 的区别: 后者会把剧集结构行当散装 Episode 漏出;这里改为聚合成
 // Series,从根本上消除「电影库里整部剧被拆成单集」的现象。
 func (e *EmbyService) movieLibraryItems(ctx context.Context, p ItemsParams) (map[string]any, error) {
-	cacheKey := e.embyItemsCacheKey("movie-library-items-v1", p)
+	cacheKey := e.embyItemsCacheKey(ctx, "movie-library-items-v1", p)
 	var cached embyItemsCacheValue
 	if e.cache != nil && e.cache.GetJSON(ctx, cacheKey, &cached) {
 		e.rememberArtworkRefs(cached.Artwork)

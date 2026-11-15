@@ -39,7 +39,9 @@ func UserDefaultMediaVisibility(ctx context.Context, repo *repository.Container,
 		return visibility
 	}
 	if user, err := repo.User.FindByID(ctx, userID); err == nil && user != nil {
-		if allowed := user.DecodePlaybackSettings().AllowedLibraryIDs; len(allowed) > 0 {
+		settings := user.DecodePlaybackSettings()
+		visibility.ContentRatingPolicy = model.ContentRatingPolicy{MaxContentRatingLevel: model.ContentRatingLevel(settings.ContentRatingLimit, "US"), HideUnrated: settings.HideUnrated}
+		if allowed := settings.AllowedLibraryIDs; len(allowed) > 0 {
 			if len(visibility.AllowedLibraryIDs) > 0 {
 				visibility.AllowedLibraryIDs = IntersectStrings(visibility.AllowedLibraryIDs, allowed)
 			} else {

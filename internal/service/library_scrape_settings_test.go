@@ -93,7 +93,7 @@ func TestLibraryScrapeDefaultsIgnoreRetiredGlobalSettings(t *testing.T) {
 
 	s, _ := newLibraryScrapeEnv(t)
 	for key, value := range map[string]string{
-		"scrape.auto_on_scan": "true", "scrape.language": "ja-JP", "tmdb.language": "en-US",
+		"scrape.auto_on_scan": "false", "scrape.language": "ja-JP", "tmdb.language": "en-US",
 		"scrape.providers": "douban,bangumi", "scrape.delay_min_ms": "1200", "scrape.delay_max_ms": "1500",
 		"segment.prewarm_enabled": "true", "scrape.episode_images": "true",
 	} {
@@ -117,7 +117,7 @@ func TestLibraryScrapeDefaultsIgnoreRetiredGlobalSettings(t *testing.T) {
 			t.Fatal(err)
 		}
 		prefs := view.Settings
-		if prefs.AutoOnScan || prefs.Language != "zh-CN" || strings.Join(prefs.Providers, ",") != "tmdb,bangumi,thetvdb,fanart" || prefs.DelayMinMS != 250 || prefs.DelayMaxMS != 500 || prefs.SegmentPrewarmEnabled == nil || *prefs.SegmentPrewarmEnabled {
+		if !prefs.AutoOnScan || prefs.Language != "zh-CN" || strings.Join(prefs.Providers, ",") != "tmdb,bangumi,thetvdb,fanart" || prefs.DelayMinMS != 250 || prefs.DelayMaxMS != 500 || prefs.SegmentPrewarmEnabled == nil || *prefs.SegmentPrewarmEnabled {
 			t.Fatalf("retired settings affected defaults: %#v", prefs)
 		}
 		if !view.EpisodeImages {
@@ -125,8 +125,8 @@ func TestLibraryScrapeDefaultsIgnoreRetiredGlobalSettings(t *testing.T) {
 		}
 	}
 	scanner := &ScannerService{}
-	if scanner.autoScrapeEnabled(&lib) || scanner.autoScrapeEnabled(nil) {
-		t.Fatal("an unsaved library must not inherit global automatic scraping")
+	if !scanner.autoScrapeEnabled(&lib) || !scanner.autoScrapeEnabled(nil) {
+		t.Fatal("an unsaved library must default to automatic scraping regardless of retired global settings")
 	}
 }
 

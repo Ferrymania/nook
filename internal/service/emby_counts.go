@@ -10,7 +10,7 @@ import (
 )
 
 func (e *EmbyService) ItemCounts(ctx context.Context, userID string) (map[string]any, error) {
-	cacheKey := e.embyItemsCacheKey("counts-v1", ItemsParams{UserID: userID})
+	cacheKey := e.embyItemsCacheKey(ctx, "counts-v1", ItemsParams{UserID: userID})
 	var cached embyCountsCacheValue
 	if e.cache != nil && e.cache.GetJSON(ctx, cacheKey, &cached) {
 		return map[string]any{

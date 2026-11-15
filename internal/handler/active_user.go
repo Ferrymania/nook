@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/Ferrymania/nook/internal/middleware"
+	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/service"
 )
 
@@ -51,6 +52,8 @@ func activeUserRequired(svc *service.Container) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": 40101, "message": "password changed; sign in again"})
 			return
 		}
+		settings := u.DecodePlaybackSettings()
+		c.Request = c.Request.WithContext(service.WithContentRatingPolicy(c.Request.Context(), model.ContentRatingPolicy{MaxContentRatingLevel: model.ContentRatingLevel(settings.ContentRatingLimit, "US"), HideUnrated: settings.HideUnrated}))
 		c.Next()
 	}
 }
@@ -89,6 +92,8 @@ func activeEmbyUserRequired(svc *service.Container) gin.HandlerFunc {
 			return
 		}
 		c.Set(embyCtxUserName, u.Username)
+		settings := u.DecodePlaybackSettings()
+		c.Request = c.Request.WithContext(service.WithContentRatingPolicy(c.Request.Context(), model.ContentRatingPolicy{MaxContentRatingLevel: model.ContentRatingLevel(settings.ContentRatingLimit, "US"), HideUnrated: settings.HideUnrated}))
 		c.Next()
 	}
 }

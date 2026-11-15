@@ -3,6 +3,9 @@ package service
 import "github.com/Ferrymania/nook/internal/model"
 
 func applyLocalMetadata(m *model.Media, local *LocalMetadata) {
+	if local.OfficialRating != "" && m.ContentRatingSource != "manual" {
+		m.ContentRating = local.ContentRating
+	}
 	applyLocalIdentityMetadata(m, local)
 	applyLocalArtworkMetadata(m, local)
 	applyLocalExternalIDMetadata(m, local)

@@ -23,6 +23,12 @@ func (s *ScraperService) fetchAndSaveTMDbExtendedMetadata(ctx context.Context, m
 	if details == nil {
 		return
 	}
+	if m, err := s.repo.Media.FindByID(ctx, mediaID); err == nil && m != nil {
+		lib, _ := s.repo.Library.FindByID(ctx, m.LibraryID)
+		if err := s.saveContentRating(ctx, m, lib, details.ContentRating); err != nil {
+			s.log.Warn("save content rating failed", zap.Error(err))
+		}
+	}
 	updates := map[string]any{}
 	if len(details.Languages) > 0 {
 		updates["languages"] = strings.Join(details.Languages, ",")

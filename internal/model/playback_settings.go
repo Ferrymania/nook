@@ -3,6 +3,7 @@ package model
 import "encoding/json"
 
 type PlaybackSettings struct {
+	HideUnrated           bool     `json:"hide_unrated"`
 	ContentRatingLimit    string   `json:"content_rating_limit"`
 	PreferredSubtitleLang string   `json:"preferred_subtitle_lang"`
 	PreferredAudioLang    string   `json:"preferred_audio_lang"`

@@ -67,6 +67,9 @@ func mergeLocalMetadataIntoMatch(match *Match, local *LocalMetadata) {
 	if match == nil || local == nil {
 		return
 	}
+	if local.OfficialRating != "" {
+		match.ContentRating = local.ContentRating
+	}
 	if local.PathHint {
 		mergePathHintIDsIntoMatch(match, local)
 		return
@@ -265,6 +268,9 @@ func (s *ScraperService) applyLocalMetadataMatch(ctx context.Context, m *model.M
 	var lib *model.Library
 	if m != nil && s.repo != nil && s.repo.Library != nil {
 		lib, _ = s.repo.Library.FindByID(ctx, m.LibraryID)
+	}
+	if err := s.saveContentRating(ctx, m, lib, next.ContentRating); err != nil {
+		return err
 	}
 	s.writeMediaArtworkFilesAfterScrape(ctx, m, lib, options)
 	s.invalidateMediaCache(ctx)

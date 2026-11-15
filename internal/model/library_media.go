@@ -37,6 +37,7 @@ type LibraryRoot struct {
 
 // Media 是单个可播放项。剧集链接到 SeriesID；电影 SeriesID == ""。
 type Media struct {
+	ContentRating
 	Base
 	LibraryID     string `gorm:"index;size:36;index:idx_media_library_release,priority:1" json:"library_id"`
 	LibraryRootID string `gorm:"index;size:36" json:"library_root_id,omitempty"`
@@ -115,6 +116,7 @@ type MediaVideoMetadata struct {
 
 // Series 将属于同一节目的剧集分组。
 type Series struct {
+	ContentRating
 	Base
 	LibraryID   string  `gorm:"index;size:36" json:"library_id"`
 	Title       string  `gorm:"size:255;not null" json:"title"`

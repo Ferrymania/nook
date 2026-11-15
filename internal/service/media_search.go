@@ -20,7 +20,8 @@ func (s *MediaService) SearchMediaVisible(ctx context.Context, query string, lim
 	}
 	visibility = ExpandMediaVisibilityForMergedCloudLibraries(ctx, s.repo, visibility)
 	items, err := s.repo.Media.SearchFiltered(ctx, query, limit, repository.MediaQueryFilter{
-		AllowedLibraryIDs: visibility.AllowedLibraryIDs,
+		AllowedLibraryIDs:   visibility.AllowedLibraryIDs,
+		ContentRatingPolicy: visibility.ContentRatingPolicy,
 	})
 	if err != nil {
 		return nil, err
@@ -54,7 +55,8 @@ func (s *MediaService) SearchMediaVisiblePage(ctx context.Context, query string,
 	}
 	visibility = ExpandMediaVisibilityForMergedCloudLibraries(ctx, s.repo, visibility)
 	items, total, err := s.repo.Media.SearchFilteredPage(ctx, query, (page-1)*pageSize, pageSize, repository.MediaQueryFilter{
-		AllowedLibraryIDs: visibility.AllowedLibraryIDs,
+		AllowedLibraryIDs:   visibility.AllowedLibraryIDs,
+		ContentRatingPolicy: visibility.ContentRatingPolicy,
 	})
 	if err != nil {
 		return nil, 0, err

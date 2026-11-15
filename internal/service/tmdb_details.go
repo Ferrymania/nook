@@ -2,9 +2,11 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 
+	"github.com/Ferrymania/nook/internal/model"
 	"go.uber.org/zap"
 )
 
@@ -27,7 +29,11 @@ func (t *TMDbProvider) GetDetails(ctx context.Context, tmdbID int, mediaType str
 	q := url.Values{}
 	q.Set("api_key", apiKey)
 	q.Set("language", tmdbMetadataLanguage(ctx))
-	q.Set("append_to_response", "genres")
+	if mediaType == "tv" {
+		q.Set("append_to_response", "content_ratings")
+	} else {
+		q.Set("append_to_response", "release_dates")
+	}
 	u := base + path + "?" + q.Encode()
 
 	// Response structs for /movie/{id} and /tv/{id}
@@ -35,6 +41,7 @@ func (t *TMDbProvider) GetDetails(ctx context.Context, tmdbID int, mediaType str
 		Name string `json:"name"`
 	}
 	type movieResult struct {
+		tmdbCertificates
 		OriginalLanguage    string `json:"original_language"`
 		ProductionCountries []struct {
 			Iso3166_1 string `json:"iso_3166_1"`
@@ -45,6 +52,7 @@ func (t *TMDbProvider) GetDetails(ctx context.Context, tmdbID int, mediaType str
 		Genres []genre `json:"genres"`
 	}
 	type tvResult struct {
+		tmdbCertificates
 		OriginCountry   []string `json:"origin_country"`
 		SpokenLanguages []struct {
 			Iso639_1 string `json:"iso_639_1"`
@@ -53,9 +61,10 @@ func (t *TMDbProvider) GetDetails(ctx context.Context, tmdbID int, mediaType str
 	}
 
 	var (
-		languages []string
-		countries []string
-		genres    []string
+		certificate model.ContentRating
+		languages   []string
+		countries   []string
+		genres      []string
 	)
 
 	if mediaType == "tv" {
@@ -63,6 +72,10 @@ func (t *TMDbProvider) GetDetails(ctx context.Context, tmdbID int, mediaType str
 		if err := t.getJSON(ctx, u, &r); err != nil {
 			return nil, err
 		}
+		if r.tmdbCertificates.failed() {
+			return nil, errors.New("TMDb 内容分级查询失败")
+		}
+		certificate = r.tmdbCertificates.rating()
 		// Spoken languages
 		for _, l := range r.SpokenLanguages {
 			languages = append(languages, l.Iso639_1)
@@ -78,6 +91,10 @@ func (t *TMDbProvider) GetDetails(ctx context.Context, tmdbID int, mediaType str
 		if err := t.getJSON(ctx, u, &r); err != nil {
 			return nil, err
 		}
+		if r.tmdbCertificates.failed() {
+			return nil, errors.New("TMDb 内容分级查询失败")
+		}
+		certificate = r.tmdbCertificates.rating()
 		// Original language
 		if r.OriginalLanguage != "" {
 			languages = append(languages, r.OriginalLanguage)
@@ -110,8 +127,9 @@ func (t *TMDbProvider) GetDetails(ctx context.Context, tmdbID int, mediaType str
 	)
 
 	return &TMDbDetails{
-		Languages: languages,
-		Countries: countries,
-		Genres:    genres,
+		ContentRating: certificate,
+		Languages:     languages,
+		Countries:     countries,
+		Genres:        genres,
 	}, nil
 }

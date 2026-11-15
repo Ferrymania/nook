@@ -21,6 +21,7 @@ type MediaService struct {
 }
 
 type MediaVisibility struct {
+	model.ContentRatingPolicy
 	AllowedLibraryIDs []string
 }
 
@@ -28,7 +29,7 @@ const maxMediaSearchLimit = 50000
 const maxMediaSearchPageSize = 2000
 
 func (v MediaVisibility) Allows(media *model.Media) bool {
-	if media == nil {
+	if media == nil || !v.AllowsContentRating(model.ContentRatingLevel(media.OfficialRating, media.RatingCountry)) {
 		return false
 	}
 	if len(v.AllowedLibraryIDs) == 0 {

@@ -18,9 +18,10 @@ func (t *TMDbProvider) GetMovieMatch(ctx context.Context, tmdbID int) (*Match, e
 	q := url.Values{}
 	q.Set("api_key", apiKey)
 	q.Set("language", tmdbMetadataLanguage(ctx))
-	q.Set("append_to_response", "alternative_titles,translations")
+	q.Set("append_to_response", "alternative_titles,translations,release_dates")
 	u := base + "/movie/" + fmt.Sprint(tmdbID) + "?" + q.Encode()
 	var r struct {
+		tmdbCertificates
 		ID               int     `json:"id"`
 		Title            string  `json:"title"`
 		OriginalTitle    string  `json:"original_title"`
@@ -50,14 +51,15 @@ func (t *TMDbProvider) GetMovieMatch(ctx context.Context, tmdbID int) (*Match, e
 		return nil, err
 	}
 	m := &Match{
-		TMDbID:       r.ID,
-		MediaType:    "movie",
-		Title:        r.Title,
-		OriginalName: r.OriginalTitle,
-		Overview:     r.Overview,
-		Rating:       r.VoteAverage,
-		ratingSource: "tmdb",
-		Languages:    nonEmptyStrings(r.OriginalLanguage),
+		ContentRating: r.tmdbCertificates.rating(),
+		TMDbID:        r.ID,
+		MediaType:     "movie",
+		Title:         r.Title,
+		OriginalName:  r.OriginalTitle,
+		Overview:      r.Overview,
+		Rating:        r.VoteAverage,
+		ratingSource:  "tmdb",
+		Languages:     nonEmptyStrings(r.OriginalLanguage),
 	}
 	if m.Title == "" {
 		m.Title = r.OriginalTitle
@@ -104,9 +106,10 @@ func (t *TMDbProvider) GetTVMatch(ctx context.Context, tmdbID int) (*Match, erro
 	q := url.Values{}
 	q.Set("api_key", apiKey)
 	q.Set("language", tmdbMetadataLanguage(ctx))
-	q.Set("append_to_response", "alternative_titles,translations")
+	q.Set("append_to_response", "alternative_titles,translations,content_ratings")
 	u := base + "/tv/" + fmt.Sprint(tmdbID) + "?" + q.Encode()
 	var r struct {
+		tmdbCertificates
 		ID               int      `json:"id"`
 		Name             string   `json:"name"`
 		OriginalName     string   `json:"original_name"`
@@ -134,15 +137,16 @@ func (t *TMDbProvider) GetTVMatch(ctx context.Context, tmdbID int) (*Match, erro
 		return nil, err
 	}
 	m := &Match{
-		TMDbID:       r.ID,
-		MediaType:    "tv",
-		Title:        r.Name,
-		OriginalName: r.OriginalName,
-		Overview:     r.Overview,
-		Rating:       r.VoteAverage,
-		ratingSource: "tmdb",
-		Languages:    nonEmptyStrings(r.OriginalLanguage),
-		Countries:    deduplicate(r.OriginCountry),
+		ContentRating: r.tmdbCertificates.rating(),
+		TMDbID:        r.ID,
+		MediaType:     "tv",
+		Title:         r.Name,
+		OriginalName:  r.OriginalName,
+		Overview:      r.Overview,
+		Rating:        r.VoteAverage,
+		ratingSource:  "tmdb",
+		Languages:     nonEmptyStrings(r.OriginalLanguage),
+		Countries:     deduplicate(r.OriginCountry),
 	}
 	if m.Title == "" {
 		m.Title = r.OriginalName

@@ -10,16 +10,18 @@ import (
 )
 
 type MediaMetadataUpdate struct {
-	Title        *string  `json:"title"`
-	OriginalName *string  `json:"original_name"`
-	Overview     *string  `json:"overview"`
-	PosterURL    *string  `json:"poster_url"`
-	BackdropURL  *string  `json:"backdrop_url"`
-	Year         *int     `json:"year"`
-	ReleaseDate  *string  `json:"release_date"`
-	Rating       *float32 `json:"rating"`
-	SeasonNum    *int     `json:"season_num"`
-	EpisodeNum   *int     `json:"episode_num"`
+	OfficialRating *string  `json:"official_rating"`
+	RatingCountry  *string  `json:"rating_country"`
+	Title          *string  `json:"title"`
+	OriginalName   *string  `json:"original_name"`
+	Overview       *string  `json:"overview"`
+	PosterURL      *string  `json:"poster_url"`
+	BackdropURL    *string  `json:"backdrop_url"`
+	Year           *int     `json:"year"`
+	ReleaseDate    *string  `json:"release_date"`
+	Rating         *float32 `json:"rating"`
+	SeasonNum      *int     `json:"season_num"`
+	EpisodeNum     *int     `json:"episode_num"`
 	// EpisodeFraction 是集号的小数部分（11.5 的 0.5）。单独提供是为了让编辑
 	// 「集」时不会把半集写成整数集号，也不会把整集写成小数。
 	EpisodeFraction *float64 `json:"episode_fraction"`
@@ -48,6 +50,19 @@ func (s *MediaService) UpdateMetadata(ctx context.Context, id string, req MediaM
 		return nil, errors.New("media not found")
 	}
 	updates := map[string]any{"scrape_status": "matched"}
+	if req.OfficialRating != nil || req.RatingCountry != nil {
+		raw, country := existing.OfficialRating, existing.RatingCountry
+		if req.OfficialRating != nil {
+			raw = *req.OfficialRating
+		}
+		if req.RatingCountry != nil {
+			country = *req.RatingCountry
+		}
+		if len(raw) > 64 || len(country) > 8 {
+			return nil, errors.New("content rating is too long")
+		}
+		addContentRatingUpdates(updates, model.NewContentRating(raw, country, "manual"))
+	}
 	if req.Title != nil {
 		title := strings.TrimSpace(*req.Title)
 		if title == "" {
@@ -92,6 +107,9 @@ func (s *MediaService) UpdateMetadata(ctx context.Context, id string, req MediaM
 		updates["tm_db_id"] = id
 		if id != existing.TMDbID {
 			updates["rating_source"] = ""
+			if existing.ContentRatingSource != "manual" && req.OfficialRating == nil && req.RatingCountry == nil {
+				addContentRatingUpdates(updates, model.ContentRating{})
+			}
 		}
 	}
 	if req.BangumiID != nil {

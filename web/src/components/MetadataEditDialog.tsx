@@ -34,6 +34,8 @@ export function MetadataEditDialog({
     year: '',
     release_date: '',
     rating: '',
+    official_rating: '',
+    rating_country: 'US',
     season_num: '',
     episode_num: '',
     tmdb_id: '',
@@ -58,6 +60,8 @@ export function MetadataEditDialog({
       year: media.year > 0 ? String(media.year) : '',
       release_date: media.release_date || '',
       rating: media.rating > 0 ? String(media.rating) : '',
+      official_rating: media.official_rating || '',
+      rating_country: media.rating_country || 'US',
       season_num: media.season_num > 0 || media.episode_num > 0 ? String(media.season_num || 0) : '',
       episode_num: media.episode_num > 0 ? formatEpisodeNumber(media) : '',
       tmdb_id: media.tmdb_id > 0 ? String(media.tmdb_id) : '',
@@ -94,6 +98,7 @@ export function MetadataEditDialog({
       year: Math.trunc(toNumber(form.year)),
       release_date: form.release_date,
       rating: toNumber(form.rating),
+      ...(form.official_rating !== (media.official_rating || '') || form.rating_country !== (media.rating_country || 'US') ? { official_rating: form.official_rating, rating_country: form.rating_country } : {}),
       tmdb_id: Math.trunc(toNumber(form.tmdb_id)),
       bangumi_id: Math.trunc(toNumber(form.bangumi_id)),
       douban_id: form.douban_id,
@@ -160,6 +165,8 @@ export function MetadataEditDialog({
           <Field label="背景 / 单集剧照 URL" value={form.backdrop_url} onChange={(value) => set('backdrop_url', value)} />
           <Field label="年份" value={form.year} onChange={(value) => set('year', value)} inputMode="numeric" />
           <Field label="上映日期" value={form.release_date} onChange={(value) => set('release_date', value)} type="date" />
+          <Field label="内容分级" value={form.official_rating} onChange={value => set('official_rating', value)} placeholder="PG-13、TV-14；留空为未分级" />
+          <Field label="分级国家" value={form.rating_country} onChange={value => set('rating_country', value)} placeholder="US" />
           <Field label="评分" value={form.rating} onChange={(value) => set('rating', value)} inputMode="decimal" />
           {!isSeries && <Field label="季" value={form.season_num} onChange={(value) => set('season_num', value)} inputMode="numeric" />}
           {!isSeries && <Field label="集" value={form.episode_num} onChange={(value) => set('episode_num', value)} inputMode="numeric" />}

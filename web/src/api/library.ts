@@ -136,6 +136,8 @@ export interface ScrapeOptions {
 export type ManualScrapeApplyOptions = ScrapeOptions
 
 export interface MediaMetadataUpdate {
+  official_rating?: string
+  rating_country?: string
   title?: string
   original_name?: string
   overview?: string

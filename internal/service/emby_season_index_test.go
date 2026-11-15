@@ -211,9 +211,9 @@ func TestEmbyItemsCacheKeySeparatesSeasonFilters(t *testing.T) {
 	svc := newTestEmbyService(t)
 	base := ItemsParams{ParentID: "series-1", IncludeItemTypes: []string{"Episode"}, Limit: 50}
 
-	unfiltered := svc.embyItemsCacheKey("items", base)
-	seasonZero := svc.embyItemsCacheKey("items", withSeasonIndex(base, 0))
-	seasonTwo := svc.embyItemsCacheKey("items", withSeasonIndex(base, 2))
+	unfiltered := svc.embyItemsCacheKey(t.Context(), "items", base)
+	seasonZero := svc.embyItemsCacheKey(t.Context(), "items", withSeasonIndex(base, 0))
+	seasonTwo := svc.embyItemsCacheKey(t.Context(), "items", withSeasonIndex(base, 2))
 
 	if unfiltered == seasonZero {
 		t.Fatal("unfiltered and Season=0 keys must differ")
@@ -224,7 +224,7 @@ func TestEmbyItemsCacheKeySeparatesSeasonFilters(t *testing.T) {
 	if seasonZero == seasonTwo {
 		t.Fatal("Season=0 and Season=2 keys must differ")
 	}
-	if again := svc.embyItemsCacheKey("items", withSeasonIndex(base, 2)); again != seasonTwo {
+	if again := svc.embyItemsCacheKey(t.Context(), "items", withSeasonIndex(base, 2)); again != seasonTwo {
 		t.Fatal("cache key must be stable for the same season filter")
 	}
 }

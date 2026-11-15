@@ -3,6 +3,7 @@ import type { Library } from '../types'
 
 export interface PlaybackSettings {
   content_rating_limit: string
+  hide_unrated: boolean
   preferred_subtitle_lang: string
   preferred_audio_lang: string
   autoplay_next: boolean

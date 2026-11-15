@@ -40,6 +40,7 @@ func NewNFOService(log *zap.Logger, repo *repository.Container) *NFOService {
 
 // movieNFO is the on-disk schema. Tag names match Kodi's expectations.
 type movieNFO struct {
+	MPAA     string   `xml:"mpaa,omitempty"`
 	XMLName  xml.Name `xml:"movie"`
 	Title    string   `xml:"title"`
 	Original string   `xml:"originaltitle,omitempty"`
@@ -59,6 +60,7 @@ type movieNFO struct {
 }
 
 type episodeNFO struct {
+	MPAA      string   `xml:"mpaa,omitempty"`
 	XMLName   xml.Name `xml:"episodedetails"`
 	Title     string   `xml:"title"`
 	ShowTitle string   `xml:"showtitle,omitempty"`
@@ -150,6 +152,7 @@ func WriteMediaNFO(m *model.Media) (string, error) {
 			title = strings.TrimSpace(m.Title)
 		}
 		doc = episodeNFO{
+			MPAA:      nfoContentRating(m.ContentRating),
 			Title:     title,
 			ShowTitle: m.Title,
 			Season:    m.SeasonNum,
@@ -177,6 +180,7 @@ func WriteMediaNFO(m *model.Media) (string, error) {
 			}
 		}
 		doc = movieNFO{
+			MPAA:      nfoContentRating(m.ContentRating),
 			Title:     title,
 			Original:  original,
 			Year:      m.Year,
@@ -273,4 +277,14 @@ func nfoExternalUniqueIDs(m *model.Media) []nfoUniqueID {
 		return nil
 	}
 	return out
+}
+
+func nfoContentRating(r model.ContentRating) string {
+	if r.OfficialRating == "" {
+		return ""
+	}
+	if r.RatingCountry != "" {
+		return r.RatingCountry + ":" + r.OfficialRating
+	}
+	return r.OfficialRating
 }

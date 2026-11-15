@@ -3,6 +3,8 @@ package service
 import (
 	"strconv"
 	"strings"
+
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 func metadataFromDoc(doc *nfoDocument, baseDir string, seriesLike bool) *LocalMetadata {
@@ -29,6 +31,9 @@ func metadataFromDoc(doc *nfoDocument, baseDir string, seriesLike bool) *LocalMe
 		Countries:    joinNFOValues(doc.Countries),
 		Languages:    joinNFOValues(doc.Languages),
 		HasNFO:       true,
+	}
+	if strings.TrimSpace(doc.MPAA) != "" {
+		meta.ContentRating = model.NewContentRating(doc.MPAA, "", "nfo")
 	}
 	if nfoIsEpisodeDetails(doc) {
 		meta.EpisodeTitle = cleanXMLText(doc.Title)
@@ -83,6 +88,9 @@ func mergeEpisodeMetadata(dst, episode *LocalMetadata, doc *nfoDocument) {
 		dst.EpisodeTitle = episodeTitle
 	}
 
+	if episode.OfficialRating != "" {
+		dst.ContentRating = episode.ContentRating
+	}
 	// 单集级展示字段: 每个媒体行本就对应一集,这些可安全按集回填。
 	if dst.Year == 0 && episode.Year > 0 {
 		dst.Year = episode.Year
