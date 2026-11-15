@@ -21,7 +21,6 @@ import {
   HomeCarouselSection,
   HomeEmptyState,
   HomeLibrariesSection,
-  HomeLibraryRowSection,
   HomeLoadingState,
 } from './HomePageSections'
 
@@ -101,7 +100,7 @@ export function HomePage() {
     [libraries, pinnedIds, sortField, sortOrder],
   )
 
-  // 标签过滤只作用于展示层：选中的标签栏决定哪部分媒体库参与轮播/入口网格/内容行。
+  // 标签过滤只作用于展示层：选中的标签栏决定哪部分媒体库参与轮播和入口网格。
   const effectiveTagId = libraryTags.selectedTagId
   const tagTabs = useMemo(
     () => buildLibraryTagTabs(sortedLibraries, libraryTags.tags),
@@ -114,8 +113,7 @@ export function HomePage() {
 
   const [libraryTagsOpen, setLibraryTagsOpen] = useState(false)
 
-  // 按需拉取卡片预览管理。同一个库可能先以 4 张封面用于入口网格，
-  // 稍后需要 10 张用于内容横排，因此缓存的是已加载数量而不是简单布尔值。
+  // 入口卡片按需加载 2 张封面，开启轮播的库预取 10 张；按数量去重。
   const fetchedPreviewLimitsRef = useRef<Map<string, number>>(new Map())
   const fetchingPreviewLimitsRef = useRef<Map<string, number>>(new Map())
 
@@ -178,89 +176,14 @@ export function HomePage() {
     )
   }, [])
 
-  // 3. 首屏只预取轮播和前三行所需的预览；入口卡片进入视口后自行按批加载。
+  // 3. 首屏只预取轮播所需的预览；入口卡片进入视口后自行按批加载。
   useEffect(() => {
     if (taggedLibraries.length === 0) return
     const carouselLibIds = taggedLibraries
       .filter((l) => l.carousel_enabled === true)
       .map((l) => l.id)
-    const topRowLibIds = taggedLibraries.slice(0, 3).map((l) => l.id)
-    const shelfTargets = Array.from(new Set([...carouselLibIds, ...topRowLibIds]))
-    void fetchPreviews(shelfTargets, 10)
+    void fetchPreviews(carouselLibIds, 10)
   }, [taggedLibraries, fetchPreviews])
-
-  // 4. 媒体库展示行渐进流式加载：默认先检视前 3 个库，随向下滚动逐步检视后续库
-  const INITIAL_ROWS = 3
-  const STEP_ROWS = 2
-  const [visibleTargetCount, setVisibleTargetCount] = useState(INITIAL_ROWS)
-  const sentinelRef = useRef<HTMLButtonElement | null>(null)
-  const userScrolledRef = useRef(false)
-
-  const revealMoreLibraries = useCallback(() => {
-    setVisibleTargetCount((prev) => {
-      if (prev >= taggedLibraries.length) return prev
-      return Math.min(prev + STEP_ROWS, taggedLibraries.length)
-    })
-  }, [taggedLibraries.length])
-
-  // 随 visibleTargetCount 增加，按需触发后续库的预览加载
-  useEffect(() => {
-    if (taggedLibraries.length === 0) return
-    const currentTargets = taggedLibraries.slice(0, visibleTargetCount).map((l) => l.id)
-    void fetchPreviews(currentTargets, 10)
-  }, [taggedLibraries, visibleTargetCount, fetchPreviews])
-
-  // 当前已拉取并确认有内容的媒体库行
-  const visibleLibraries = useMemo(() => {
-    return taggedLibraries
-      .slice(0, visibleTargetCount)
-      .filter((lib) => (libraryData[lib.id]?.cards?.length ?? 0) > 0)
-  }, [taggedLibraries, visibleTargetCount, libraryData])
-
-  const hasMoreLibraries = visibleTargetCount < taggedLibraries.length
-
-  // 底部哨兵监听与滚动双保险（触底解锁后续媒体库行）
-  useEffect(() => {
-    const scrollParent = document.getElementById('app-main-scroll')
-    if (!scrollParent) return
-
-    const handleCheckBottom = () => {
-      if (scrollParent.scrollTop <= 0) return
-      userScrolledRef.current = true
-      const remaining = scrollParent.scrollHeight - scrollParent.scrollTop - scrollParent.clientHeight
-      if (remaining < 600) {
-        revealMoreLibraries()
-      }
-    }
-
-    scrollParent.addEventListener('scroll', handleCheckBottom, { passive: true })
-
-    const sentinel = sentinelRef.current
-    let observer: IntersectionObserver | null = null
-    if (sentinel) {
-      observer = new IntersectionObserver(
-        (entries) => {
-          const [entry] = entries
-          if (entry?.isIntersecting && userScrolledRef.current) {
-            revealMoreLibraries()
-          }
-        },
-        {
-          root: scrollParent,
-          rootMargin: '600px 0px',
-          threshold: 0,
-        },
-      )
-      observer.observe(sentinel)
-    }
-
-    return () => {
-      scrollParent.removeEventListener('scroll', handleCheckBottom)
-      if (observer) {
-        observer.disconnect()
-      }
-    }
-  }, [hasMoreLibraries, revealMoreLibraries, visibleLibraries.length])
 
   // Quick lookup map for libraries
   const libraryMap = useMemo(() => {
@@ -352,34 +275,6 @@ export function HomePage() {
         </section>
       )}
 
-      {/* 4. 各媒体库内容展示行（向下滑动渐进流式加载，不受上方20个分页限制） */}
-      {(visibleLibraries.length > 0 || hasMoreLibraries) && (
-        <div className="space-y-10">
-          {visibleLibraries.map((lib) => {
-            const cards = libraryData[lib.id]?.cards || []
-            return (
-              <HomeLibraryRowSection
-                key={lib.id}
-                library={lib}
-                cards={cards}
-              />
-            )
-          })}
-          {hasMoreLibraries && (
-            <button
-              ref={sentinelRef}
-              type="button"
-              onClick={revealMoreLibraries}
-              className="flex h-10 w-full items-center justify-center py-2 opacity-60 transition-opacity hover:opacity-100"
-            >
-              <div className="flex items-center gap-2 text-xs text-(--app-muted)">
-                <div className="h-1.5 w-1.5 animate-ping rounded-full bg-brand-500" />
-                <span>加载更多媒体库…</span>
-              </div>
-            </button>
-          )}
-        </div>
-      )}
     </div>
   )
 }

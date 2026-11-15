@@ -737,8 +737,10 @@ export function ScraperQueuePage({
                       {/* Media title & path */}
                       <td className="max-w-[240px] px-3 py-2.5">
                         <div className="flex items-center gap-2">
-                          {TYPE_ICONS[task.media_type] || <Film size={14} className="text-gray-400" />}
-                          <div className="min-w-0">
+                          <span className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center" aria-hidden="true">
+                            {TYPE_ICONS[task.media_type] || <Film size={14} className="text-gray-400" />}
+                          </span>
+                          <div className="min-w-0 flex-1">
                             <span
                               onClick={() => setDetailTask(task)}
                               className="cursor-pointer truncate font-medium text-ink-600 hover:text-brand-500 hover:underline block"

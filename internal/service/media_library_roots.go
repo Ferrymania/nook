@@ -84,7 +84,7 @@ func (s *MediaService) CreateLibraryWithOptions(ctx context.Context, name, kind,
 		Type:            kind,
 		CoverURL:        strings.TrimSpace(coverURL),
 		Enabled:         true,
-		CarouselEnabled: false,
+		CarouselEnabled: true,
 		AutoProbe:       options.AutoProbe,
 		ScrapeSettings:  options.ScrapeSettings,
 	}

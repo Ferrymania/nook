@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 
 	"github.com/Ferrymania/nook/internal/middleware"
 	"github.com/Ferrymania/nook/internal/service"
@@ -112,11 +113,28 @@ func changePasswordHandler(svc *service.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req changePwdReq
 		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			message := "密码信息格式不正确"
+			var fields validator.ValidationErrors
+			if errors.As(err, &fields) && len(fields) > 0 {
+				switch fields[0].Field() {
+				case "OldPassword":
+					message = "请输入当前密码"
+				case "NewPassword":
+					message = "新密码至少需要 6 位"
+					if fields[0].Tag() == "required" {
+						message = "请输入新密码"
+					}
+				}
+			}
+			c.JSON(http.StatusBadRequest, gin.H{"error": message})
 			return
 		}
 		uid, _ := c.Get(middleware.CtxUserID)
 		if err := svc.Auth.ChangePassword(c.Request.Context(), uid.(string), req.OldPassword, req.NewPassword); err != nil {
+			if errors.Is(err, service.ErrInvalidCredentials) {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "当前密码不正确"})
+				return
+			}
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
