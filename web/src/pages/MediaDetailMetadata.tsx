@@ -13,7 +13,7 @@ export function MediaDetailMetadata({ media }: MediaDetailMetadataProps) {
   const genres = media.genre_names ?? parseCSV(media.genres)
   const languages = parseCSV(media.languages)
   const countries = parseCSV(media.countries)
-  const hasTaxonomy = genres.length > 0 || languages.length > 0 || countries.length > 0
+  const hasTaxonomy = genres.length > 0 || languages.length > 0 || countries.length > 0 || !!media.official_rating
   const technicalSummary = mediaTechnicalSummary(media)
 
   return (
@@ -49,6 +49,7 @@ export function MediaDetailMetadata({ media }: MediaDetailMetadataProps) {
           <MetadataRow label="类型流派" values={genres} tone="brand" />
           <MetadataRow label="语言" values={parseCSV(media.languages)} />
           <MetadataRow label="国家/地区" values={parseCSV(media.countries)} />
+          {media.official_rating && <MetadataRow label="内容分级" values={[media.rating_country ? `${media.rating_country} · ${media.official_rating}` : media.official_rating]} />}
           </div>
       )}
     </>

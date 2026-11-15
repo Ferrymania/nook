@@ -4,10 +4,13 @@ import (
 	"encoding/xml"
 	"strconv"
 	"strings"
+
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // LocalMetadata contains metadata read from Kodi/Jellyfin sidecar NFO files.
 type LocalMetadata struct {
+	model.ContentRating
 	Title        string
 	OriginalName string
 	EpisodeTitle string
@@ -59,6 +62,7 @@ type nfoArt struct {
 }
 
 type nfoDocument struct {
+	MPAA          string        `xml:"mpaa"`
 	XMLName       xml.Name      `xml:""`
 	Title         string        `xml:"title"`
 	ShowTitle     string        `xml:"showtitle"`

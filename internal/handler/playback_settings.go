@@ -32,6 +32,12 @@ func updatePlaybackSettingsHandler(svc *service.Container) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		if svc.Emby != nil {
+			svc.Emby.InvalidateUserVisibility(c.Request.Context(), userID)
+		}
+		if svc.Cache != nil {
+			svc.Cache.DeletePrefix(c.Request.Context(), "media:")
+		}
 		c.JSON(http.StatusOK, settings)
 	}
 }

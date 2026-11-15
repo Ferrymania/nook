@@ -31,6 +31,10 @@ export interface Media {
   overview?: string
   rating: number
   rating_source?: string
+  official_rating?: string
+  rating_country?: string
+  content_rating_source?: string
+  content_rating_checked_at?: string
   year: number
   release_date?: string
   season_num: number

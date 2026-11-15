@@ -18,6 +18,7 @@ import (
 
 // Item 单条目详情。
 func (e *EmbyService) Item(ctx context.Context, mediaID, userID string) (map[string]any, error) {
+	ctx = WithContentRatingPolicy(ctx, e.mediaVisibility(ctx, userID).ContentRatingPolicy)
 	item, err := e.item(ctx, mediaID, userID)
 	if err != nil || item == nil {
 		return item, err
@@ -148,7 +149,7 @@ func (e *EmbyService) latestItems(ctx context.Context, userID, parentID string, 
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
-	cacheKey := e.embyLatestCacheKey(userID, parentID, limit)
+	cacheKey := e.embyLatestCacheKey(ctx, userID, parentID, limit)
 	if items, stale, ok := e.cachedLatestItemsWithStale(ctx, cacheKey); ok {
 		if stale {
 			e.refreshLatestItemsAsync(cacheKey, userID, parentID, limit)
@@ -166,7 +167,7 @@ func (e *EmbyService) latestItems(ctx context.Context, userID, parentID string, 
 }
 
 func (e *EmbyService) loadLatestItemsCached(ctx context.Context, userID, parentID string, limit int) (embyLatestCacheValue, error) {
-	cacheKey := e.embyLatestCacheKey(userID, parentID, limit)
+	cacheKey := e.embyLatestCacheKey(ctx, userID, parentID, limit)
 	// 一个客户端断开不应取消正在为其他客户端填充的共享重建。
 	loadCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 45*time.Second)
 	defer cancel()
@@ -231,6 +232,7 @@ func (e *EmbyService) cachedLatestItemsWithStale(ctx context.Context, cacheKey s
 }
 
 func (e *EmbyService) loadLatestItems(ctx context.Context, userID, parentID string, limit int) (embyLatestCacheValue, error) {
+	ctx = WithContentRatingPolicy(ctx, e.mediaVisibility(ctx, userID).ContentRatingPolicy)
 	if e.remote != nil && IsEmbyRemoteID(parentID) {
 		mountID, remoteParent, _ := DecodeEmbyRemoteID(parentID)
 		mount, acct, _ := e.remote.ResolveMount(ctx, mountID)
@@ -778,6 +780,7 @@ func (e *EmbyService) itemPayload(ctx context.Context, m *model.Media, fav bool,
 		"Overview":          m.Overview,
 		"RunTimeTicks":      runTimeTicks,
 		"CommunityRating":   m.Rating,
+		"OfficialRating":    m.OfficialRating,
 		"Container":         primarySource["Container"],
 		"Width":             width,
 		"Height":            height,

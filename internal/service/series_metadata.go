@@ -41,6 +41,9 @@ func (s *ScraperService) saveScrapedSeriesMetadata(ctx context.Context, m *model
 	if existing != nil {
 		row = *existing
 	}
+	if match.ContentRatingCheckedAt != nil {
+		row.ContentRating = match.ContentRating
+	}
 	row.Title, row.Year, row.Rating = match.Title, match.Year, match.Rating
 	row.TMDbID, row.BangumiID = match.TMDbID, match.BangumiID
 	row.DoubanID, row.TheTVDBID = match.DoubanID, match.TheTVDBID

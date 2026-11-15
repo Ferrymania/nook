@@ -189,6 +189,9 @@ func (s *ScraperService) applyProviderMatchWithOptions(ctx context.Context, m *m
 		"year":          match.Year,
 		"scrape_status": "matched",
 	}
+	if options.ForceRematch && m.TMDbID != match.TMDbID && m.ContentRatingSource != "manual" && match.ContentRatingCheckedAt == nil {
+		addContentRatingUpdates(updates, model.ContentRating{})
+	}
 	if s.determineMediaTypeForMedia(lib, m, match) == "tv" && fillNumberedPartEpisodeIdentity(m, lib) {
 		updates["season_num"] = m.SeasonNum
 		updates["episode_num"] = m.EpisodeNum
@@ -261,6 +264,12 @@ func (s *ScraperService) applyProviderMatchWithOptions(ctx context.Context, m *m
 		Updates(updates).Error; err != nil {
 		return err
 	}
+	if fresh, err := s.repo.Media.FindByID(ctx, m.ID); err == nil && fresh != nil {
+		if err := s.saveContentRating(ctx, fresh, lib, match.ContentRating); err != nil {
+			return err
+		}
+	}
+
 	s.removeCachedScrapedArtwork(removePoster, removeBackdrop)
 
 	// Fetch extended metadata after the selected match is already saved.

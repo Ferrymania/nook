@@ -157,7 +157,7 @@ func TestEmbyFolderCountsAcrossEndpointsAndWarmCaches(t *testing.T) {
 	if err := svc.MarkPlayed(t.Context(), "alice", "badge-e2", false); err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := svc.cachedLatestItems(t.Context(), svc.embyLatestCacheKey("alice", libID, 10)); !ok {
+	if _, ok := svc.cachedLatestItems(t.Context(), svc.embyLatestCacheKey(t.Context(), "alice", libID, 10)); !ok {
 		t.Fatal("fixture must keep a warm metadata cache during the throttled write")
 	}
 	latest, err = getters["latest"]("alice")

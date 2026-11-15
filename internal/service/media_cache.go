@@ -42,6 +42,7 @@ func filterFingerprint(filter repository.MediaQueryFilter) string {
 	genres := append([]string(nil), filter.Genres...)
 	sort.Strings(genres)
 	return strings.Join([]string{
+		fmt.Sprintf("content-rating=%d:%t", filter.MaxContentRatingLevel, filter.HideUnrated),
 		"genres=" + strings.Join(genres, ","),
 		fmt.Sprintf("year=%d-%d", filter.YearMin, filter.YearMax),
 		fmt.Sprintf("rating=%.2f", filter.RatingMin),
@@ -63,6 +64,7 @@ func (s *MediaService) libraryPreviewCacheKey(libraries []model.Library, cardLim
 		fmt.Sprintf("%d:%t", cardLimit, includeCounts),
 		strings.Join(allowed, ","),
 		filter.SeriesID,
+		filterFingerprint(filter),
 	}, "|")))
 	return "media:preview:" + hex.EncodeToString(sum[:])
 }
@@ -73,6 +75,7 @@ func (s *MediaService) seriesCardsCacheKey(libraryID string, visibility MediaVis
 	sum := sha1.Sum([]byte(strings.Join([]string{
 		libraryID,
 		strings.Join(allowed, ","),
+		fmt.Sprintf("%d:%t", visibility.MaxContentRatingLevel, visibility.HideUnrated),
 	}, "|")))
 	return "media:series-cards:" + hex.EncodeToString(sum[:])
 }
@@ -87,6 +90,7 @@ func (s *MediaService) libraryCountCacheKey(libraryIDs []string, filter reposito
 		strings.Join(ids, ","),
 		strings.Join(allowed, ","),
 		filter.SeriesID,
+		filterFingerprint(filter),
 	}, "|")))
 	return "media:lib-counts:" + hex.EncodeToString(sum[:])
 }
@@ -146,6 +150,7 @@ func (s *MediaService) libraryRowsCacheKey(libraryID string, visibility MediaVis
 	allowed := append([]string(nil), visibility.AllowedLibraryIDs...)
 	sort.Strings(allowed)
 	return "media:obj:library-rows:" + hashObjectCacheKey([]string{
+		fmt.Sprintf("%d:%t", visibility.MaxContentRatingLevel, visibility.HideUnrated),
 		libraryID,
 		strings.Join(allowed, ","),
 	})

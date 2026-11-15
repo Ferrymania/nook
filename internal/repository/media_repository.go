@@ -19,6 +19,7 @@ type MediaRepository struct {
 
 // MediaQueryFilter applies library permissions and user-facing filters in SQL.
 type MediaQueryFilter struct {
+	model.ContentRatingPolicy
 	AllowedLibraryIDs []string
 	SeriesID          string
 	// LibraryID 是精确匹配的单个库过滤，用于库内场景（例如媒体库页筛选）。
@@ -39,6 +40,7 @@ type MediaQueryFilter struct {
 }
 
 func applyMediaQueryFilter(q *gorm.DB, filter MediaQueryFilter) *gorm.DB {
+	q = ApplyContentRatingPolicy(q, filter.ContentRatingPolicy)
 	if len(filter.AllowedLibraryIDs) > 0 {
 		q = q.Where("library_id IN ?", filter.AllowedLibraryIDs)
 	}
@@ -362,6 +364,13 @@ func (r *MediaRepository) ListRecentByLibraries(ctx context.Context, libraryIDs 
 func mediaQueryFilterSQL(filter MediaQueryFilter) (string, []interface{}) {
 	var parts []string
 	var args []interface{}
+	if filter.HideUnrated {
+		parts = append(parts, "content_rating_level > 0")
+	}
+	if filter.MaxContentRatingLevel > 0 {
+		parts = append(parts, "content_rating_level <= ?")
+		args = append(args, filter.MaxContentRatingLevel)
+	}
 	if len(filter.AllowedLibraryIDs) > 0 {
 		parts = append(parts, "library_id IN ?")
 		args = append(args, filter.AllowedLibraryIDs)

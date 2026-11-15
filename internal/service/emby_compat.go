@@ -207,6 +207,7 @@ type embyPeopleCacheEntry struct {
 // episode as a separate movie card. 带 embyremote~ 前缀的 ParentID / 搜索自动
 // 路由到远程 Emby（联邦聚合，远程数据不落库）。
 func (e *EmbyService) Items(ctx context.Context, p ItemsParams) (map[string]any, error) {
+	ctx = WithContentRatingPolicy(ctx, e.mediaVisibility(ctx, p.UserID).ContentRatingPolicy)
 	out, err := e.items(ctx, p)
 	if err != nil {
 		return nil, err

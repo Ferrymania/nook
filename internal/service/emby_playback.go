@@ -18,6 +18,7 @@ import (
 // 远程 Emby 条目直接转发远程 PlaybackInfo，并按账号 proxy_play 配置决定
 // 播放地址指向远程（直连）还是 Nook 本地代理端点。
 func (e *EmbyService) PlaybackInfo(ctx context.Context, mediaID, userID string) (map[string]any, error) {
+	ctx = WithContentRatingPolicy(ctx, e.mediaVisibility(ctx, userID).ContentRatingPolicy)
 	if e.remote != nil && IsEmbyRemoteID(mediaID) {
 		mountID, remoteID, _ := DecodeEmbyRemoteID(mediaID)
 		mount, acct, err := e.remote.ResolveMount(ctx, mountID)
@@ -26,6 +27,12 @@ func (e *EmbyService) PlaybackInfo(ctx context.Context, mediaID, userID string) 
 		}
 		if !EmbyMountLibraryAllowed(e.mediaVisibility(ctx, userID), mount) {
 			return nil, ErrEmbyRemoteNotFound
+		}
+		if e.mediaVisibility(ctx, userID).Restricted() {
+			item, err := e.remote.RemoteItem(ctx, mount, acct, remoteID)
+			if err != nil || item == nil || !remoteRatingAllowed(ctx, item) {
+				return nil, ErrEmbyRemoteNotFound
+			}
 		}
 		out, err := e.remote.RemotePlaybackInfo(ctx, mount, acct, remoteID, userID)
 		if err != nil {
@@ -72,9 +79,15 @@ func (e *EmbyService) ProxyRemoteVideoStream(ctx context.Context, w http.Respons
 	if e == nil || e.remote == nil {
 		return ErrEmbyRemoteNotFound
 	}
-	_, acct, err := e.remote.ResolveMount(ctx, mountID)
+	mount, acct, err := e.remote.ResolveMount(ctx, mountID)
 	if err != nil {
 		return ErrEmbyRemoteNotFound
+	}
+	if contentRatingPolicyFromContext(ctx).Restricted() {
+		item, err := e.remote.RemoteItem(ctx, mount, acct, remoteID)
+		if err != nil || item == nil || !remoteRatingAllowed(ctx, item) {
+			return ErrEmbyRemoteNotFound
+		}
 	}
 	return e.remote.ProxyVideoStream(ctx, w, r, acct, remoteID)
 }

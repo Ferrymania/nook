@@ -29,7 +29,7 @@ func libraryScrapeSettings(lib *model.Library) model.LibraryScrapeSettings {
 		out.Providers = supportedScrapeProviders(out.Providers)
 		return out
 	}
-	return model.LibraryScrapeSettings{Providers: append([]string(nil), defaultScrapeProviders...), Language: "zh-CN", DelayMinMS: defaultScrapeDelayMinMS, DelayMaxMS: defaultScrapeDelayMaxMS}
+	return model.LibraryScrapeSettings{AutoOnScan: true, Providers: append([]string(nil), defaultScrapeProviders...), Language: "zh-CN", DelayMinMS: defaultScrapeDelayMinMS, DelayMaxMS: defaultScrapeDelayMaxMS}
 }
 
 func supportedScrapeProviders(values []string) []string {

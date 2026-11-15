@@ -1,9 +1,12 @@
 package service
 
+import "github.com/Ferrymania/nook/internal/model"
+
 // Match describes a successful metadata match. The same struct is reused
 // across providers; provider-specific IDs sit side-by-side so the scraper
 // orchestrator can write them all into a single update.
 type Match struct {
+	model.ContentRating
 	Provider      string           `json:"provider,omitempty"`
 	TMDbID        int              `json:"tmdb_id"`
 	BangumiID     int              `json:"bangumi_id"`
@@ -41,6 +44,7 @@ type TMDbEpisodeDetails struct {
 
 // TMDbDetails holds extended metadata from the /movie/{id} or /tv/{id} endpoints.
 type TMDbDetails struct {
+	model.ContentRating
 	Languages []string `json:"languages"`
 	Countries []string `json:"countries"`
 	Genres    []string `json:"genres"`

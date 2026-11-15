@@ -141,7 +141,8 @@ func listLibrariesWithVisibilityHandler(svc *service.Container, visibilityForReq
 				libIDs[i] = l.ID
 			}
 			counts, _ := svc.Media.CountLibrariesCached(ctx, libIDs, repository.MediaQueryFilter{
-				AllowedLibraryIDs: visibility.AllowedLibraryIDs,
+				AllowedLibraryIDs:   visibility.AllowedLibraryIDs,
+				ContentRatingPolicy: visibility.ContentRatingPolicy,
 			})
 			for _, l := range libs {
 				var total int64
@@ -639,6 +640,14 @@ func getMediaHandler(svc *service.Container) gin.HandlerFunc {
 			c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 			return
 		}
+		versions := m.Versions[:0]
+		visibility := mediaVisibilityForRequest(c, svc)
+		for _, version := range m.Versions {
+			if visibility.Allows(&version) {
+				versions = append(versions, version)
+			}
+		}
+		m.Versions = versions
 		c.JSON(http.StatusOK, m)
 	}
 }
@@ -660,6 +669,9 @@ func updateMediaMetadataHandler(svc *service.Container) gin.HandlerFunc {
 			}
 			c.JSON(status, gin.H{"error": err.Error()})
 			return
+		}
+		if svc.Emby != nil {
+			svc.Emby.InvalidateUserVisibility(c.Request.Context(), "")
 		}
 		c.JSON(http.StatusOK, service.MediaItem{Media: *m, GenreNames: genre.Names(m.Genres)})
 	}
@@ -828,6 +840,13 @@ func streamHandler(svc *service.Container) gin.HandlerFunc {
 			if !service.EmbyMountLibraryAllowed(mediaVisibilityForRequest(c, svc), mount) {
 				c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 				return
+			}
+			if visibility := mediaVisibilityForRequest(c, svc); visibility.Restricted() {
+				media, err := svc.EmbyRemote.RemoteMediaDetail(ctx, mount, acct, remoteID)
+				if err != nil || media == nil || !visibility.Allows(media) {
+					c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+					return
+				}
 			}
 			// 远程条目可能是「整部剧/季/目录」：这类条目自身没有媒体源，远程 Emby 对它
 			// 们的 /Videos/{id}/stream 会直接回 500（Unable to cast object of type

@@ -198,15 +198,16 @@ func (r *EmbyRemoteService) MapRemoteItemToMedia(ctx context.Context, mount *mod
 		year = remoteItemInt(item, "SeriesYear")
 	}
 	media := model.Media{
-		Base:         model.Base{ID: EncodeEmbyRemoteID(encodeScope, remoteID)},
-		Title:        remoteItemString(item, "Name"),
-		OriginalName: remoteItemString(item, "OriginalTitle"),
-		Overview:     remoteItemString(item, "Overview"),
-		Year:         year,
-		Rating:       float32(rating),
-		Path:         remoteItemString(item, "Path"),
-		Genres:       remoteItemGenres(item),
-		ScrapeStatus: "done",
+		ContentRating: model.NewContentRating(firstNonEmptyStr(remoteItemString(item, "OfficialRating"), remoteItemString(item, "SeriesOfficialRating")), "", "remote"),
+		Base:          model.Base{ID: EncodeEmbyRemoteID(encodeScope, remoteID)},
+		Title:         remoteItemString(item, "Name"),
+		OriginalName:  remoteItemString(item, "OriginalTitle"),
+		Overview:      remoteItemString(item, "Overview"),
+		Year:          year,
+		Rating:        float32(rating),
+		Path:          remoteItemString(item, "Path"),
+		Genres:        remoteItemGenres(item),
+		ScrapeStatus:  "done",
 	}
 	if date, ok := parseEmbyRemoteDate(remoteItemString(item, "DateCreated")); ok {
 		media.CreatedAt = date
@@ -359,7 +360,7 @@ func (r *EmbyRemoteService) RemoteLibraryMedia(ctx context.Context, mount *model
 	if itemTypes == "" {
 		itemTypes = "Movie,Series" // 未知类型时两者都取（前端自行按 episode-like 分组）
 	}
-	cacheKey := r.remoteCacheKey("library-media", acct.ID, mount.ID, remoteViewID, itemTypes, strconv.Itoa(offset), strconv.Itoa(limit))
+	cacheKey := r.remoteCacheKey(ctx, "library-media", acct.ID, mount.ID, remoteViewID, itemTypes, strconv.Itoa(offset), strconv.Itoa(limit))
 	var cached struct {
 		Items            []model.Media `json:"items"`
 		TotalRecordCount int64         `json:"total_record_count"`
@@ -406,12 +407,15 @@ func (r *EmbyRemoteService) RemoteMediaDetail(ctx context.Context, mount *model.
 func (r *EmbyRemoteService) remoteMediaDetailRaw(ctx context.Context, mount *model.EmbyMount, acct *model.StrmAccount, remoteID string) (*model.Media, map[string]any, error) {
 	cacheKey := ""
 	if r != nil && r.cache != nil && mount != nil && remoteID != "" {
-		cacheKey = r.remoteCacheKey("detail", mount.ID, remoteID)
+		cacheKey = r.remoteCacheKey(ctx, "detail", mount.ID, remoteID)
 		var cached struct {
 			Media *model.Media   `json:"media"`
 			Raw   map[string]any `json:"raw"`
 		}
 		if r.cache.GetJSON(ctx, cacheKey, &cached) && cached.Media != nil {
+			if !remoteRatingAllowed(ctx, cached.Raw) {
+				return nil, nil, ErrEmbyRemoteNotFound
+			}
 			return cached.Media, cached.Raw, nil
 		}
 	}
@@ -542,7 +546,7 @@ func (r *EmbyRemoteService) RemoteSeriesCards(ctx context.Context, mount *model.
 		return nil, err
 	}
 	// v3：Recursive=true（对齐 Emby 客户端），与旧直属/下探缓存区分。
-	cacheKey := r.remoteCacheKey("series-cards-v3", acct.ID, mount.ID, remoteViewID)
+	cacheKey := r.remoteCacheKey(ctx, "series-cards-v3", acct.ID, mount.ID, remoteViewID)
 	var cached []SeriesCard
 	if r.cache != nil && r.cache.GetJSON(ctx, cacheKey, &cached) {
 		return cached, nil
@@ -621,7 +625,7 @@ func (r *EmbyRemoteService) RemoteLatestCards(ctx context.Context, mount *model.
 	if err != nil {
 		return nil, err
 	}
-	cacheKey := r.remoteCacheKey("latest-cards", acct.ID, mount.ID, remoteViewID, strconv.Itoa(limit))
+	cacheKey := r.remoteCacheKey(ctx, "latest-cards", acct.ID, mount.ID, remoteViewID, strconv.Itoa(limit))
 	var cached []SeriesCard
 	if r.cache != nil && r.cache.GetJSON(ctx, cacheKey, &cached) {
 		return cached, nil
@@ -668,6 +672,7 @@ func (r *EmbyRemoteService) RemoteLatestCards(ctx context.Context, mount *model.
 // RemoteSearchMedia 在全部启用的挂载库中并发搜索影视条目（Movie,Series），
 // 并将远程结果映射为 model.Media。遵循当前用户的 MediaVisibility 权限规则。
 func (r *EmbyRemoteService) RemoteSearchMedia(ctx context.Context, query string, limit int, visibility MediaVisibility) ([]model.Media, error) {
+	ctx = WithContentRatingPolicy(ctx, visibility.ContentRatingPolicy)
 	if r == nil {
 		return nil, nil
 	}
@@ -839,7 +844,7 @@ func (r *EmbyRemoteService) PlayableRemoteID(ctx context.Context, acct *model.St
 	if err != nil {
 		return remoteID
 	}
-	cacheKey := r.remoteCacheKey("playable-remote-id", acct.ID, remoteID)
+	cacheKey := r.remoteCacheKey(ctx, "playable-remote-id", acct.ID, remoteID)
 	if r.cache != nil {
 		var cached string
 		// 播放器会对同一个地址发很多次 Range 请求，判定结果必须走缓存，否则每次拖动

@@ -83,8 +83,12 @@ export function ProfilePlaybackSettings({ active }: { active: boolean }) {
                   {['G', 'PG', 'PG-13', 'R', 'NC-17'].map((rating) => <option key={rating} value={rating}>{rating}</option>)}
                 </select>
               </Field>
-              <p className="mt-2 text-xs leading-5 text-(--app-muted)">保留此项偏好，内容分级过滤暂未启用。</p>
+              <p className="mt-2 text-xs leading-5 text-(--app-muted)">隐藏超过所选分级的内容，网页和连接 Nook 的客户端均生效。电视分级按对应等级比较；无法识别的分级按未分级处理。</p>
             </div>
+            <label className="flex min-h-12 items-center justify-between gap-4 py-3">
+              <span><span className="block text-sm font-medium">隐藏未分级内容</span><span className="mt-1 block text-xs text-(--app-muted)">同时隐藏未获取或无法识别分级的媒体，默认关闭。</span></span>
+              <input type="checkbox" className="h-4 w-4 shrink-0 accent-brand-500" checked={!!form.hide_unrated} onChange={event => update({ hide_unrated: event.target.checked })} />
+            </label>
             <div className="border-t border-(--app-border) pt-3">
               <h3 className="text-sm font-medium">隐藏的媒体库</h3>
               <p className="mt-1 text-xs leading-5 text-(--app-muted)">勾选后隐藏，取消勾选恢复显示。仅影响当前账号。</p>

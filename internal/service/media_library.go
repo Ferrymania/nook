@@ -67,7 +67,8 @@ func (s *MediaService) listLibrariesWithPreview(ctx context.Context, libraries [
 	}
 	visibility = ExpandMediaVisibilityForMergedCloudLibraries(ctx, s.repo, visibility)
 	filter := repository.MediaQueryFilter{
-		AllowedLibraryIDs: visibility.AllowedLibraryIDs,
+		AllowedLibraryIDs:   visibility.AllowedLibraryIDs,
+		ContentRatingPolicy: visibility.ContentRatingPolicy,
 	}
 	pending := make([]model.Library, 0, len(libraries))
 	pendingSet := make(map[string]struct{}, len(libraries))

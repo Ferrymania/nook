@@ -39,7 +39,8 @@ func NewMediaDiscoveryService(log *zap.Logger, repo *repository.Container) *Medi
 // 经过这里，避免某一处遗漏媒体库权限过滤。
 func mediaFilterFromVisibility(visibility MediaVisibility) repository.MediaQueryFilter {
 	return repository.MediaQueryFilter{
-		AllowedLibraryIDs: visibility.AllowedLibraryIDs,
+		AllowedLibraryIDs:   visibility.AllowedLibraryIDs,
+		ContentRatingPolicy: visibility.ContentRatingPolicy,
 	}
 }
 
@@ -294,6 +295,7 @@ func (s *MediaDiscoveryService) nextUpFromHistories(ctx context.Context, userID 
 
 // applyDiscoveryVisibility 把可见性过滤应用到查询上。
 func applyDiscoveryVisibility(q *gorm.DB, filter repository.MediaQueryFilter) *gorm.DB {
+	q = repository.ApplyContentRatingPolicy(q, filter.ContentRatingPolicy)
 	if len(filter.AllowedLibraryIDs) > 0 {
 		q = q.Where("library_id IN ?", filter.AllowedLibraryIDs)
 	}

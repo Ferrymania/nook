@@ -208,6 +208,13 @@ func (r *MediaRepository) findMediaByAlias(ctx context.Context, db *gorm.DB, cur
 
 func mediaUpsertUpdates(existing, incoming model.Media, reclaimLibrary bool) map[string]any {
 	updates := map[string]any{}
+	if incoming.OfficialRating != "" && existing.ContentRatingSource != "manual" {
+		updates["official_rating"] = incoming.OfficialRating
+		updates["rating_country"] = incoming.RatingCountry
+		updates["content_rating_level"] = incoming.ContentRatingLevel
+		updates["content_rating_source"] = incoming.ContentRatingSource
+		updates["content_rating_checked_at"] = incoming.ContentRatingCheckedAt
+	}
 	addMediaFileScanUpdates(updates, existing, incoming)
 	addMediaTitleUpdates(updates, existing, incoming)
 	addMediaExternalIDUpdates(updates, existing, incoming)

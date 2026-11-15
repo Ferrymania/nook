@@ -229,7 +229,7 @@ func (e *EmbyService) similarItems(ctx context.Context, mediaID, userID string, 
 	// 详情页每次打开都会请求相似推荐，而重建要走「取候选池 + 内存打分」
 	// （实测冷 340ms / 热 70ms）。推荐列表短暂陈旧无害，用短 TTL 缓存，
 	// 新建库或换用户都会因为键名不同而自然隔离。
-	cacheKey := e.embySimilarCacheKey(mediaID, userID, limit)
+	cacheKey := e.embySimilarCacheKey(ctx, mediaID, userID, limit)
 	if e.cache != nil {
 		var cached embyItemsCacheValue
 		if e.cache.GetJSON(ctx, cacheKey, &cached) && cached.Items != nil {

@@ -85,7 +85,8 @@ func (s *MediaService) ListMediaVisibleFiltered(
 		return nil, 0, err
 	}
 	filter := filters.apply(repository.MediaQueryFilter{
-		AllowedLibraryIDs: visibility.AllowedLibraryIDs,
+		AllowedLibraryIDs:   visibility.AllowedLibraryIDs,
+		ContentRatingPolicy: visibility.ContentRatingPolicy,
 	})
 	cacheKey := s.mediaListCacheKey(libraryID, libraryIDs, page, pageSize, filter)
 	var cached mediaListCacheValue
@@ -134,7 +135,8 @@ func (s *MediaService) GroupedMediaVisibleFiltered(
 		return nil, err
 	}
 	filter := filters.apply(repository.MediaQueryFilter{
-		AllowedLibraryIDs: visibility.AllowedLibraryIDs,
+		AllowedLibraryIDs:   visibility.AllowedLibraryIDs,
+		ContentRatingPolicy: visibility.ContentRatingPolicy,
 	})
 	itemsCacheKey := s.groupedItemsCacheKey(libraryID, libraryIDs, filter)
 	value, err, _ := s.groupedMediaFlight.Do(itemsCacheKey, func() (any, error) {
@@ -173,7 +175,8 @@ func (s *MediaService) listMediaVisibleForGrouping(ctx context.Context, libraryI
 		return nil, err
 	}
 	filter := filters.apply(repository.MediaQueryFilter{
-		AllowedLibraryIDs: visibility.AllowedLibraryIDs,
+		AllowedLibraryIDs:   visibility.AllowedLibraryIDs,
+		ContentRatingPolicy: visibility.ContentRatingPolicy,
 	})
 	// 版本分组的 URL 分页发生在 Go 进程内，响应里的 total 是分组后的数量，
 	// 不需要数据库再为原始行做一次 COUNT(*)。全量 COUNT 在超大媒体库上
@@ -268,7 +271,7 @@ func (s *MediaService) listVersionSiblings(ctx context.Context, media *model.Med
 	}
 	matched := make([]model.Media, 0, 4)
 	for _, row := range candidates {
-		if mediaVersionGroupKeyWithAdultVouch(row, vouched) == key {
+		if contentRatingPolicyFromContext(ctx).AllowsContentRating(row.ContentRatingLevel) && mediaVersionGroupKeyWithAdultVouch(row, vouched) == key {
 			matched = append(matched, row)
 		}
 	}

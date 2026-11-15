@@ -22,7 +22,8 @@ func (s *MediaService) listLibrarySeriesPreviewCards(ctx context.Context, librar
 		return nil, err
 	}
 	filter := repository.MediaQueryFilter{
-		AllowedLibraryIDs: visibility.AllowedLibraryIDs,
+		AllowedLibraryIDs:   visibility.AllowedLibraryIDs,
+		ContentRatingPolicy: visibility.ContentRatingPolicy,
 	}
 	rows, err := s.repo.Media.ListSeriesPreviewRows(ctx, libraryIDs, filter)
 	if err != nil {
