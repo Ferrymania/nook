@@ -151,8 +151,6 @@ export function HomeCarouselSection({
         <div className="nook-film-meta">
           {currentItem.rating > 0 && <span className="nook-rating"><Star size={13} fill="currentColor" />{currentItem.rating.toFixed(1)}</span>}
           {currentItem.year > 0 && <span>{currentItem.year} 年</span>}
-          {currentItem.video_codec && <span>{currentItem.video_codec}</span>}
-          {currentItem.container && <span>{currentItem.container}</span>}
           {lib && <span className="nook-spotlight-library">{TYPE_ICONS[lib.type] || <FolderOpen size={14} />}{lib.name}</span>}
         </div>
         <h2 title={currentItem.title}>{currentItem.title}</h2>
