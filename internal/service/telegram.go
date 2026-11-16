@@ -41,7 +41,7 @@ const (
 	telegramDisabledCheckInterval = 10 * time.Second
 )
 
-// TelegramService 提供管理员运维通知与同步控制。
+// TelegramService 提供管理员站点状态、运维通知与同步控制。
 // 管理命令仅接受系统设置里的管理员私聊 ID。
 type TelegramService struct {
 	log  *zap.Logger
@@ -58,6 +58,7 @@ type TelegramService struct {
 	// pollClient 专用于 getUpdates 长轮询，超时须 > telegramPollTimeout。
 	pollClient *http.Client
 	strm       *StrmService
+	sessions   *SessionTrackerService
 	syncRun    *telegramSyncRun // guarded by mu; at most one Telegram batch
 	images     *ImageProxy
 	people     func(context.Context, *model.Media) []map[string]any

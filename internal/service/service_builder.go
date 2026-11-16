@@ -222,9 +222,10 @@ func (b *serviceContainerBuilder) initIdentityServices() {
 	b.c.Sessions = NewSessionTrackerService(b.log)
 	b.c.Device = NewDeviceService(b.log, b.repos)
 	b.c.Device.SetSessionTracker(b.c.Sessions)
-	// Telegram 仅供管理员接收运维通知和控制同步。
+	// Telegram 仅供管理员查看站点状态、接收运维通知和控制同步。
 	b.c.Telegram = NewTelegramService(b.log, b.repos)
 	b.c.Telegram.SetStrmService(b.c.Strm)
+	b.c.Telegram.SetSessionTracker(b.c.Sessions)
 	b.c.Device.SetAdminNotifier(b.c.Telegram.SendToAdmin)
 	b.c.ApiConfig = NewApiConfigService(b.cfg, b.log, b.repos, b.c.Crypto)
 }

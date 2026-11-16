@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"html"
-	"strings"
 	"time"
 
 	"github.com/Ferrymania/nook/internal/helper"
@@ -36,7 +35,7 @@ func (s *TelegramService) startTelegramSync(ctx context.Context, token, chatID, 
 	s.mu.Lock()
 	if s.syncRun != nil {
 		s.mu.Unlock()
-		s.controlReply(ctx, token, chatID, "已有 Telegram 同步任务，请用 /status 查看或 /cancel 取消。", nil)
+		s.controlReply(ctx, token, chatID, "已有 Telegram 同步任务，请等待结果通知，或用 /cancel 取消。", nil)
 		return
 	}
 	runCtx, cancel := context.WithCancel(ctx)
@@ -157,57 +156,4 @@ func (s *TelegramService) cancelTelegramSync(ctx context.Context, token, chatID,
 		text = "该目录的同步已结束"
 	}
 	s.controlReply(ctx, token, chatID, text, nil)
-}
-
-func (s *TelegramService) sendSyncStatus(ctx context.Context, token, chatID string) {
-	paths, err := s.strm.ListSyncPaths(ctx)
-	if err != nil {
-		s.controlReply(ctx, token, chatID, "读取同步状态失败，请稍后重试", nil)
-		return
-	}
-	lines := []string{"STRM 同步状态"}
-	s.mu.Lock()
-	if s.syncRun != nil {
-		lines = append(lines, fmt.Sprintf("Telegram 同步进行中，待执行 %d 个目录", s.syncRun.remaining))
-	}
-	s.mu.Unlock()
-	if len(paths) == 0 {
-		lines = append(lines, "暂无同步目录")
-	}
-	for _, p := range paths {
-		state := "未同步"
-		switch p.LastSyncStatus {
-		case model.StrmSyncRecordDone, "ok":
-			state = "已完成"
-		case model.StrmSyncRecordFailed, "error":
-			state = "失败"
-		case model.StrmSyncRecordCanceled:
-			state = "已取消"
-		}
-		if s.strm.IsSyncRunning(p.ID) {
-			state = "同步中"
-		} else if !p.Enabled {
-			state = "已禁用"
-		}
-		line := html.EscapeString(telegramPathName(p)) + "：" + state
-		if p.LastSyncAt != nil {
-			line += "（" + p.LastSyncAt.Format("01-02 15:04") + "）"
-		}
-		if p.LastSyncMessage != "" {
-			line += "\n" + html.EscapeString(redactSensitiveText(p.LastSyncMessage))
-		}
-		lines = append(lines, line)
-	}
-	// Keep each Telegram message within its text limit without splitting HTML.
-	text := ""
-	for _, line := range lines {
-		if len(text)+len(line) > 3500 && text != "" {
-			s.controlReply(ctx, token, chatID, text, nil)
-			text = ""
-		}
-		text += line + "\n"
-	}
-	if strings.TrimSpace(text) != "" {
-		s.controlReply(ctx, token, chatID, text, nil)
-	}
 }
