@@ -454,7 +454,7 @@ func (s *MediaService) ListMediaEpisodes(ctx context.Context, mediaID string, vi
 
 func libraryUsesSingleMediaRows(libraryType string) bool {
 	switch strings.ToLower(strings.TrimSpace(libraryType)) {
-	case "movie", "movies", "music", "adult":
+	case "movie", "movies", "music":
 		return true
 	default:
 		return false

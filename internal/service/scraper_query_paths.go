@@ -196,7 +196,6 @@ func isGenericMediaCategoryFolder(name string) bool {
 		"综艺", "真人秀",
 		"纪录片", "纪录",
 		"儿童", "少儿",
-		"成人", "番号", "9kg",
 		"未分类", "uncategorized":
 		return true
 	default:

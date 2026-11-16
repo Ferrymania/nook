@@ -51,17 +51,6 @@ func (s *ScraperService) EnrichOneWithOptions(ctx context.Context, m *model.Medi
 
 	year := mediaYearHint(m)
 
-	if s.adult != nil && s.adult.Enabled() {
-		if code := firstText(localAdultCode(local), AdultCodeFromMediaPath(m.Path), normalizeAdultCode(m.OriginalName), normalizeAdultCode(m.Title)); code != "" {
-			if adultMatch, err := s.adult.Search(ctx, code); err == nil && adultMatch != nil {
-				mergeLocalMetadataIntoMatch(adultMatch, local)
-				return s.applyProviderMatchWithOptions(ctx, m, lib, adultMatch, options)
-			} else if err != nil {
-				s.log.Debug("adult metadata search failed", zap.String("media_id", m.ID), zap.String("code", code), zap.Error(err))
-			}
-		}
-	}
-
 	if !options.ForceRematch {
 		if match := s.matchFromMediaExternalIDs(ctx, m, lib); match != nil {
 			s.applyFanartArtwork(ctx, match)
@@ -123,7 +112,7 @@ func (s *ScraperService) EnrichOneWithOptions(ctx context.Context, m *model.Medi
 			}
 			return err
 		}
-		if !s.onlineScrapeAvailable(ctx) && (s.adult == nil || !s.adult.Enabled()) {
+		if !s.onlineScrapeAvailable(ctx) {
 			return errNoScrapeProvider
 		}
 		if err := s.repo.DB.WithContext(ctx).Model(&model.Media{}).Where("id = ?", m.ID).
@@ -207,7 +196,6 @@ func (s *ScraperService) applyProviderMatchWithOptions(ctx context.Context, m *m
 		updates["genres"] = strings.Join(match.Genres, ",")
 		updates["countries"] = strings.Join(match.Countries, ",")
 		updates["languages"] = strings.Join(match.Languages, ",")
-		updates["nsfw"] = match.NSFW
 	}
 	if options.RebuildIdentity {
 		updates["season_num"] = m.SeasonNum
@@ -237,9 +225,7 @@ func (s *ScraperService) applyProviderMatchWithOptions(ctx context.Context, m *m
 	if match.TheTVDBID != "" {
 		updates["thetvdb_id"] = match.TheTVDBID
 	}
-	if match.NSFW {
-		updates["nsfw"] = true
-	}
+
 	if len(match.Genres) > 0 {
 		updates["genres"] = strings.Join(match.Genres, ",")
 	}
@@ -293,7 +279,7 @@ func (s *ScraperService) applyProviderMatchWithOptions(ctx context.Context, m *m
 		"bangumi_id": match.BangumiID,
 		"douban_id":  match.DoubanID,
 		"thetvdb_id": match.TheTVDBID,
-		"source":     map[bool]string{true: "adult"}[match.NSFW],
+		"source":     match.Provider,
 	})
 	provider := strings.ToLower(strings.TrimSpace(match.Provider))
 	if provider == "" {
@@ -308,7 +294,7 @@ func applyScrapeMediaTypeResets(updates map[string]any, match *Match) {
 		return
 	}
 	switch normalizeMetadataMediaType(match.MediaType) {
-	case "movie", "adult":
+	case "movie":
 		updates["season_num"] = 0
 		updates["episode_num"] = 0
 		updates["episode_title"] = ""

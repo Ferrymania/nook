@@ -59,9 +59,7 @@ func mergeManualRequestIntoMatch(match *Match, req ManualScrapeRequest) *Match {
 	if len(req.Languages) > 0 {
 		match.Languages = req.Languages
 	}
-	if req.NSFW {
-		match.NSFW = true
-	}
+
 	return match
 }
 

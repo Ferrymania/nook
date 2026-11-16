@@ -35,7 +35,7 @@ func TestMediaVisibilityUsesLibraryPermissionsRegardlessOfAdultMetadata(t *testi
 	}
 	rows := []model.Media{
 		{LibraryID: "allowed", Title: "普通电影", Path: "/media/adult/a.mkv"},
-		{LibraryID: "allowed", Title: "成人电影", Path: "/media/adult/b.mkv", NSFW: true},
+		{LibraryID: "allowed", Title: "成人电影", Path: "/media/adult/b.mkv"},
 		{LibraryID: "denied", Title: "未授权电影", Path: "/media/movies/c.mkv"},
 	}
 	if err := db.Create(&rows).Error; err != nil {

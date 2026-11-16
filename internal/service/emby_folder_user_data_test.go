@@ -224,7 +224,7 @@ func TestEmbyFolderCountsRespectVisibilitySpecialsAndDeletedMedia(t *testing.T) 
 		{Base: model.Base{ID: "unknown-a"}, SeasonNum: 1},
 		{Base: model.Base{ID: "unknown-b"}, SeasonNum: 1},
 		{Base: model.Base{ID: "deleted"}, SeasonNum: 1, EpisodeNum: 2},
-		{Base: model.Base{ID: "adult"}, SeasonNum: 1, EpisodeNum: 3, NSFW: true},
+		{Base: model.Base{ID: "adult"}, SeasonNum: 1, EpisodeNum: 3},
 		{Base: model.Base{ID: "hidden"}, LibraryID: hidden, SeasonNum: 1, EpisodeNum: 4},
 	} {
 		if m.LibraryID == "" {

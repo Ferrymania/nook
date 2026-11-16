@@ -146,39 +146,23 @@ func TestLogoutKeepsRealtimeLastActivityWithoutOnlineSession(t *testing.T) {
 	}
 }
 
-func TestRealtimeRecentLoginProtectsCleanupCandidate(t *testing.T) {
+func TestSessionTrackerRecentlyActiveUsesRealtimeLogin(t *testing.T) {
 	t.Parallel()
-
-	repos := newSessionTrackerTestRepos(t)
-	now := time.Date(2026, 6, 21, 12, 0, 0, 0, time.UTC)
-	old := now.Add(-30 * 24 * time.Hour)
-	user := model.User{Base: model.Base{ID: "u1"}, Username: "viewer", PasswordHash: "x", Role: "user", IsActive: true, LastLoginAt: &old}
-	if err := repos.User.Create(t.Context(), &user); err != nil {
-		t.Fatal(err)
-	}
-	if err := repos.Setting.Set(t.Context(), SettingAccountCleanupEnabled, "true"); err != nil {
-		t.Fatal(err)
-	}
-	if err := repos.Setting.Set(t.Context(), SettingAccountCleanupRules, `[{"id":"login_7d","name":"最近登录","type":"recent_login","enabled":true,"window_days_max":7}]`); err != nil {
-		t.Fatal(err)
-	}
 	tracker := NewSessionTrackerService(zap.NewNop())
+	now := time.Date(2026, 6, 21, 12, 0, 0, 0, time.UTC)
 	tracker.now = func() time.Time { return now }
-	tracker.RecordLogin(t.Context(), user.ID, user.Username, "web", "Web", "Browser", "127.0.0.1")
-	device := NewDeviceService(zap.NewNop(), repos)
-	device.SetSessionTracker(tracker)
-
-	candidates, err := device.PreviewAccountCleanup(t.Context())
-	if err != nil {
-		t.Fatal(err)
+	tracker.RecordLogin(t.Context(), "viewer", "viewer", "web", "Web", "Browser", "127.0.0.1")
+	if !tracker.UserRecentlyActive(t.Context(), "viewer", 7*24*time.Hour) {
+		t.Fatal("realtime login must count as recent activity")
 	}
-	if len(candidates) != 0 {
-		t.Fatalf("recent realtime login should protect user, got candidates %#v", candidates)
+	now = now.Add(8 * 24 * time.Hour)
+	if tracker.UserRecentlyActive(t.Context(), "viewer", 7*24*time.Hour) {
+		t.Fatal("expired realtime activity must not count as recent")
 	}
 }
 
 func newSessionTrackerTestRepos(t *testing.T) *repository.Container {
 	t.Helper()
-	db := newServiceTestDB(t, &model.User{}, &model.Setting{}, &model.UserDevice{}, &model.SignIn{}, &model.PlaybackHistory{})
+	db := newServiceTestDB(t, &model.User{}, &model.Setting{}, &model.UserDevice{}, &model.PlaybackHistory{})
 	return repository.New(db)
 }

@@ -123,7 +123,6 @@ export interface ManualScrapeCandidate {
   languages?: string[]
   countries?: string[]
   genres?: string[]
-  nsfw?: boolean
 }
 
 export interface ScrapeOptions {
@@ -157,7 +156,6 @@ export interface MediaMetadataUpdate {
   languages?: string
   countries?: string
   genres?: string
-  nsfw?: boolean
 }
 
 export interface LibraryWithPreview extends Library {

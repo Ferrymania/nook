@@ -50,7 +50,6 @@ export interface Media {
   countries?: string
   genres?: string
   genre_names?: string[]
-  nsfw: boolean
   strm_url?: string
   file_hash?: string
   file_id?: string

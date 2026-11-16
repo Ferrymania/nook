@@ -125,7 +125,6 @@ func registerAdminUserRoutes(admin *gin.RouterGroup, svc *service.Container) {
 	admin.GET("/settings", listSettingsHandler(svc))
 	admin.PUT("/settings", updateSettingHandler(svc))
 	admin.POST("/telegram/test", testTelegramHandler(svc))
-	admin.POST("/adult/test-scraper", testAdultScraperHandler(svc))
 	admin.GET("/logs", recentLogsHandler(svc))
 }
 

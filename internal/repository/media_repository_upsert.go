@@ -314,9 +314,7 @@ func addMatchedMediaDetailUpdates(updates map[string]any, existing, incoming mod
 	if incoming.ReleaseDate != "" {
 		setIfChanged(updates, "release_date", existing.ReleaseDate, incoming.ReleaseDate)
 	}
-	if incoming.NSFW && !existing.NSFW {
-		updates["nsfw"] = true
-	}
+
 }
 
 func addMediaArtworkUpdates(updates map[string]any, existing, incoming model.Media) {

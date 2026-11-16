@@ -153,7 +153,7 @@ func TestSeriesMediaAnchorHonorsVisibility(t *testing.T) {
 	}
 	if err := db.Create(&[]model.Media{
 		{Base: model.Base{ID: "safe"}, LibraryID: lib.ID, Title: "安全剧集", Path: "/media/番剧/Safe/S01E01.strm", SeasonNum: 1, EpisodeNum: 1},
-		{Base: model.Base{ID: "adult"}, LibraryID: lib.ID, Title: "成人剧集", Path: "/media/番剧/Adult/S01E01.strm", SeasonNum: 1, EpisodeNum: 1, NSFW: true},
+		{Base: model.Base{ID: "adult"}, LibraryID: lib.ID, Title: "成人剧集", Path: "/media/番剧/Adult/S01E01.strm", SeasonNum: 1, EpisodeNum: 1},
 	}).Error; err != nil {
 		t.Fatal(err)
 	}

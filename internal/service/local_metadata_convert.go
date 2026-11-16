@@ -14,7 +14,6 @@ func metadataFromDoc(doc *nfoDocument, baseDir string, seriesLike bool) *LocalMe
 	meta := &LocalMetadata{
 		Title:        cleanXMLText(doc.Title),
 		OriginalName: cleanXMLText(doc.OriginalTitle),
-		AdultCode:    normalizeAdultCode(doc.Num),
 		Year:         int(doc.Year),
 		ReleaseDate:  normalizeReleaseDate(firstText(doc.Premiered, doc.ReleaseDate, doc.Release, doc.Aired)),
 		Overview:     firstText(doc.Plot, doc.Outline, doc.OriginalPlot),
@@ -38,15 +37,7 @@ func metadataFromDoc(doc *nfoDocument, baseDir string, seriesLike bool) *LocalMe
 	if nfoIsEpisodeDetails(doc) {
 		meta.EpisodeTitle = cleanXMLText(doc.Title)
 	}
-	if meta.AdultCode == "" {
-		meta.AdultCode = normalizeAdultCode(firstText(doc.OriginalTitle, doc.SortTitle, doc.Title))
-	}
-	if meta.AdultCode != "" {
-		meta.NSFW = true
-		if meta.OriginalName == "" || strings.EqualFold(meta.OriginalName, meta.Title) {
-			meta.OriginalName = meta.AdultCode
-		}
-	}
+
 	if seriesLike && cleanXMLText(doc.ShowTitle) != "" {
 		meta.Title = cleanXMLText(doc.ShowTitle)
 		if cleanXMLText(doc.Title) != "" {

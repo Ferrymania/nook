@@ -306,8 +306,7 @@ func (s *AuthService) ResetPassword(ctx context.Context, userID, newPwd string) 
 }
 
 // VerifyPassword checks a user's current password without mutating account
-// state. It is used for sensitive self-service actions such as hiding adult
-// libraries or deleting play profiles.
+// state. It is used for sensitive self-service actions such as deleting play profiles.
 func (s *AuthService) VerifyPassword(ctx context.Context, userID, password string) error {
 	u, err := s.repo.User.FindByID(ctx, userID)
 	if err != nil {

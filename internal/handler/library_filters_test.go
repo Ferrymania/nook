@@ -118,7 +118,7 @@ func TestLibraryGenreAliasesAgreeAcrossFacetsFiltersAndDetail(t *testing.T) {
 	m := &model.Media{LibraryID: libID, Title: "English", Genres: rawGenres, Path: "/english.mkv"}
 	seedLibraryMedia(t, svc, m,
 		&model.Media{LibraryID: libID, Title: "Chinese", Genres: "恐怖", Path: "/chinese.mkv"},
-		&model.Media{LibraryID: libID, Title: "Adult metadata", Genres: "Horror", Path: "/hidden.mkv", NSFW: true},
+		&model.Media{LibraryID: libID, Title: "Adult metadata", Genres: "Horror", Path: "/hidden.mkv"},
 		&model.Media{LibraryID: "other-library", Title: "Other", Genres: "Horror", Path: "/other.mkv"},
 	)
 	code, body := getJSON(t, router, "/api/libraries/"+libID+"/facets")
@@ -220,7 +220,7 @@ func TestListMediaIgnoresRemovedUnmatchedFilter(t *testing.T) {
 		&model.Media{Base: model.Base{ID: "pending"}, LibraryID: libID, Title: "Pending", Path: "/pending.mkv", ScrapeStatus: "pending"},
 		&model.Media{Base: model.Base{ID: "legacy"}, LibraryID: libID, Title: "Legacy", Path: "/legacy.mkv"},
 		&model.Media{LibraryID: "other-library", Title: "Other", Path: "/other.mkv", ScrapeStatus: "no_match", Genres: "Comedy"},
-		&model.Media{LibraryID: libID, Base: model.Base{ID: "adult"}, Title: "Adult metadata", Path: "/hidden.mkv", ScrapeStatus: "no_match", Genres: "Comedy", NSFW: true},
+		&model.Media{LibraryID: libID, Base: model.Base{ID: "adult"}, Title: "Adult metadata", Path: "/hidden.mkv", ScrapeStatus: "no_match", Genres: "Comedy"},
 	)
 	if err := svc.Repo.DB.Model(&model.Media{}).Where("id = ?", "legacy").UpdateColumn("scrape_status", nil).Error; err != nil {
 		t.Fatal(err)

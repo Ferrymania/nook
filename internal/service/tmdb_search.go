@@ -67,7 +67,6 @@ func (t *TMDbProvider) searchMovieCandidates(ctx context.Context, query string, 
 	q.Set("api_key", apiKey)
 	q.Set("query", query)
 	q.Set("language", language)
-	q.Set("include_adult", "true")
 	if year > 0 {
 		q.Set("year", fmt.Sprintf("%d", year))
 	}
@@ -156,7 +155,6 @@ func (t *TMDbProvider) searchTVCandidates(ctx context.Context, query string, yea
 	q.Set("api_key", apiKey)
 	q.Set("query", query)
 	q.Set("language", language)
-	q.Set("include_adult", "true")
 	if year > 0 {
 		q.Set("first_air_date_year", fmt.Sprintf("%d", year))
 	}

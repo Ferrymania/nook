@@ -63,7 +63,7 @@ func TestSeriesPreviewMatchesCompleteLibraryCards(t *testing.T) {
 			Title: "同一节目", Path: "/media/anime/Release.B/S01E02.mkv", SeasonNum: 1, EpisodeNum: 2,
 			ScrapeStatus: "matched", TMDbID: 999, Year: 2026},
 		model.Media{Base: model.Base{ID: "adult", CreatedAt: now.Add(48 * time.Hour)}, LibraryID: lib.ID,
-			Title: "成人节目", Path: "/media/anime/成人节目/S01E01.mkv", SeasonNum: 1, EpisodeNum: 1, NSFW: true},
+			Title: "成人节目", Path: "/media/anime/成人节目/S01E01.mkv", SeasonNum: 1, EpisodeNum: 1},
 		model.Media{Base: model.Base{ID: "private"}, LibraryID: other.ID,
 			Title: "不可访问", Path: "/media/private/节目/S01E01.mkv", SeasonNum: 1, EpisodeNum: 1},
 	)

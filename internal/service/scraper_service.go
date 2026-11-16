@@ -20,7 +20,6 @@ type ScraperService struct {
 	bangumi *BangumiProvider
 	thetvdb *TheTVDBProvider
 	fanart  *FanartProvider
-	adult   *AdultProvider
 	hub     *Hub
 	cache   *RuntimeCacheService
 	images  *ImageProxy
@@ -49,15 +48,10 @@ func NewScraperService(
 	thetvdb *TheTVDBProvider,
 	fanart *FanartProvider,
 	hub *Hub,
-	adult ...*AdultProvider,
 ) *ScraperService {
-	var adultProvider *AdultProvider
-	if len(adult) > 0 {
-		adultProvider = adult[0]
-	}
 	return &ScraperService{
 		cfg: cfg, log: log, repo: repo,
-		tmdb: tmdb, bangumi: bangumi, thetvdb: thetvdb, fanart: fanart, adult: adultProvider, hub: hub,
+		tmdb: tmdb, bangumi: bangumi, thetvdb: thetvdb, fanart: fanart, hub: hub,
 		lookupCache: newScrapeLookupCache(),
 	}
 }
@@ -102,9 +96,6 @@ func (s *ScraperService) AnyEnabled() bool {
 	if s.thetvdb != nil && s.thetvdb.Enabled() {
 		return true
 	}
-	if s.adult != nil && s.adult.Enabled() {
-		return true
-	}
 	return false
 }
 
@@ -119,7 +110,7 @@ func (s *ScraperService) determineMediaTypeForMedia(lib *model.Library, media *m
 		switch normalizeMetadataMediaType(match.MediaType) {
 		case "tv", "anime", "variety":
 			return "tv"
-		case "movie", "adult":
+		case "movie":
 			return "movie"
 		}
 	}

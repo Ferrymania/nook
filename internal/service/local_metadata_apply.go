@@ -11,9 +11,7 @@ func applyLocalMetadata(m *model.Media, local *LocalMetadata) {
 	applyLocalExternalIDMetadata(m, local)
 	applyLocalEpisodeMetadata(m, local)
 	applyLocalTaxonomyMetadata(m, local)
-	if local.NSFW {
-		m.NSFW = true
-	}
+
 	if localMetadataMarksMatched(local) {
 		m.ScrapeStatus = "matched"
 	}
@@ -36,9 +34,7 @@ func applyLocalIdentityMetadata(m *model.Media, local *LocalMetadata) {
 	if local.OriginalName != "" {
 		m.OriginalName = local.OriginalName
 	}
-	if local.AdultCode != "" {
-		m.OriginalName = local.AdultCode
-	}
+
 	if local.Year > 0 {
 		m.Year = local.Year
 	}
@@ -117,7 +113,6 @@ func localHasDescriptiveMetadata(local *LocalMetadata) bool {
 	return local.Title != "" ||
 		local.OriginalName != "" ||
 		local.EpisodeTitle != "" ||
-		local.AdultCode != "" ||
 		local.Year > 0 ||
 		local.ReleaseDate != "" ||
 		local.Overview != "" ||

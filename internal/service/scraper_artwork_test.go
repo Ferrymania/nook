@@ -66,13 +66,13 @@ func TestApplyProviderMatchInvalidatesMediaCache(t *testing.T) {
 	if err := repos.DB.Create(&media).Error; err != nil {
 		t.Fatal(err)
 	}
-	match := &Match{Provider: "adult", Title: "Matched", PosterURL: "https://image.tmdb.org/t/p/w500/poster.jpg", BackdropURL: "https://image.tmdb.org/t/p/w1280/backdrop.jpg"}
+	match := &Match{Provider: "thetvdb", Title: "Matched", PosterURL: "https://image.tmdb.org/t/p/w500/poster.jpg", BackdropURL: "https://image.tmdb.org/t/p/w1280/backdrop.jpg"}
 	usedProvider := ""
 	if err := scraper.applyProviderMatchWithOptions(t.Context(), &media, &lib, match, ScrapeOptions{resultProvider: &usedProvider}); err != nil {
 		t.Fatal(err)
 	}
-	if usedProvider != "adult" {
-		t.Fatalf("recorded provider = %q, want adult", usedProvider)
+	if usedProvider != "thetvdb" {
+		t.Fatalf("recorded provider = %q, want thetvdb", usedProvider)
 	}
 
 	var stale map[string]string

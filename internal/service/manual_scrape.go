@@ -26,7 +26,6 @@ type ManualScrapeRequest struct {
 	Languages      []string `json:"languages"`
 	Countries      []string `json:"countries"`
 	Genres         []string `json:"genres"`
-	NSFW           bool     `json:"nsfw"`
 	EpisodeArtwork *bool    `json:"episode_artwork,omitempty"`
 	EpisodeImages  *bool    `json:"episode_images,omitempty"`
 }
@@ -92,7 +91,7 @@ func rebuildManualScrapeIdentity(media *model.Media, lib *model.Library, match *
 		media.EpisodeFraction = onlineEpisodeFractionFromPath(media.Path)
 		fillNumberedPartEpisodeIdentity(media, lib)
 		media.EpisodeTitle = ""
-	case "movie", "adult":
+	case "movie":
 		media.SeasonNum = 0
 		media.EpisodeNum = 0
 		media.EpisodeFraction = 0
@@ -103,7 +102,7 @@ func rebuildManualScrapeIdentity(media *model.Media, lib *model.Library, match *
 func (s *ScraperService) manualRequestMatch(ctx context.Context, req ManualScrapeRequest) (*Match, error) {
 	source := strings.ToLower(strings.TrimSpace(req.Source))
 	switch source {
-	case "", "manual", "tmdb", "bangumi", "thetvdb", "adult":
+	case "", "manual", "tmdb", "bangumi", "thetvdb":
 	default:
 		return nil, errors.New("unsupported manual scrape source")
 	}
@@ -133,19 +132,6 @@ func (s *ScraperService) manualRequestMatch(ctx context.Context, req ManualScrap
 			if err == nil && match != nil {
 				return mergeManualRequestIntoMatch(match, req), nil
 			}
-		}
-	case source == "adult":
-		match := s.manualAdultMatch(ctx, firstText(req.OriginalName, req.Title))
-		if match != nil {
-			// Older search responses used the portrait poster as a backdrop
-			// fallback. Do not let that placeholder replace a real preview
-			// image returned by the selected source.
-			if strings.TrimSpace(match.BackdropURL) != "" &&
-				strings.TrimSpace(req.BackdropURL) == strings.TrimSpace(req.PosterURL) {
-				req.BackdropURL = ""
-				req.PosterURL = ""
-			}
-			return mergeManualRequestIntoMatch(match, req), nil
 		}
 	}
 	return fallback()

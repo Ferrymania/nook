@@ -56,13 +56,6 @@ func yearFromText(raw string) int {
 	return year
 }
 
-func localAdultCode(local *LocalMetadata) string {
-	if local == nil {
-		return ""
-	}
-	return local.AdultCode
-}
-
 func mergeLocalMetadataIntoMatch(match *Match, local *LocalMetadata) {
 	if match == nil || local == nil {
 		return
@@ -80,10 +73,7 @@ func mergeLocalMetadataIntoMatch(match *Match, local *LocalMetadata) {
 	if local.OriginalName != "" {
 		match.OriginalName = local.OriginalName
 	}
-	if local.AdultCode != "" {
-		match.OriginalName = local.AdultCode
-		match.NSFW = true
-	}
+
 	episode := local.SeasonNum > 0 || local.EpisodeNum > 0
 	if local.Overview != "" && !episode {
 		match.Overview = local.Overview
@@ -130,9 +120,7 @@ func mergeLocalMetadataIntoMatch(match *Match, local *LocalMetadata) {
 	if local.Languages != "" {
 		match.Languages = splitNFOList(local.Languages)
 	}
-	if local.NSFW {
-		match.NSFW = true
-	}
+
 }
 
 func mergePathHintIDsIntoMatch(match *Match, local *LocalMetadata) {
@@ -258,9 +246,7 @@ func (s *ScraperService) applyLocalMetadataMatch(ctx context.Context, m *model.M
 	if next.Languages != "" {
 		updates["languages"] = next.Languages
 	}
-	if next.NSFW {
-		updates["nsfw"] = true
-	}
+
 	if err := s.repo.DB.WithContext(ctx).Model(&model.Media{}).
 		Where("id = ?", m.ID).Updates(updates).Error; err != nil {
 		return err

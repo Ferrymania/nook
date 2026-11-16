@@ -114,18 +114,18 @@ func TestScanAnimeTheatricalFolderUsesMovieNFO(t *testing.T) {
 
 func TestScanLibraryDoesNotMarkArtworkOnlyAsMatched(t *testing.T) {
 	root := t.TempDir()
-	mediaPath := filepath.Join(root, "SSIS-001-CD1.mp4")
+	mediaPath := filepath.Join(root, "Movie.mp4")
 	if err := os.WriteFile(mediaPath, []byte("x"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	poster := filepath.Join(root, "SSIS-001-poster.jpg")
+	poster := filepath.Join(root, "Movie-poster.jpg")
 	if err := os.WriteFile(poster, []byte("jpg"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
 	db := newServiceTestDB(t, &model.Library{}, &model.Media{}, &model.Setting{})
 	repos := repository.New(db)
-	lib := model.Library{Name: "Adult", Path: root, Type: "movie", Enabled: true}
+	lib := model.Library{Name: "Movies", Path: root, Type: "movie", Enabled: true}
 	if err := repos.Library.Create(t.Context(), &lib); err != nil {
 		t.Fatal(err)
 	}

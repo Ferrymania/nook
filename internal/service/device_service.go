@@ -15,16 +15,9 @@ import (
 	"github.com/Ferrymania/nook/internal/repository"
 )
 
-// DeviceService implements device/session tracking and the two decoupled
-// enforcement policies requested by the operator:
-//
-//	① 防共享: too many concurrent playbacks / logged-in clients disables the
-//	   account immediately. Device name changes do not trigger warnings or bans.
-//	② Mgo 保号规则: admins define one or more keep rules; a sweep deletes
-//	   accounts only when none of the enabled keep rules match.
-//
-// Safeguards: admin / protected accounts are never auto disabled or deleted;
-// policy actions are logged and every policy defaults to OFF.
+// DeviceService tracks devices and sessions and enforces anti-sharing limits.
+// Excess concurrent playback or logged-in terminals can disable an account.
+// Admin and protected accounts are exempt; enforcement defaults to off.
 type DeviceService struct {
 	log      *zap.Logger
 	repo     *repository.Container
@@ -61,7 +54,7 @@ func fingerprint(client, deviceName string) string {
 	return hex.EncodeToString(sum[:])[:16]
 }
 
-// isProtected reports whether a user must never be auto disabled/deleted.
+// isProtected reports whether a user is exempt from automatic device restrictions.
 // Admins are always protected; the earliest admin (default admin) too.
 func (s *DeviceService) isProtected(ctx context.Context, u *model.User) bool {
 	return UserIsProtectedAccount(ctx, s.repo, u)
@@ -212,10 +205,6 @@ func (s *DeviceService) disableForPolicy(ctx context.Context, userID, reason str
 		html.EscapeString(u.Username), html.EscapeString(reason))
 	s.notifyAdminMsg(ctx, disableText)
 	s.log.Warn("device policy: disabled account", zap.String("user", u.Username), zap.String("reason", reason))
-}
-
-func (s *DeviceService) UserRecentlyActive(ctx context.Context, userID string, within time.Duration) bool {
-	return s.sessions != nil && s.sessions.UserRecentlyActive(ctx, userID, within)
 }
 
 func (s *DeviceService) now() time.Time {

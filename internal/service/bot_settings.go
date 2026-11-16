@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"sort"
 	"strconv"
 	"strings"
@@ -11,8 +10,8 @@ import (
 	"github.com/Ferrymania/nook/internal/repository"
 )
 
-// Bot / 设备管控相关的设置键。全部存储在 settings 表，由管理员通过
-// Telegram Bot 命令调整。带安全默认值：所有自动处理策略默认关闭。
+// Bot / 设备管控相关的设置键，存储在 settings 表。
+// 设备限制默认关闭。
 const (
 	// 开放注册（开注名额）。
 	SettingOpenRegEnabled = "telegram.openreg_enabled" // 是否开放注册
@@ -26,13 +25,8 @@ const (
 	SettingPlayWindowSeconds = "device.play_window_seconds" // 并发播放判定窗口（秒）
 	SettingClientActiveDays  = "device.client_active_days"  // 登录设备活跃天数窗口
 
-	// Mgo 保号规则。规则默认关闭；开启后满足任意一条保号规则即保留，
-	// 所有启用规则都不满足才会进入清理候选。
-	SettingAccountCleanupEnabled       = "device.account_cleanup_enabled"
-	SettingAccountCleanupKeepMode      = "device.account_cleanup_keep_mode"      // legacy; normalized to any
-	SettingAccountCleanupRequiredCount = "device.account_cleanup_required_count" // legacy; normalized to 1
-	SettingAccountCleanupRules         = "device.account_cleanup_rules"          // JSON []accountCleanupRule
-	SettingProtectedUserIDs            = "device.protected_user_ids"             // comma separated user IDs; Mgo /prouser
+	// 受保护账号同时用于设备策略和用户管理。
+	SettingProtectedUserIDs = "device.protected_user_ids" // comma separated user IDs
 )
 
 // botConfig 是设备管控的已解析配置（含默认值）。
@@ -42,31 +36,6 @@ type botConfig struct {
 	MaxLoggedClients  int
 	PlayWindowSeconds int
 	ClientActiveDays  int
-
-	AccountCleanupEnabled       bool
-	AccountCleanupKeepMode      string
-	AccountCleanupRequiredCount int
-	AccountCleanupRules         []accountCleanupRule
-}
-
-// accountCleanupRule is one admin-defined "保号" condition. A user is deleted
-// only when the cleanup policy is enabled and the user does not satisfy any
-// enabled keep rule.
-//
-// Supported types:
-//   - watch_hours: watched hours in a random [min,max] day window >= MinHours
-//   - recent_login: LastLoginAt is within WindowDaysMax days
-//   - signin_streak: current sign-in streak >= MinCount
-//   - account_age_grace: account age <= MinCount days (new-user grace)
-type accountCleanupRule struct {
-	ID            string  `json:"id"`
-	Name          string  `json:"name"`
-	Type          string  `json:"type"`
-	Enabled       bool    `json:"enabled"`
-	WindowDaysMin int     `json:"window_days_min,omitempty"`
-	WindowDaysMax int     `json:"window_days_max,omitempty"`
-	MinHours      float64 `json:"min_hours,omitempty"`
-	MinCount      int     `json:"min_count,omitempty"`
 }
 
 // defaultBotConfig returns the safe defaults requested by the operator.
@@ -77,11 +46,6 @@ func defaultBotConfig() botConfig {
 		MaxLoggedClients:  3,
 		PlayWindowSeconds: 90,
 		ClientActiveDays:  30,
-
-		AccountCleanupEnabled:       false,
-		AccountCleanupKeepMode:      "any",
-		AccountCleanupRequiredCount: 1,
-		AccountCleanupRules:         nil,
 	}
 }
 
@@ -101,24 +65,10 @@ func loadBotConfig(ctx context.Context, repo *repository.Container) botConfig {
 	cfg.MaxLoggedClients = parseIntSettingDefault(get(SettingMaxLoggedClients), cfg.MaxLoggedClients)
 	cfg.PlayWindowSeconds = parseIntSettingDefault(get(SettingPlayWindowSeconds), cfg.PlayWindowSeconds)
 	cfg.ClientActiveDays = parseIntSettingDefault(get(SettingClientActiveDays), cfg.ClientActiveDays)
-	cfg.AccountCleanupEnabled = parseBoolSetting(get(SettingAccountCleanupEnabled), cfg.AccountCleanupEnabled)
-	// Historical builds allowed all/count modes, but the Mgo policy is now
-	// explicitly "any": matching one keep rule is enough to avoid deletion.
-	cfg.AccountCleanupKeepMode = "any"
-	cfg.AccountCleanupRequiredCount = 1
-	if raw := strings.TrimSpace(get(SettingAccountCleanupRules)); raw != "" {
-		var rules []accountCleanupRule
-		if err := json.Unmarshal([]byte(raw), &rules); err == nil {
-			cfg.AccountCleanupRules = normalizeCleanupRules(rules)
-		}
-	}
-	if cfg.AccountCleanupRequiredCount < 1 {
-		cfg.AccountCleanupRequiredCount = 1
-	}
 	return cfg
 }
 
-// ProtectedUserIDSet returns the explicit Mgo-compatible protected user list.
+// ProtectedUserIDSet returns the explicit protected user list.
 // Admins and the default admin are protected separately by UserIsProtectedAccount.
 func ProtectedUserIDSet(ctx context.Context, repo *repository.Container) map[string]struct{} {
 	out := make(map[string]struct{})

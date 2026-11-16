@@ -161,7 +161,6 @@ func TestMediaUpsertMatchedIncomingRefreshesScrapedMetadata(t *testing.T) {
 		Languages:    "zh,en",
 		Countries:    "CN",
 		Genres:       "剧情,悬疑",
-		NSFW:         true,
 	}
 	if err := repos.Media.Upsert(t.Context(), &incoming); err != nil {
 		t.Fatal(err)
@@ -179,7 +178,7 @@ func TestMediaUpsertMatchedIncomingRefreshesScrapedMetadata(t *testing.T) {
 	if got.ScrapeStatus != "matched" || got.TMDbID != 123 || got.BangumiID != 456 || got.DoubanID != "db-1" || got.TheTVDBID != "tvdb-1" {
 		t.Fatalf("matched provider metadata not refreshed: %#v", got)
 	}
-	if got.Year != 2026 || got.SeasonNum != 1 || got.EpisodeNum != 1 || got.Rating != 8.6 || got.Languages != "zh,en" || got.Countries != "CN" || got.Genres != "剧情,悬疑" || !got.NSFW {
+	if got.Year != 2026 || got.SeasonNum != 1 || got.EpisodeNum != 1 || got.Rating != 8.6 || got.Languages != "zh,en" || got.Countries != "CN" || got.Genres != "剧情,悬疑" {
 		t.Fatalf("matched detail metadata not refreshed: %#v", got)
 	}
 }

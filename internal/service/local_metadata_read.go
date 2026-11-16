@@ -31,15 +31,12 @@ func ReadLocalMetadata(mediaPath, libraryRoot string, seriesLike bool) (*LocalMe
 
 func findMovieNFO(mediaPath, libraryRoot string) (*nfoDocument, string, error) {
 	mediaDir := filepath.Dir(mediaPath)
-	adultCode := AdultCodeFromMediaPath(mediaPath)
 	names := make([]string, 0, 8)
 	for _, base := range mediaSidecarBaseVariants(mediaPath) {
 		names = append(names, base+".nfo")
 	}
 	names = append(names, "movie.nfo", filepath.Base(mediaDir)+".nfo")
-	if adultCode != "" {
-		names = append([]string{adultCode + ".nfo", strings.ReplaceAll(adultCode, "-", "") + ".nfo"}, names...)
-	}
+
 	seen := map[string]struct{}{}
 	for _, name := range names {
 		if name == ".nfo" || name == "" {
@@ -59,19 +56,7 @@ func findMovieNFO(mediaPath, libraryRoot string) (*nfoDocument, string, error) {
 	}
 	if libraryRoot == "" || !samePath(mediaDir, filepath.Clean(libraryRoot)) {
 		matches, _ := filepath.Glob(filepath.Join(mediaDir, "*.nfo"))
-		if adultCode != "" {
-			codeKey := strings.ToLower(strings.ReplaceAll(adultCode, "-", ""))
-			for _, match := range matches {
-				baseKey := strings.ToLower(strings.ReplaceAll(strings.TrimSuffix(filepath.Base(match), filepath.Ext(match)), "-", ""))
-				if strings.Contains(baseKey, codeKey) || strings.Contains(codeKey, baseKey) {
-					if doc, _, err := decodeNFOFile(match); err == nil && doc != nil {
-						return doc, match, nil
-					} else if err != nil && !errors.Is(err, os.ErrNotExist) {
-						return nil, "", err
-					}
-				}
-			}
-		}
+
 		// A collection's only existing NFO can belong to a different movie.
 		if len(matches) == 1 && !mediaParentLooksLikeCollection(mediaPath) {
 			if doc, _, err := decodeNFOFile(matches[0]); err == nil && doc != nil {

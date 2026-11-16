@@ -12,8 +12,6 @@ func normalizeMetadataMediaType(mediaType string) string {
 		return "anime"
 	case "variety":
 		return "variety"
-	case "adult", "nsfw":
-		return "adult"
 	default:
 		return ""
 	}

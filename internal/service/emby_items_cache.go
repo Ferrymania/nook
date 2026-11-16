@@ -72,7 +72,7 @@ func (e *EmbyService) embyLatestCacheKey(ctx context.Context, userID, parentID s
 
 // embySimilarCacheKey 是「相似推荐」结果的缓存键。
 //
-// userID 必须参与键名：候选集的可见性（AllowedLibraryIDs、NSFW）由用户决定，
+// userID 必须参与键名：候选集的可见性（AllowedLibraryIDs、内容分级）由用户决定，
 // 混用会把别的用户可见的条目推荐给当前用户。limit 同理影响结果条数与排序。
 func (e *EmbyService) embySimilarCacheKey(ctx context.Context, mediaID, userID string, limit int) string {
 	// v2 returns whole Series cards and keeps their artwork with the cached DTO.

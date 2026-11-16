@@ -268,7 +268,6 @@ function typeLabel(type: string): string {
     anime: '动漫',
     variety: '综艺',
     music: '音乐',
-    adult: 'Adult',
   }
   return labels[type] ?? '其他'
 }
