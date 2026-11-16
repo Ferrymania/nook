@@ -1,6 +1,6 @@
 // STRM 播放端点解析：strm 文件内容指向 /api/strm/play/{provider}，服务端
 // 依据账号凭据解析出直链：能 302 的走 302（115/OpenList API），需要携带请求
-// 头的元数据链接走反向代理；本地源直接以静态文件方式提供。
+// 头的元数据链接走反向代理；全局代理设置可强制转发远程视频，本地源直接以静态文件方式提供。
 package service
 
 import (
@@ -246,18 +246,23 @@ func (s *StrmService) ProxyMediaDirect(ctx context.Context, w http.ResponseWrite
 	if raw == "" {
 		return ErrStrmProxyNotApplicable
 	}
-	result, err := s.ResolvePlayTarget(ctx, raw)
+	userAgent := ""
+	if r != nil {
+		userAgent = r.UserAgent()
+	}
+	result, err := s.ResolvePlayTargetWithUA(ctx, raw, userAgent)
 	if err != nil {
 		return err
 	}
 	switch {
+	case result.LocalPath != "":
+		return serveLocalMediaFile(w, r, result.LocalPath)
 	case result.Link != nil && result.Link.URL != "":
 		return s.ProxyDirect(ctx, w, r, result.Link)
 	case result.RedirectURL != "":
 		return s.ProxyDirect(ctx, w, r, &cloud.DirectLink{URL: result.RedirectURL})
 	default:
-		// 本地文件（LocalPath）由静态文件处理器提供，本身就是同源。
-		return ErrStrmProxyNotApplicable
+		return errors.New("远程视频播放目标不可用")
 	}
 }
 
@@ -277,9 +282,12 @@ func (s *StrmService) ProxyDirect(ctx context.Context, w http.ResponseWriter, r 
 	for k, v := range link.Headers {
 		req.Header.Set(k, v)
 	}
+	req.Header.Set("Accept-Encoding", "identity")
 	if r != nil {
-		if rangeHeader := r.Header.Get("Range"); rangeHeader != "" {
-			req.Header.Set("Range", rangeHeader)
+		for _, header := range []string{"Range", "If-Range"} {
+			if value := r.Header.Get(header); value != "" {
+				req.Header.Set(header, value)
+			}
 		}
 		// 部分网盘直链按 UA 防盗链；解析时未绑定 UA 的直链沿用浏览器 UA 更稳。
 		if ua := strings.TrimSpace(r.Header.Get("User-Agent")); ua != "" && req.Header.Get("User-Agent") == "" {
@@ -291,6 +299,9 @@ func (s *StrmService) ProxyDirect(ctx context.Context, w http.ResponseWriter, r 
 		return err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode >= 300 && resp.StatusCode < 400 && resp.StatusCode != http.StatusNotModified {
+		return errors.New("远程视频源返回了未能解析的跳转")
+	}
 	for _, header := range []string{"Content-Type", "Content-Length", "Content-Range", "Accept-Ranges", "ETag", "Last-Modified"} {
 		if value := resp.Header.Get(header); value != "" {
 			w.Header().Set(header, value)

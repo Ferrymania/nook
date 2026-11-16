@@ -3,10 +3,12 @@ package service
 import (
 	"context"
 	"errors"
+	"net/http"
 
 	"go.uber.org/zap"
 
 	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/repository"
 )
 
@@ -38,6 +40,7 @@ type StreamService struct {
 	// 302 到 CDN 地址，省掉 /api/strm/play 那一跳；未注入时保持原有的两跳行为，
 	// 因此测试与精简部署不受影响。
 	strmResolve func(ctx context.Context, raw, userAgent string) (*StrmPlayResult, error)
+	strmProxy   func(context.Context, http.ResponseWriter, *http.Request, *model.Media) error
 }
 
 // NewStreamService is the constructor.
@@ -64,6 +67,14 @@ func (s *StreamService) SetMediaProbe(probe *MediaProbeService) {
 	if s != nil {
 		s.mediaProbe = probe
 	}
+}
+
+// SetStrmMediaProxy shares the STRM relay with the web and Emby stream routes.
+func (s *StreamService) SetStrmMediaProxy(proxy func(context.Context, http.ResponseWriter, *http.Request, *model.Media) error) *StreamService {
+	if s != nil {
+		s.strmProxy = proxy
+	}
+	return s
 }
 
 // ErrMediaNotFound is returned when the media row or its file is missing.

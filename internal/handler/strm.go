@@ -706,9 +706,9 @@ func strmPlayHandler(svc *service.Container) gin.HandlerFunc {
 		case result.LocalPath != "":
 			c.Header("Accept-Ranges", "bytes")
 			c.File(result.LocalPath)
-		case result.Proxy && result.Link != nil:
+		case result.Link != nil && (result.Proxy || service.RemotePlaybackProxyEnabled(c.Request.Context(), svc.Repo)):
 			if err := svc.Strm.ProxyDirect(c.Request.Context(), c.Writer, c.Request, result.Link); err != nil {
-				c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+				writeProxyError(c, err)
 			}
 		case result.RedirectURL != "":
 			c.Redirect(http.StatusFound, result.RedirectURL)

@@ -13,6 +13,13 @@ export const generalSettingsGroup: SettingGroup = {
       defaultValue: 'false',
     },
     {
+      key: 'playback.proxy_remote',
+      label: '通过本服务器代理远程视频',
+      type: 'toggle',
+      hint: '开启后，远程视频由 Nook 转发，适用于网页和 Emby 兼容客户端，会消耗服务器带宽。',
+      defaultValue: 'false',
+    },
+    {
       key: 'transcode.hw_accel',
       label: '硬件编码器',
       type: 'select',

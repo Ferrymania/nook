@@ -393,6 +393,9 @@ func embyShouldRedirectVideoStreamToSTRM(c *gin.Context, svc *service.Container,
 	if c == nil || svc == nil || svc.Repo == nil || svc.Repo.Media == nil || cloudMode != service.CloudPlaybackModeRedirectProxy {
 		return false
 	}
+	if service.RemotePlaybackProxyEnabled(c.Request.Context(), svc.Repo) {
+		return false
+	}
 	settings := service.CloudPlaybackSettings(c.Request.Context(), svc.Repo)
 	if settings.PreferredMode != service.CloudPlaybackModeSTRM || !settings.STRMEnabled {
 		return false
