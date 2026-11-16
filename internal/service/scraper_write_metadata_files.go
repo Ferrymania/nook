@@ -47,28 +47,22 @@ func (s *ScraperService) writeMediaArtworkFilesAfterScrape(ctx context.Context, 
 	if base == "" || base == "." {
 		return
 	}
-	isAdult := shouldCropAdultPoster(refreshed, lib)
 	artworkUpdates := map[string]any{}
 	shouldPersistLocalArtworkURL := func(raw string) bool {
-		return isAdult || !isHTTPish(raw)
+		return !isHTTPish(raw)
 	}
 	if refreshed.PosterURL != "" {
-		if dst := s.downloadArtworkToPathWithOptions(ctx, dir, base+"-poster", refreshed.PosterURL, isAdult); dst != "" {
+		if dst := s.downloadArtworkToPath(ctx, dir, base+"-poster", refreshed.PosterURL); dst != "" {
 			if shouldPersistLocalArtworkURL(refreshed.PosterURL) {
 				artworkUpdates["poster_url"] = filepath.Join(filepath.Dir(refreshed.Path), filepath.Base(dst))
 			}
 		}
 	}
 	if refreshed.BackdropURL != "" {
-		if dst := s.downloadArtworkToPathWithOptions(ctx, dir, base+"-backdrop", refreshed.BackdropURL, false); dst != "" {
+		if dst := s.downloadArtworkToPath(ctx, dir, base+"-backdrop", refreshed.BackdropURL); dst != "" {
 			if shouldPersistLocalArtworkURL(refreshed.BackdropURL) {
 				artworkUpdates["backdrop_url"] = filepath.Join(filepath.Dir(refreshed.Path), filepath.Base(dst))
 			}
-		}
-	} else if isAdult && refreshed.PosterURL != "" {
-		// 番号海报原图为完整封套横图，在无独立背景图时直接作为背景图写出
-		if dst := s.downloadArtworkToPathWithOptions(ctx, dir, base+"-backdrop", refreshed.PosterURL, false); dst != "" {
-			artworkUpdates["backdrop_url"] = filepath.Join(filepath.Dir(refreshed.Path), filepath.Base(dst))
 		}
 	}
 	if refreshed.EpisodeStillURL != "" {
@@ -84,37 +78,11 @@ func (s *ScraperService) writeMediaArtworkFilesAfterScrape(ctx context.Context, 
 	}
 }
 
+// downloadArtworkToPath fetches artwork and writes it beside the media file.
 func (s *ScraperService) downloadArtworkToPath(ctx context.Context, dir, name, raw string) string {
-	return s.downloadArtworkToPathWithOptions(ctx, dir, name, raw, false)
-}
-
-// shouldCropAdultPoster keeps adult-cover handling independent of which
-// metadata provider won. A code-numbered title may match TMDb first, so the
-// provider's NSFW flag or artwork host alone is not sufficient.
-func shouldCropAdultPoster(media *model.Media, lib *model.Library) bool {
-	if media == nil {
-		return false
-	}
-	mediaType := ""
-	if lib != nil {
-		mediaType = lib.Type
-	}
-	return IsAdultMediaPathOrMetadata(media.Path, mediaType, media.NSFW) ||
-		IsAdultArtworkURL(media.PosterURL)
-}
-
-// downloadArtworkToPathWithOptions fetches an artwork URL via the image proxy cache and
-// writes it under dir/<name>.<ext>. For adult posters, it crops the right half of the cover.
-func (s *ScraperService) downloadArtworkToPathWithOptions(ctx context.Context, dir, name, raw string, cropAdultPoster bool) string {
 	data, ctype := s.loadArtworkData(ctx, raw)
 	if len(data) == 0 {
 		return ""
-	}
-	if cropAdultPoster {
-		if cropped, croppedType, err := CropAdultCoverPoster(data); err == nil && len(cropped) > 0 {
-			data = cropped
-			ctype = croppedType
-		}
 	}
 	return s.writeArtworkDataToPath(dir, name, ctype, data)
 }
@@ -192,7 +160,7 @@ func (s *ScraperService) writeArtworkDataToPath(dir, name, ctype string, data []
 	}
 
 	// On Windows os.Rename does not replace dst. Serialize remove+rename so two
-	// concurrent scrapes cannot leave the previous uncropped DVD cover behind.
+	// concurrent scrapes cannot leave a stale artwork file behind.
 	s.artworkWriteMu.Lock()
 	err = os.Remove(dst)
 	if err == nil || os.IsNotExist(err) {

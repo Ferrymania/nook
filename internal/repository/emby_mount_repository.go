@@ -85,12 +85,6 @@ func (r *EmbyMountRepository) SetSortOrder(ctx context.Context, ids []string) er
 	})
 }
 
-func (r *EmbyMountRepository) CountByAccountID(ctx context.Context, accountID string) (int64, error) {
-	var count int64
-	err := r.db.WithContext(ctx).Model(&model.EmbyMount{}).Where("account_id = ?", accountID).Count(&count).Error
-	return count, err
-}
-
 func (r *EmbyMountRepository) Update(ctx context.Context, m *model.EmbyMount) error {
 	return r.db.WithContext(ctx).Model(&model.EmbyMount{}).Where("id = ?", m.ID).Updates(map[string]any{
 		"name":             m.Name,

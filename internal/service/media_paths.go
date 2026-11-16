@@ -27,8 +27,6 @@ func inferLibraryKind(name, path, requested string) string {
 		return false
 	}
 	switch {
-	case containsAnyText(text, "成人", "番号") || containsWord("jav", "9kg", "adult", "nsfw"):
-		return "adult"
 	case containsAnyText(text, "综艺", "真人秀") || containsWord("variety"):
 		return "variety"
 	case (containsAnyText(text, "国漫", "日漫", "日番", "动漫", "动画") || containsWord("anime", "bangumi")) && !containsAnyText(text, "动画电影"):

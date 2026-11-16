@@ -172,6 +172,5 @@ type existingLocalMedia struct {
 	Genres          string
 	Countries       string
 	Languages       string
-	NSFW            bool
 	ScrapeStatus    string
 }

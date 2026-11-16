@@ -117,7 +117,7 @@ func TestEmbySeriesSeasonEpisodeGenresAndVisibility(t *testing.T) {
 		{Base: model.Base{ID: "genre-s1e2"}, SeasonNum: 1, EpisodeNum: 2},
 		{Base: model.Base{ID: "genre-s2e1"}, SeasonNum: 2, EpisodeNum: 1, Genres: "喜剧"},
 		{Base: model.Base{ID: "genre-s3e1"}, SeasonNum: 3, EpisodeNum: 1},
-		{Base: model.Base{ID: "genre-adult"}, SeasonNum: 4, EpisodeNum: 1, Genres: "成人类型", NSFW: true},
+		{Base: model.Base{ID: "genre-adult"}, SeasonNum: 4, EpisodeNum: 1, Genres: "成人类型"},
 		{Base: model.Base{ID: "genre-hidden"}, LibraryID: hidden, SeasonNum: 5, EpisodeNum: 1, Genres: "未授权类型"},
 		{Base: model.Base{ID: "genre-deleted"}, SeasonNum: 6, EpisodeNum: 1, Genres: "已删除类型"},
 	} {

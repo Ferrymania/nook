@@ -251,7 +251,7 @@ func TestEmbyIncludesAdultLibrariesRegardlessOfOldSettings(t *testing.T) {
 	if err := svc.repo.DB.Create(&model.Media{LibraryID: safe.ID, Title: "安全电影", Path: `/media/movies/a.mkv`}).Error; err != nil {
 		t.Fatalf("create safe media: %v", err)
 	}
-	if err := svc.repo.DB.Create(&model.Media{LibraryID: adult.ID, Title: "成人电影", NSFW: true, Path: `/media/9KG/a.mkv`}).Error; err != nil {
+	if err := svc.repo.DB.Create(&model.Media{LibraryID: adult.ID, Title: "成人电影", Path: `/media/9KG/a.mkv`}).Error; err != nil {
 		t.Fatalf("create adult media: %v", err)
 	}
 

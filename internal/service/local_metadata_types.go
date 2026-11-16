@@ -14,7 +14,6 @@ type LocalMetadata struct {
 	Title        string
 	OriginalName string
 	EpisodeTitle string
-	AdultCode    string
 	Year         int
 	ReleaseDate  string
 	Overview     string
@@ -30,7 +29,6 @@ type LocalMetadata struct {
 	Genres       string
 	Countries    string
 	Languages    string
-	NSFW         bool
 	HasNFO       bool
 	HasArtwork   bool
 	PathHint     bool
@@ -67,8 +65,6 @@ type nfoDocument struct {
 	Title         string        `xml:"title"`
 	ShowTitle     string        `xml:"showtitle"`
 	OriginalTitle string        `xml:"originaltitle"`
-	SortTitle     string        `xml:"sorttitle"`
-	Num           string        `xml:"num"`
 	Year          nfoInt        `xml:"year"`
 	Premiered     string        `xml:"premiered"`
 	ReleaseDate   string        `xml:"releasedate"`

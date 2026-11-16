@@ -3,8 +3,6 @@ package service
 import (
 	"context"
 	"strings"
-
-	"github.com/Ferrymania/nook/internal/model"
 )
 
 type manualTMDbCandidate struct {
@@ -64,7 +62,7 @@ func manualTMDbIDSearchTypes(mediaType string) []string {
 	switch normalizeMediaType(mediaType, "", "") {
 	case "tv", "anime", "variety":
 		return []string{"tv", "movie"}
-	case "movie", "adult":
+	case "movie":
 		return []string{"movie", "tv"}
 	default:
 		return []string{"movie", "tv"}
@@ -78,55 +76,11 @@ func manualTMDbSearchTypes(mediaType string) []string {
 	switch normalizeMediaType(mediaType, "", "") {
 	case "tv", "anime", "variety":
 		return []string{"tv", "movie"}
-	case "movie", "adult":
+	case "movie":
 		return []string{"movie", "tv"}
 	default:
 		return []string{"tv", "movie"}
 	}
-}
-
-func (s *ScraperService) manualAdultMatches(ctx context.Context, media *model.Media, query string) []*Match {
-	if s.adult == nil || !s.adult.Enabled() {
-		return nil
-	}
-	candidates := []string{query}
-	if media != nil {
-		candidates = append(candidates, media.Path, media.OriginalName, media.Title)
-	}
-	out := make([]*Match, 0, 4)
-	seen := map[string]struct{}{}
-	for _, candidate := range candidates {
-		code := normalizeAdultCode(candidate)
-		if code == "" {
-			code = strings.TrimSpace(candidate)
-		}
-		if code == "" {
-			continue
-		}
-		if _, ok := seen[code]; ok {
-			continue
-		}
-		seen[code] = struct{}{}
-		if matches, err := s.adult.SearchCandidates(ctx, code); err == nil && len(matches) > 0 {
-			for _, m := range matches {
-				if m != nil && m.Title != "" {
-					out = append(out, m)
-				}
-			}
-		}
-	}
-	return out
-}
-
-func (s *ScraperService) manualAdultMatch(ctx context.Context, code string) *Match {
-	if s.adult == nil || !s.adult.Enabled() {
-		return nil
-	}
-	match, err := s.adult.Search(ctx, code)
-	if err != nil || match == nil {
-		return nil
-	}
-	return match
 }
 
 func (s *ScraperService) manualTMDbMatchByID(ctx context.Context, id int, mediaType string) *Match {
@@ -156,7 +110,7 @@ func (s *ScraperService) manualTMDbMatchByIDForType(ctx context.Context, id int,
 		if match, err := s.tmdb.GetTVMatch(ctx, id); err == nil && match != nil {
 			return match
 		}
-	case "movie", "adult":
+	case "movie":
 		if match, err := s.tmdb.GetMovieMatch(ctx, id); err == nil && match != nil {
 			return match
 		}

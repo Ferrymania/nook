@@ -167,7 +167,7 @@ func (s *ScraperService) writeScrapedMetadataFiles(ctx context.Context, m *model
 		s.writeMediaNFOAfterScrape(ctx, m, lib)
 		return
 	}
-	// Preserve existing movie/adult export behavior.
+	// Preserve existing movie export behavior.
 	s.writeMediaNFOAfterScrape(ctx, m, lib)
 	s.writeMediaArtworkFilesAfterScrape(ctx, m, lib, options)
 }

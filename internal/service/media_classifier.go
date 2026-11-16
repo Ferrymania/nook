@@ -8,7 +8,6 @@ import (
 var (
 	classifierEpisodeRE = regexp.MustCompile(`(?i)\bS\d{1,2}E\d{1,3}\b|第\s*\d+\s*[集期]|(?:^|[\s._-])E\d{1,3}(?:[\s._-]|$)`)
 	classifierSeasonRE  = regexp.MustCompile(`(?i)\bS\d{1,2}\b|第\s*\d+\s*季`)
-	classifierJAVCodeRE = regexp.MustCompile(`(?:^|[\s._\-/\[\]()])[A-Z]{2,6}[-_]?\d{3,5}(?:[\s._\-/\[\]()]|$)`)
 	classifierMovieRE   = regexp.MustCompile(`(?i)(?:^|[^a-z0-9])(?:movies?|films?)(?:[^a-z0-9]|$)`)
 	classifierTVRE      = regexp.MustCompile(`(?i)(?:^|[^a-z0-9])(?:tv|series|shows?|dramas?)(?:[^a-z0-9]|$)`)
 	classifierAnimeRE   = regexp.MustCompile(`(?i)(?:^|[^a-z0-9])(?:anime|bangumi)(?:[^a-z0-9]|$)`)
@@ -25,12 +24,8 @@ func normalizeMediaType(mediaType, title, category string) string {
 		return "anime"
 	case "variety":
 		return "variety"
-	case "adult", "nsfw":
-		return "adult"
 	}
 	switch {
-	case containsAnyText(raw, "成人", "番号", "jav", "nsfw"):
-		return "adult"
 	case containsAnyText(raw, "综艺", "真人秀"):
 		return "variety"
 	case (containsAnyText(raw, "国漫", "日漫", "日番", "韩漫", "美漫", "欧美动漫", "其他动漫", "动漫", "动画") || classifierAnimeRE.MatchString(raw)) && !containsAnyText(raw, "动画电影", "剧场版", "劇場版"):
@@ -42,8 +37,6 @@ func normalizeMediaType(mediaType, title, category string) string {
 	}
 	text := strings.ToLower(title + " " + category)
 	switch {
-	case strings.Contains(text, "adult") || strings.Contains(text, "nsfw") || strings.Contains(text, "成人") || strings.Contains(text, "番号") || strings.Contains(text, "jav") || strings.Contains(text, "9kg") || classifierJAVCodeRE.MatchString(strings.ToUpper(title+" "+category)):
-		return "adult"
 	case containsAnyText(text, "综艺", "真人秀", "脱口秀", "晚会", "春晚", "gala", "festival gala", "reality", "talk show"):
 		return "variety"
 	case containsAnyText(text, "电影", "剧场版", "劇場版") || classifierMovieRE.MatchString(text):

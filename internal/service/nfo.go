@@ -50,9 +50,7 @@ type movieNFO struct {
 	Poster   string   `xml:"thumb,omitempty"`
 	Fanart   string   `xml:"fanart,omitempty"`
 	TMDb     int      `xml:"tmdbid,omitempty"`
-	// UniqueIDs 让 sidecar 能把 Nook 自己用的外部 ID 原样带回来。缺了它，
-	// 「在线刮削 → 写 NFO → 重扫读 NFO」会丢掉 douban/thetvdb（成人条目借用
-	// 这两个字段存番号/provider），同一部片的两条来源就会算出不同的版本键。
+	// UniqueIDs preserves external provider IDs across NFO round trips.
 	UniqueIDs []nfoUniqueID `xml:"uniqueid,omitempty"`
 	Genre     []string      `xml:"genre,omitempty"`
 	Country   []string      `xml:"country,omitempty"`
@@ -170,15 +168,6 @@ func WriteMediaNFO(m *model.Media) (string, error) {
 	} else {
 		title := m.Title
 		original := m.OriginalName
-		adultCode := normalizeAdultCode(firstText(m.OriginalName, AdultCodeFromMediaPath(m.Path), m.Title))
-		if adultCode != "" || m.NSFW {
-			if adultCode != "" {
-				title = FormatAdultTitle(adultCode, m.Title)
-				if original == "" || strings.EqualFold(original, m.Title) {
-					original = adultCode
-				}
-			}
-		}
 		doc = movieNFO{
 			MPAA:      nfoContentRating(m.ContentRating),
 			Title:     title,

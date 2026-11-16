@@ -474,39 +474,6 @@ func (r *EmbyRemoteService) ResolveMount(ctx context.Context, mountID string) (*
 	return mount, acct, nil
 }
 
-// AutoSeedMounts 兼容迁移：已有 emby_remote 账号但没有任何挂载时，自动把
-// 其全部媒体库挂载进来（代理沿用账号旧配置），保证旧部署升级后媒体库不消失。
-// 幂等：每个账号只在挂载数为 0 时执行一次。
-func (r *EmbyRemoteService) AutoSeedMounts(ctx context.Context) {
-	accounts, err := r.ListAccounts(ctx)
-	if err != nil || len(accounts) == 0 {
-		return
-	}
-	for i := range accounts {
-		acct := &accounts[i]
-		count, err := r.repo.EmbyMount.CountByAccountID(ctx, acct.ID)
-		if err != nil || count > 0 {
-			continue
-		}
-		cfg, cfgErr := r.configOf(acct)
-		if cfgErr != nil {
-			continue
-		}
-		n, seedErr := r.FullMountAccount(ctx, acct, cfg.ProxyPlay)
-		if seedErr != nil {
-			if r.log != nil {
-				r.log.Warn("auto-seed emby mounts failed",
-					zap.String("account", acct.Name), zap.Error(seedErr))
-			}
-		} else if n > 0 {
-			if r.log != nil {
-				r.log.Info("auto-seeded emby mounts",
-					zap.String("account", acct.Name), zap.Int("mounts", n))
-			}
-		}
-	}
-}
-
 // remoteConfigWithToken 解密账号配置并确保已有可用凭据（首次请求自动认证并
 // 回写 token 与 remote_user_id，等价于管理端「测试连接」），保证后续构造的
 // /Users/{userId} 路径使用远程真实用户 GUID，而不是未认证兜底的 "0"。

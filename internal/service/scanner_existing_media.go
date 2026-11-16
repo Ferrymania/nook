@@ -33,7 +33,7 @@ func (s *ScannerService) existingLocalMediaSnapshotForRoot(ctx context.Context, 
 		query = query.Where("(library_root_id = ? OR library_root_id = '' OR library_root_id IS NULL)", rootID)
 	}
 	rows, err := query.
-		Select("path", "library_root_id", "relative_path", "title", "original_name", "episode_title", "size_bytes", "duration_sec", "width", "height", "video_codec", "audio_codec", "container", "strm_url", "file_id", "poster_url", "backdrop_url", "overview", "year", "release_date", "rating", "tm_db_id", "bangumi_id", "douban_id", "thetvdb_id", "season_num", "episode_num", "episode_fraction", "genres", "countries", "languages", "nsfw", "scrape_status").
+		Select("path", "library_root_id", "relative_path", "title", "original_name", "episode_title", "size_bytes", "duration_sec", "width", "height", "video_codec", "audio_codec", "container", "strm_url", "file_id", "poster_url", "backdrop_url", "overview", "year", "release_date", "rating", "tm_db_id", "bangumi_id", "douban_id", "thetvdb_id", "season_num", "episode_num", "episode_fraction", "genres", "countries", "languages", "scrape_status").
 		Rows()
 	if err != nil {
 		return nil, err
@@ -78,7 +78,6 @@ func (s *ScannerService) existingLocalMediaSnapshotForRoot(ctx context.Context, 
 			&row.Genres,
 			&row.Countries,
 			&row.Languages,
-			&row.NSFW,
 			&row.ScrapeStatus,
 		); err != nil {
 			return nil, err

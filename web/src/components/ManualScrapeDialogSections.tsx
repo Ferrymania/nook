@@ -222,7 +222,6 @@ function ManualScrapeCandidateRow({
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <h3 className="min-w-0 max-w-full flex-1 truncate font-semibold text-ink-600">{item.title}</h3>
           <span className="shrink-0 rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-bold uppercase text-brand-700">{item.source}</span>
-          {item.nsfw ? <span className="shrink-0 rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-bold text-rose-600">成人</span> : null}
           {item.year ? <span className="shrink-0 text-xs text-sand-500">{item.year}</span> : null}
         </div>
         <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-ink-50">{item.overview || '暂无简介'}</p>

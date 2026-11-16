@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -450,73 +449,6 @@ func TestManualSearchTMDbProviderIDUsesIDLookupOnly(t *testing.T) {
 	}
 }
 
-func TestManualSearchAllProvidersProviderIDSkipsAdultSource(t *testing.T) {
-	var tmdbPaths []string
-	tmdbUpstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tmdbPaths = append(tmdbPaths, r.URL.Path)
-		w.Header().Set("Content-Type", "application/json")
-		switch r.URL.Path {
-		case "/movie/1208850":
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"id":             1208850,
-				"title":          "多拉特行动",
-				"original_title": "Malbatt: Misi Bakara",
-				"release_date":   "2024-01-11",
-			})
-		default:
-			http.NotFound(w, r)
-		}
-	}))
-	defer tmdbUpstream.Close()
-
-	var adultCalls atomic.Int32
-	adultUpstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		adultCalls.Add(1)
-		http.NotFound(w, r)
-	}))
-	defer adultUpstream.Close()
-
-	db, err := testutil.Open(t, &gorm.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := db.AutoMigrate(&model.Library{}, &model.Series{}, &model.Media{}, &model.APIConfig{}); err != nil {
-		t.Fatal(err)
-	}
-	repos := repository.New(db)
-	cfg := &config.Config{}
-	cfg.Secrets.TMDbAPIKey = "test-key"
-	cfg.Secrets.TMDbAPIProxy = tmdbUpstream.URL
-	log := zap.NewNop()
-	apiConfig := NewAPIConfigService(log, repos, NewCryptoService("test-secret", log))
-	adultBaseURL := adultUpstream.URL
-	enabled := true
-	if _, err := apiConfig.Update(t.Context(), "adult", APIConfigPatch{BaseURL: &adultBaseURL, Enabled: &enabled}); err != nil {
-		t.Fatal(err)
-	}
-	scraper := NewScraperService(cfg, log, repos, NewTMDbProvider(cfg, log, nil), nil, nil, nil, NewHub(log), NewAdultProvider(log, apiConfig))
-
-	lib := model.Library{Name: "电影", Path: `/media/movie`, Type: "movie", Enabled: true}
-	if err := repos.DB.Create(&lib).Error; err != nil {
-		t.Fatal(err)
-	}
-	media := model.Media{LibraryID: lib.ID, Title: "待匹配", Path: `/media/movie/raw.mkv`}
-	if err := repos.DB.Create(&media).Error; err != nil {
-		t.Fatal(err)
-	}
-
-	results, err := scraper.ManualSearch(t.Context(), &media, "[tmdbid-1208850]", "all", "movie")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(results) != 1 || results[0].TMDbID != 1208850 || results[0].Source != "tmdb" {
-		t.Fatalf("manual provider-id results=%#v, tmdb paths=%v", results, tmdbPaths)
-	}
-	if calls := adultCalls.Load(); calls != 0 {
-		t.Fatalf("adult provider was called %d times for explicit tmdb id", calls)
-	}
-}
-
 func TestManualTMDbCandidatesSkipOtherProviderIDs(t *testing.T) {
 	var paths []string
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -536,56 +468,6 @@ func TestManualTMDbCandidatesSkipOtherProviderIDs(t *testing.T) {
 	}
 	if len(paths) != 0 {
 		t.Fatalf("tmdb should not be called for douban id hint, paths=%v", paths)
-	}
-}
-
-func TestManualSearchIncludesAdultProvider(t *testing.T) {
-	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/search":
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			_, _ = w.Write([]byte(`<a class="box" href="/v/ssis001"><strong>SSIS-001 手动候选</strong></a>`))
-		case "/v/ssis001":
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			_, _ = w.Write([]byte(`<h2 class="title"><strong>SSIS-001 手动成人标题</strong></h2><img class="video-cover" src="/cover.jpg">`))
-		default:
-			http.NotFound(w, r)
-		}
-	}))
-	defer upstream.Close()
-
-	db, err := testutil.Open(t, &gorm.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := db.AutoMigrate(&model.Library{}, &model.Series{}, &model.Media{}, &model.APIConfig{}); err != nil {
-		t.Fatal(err)
-	}
-	repos := repository.New(db)
-	apiConfig := NewAPIConfigService(zap.NewNop(), repos, NewCryptoService("test-secret", zap.NewNop()))
-	baseURL := upstream.URL
-	enabled := true
-	if _, err := apiConfig.Update(t.Context(), "adult", APIConfigPatch{BaseURL: &baseURL, Enabled: &enabled}); err != nil {
-		t.Fatal(err)
-	}
-	log := zap.NewNop()
-	scraper := NewScraperService(&config.Config{}, log, repos, nil, nil, nil, nil, NewHub(log), NewAdultProvider(log, apiConfig))
-
-	lib := model.Library{Name: "成人", Path: "/media/adult", Type: "movie", Enabled: true}
-	if err := repos.DB.Create(&lib).Error; err != nil {
-		t.Fatal(err)
-	}
-	media := model.Media{LibraryID: lib.ID, Title: "SSIS-001", OriginalName: "SSIS-001", Path: "/media/adult/SSIS-001.mkv"}
-	if err := repos.DB.Create(&media).Error; err != nil {
-		t.Fatal(err)
-	}
-
-	results, err := scraper.ManualSearch(t.Context(), &media, "SSIS-001", "adult", "adult")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(results) != 1 || results[0].Source != "adult" || results[0].MediaType != "adult" || !results[0].NSFW || results[0].OriginalName != "SSIS-001" {
-		t.Fatalf("manual adult candidates = %#v", results)
 	}
 }
 

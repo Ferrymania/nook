@@ -67,20 +67,9 @@ func (s *ScraperService) ManualSearch(ctx context.Context, media *model.Media, q
 			Languages:        match.Languages,
 			Countries:        match.Countries,
 			Genres:           match.Genres,
-			NSFW:             match.NSFW,
 		})
 	}
 
-	if providers.want("adult") {
-		for _, candidateQuery := range queries {
-			if externalIDHintsFromText(candidateQuery).useful() {
-				continue
-			}
-			for _, match := range s.manualAdultMatches(ctx, media, candidateQuery) {
-				add("adult", "adult", match)
-			}
-		}
-	}
 	if providers.want("tmdb") {
 		for _, candidateQuery := range queries {
 			for _, candidate := range s.manualTMDbCandidates(ctx, candidateQuery, year, mediaType) {

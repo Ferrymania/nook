@@ -242,8 +242,8 @@ func metadataMatchCompatibleWithType(expectedType string, match *Match) bool {
 		return matchType == "tv" || matchType == "anime" || matchType == "variety"
 	case "anime":
 		return matchType == "anime" || matchType == "tv" || matchType == "movie" || matchType == "variety"
-	case "movie", "adult":
-		return matchType == "movie" || matchType == "adult"
+	case "movie":
+		return matchType == "movie"
 	default:
 		return expectedType == matchType
 	}

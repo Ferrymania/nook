@@ -155,7 +155,7 @@ func TestEmbySenPlayerMixedTypesIncludeMoviesAndSeries(t *testing.T) {
 	}
 	rows := []model.Media{
 		{LibraryID: movies.ID, Title: "A Movie", Path: "/media/movies/a.strm"},
-		{LibraryID: movies.ID, Title: "Hidden", Path: "/media/movies/hidden.strm", NSFW: true},
+		{LibraryID: movies.ID, Title: "Hidden", Path: "/media/movies/hidden.strm"},
 		{LibraryID: tv.ID, Title: "B Show", Path: "/media/tv/Show/S01E01.strm", SeasonNum: 1, EpisodeNum: 1},
 		{LibraryID: tv.ID, Title: "B Show", Path: "/media/tv/Show/S01E02.strm", SeasonNum: 1, EpisodeNum: 2},
 	}

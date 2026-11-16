@@ -26,7 +26,6 @@ type Match struct {
 	Genres        []string         `json:"genres,omitempty"`
 	Aliases       []string         `json:"aliases,omitempty"`
 	People        []map[string]any `json:"-"`
-	NSFW          bool             `json:"nsfw,omitempty"`
 	SearchKeyword string           `json:"-"`
 	ratingSource  string
 	seasonYear    int // 本次查询已校验的季播出年，不覆盖整剧首播年。

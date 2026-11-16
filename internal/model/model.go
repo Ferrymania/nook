@@ -51,7 +51,6 @@ func AllModels() []interface{} {
 		&UserPermission{},
 		&RefreshToken{},
 		&RegistrationCode{},
-		&SignIn{},
 		&UserDevice{},
 		&StrmAccount{},
 		&StrmSyncPath{},

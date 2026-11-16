@@ -40,7 +40,6 @@ const TYPE_ICONS: Record<string, ReactNode> = {
   movie: <Film size={14} className="text-blue-500" />,
   tv: <Tv size={14} className="text-purple-500" />,
   anime: <Layers size={14} className="text-emerald-500" />,
-  adult: <Film size={14} className="text-rose-500" />,
 }
 
 const PAGE_SIZE = 50

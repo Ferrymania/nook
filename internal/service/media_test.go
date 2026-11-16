@@ -147,7 +147,7 @@ func TestInferLibraryKindFromCategoryPathOverridesMovieDefault(t *testing.T) {
 		{name: "国产剧", path: `/media/电视剧/国产剧`, want: "tv"},
 		{name: "日漫", path: `/media/电视剧/日漫`, want: "anime"},
 		{name: "综艺", path: `/media/电视剧/综艺`, want: "variety"},
-		{name: "成人", path: `/media/成人`, want: "adult"},
+		{name: "成人", path: `/media/成人`, want: "movie"},
 		{name: "动画电影", path: `/media/电影/动画电影`, want: "movie"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

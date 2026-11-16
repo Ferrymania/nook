@@ -28,7 +28,6 @@ var sourceCategoryHints = []sourceCategoryHintDef{
 	{Key: "variety", Fallback: "综艺", MediaType: "variety"},
 	{Key: "documentary", Fallback: "纪录片", MediaType: "tv"},
 	{Key: "children", Fallback: "儿童", MediaType: "tv"},
-	{Key: "adult", Fallback: "成人", MediaType: "adult", Aliases: []string{"9KG", "番号", "JAV", "adult", "nsfw"}},
 }
 
 func sourceCategoryHint(category, mediaType string, categories map[string]string) string {
@@ -72,9 +71,6 @@ func sourceCategoryCompatible(mediaType, categoryMediaType string) bool {
 		return true
 	}
 	if mediaType == "tv" && (categoryMediaType == "anime" || categoryMediaType == "variety") {
-		return true
-	}
-	if categoryMediaType == "adult" {
 		return true
 	}
 	return false

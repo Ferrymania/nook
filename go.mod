@@ -4,8 +4,6 @@ go 1.26.0
 
 require (
 	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.5.2
-	github.com/disintegration/imaging v1.6.3-0.20201218193011-d40f48ce0f09
-	github.com/esimov/pigo v1.4.7-0.20240801095032-7465ed14de47
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/gin-contrib/gzip v1.2.6
 	github.com/gin-gonic/gin v1.12.0

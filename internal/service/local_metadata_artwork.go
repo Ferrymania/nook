@@ -27,8 +27,6 @@ func mergeArtworkMetadata(meta *LocalMetadata, mediaPath, showBaseDir string) {
 	mediaDir := filepath.Dir(mediaPath)
 	if localPoster := firstLocalPoster(mediaPath, showBaseDir); localPoster != "" && !existingSharedSeriesArtwork(meta.PosterURL) {
 		meta.PosterURL = localPoster
-	} else if meta.PosterURL == "" {
-		meta.PosterURL = firstAdultLooseImage(mediaDir, "poster")
 	}
 	dirs := []string{mediaDir, showBaseDir}
 	for _, dir := range dirs {
@@ -42,15 +40,8 @@ func mergeArtworkMetadata(meta *LocalMetadata, mediaPath, showBaseDir string) {
 			meta.BackdropURL = img
 			break
 		}
-		if meta.BackdropURL == "" {
-			meta.BackdropURL = firstAdultLooseImage(dir, "backdrop")
-		}
 	}
-	if !isLocalPath(meta.PosterURL) {
-		if dmmPoster := adultDMMPosterFromSampleURL(meta.BackdropURL); dmmPoster != "" {
-			meta.PosterURL = dmmPoster
-		}
-	}
+
 	if meta.PosterURL != "" || meta.BackdropURL != "" {
 		meta.HasArtwork = true
 	}
@@ -86,7 +77,7 @@ func localPosterCandidates(mediaPath string) []string {
 		add(base + ".thumb")
 	}
 	add("thumb")
-	return append(adultArtworkNameCandidates(mediaPath, "poster"), names...)
+	return names
 }
 
 func localBackdropCandidates(mediaPath string) []string {
@@ -128,46 +119,7 @@ func localBackdropCandidates(mediaPath string) []string {
 	for _, name := range []string{"fanart", "backdrop", "background", "landscape", "banner", "clearart"} {
 		add(name)
 	}
-	return append(adultArtworkNameCandidates(mediaPath, "backdrop"), names...)
-}
-
-func adultArtworkNameCandidates(mediaPath, kind string) []string {
-	code := AdultCodeFromMediaPath(mediaPath)
-	if code == "" {
-		return nil
-	}
-	compact := strings.ReplaceAll(code, "-", "")
-	bases := []string{code, compact}
-	bases = append(bases, adultDMMNameCandidates(code)...)
-	out := make([]string, 0, len(bases)*6)
-	for _, base := range bases {
-		if base == "" {
-			continue
-		}
-		if kind == "poster" {
-			out = append(out, base, base+"-poster", base+".poster", base+"-cover", base+".cover", base+"-thumb", base+".thumb", base+"pl", base+"-pl")
-		} else {
-			out = append(out, base+"-fanart", base+".fanart", base+"-backdrop", base+".backdrop", base+"-background", base+"-landscape", base+"jp", base+"jp-1")
-		}
-	}
-	return out
-}
-
-func adultDMMNameCandidates(code string) []string {
-	parts := adultStandardPattern.FindStringSubmatch(code)
-	if len(parts) < 3 {
-		return nil
-	}
-	prefix := strings.ToLower(parts[1])
-	num := strings.TrimLeft(parts[2], "0")
-	if num == "" {
-		num = "0"
-	}
-	padded := num
-	for len(padded) < 5 {
-		padded = "0" + padded
-	}
-	return []string{prefix + padded}
+	return names
 }
 
 func firstExistingImage(dir string, names ...string) string {
@@ -244,42 +196,6 @@ func firstExistingPosterImage(dir string, names ...string) string {
 				return filepath.Clean(path)
 			}
 		}
-	}
-	return ""
-}
-
-func firstAdultLooseImage(dir, kind string) string {
-	if dir == "" {
-		return ""
-	}
-	matches, _ := filepath.Glob(filepath.Join(dir, "*"))
-	preferred := []string{}
-	fallback := []string{}
-	for _, path := range matches {
-		ext := strings.ToLower(filepath.Ext(path))
-		if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".webp" && ext != ".gif" && ext != ".bmp" && ext != ".tbn" && ext != ".img" {
-			continue
-		}
-		name := strings.ToLower(strings.TrimSuffix(filepath.Base(path), ext))
-		if kind == "poster" {
-			if isRejectedPosterName(name) {
-				continue
-			}
-			if strings.Contains(name, "poster") || strings.Contains(name, "cover") || strings.Contains(name, "folder") || strings.Contains(name, "movie") || strings.HasSuffix(name, "pl") {
-				preferred = append(preferred, path)
-			}
-		} else if strings.Contains(name, "fanart") || strings.Contains(name, "backdrop") || strings.Contains(name, "background") || strings.Contains(name, "landscape") || strings.Contains(name, "jp") {
-			preferred = append(preferred, path)
-		}
-		if kind != "poster" || likelyPosterImage(path) {
-			fallback = append(fallback, path)
-		}
-	}
-	if len(preferred) > 0 {
-		return filepath.Clean(preferred[0])
-	}
-	if kind == "poster" && len(fallback) == 1 {
-		return filepath.Clean(fallback[0])
 	}
 	return ""
 }

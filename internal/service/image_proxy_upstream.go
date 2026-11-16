@@ -37,7 +37,7 @@ func imageCacheKeyURL(raw string) string {
 // the full-size original and skips the local decode+scale entirely (measured at
 // ~400ms for a single 2892×4096 poster).
 //
-// Other upstreams (TMDb, Douban, adult sites, ...) do not honour these
+// Other upstreams (TMDb, Douban, ...) do not honour these
 // parameters, so their originals are still fetched and scaled locally.
 func (p *ImageProxy) upstreamImageFetchURL(raw string, opts imageResizeOptions) string {
 	if p == nil || !opts.active() {

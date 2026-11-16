@@ -95,11 +95,10 @@ func (b *serviceContainerBuilder) initProviderServices() {
 	b.c.RecognitionWords = NewRecognitionWordsService(b.log, b.repos)
 	b.c.Danmaku = NewDanmakuService(b.log, b.repos)
 
-	adult := NewAdultProvider(b.log, b.c.APIConfig, b.repos)
 	b.c.Scraper = NewScraperService(
 		b.cfg, b.log, b.repos,
 		b.c.TMDb, b.c.Bangumi, b.c.TheTVDB, b.c.Fanart,
-		b.c.WSHub, adult,
+		b.c.WSHub,
 	)
 	b.c.Scraper.SetRuntimeCache(b.c.Cache)
 	b.c.APIConfig.onChange = b.c.Scraper.lookupCache.clear

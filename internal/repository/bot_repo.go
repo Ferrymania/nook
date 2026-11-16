@@ -72,29 +72,6 @@ func (r *RegistrationCodeRepository) CountUnused(ctx context.Context) (int64, er
 	return n, err
 }
 
-// ─── SignIn ───────────────────────────────────────────────────────────────────
-
-// SignInRepository persists model.SignIn records.
-type SignInRepository struct{ db *gorm.DB }
-
-// Get returns the sign-in row for a user, or (nil, nil) when absent.
-func (r *SignInRepository) Get(ctx context.Context, userID string) (*model.SignIn, error) {
-	var s model.SignIn
-	err := r.db.WithContext(ctx).Where("user_id = ?", userID).First(&s).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	return &s, nil
-}
-
-// Save inserts or updates a sign-in row.
-func (r *SignInRepository) Save(ctx context.Context, s *model.SignIn) error {
-	return r.db.WithContext(ctx).Save(s).Error
-}
-
 // ─── UserDevice ───────────────────────────────────────────────────────────────
 
 // UserDeviceRepository persists model.UserDevice records.
@@ -204,16 +181,4 @@ func (r *UserDeviceRepository) SetKickedByFingerprint(ctx context.Context, userI
 func (r *UserDeviceRepository) SetKickedByUser(ctx context.Context, userID string, kicked bool) error {
 	return r.db.WithContext(ctx).Model(&model.UserDevice{}).Where("user_id = ?", userID).
 		Update("kicked", kicked).Error
-}
-
-// WatchedMillisSince approximates the total watched milliseconds for a user
-// since `since`, using the last known playback position per media. Playback
-// history keeps one row per (user, media), so this is an activity proxy rather
-// than an exact watch-time integral — sufficient for the inactivity rule.
-func (r *UserDeviceRepository) WatchedMillisSince(ctx context.Context, userID string, since time.Time) (int64, error) {
-	var total int64
-	err := r.db.WithContext(ctx).Model(&model.PlaybackHistory{}).
-		Where("user_id = ? AND watched_at >= ?", userID, since).
-		Select("COALESCE(SUM(position_ms), 0)").Scan(&total).Error
-	return total, err
 }

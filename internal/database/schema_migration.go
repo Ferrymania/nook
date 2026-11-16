@@ -255,9 +255,6 @@ func ensurePerformanceIndexes(db *gorm.DB) error {
 		// (release_date, year, updated_at, created_at, id) DESC 与索引列完全一致，
 		// LIMIT 分页沿索引顺序直取，免去对整库行做临时 B-tree 排序。
 		`CREATE INDEX IF NOT EXISTS idx_media_library_recent_active ON media(library_id, release_date DESC, year DESC, updated_at DESC, created_at DESC, id DESC) WHERE deleted_at IS NULL`,
-		// 计数覆盖索引：首页 CountByLibraries 的 GROUP BY library_id + nsfw 谓词
-		// 全部落在索引键/部分索引条件上，纯索引扫描即可完成，不回表。
-		`CREATE INDEX IF NOT EXISTS idx_media_library_nsfw_active ON media(library_id, nsfw) WHERE deleted_at IS NULL`,
 		// 旧的两键前缀索引被上面的完整排序索引完全覆盖，删除以降低写放大。
 		`DROP INDEX IF EXISTS idx_media_library_release_active`,
 		// 首页与媒体库的最近添加预览复用入库时间索引。

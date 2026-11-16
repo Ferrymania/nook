@@ -1,4 +1,4 @@
-// Package model — Telegram Bot 相关数据模型：注册兑换码、签到记录、用户设备会话。
+// Package model — Telegram Bot 相关数据模型：注册兑换码、用户设备会话。
 package model
 
 import (
@@ -62,28 +62,10 @@ func (c *RegistrationCode) IsExpired() bool {
 	return c.ExpiresAt != nil && time.Now().After(*c.ExpiresAt)
 }
 
-// SignIn 记录单个用户的连续签到天数（不挂钩积分）。
-type SignIn struct {
-	Base
-	UserID     string    `gorm:"uniqueIndex;size:36;not null" json:"user_id"`
-	LastSignIn time.Time `json:"last_sign_in"`
-	StreakDays int       `gorm:"default:0" json:"streak_days"` // 当前连续签到天数
-	TotalDays  int       `gorm:"default:0" json:"total_days"`  // 累计签到天数
-}
-
-// BeforeCreate 生成 UUID。
-func (s *SignIn) BeforeCreate(_ *gorm.DB) error {
-	if s.ID == "" {
-		s.ID = uuid.NewString()
-	}
-	return nil
-}
-
 // UserDevice 记录一个用户在某台终端设备上的登录渠道，用于设备管控：
 //   - 登录终端数：按 Fingerprint 去重后的近期活跃终端数。
 //   - 并发播放数：按 Fingerprint 去重后的播放终端数。
 //   - 设备指纹：同一终端不同 App 共用 Fingerprint，Client 只作为渠道标签。
-//   - 观看时长：结合 PlaybackHistory 统计随机窗口内的观看时长。
 type UserDevice struct {
 	Base
 	UserID      string     `gorm:"index;size:36;not null;uniqueIndex:uniq_user_device" json:"user_id"`
@@ -114,7 +96,6 @@ func (d *UserDevice) BeforeCreate(_ *gorm.DB) error {
 func BotModels() []interface{} {
 	return []interface{}{
 		&RegistrationCode{},
-		&SignIn{},
 		&UserDevice{},
 	}
 }

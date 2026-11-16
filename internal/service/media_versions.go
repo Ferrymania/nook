@@ -75,17 +75,13 @@ func FirstMediaItems(items []MediaItem, limit int) []MediaItem {
 }
 
 func groupMediaVersions(items []model.Media) []MediaItem {
-	return groupMediaVersionsByKey(items, mediaVersionGroupKeyWithAdultVouch)
+	return groupMediaVersionsByKey(items, mediaVersionGroupKey)
 }
 
-func groupMediaVersionsByKey(items []model.Media, groupKey func(model.Media, map[string]bool) string) []MediaItem {
+func groupMediaVersionsByKey(items []model.Media, groupKey func(model.Media) string) []MediaItem {
 	if len(items) == 0 {
 		return nil
 	}
-	// 同一番号只要有一个分片被刮削标记为成人内容，就认定整部片都是成人条目：
-	// 未刮削的分片（nsfw=false）也按番号折叠。否则「一个分片刮削成功、其余仍
-	// pending」时，已刮削的走番号分组、其余落到标题分组，整部片被拆成两张卡。
-	adultCodes := adultCodesVouchedByNSFW(items)
 	type group struct {
 		key  string
 		rows []model.Media
@@ -93,7 +89,7 @@ func groupMediaVersionsByKey(items []model.Media, groupKey func(model.Media, map
 	groups := make([]group, 0, len(items))
 	byKey := make(map[string]int, len(items))
 	for _, item := range items {
-		key := groupKey(item, adultCodes)
+		key := groupKey(item)
 		if key == "" {
 			groups = append(groups, group{rows: []model.Media{item}})
 			continue
@@ -128,13 +124,13 @@ func GroupMediaVersions(items []model.Media) []MediaItem {
 // GroupEpisodeVersionsForDisplay folds encoding/container variants into one
 // episode while preserving season/episode ordering for episode-list APIs.
 func GroupEpisodeVersionsForDisplay(items []model.Media) []MediaItem {
-	grouped := groupMediaVersionsByKey(items, func(item model.Media, adultCodes map[string]bool) string {
+	grouped := groupMediaVersionsByKey(items, func(item model.Media) string {
 		// A shared show ID does not prove that unnumbered files are the same episode.
 		// Theatrical extras still use movie version grouping within anime libraries.
 		if item.EpisodeNum <= 0 && !mediaLooksLikeTheatricalFeature(&item) {
 			return ""
 		}
-		return mediaVersionGroupKeyWithAdultVouch(item, adultCodes)
+		return mediaVersionGroupKey(item)
 	})
 	if grouped == nil {
 		return []MediaItem{}
@@ -161,50 +157,6 @@ func mediaVersionLibraryKey(m model.Media) string {
 		libKey = strings.ToLower(strings.TrimSpace(m.DisplayLibraryID))
 	}
 	return libKey
-}
-
-// adultCodesVouchedByNSFW 收集「已被刮削确认为成人内容」的番号。
-func adultCodesVouchedByNSFW(items []model.Media) map[string]bool {
-	codes := map[string]bool{}
-	for _, item := range items {
-		if !item.NSFW {
-			continue
-		}
-		if code := canonicalAdultGroupCode(AdultCodeFromMediaPath(item.Path)); code != "" {
-			codes[code] = true
-			continue
-		}
-		if code := mediaAdultGroupCode(item); code != "" {
-			codes[code] = true
-		}
-	}
-	return codes
-}
-
-// mediaVersionGroupKeyWithAdultVouch 是版本身份的统一入口：番号已被同组分片
-// 确认时优先按番号折叠，否则沿用 mediaVersionGroupKey 的原判定。
-func mediaVersionGroupKeyWithAdultVouch(m model.Media, vouched map[string]bool) string {
-	if key := adultVouchedGroupKey(m, vouched); key != "" {
-		return key
-	}
-	return mediaVersionGroupKey(m)
-}
-
-// adultVouchedGroupKey 在番号已被同组分片确认时，返回番号分组键；
-// 其余情况返回空串，表示沿用 mediaVersionGroupKey 的原判定。
-func adultVouchedGroupKey(m model.Media, vouched map[string]bool) string {
-	if len(vouched) == 0 || m.NSFW {
-		return ""
-	}
-	code := canonicalAdultGroupCode(AdultCodeFromMediaPath(m.Path))
-	if code == "" || !vouched[code] {
-		return ""
-	}
-	libKey := mediaVersionLibraryKey(m)
-	if libKey == "" {
-		libKey = "_"
-	}
-	return fmt.Sprintf("adult:%s:%s", libKey, code)
 }
 
 func mediaVersionGroupKey(m model.Media) string { // 远程 Emby 挂载条目保持独立，不与其它远程条目或本地条目折叠合并。
@@ -259,17 +211,6 @@ func mediaVersionGroupKey(m model.Media) string { // 远程 Emby 挂载条目保
 
 	if specialKind != "" && specialKind != mediaSpecialTheatrical {
 		return mediaVersionStemGroupKey(m, libKey)
-	}
-
-	// 旧版在线刮削可能借用外部 ID 字段，本地 NFO 不一定包含这些字段；一旦按
-	// 外部 ID 分组，同一部片的各个分片就会因为元数据来源不同（在线刮削 vs
-	// 本地 NFO）裂成两张标题相同的卡。番号取自原文件名/路径/标题，与元数据
-	// 来源无关，因此这里统一用番号做版本身份。
-	if code := mediaAdultGroupCode(m); code != "" {
-		if libKey == "" {
-			libKey = "_"
-		}
-		return fmt.Sprintf("adult:%s:%s", libKey, code)
 	}
 
 	switch {
@@ -344,43 +285,6 @@ func mediaVersionGroupKey(m model.Media) string { // 远程 Emby 挂载条目保
 		return fmt.Sprintf("movie:%s:%s:%d", libKey, title, year)
 	}
 	return fmt.Sprintf("movie:%s:%d", title, year)
-}
-
-// mediaAdultGroupCode 返回成人条目的番号，作为与元数据来源无关的版本身份。
-//
-// 只在已经确认是成人条目（NSFW）时才返回番号：番号本身来自原文件名/路径/
-// 标题，因此不受在线或本地 NFO 元数据来源影响，两条来源能算出
-// 同一个键。未标记 NSFW 的条目仍走标题分组，普通影视库里 "The Matrix 1999"
-// 这类文件名不会被当成番号。
-func mediaAdultGroupCode(m model.Media) string {
-	if !m.NSFW {
-		return ""
-	}
-	code := firstText(
-		normalizeAdultCode(m.OriginalName),
-		AdultCodeFromMediaPath(m.Path),
-		normalizeAdultCode(m.Title),
-	)
-	if code == "" {
-		return ""
-	}
-	return canonicalAdultGroupCode(code)
-}
-
-// canonicalAdultGroupCode 去掉番号数字部分的补零，让 IPVR-00192 与 IPVR-192
-// 这类同一部片的不同写法落到同一个分组键上。无法解析数字的番号原样返回
-// （如 FC2-PPV-4701981）。
-func canonicalAdultGroupCode(code string) string {
-	code = strings.ToUpper(strings.TrimSpace(code))
-	prefix, digits, ok := strings.Cut(code, "-")
-	if !ok {
-		return code
-	}
-	value, err := strconv.Atoi(digits)
-	if err != nil {
-		return code
-	}
-	return prefix + "-" + strconv.Itoa(value)
 }
 
 // mediaVersionStemGroupKey 按「库 + 父目录 + 文件词干」折叠多版本

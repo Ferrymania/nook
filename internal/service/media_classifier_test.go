@@ -12,7 +12,7 @@ func TestNormalizeMediaTypeAcceptsChineseLibraryTypes(t *testing.T) {
 		"日漫":   "anime",
 		"国漫":   "anime",
 		"综艺":   "variety",
-		"成人":   "adult",
+		"成人":   "movie",
 	}
 	for input, want := range tests {
 		if got := normalizeMediaType(input, "测试标题", ""); got != want {

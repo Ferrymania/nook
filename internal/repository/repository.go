@@ -33,7 +33,6 @@ type Container struct {
 	RefreshToken   *RefreshTokenRepository
 	ApiConfig      *ApiConfigRepository
 	RegCode        *RegistrationCodeRepository
-	SignIn         *SignInRepository
 	UserDevice     *UserDeviceRepository
 	StrmAccount    *StrmAccountRepository
 	StrmSyncPath   *StrmSyncPathRepository
@@ -65,7 +64,6 @@ func New(db *gorm.DB) *Container {
 		RefreshToken:   &RefreshTokenRepository{db: db},
 		ApiConfig:      &ApiConfigRepository{db: db},
 		RegCode:        &RegistrationCodeRepository{db: db},
-		SignIn:         &SignInRepository{db: db},
 		UserDevice:     &UserDeviceRepository{db: db},
 		StrmAccount:    &StrmAccountRepository{db: db},
 		StrmSyncPath:   &StrmSyncPathRepository{db: db},

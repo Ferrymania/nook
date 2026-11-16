@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"io"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -211,7 +210,6 @@ func TestDetermineMediaTypeForMediaHonorsExplicitMatchType(t *testing.T) {
 		{name: "tv match stays tv", match: &Match{MediaType: "tv"}, want: "tv"},
 		{name: "anime match uses tmdb tv endpoint", match: &Match{MediaType: "anime"}, want: "tv"},
 		{name: "variety match uses tmdb tv endpoint", match: &Match{MediaType: "variety"}, want: "tv"},
-		{name: "adult match uses tmdb movie endpoint", match: &Match{MediaType: "adult"}, want: "movie"},
 		{name: "unknown match falls back to episodic hints", match: &Match{}, want: "tv"},
 	}
 
@@ -382,57 +380,6 @@ func TestApplyManualMatchSkipsTMDbEpisodeStillWhenDisabled(t *testing.T) {
 	}
 	if !strings.HasSuffix(got.BackdropURL, "/images/w1280/backdrop.jpg") {
 		t.Fatalf("series backdrop should still be saved when manual episode artwork is disabled: got %q", got.BackdropURL)
-	}
-}
-
-func TestEnrichOneAdultScrapesArtwork(t *testing.T) {
-	scraper, repos, closeServer := newTestScraper(t)
-	defer closeServer()
-
-	lib := model.Library{Name: "小姐姐", Path: t.TempDir(), Type: "movie", Enabled: true}
-	if err := repos.DB.Create(&lib).Error; err != nil {
-		t.Fatal(err)
-	}
-	media := model.Media{
-		LibraryID:    lib.ID,
-		Title:        "IPX-235-C",
-		OriginalName: "IPX-235-C",
-		Path:         filepath.Join(lib.Path, "IPX-235-C.strm"),
-		ScrapeStatus: "pending",
-	}
-	if err := repos.DB.Create(&media).Error; err != nil {
-		t.Fatal(err)
-	}
-
-	// Mock adult provider：RoundTripper 拦截 provider 发出的全部请求（不访问
-	// 外网），任何站点都返回带封面链接的测试 HTML——保证 CI 上不命中真实
-	// javdb/dmm 站点（外网可达时会把真实封面写进断言导致失败）。
-	adultHTML := `<html><h3>IPX-235 测试番号封面</h3><a class="bigImage" href="/pics/cover/ipx235.jpg"></a></html>`
-	mockAdultTransport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
-		return &http.Response{
-			StatusCode: http.StatusOK,
-			Header:     http.Header{"Content-Type": []string{"text/html; charset=utf-8"}},
-			Body:       io.NopCloser(strings.NewReader(adultHTML)),
-		}, nil
-	})
-	scraper.adult = &AdultProvider{
-		client: &http.Client{Transport: mockAdultTransport},
-	}
-
-	if err := scraper.EnrichOne(t.Context(), &media); err != nil {
-		t.Fatal(err)
-	}
-
-	var got model.Media
-	if err := repos.DB.First(&got, "id = ?", media.ID).Error; err != nil {
-		t.Fatal(err)
-	}
-	if got.ScrapeStatus != "matched" {
-		t.Fatalf("ScrapeStatus = %q, want 'matched'", got.ScrapeStatus)
-	}
-	// 封面来自 mock HTML 的 cover 链接（Host 随站点变化，只校验路径后缀）。
-	if got.PosterURL != "https://pics.dmm.co.jp/digital/video/ipx00235/ipx00235pl.jpg" && !strings.HasSuffix(got.PosterURL, "/pics/cover/ipx235.jpg") {
-		t.Fatalf("unexpected PosterURL = %q", got.PosterURL)
 	}
 }
 

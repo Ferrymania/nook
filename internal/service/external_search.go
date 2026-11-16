@@ -34,7 +34,6 @@ type ExternalMediaResult struct {
 	Languages          []string `json:"languages,omitempty"`
 	Countries          []string `json:"countries,omitempty"`
 	Genres             []string `json:"genres,omitempty"`
-	NSFW               bool     `json:"nsfw,omitempty"`
 }
 
 // SearchExternalMedia fans out one normalized search intent to TMDb
@@ -74,7 +73,6 @@ func SearchExternalMedia(ctx context.Context, query string, year int, mediaType 
 			Languages:        m.Languages,
 			Countries:        m.Countries,
 			Genres:           m.Genres,
-			NSFW:             m.NSFW,
 		})
 	}
 

@@ -38,9 +38,7 @@ func localMetadataNeedsRefresh(existing existingLocalMedia, local *LocalMetadata
 	if local.EpisodeTitle != "" && strings.TrimSpace(existing.EpisodeTitle) != strings.TrimSpace(local.EpisodeTitle) {
 		return true
 	}
-	if local.AdultCode != "" && !strings.EqualFold(strings.TrimSpace(existing.OriginalName), strings.TrimSpace(local.AdultCode)) {
-		return true
-	}
+
 	if local.Year > 0 && existing.Year != local.Year {
 		return true
 	}
@@ -86,7 +84,7 @@ func localMetadataNeedsRefresh(existing existingLocalMedia, local *LocalMetadata
 	if local.Languages != "" && strings.TrimSpace(existing.Languages) != strings.TrimSpace(local.Languages) {
 		return true
 	}
-	return local.NSFW && !existing.NSFW
+	return false
 }
 
 func localDerivedMetadataNeedsRefresh(existing existingLocalMedia, incoming *model.Media) bool {
