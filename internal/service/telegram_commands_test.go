@@ -182,6 +182,8 @@ func TestTelegramControlRejectsUntrustedChatsAndRevokedConfig(t *testing.T) {
 				_ = f.strm.repo.Setting.Set(t.Context(), SettingTelegramAdminChatID, "-123456")
 			}
 			f.bot.handleUpdate(t.Context(), "test-token", u)
+			u.Message.Text = "/status"
+			f.bot.handleUpdate(t.Context(), "test-token", u)
 			q := telegramAdminCallback("nook:sync:all")
 			q.CallbackQuery.Message.Chat, q.CallbackQuery.From = u.Message.Chat, u.Message.From
 			f.bot.handleUpdate(t.Context(), "test-token", q)
@@ -217,6 +219,12 @@ func TestTelegramAdminMenuRegistrationIsScopedAndRotates(t *testing.T) {
 	commands := calls[1].Payload["commands"].([]any)
 	if len(commands) != 5 {
 		t.Fatalf("commands: %+v", commands)
+	}
+	for _, raw := range commands {
+		command := raw.(map[string]any)
+		if command["command"] == "status" && command["description"] != "查看媒体数量、用户数和正在播放人数" {
+			t.Fatalf("status description: %+v", command)
+		}
 	}
 	cfg.AdminID = "-100123"
 	if err := f.bot.registerAdminCommands(t.Context(), cfg, "", ""); err != nil {
@@ -294,8 +302,6 @@ func TestTelegramIncrementalSyncUsesRealEngineAndReportsResults(t *testing.T) {
 	f.bot.handleUpdate(t.Context(), "test-token", telegramAdminCallback("nook:sync:"+a.ID))
 	f.waitMessage(t, "新增/更新 STRM：0，跳过：1")
 	f.waitIdle(t)
-	f.bot.handleUpdate(t.Context(), "test-token", telegramAdminMessage("/status"))
-	f.waitMessage(t, "STRM 同步状态")
 }
 
 func TestTelegramCancelBatchStopsRunningDirectoryAndPendingOnes(t *testing.T) {
@@ -330,8 +336,6 @@ func TestTelegramCancelBatchStopsRunningDirectoryAndPendingOnes(t *testing.T) {
 	}
 	f.bot.handleUpdate(t.Context(), "test-token", telegramAdminMessage("/sync_all"))
 	f.waitMessage(t, "已有 Telegram 同步任务")
-	f.bot.handleUpdate(t.Context(), "test-token", telegramAdminMessage("/status"))
-	f.waitMessage(t, "待执行 1 个目录")
 	f.bot.handleUpdate(t.Context(), "test-token", telegramAdminMessage("/cancel"))
 	f.bot.handleUpdate(t.Context(), "test-token", telegramAdminCallback("nook:cancel:batch"))
 	f.waitMessage(t, "增量 STRM 同步已取消")

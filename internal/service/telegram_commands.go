@@ -19,6 +19,8 @@ type telegramButton struct {
 
 func (s *TelegramService) SetStrmService(strm *StrmService) { s.strm = strm }
 
+func (s *TelegramService) SetSessionTracker(sessions *SessionTrackerService) { s.sessions = sessions }
+
 func telegramCommand(text string) string {
 	fields := strings.Fields(text)
 	if len(fields) == 0 {
@@ -63,7 +65,7 @@ func (s *TelegramService) registerAdminCommands(ctx context.Context, cfg telegra
 		}
 	}
 	id := telegramPrivateAdminID(cfg.AdminID)
-	if !cfg.Enabled || cfg.BotToken == "" || id == 0 || s.strm == nil {
+	if !cfg.Enabled || cfg.BotToken == "" || id == 0 {
 		return nil
 	}
 	return s.call(ctx, cfg.BotToken, "setMyCommands", map[string]any{
@@ -72,13 +74,17 @@ func (s *TelegramService) registerAdminCommands(ctx context.Context, cfg telegra
 			{"command": "start", "description": "查看 Nook 操作说明"},
 			{"command": "strm_inc", "description": "全部启用目录依次增量同步"},
 			{"command": "sync", "description": "选择目录增量同步"},
-			{"command": "status", "description": "查看同步状态和最近结果"},
+			{"command": "status", "description": "查看媒体数量、用户数和正在播放人数"},
 			{"command": "cancel", "description": "选择并取消同步任务"},
 		},
 	}, nil)
 }
 
 func (s *TelegramService) handleAdminCommand(ctx context.Context, token, chatID, command string) {
+	if command == "/status" {
+		s.sendSiteStatus(ctx, token, chatID)
+		return
+	}
 	if s.strm == nil {
 		s.controlReply(ctx, token, chatID, "STRM 同步服务暂不可用", nil)
 		return
@@ -88,12 +94,10 @@ func (s *TelegramService) handleAdminCommand(ctx context.Context, token, chatID,
 		s.startTelegramSync(ctx, token, chatID, "all")
 	case "/sync":
 		s.sendPathMenu(ctx, token, chatID, "sync", 0)
-	case "/status":
-		s.sendSyncStatus(ctx, token, chatID)
 	case "/cancel":
 		s.sendPathMenu(ctx, token, chatID, "cancel", 0)
 	default:
-		s.controlReply(ctx, token, chatID, "Nook 管理员操作\n\n/strm_inc — 全部目录依次增量同步\n/sync — 选择目录增量同步\n/status — 查看同步状态\n/cancel — 选择取消任务\n\n使用系统设置中的 Bot 和管理员私聊 ID，无需个人资料绑定。", nil)
+		s.controlReply(ctx, token, chatID, "Nook 管理员操作\n\n/strm_inc — 全部目录依次增量同步\n/sync — 选择目录增量同步\n/status — 查看媒体数量、用户数和正在播放人数\n/cancel — 选择取消任务\n\n使用系统设置中的 Bot 和管理员私聊 ID，无需个人资料绑定。", nil)
 	}
 }
 
