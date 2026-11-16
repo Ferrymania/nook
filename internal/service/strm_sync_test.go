@@ -66,24 +66,73 @@ func TestRemovedStrmProviderIsRejected(t *testing.T) {
 func TestStrmVideoExtensionsUpgradeSavedDefault(t *testing.T) {
 	svc := testStrmService(t)
 	ctx := t.Context()
-	for _, value := range []string{"", "mkv,mp4,avi,rmvb,rm,mov,ts,wmv,flv,m4v,iso,mpg,mpeg,webm", "mkv,mp4"} {
-		if err := svc.repo.Setting.Set(ctx, StrmSettingVideoExt, value); err != nil {
-			t.Fatal(err)
-		}
-		settings, err := svc.GetStrmSettings(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-		cfg, err := svc.strmEffectiveConfig(ctx, &model.StrmSyncPath{})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if settings[StrmSettingVideoExt] != strings.Join(cfg.VideoExt, ",") || strmContains(cfg.VideoExt, "iso") {
-			t.Fatalf("legacy/default ISO still enabled: settings=%q effective=%v", settings[StrmSettingVideoExt], cfg.VideoExt)
-		}
-		if value == "mkv,mp4" && settings[StrmSettingVideoExt] != value {
-			t.Fatal("custom extension list was overwritten")
-		}
+	for _, test := range []struct {
+		name, saved, override, wantGlobal, wantEffective string
+		isoEnabled                                       bool
+	}{
+		{"unset", "", "", StrmDefaultVideoExt, StrmDefaultVideoExt, true},
+		{"saved-default-without-iso", "mkv,mp4,avi,rmvb,rm,mov,ts,wmv,flv,m4v,mpg,mpeg,webm", "", StrmDefaultVideoExt, StrmDefaultVideoExt, true},
+		{"saved-default-with-iso", StrmDefaultVideoExt, "", StrmDefaultVideoExt, StrmDefaultVideoExt, true},
+		{"custom-excludes-iso", "mkv,mp4", "", "mkv,mp4", "mkv,mp4", false},
+		{"custom-includes-iso", "mkv,iso", "", "mkv,iso", "mkv,iso", true},
+		{"directory-excludes-iso", "", "mkv,mp4", StrmDefaultVideoExt, "mkv,mp4", false},
+		{"directory-includes-iso", "mkv,mp4", "iso", "mkv,mp4", "iso", true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if err := svc.repo.Setting.Set(ctx, StrmSettingVideoExt, test.saved); err != nil {
+				t.Fatal(err)
+			}
+			settings, err := svc.GetStrmSettings(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if settings[StrmSettingVideoExt] != test.wantGlobal {
+				t.Fatalf("global extensions = %q, want %q", settings[StrmSettingVideoExt], test.wantGlobal)
+			}
+			src, out := t.TempDir(), t.TempDir()
+			isoPath := filepath.Join(src, "Movie.2026.iso")
+			writeFile(t, isoPath, "iso image")
+			p, err := svc.CreateSyncPath(ctx, &model.StrmSyncPath{
+				Name: "ISO " + test.name, Provider: model.StrmProviderLocal,
+				RemotePath: src, LocalPath: out, VideoExt: test.override,
+				AddPath: 1, Enabled: true, DownloadMeta: true,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			cfg, err := svc.strmEffectiveConfig(ctx, p)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := strings.Join(cfg.VideoExt, ","); got != test.wantEffective {
+				t.Fatalf("effective extensions = %q, want %q", got, test.wantEffective)
+			}
+			if err := svc.StartSync(ctx, p.ID); err != nil {
+				t.Fatal(err)
+			}
+			record := waitSyncDone(t, svc, p.ID, 10*time.Second)
+			if record.Status != model.StrmSyncRecordDone {
+				t.Fatalf("ISO sync failed: %+v", record)
+			}
+			data, err := os.ReadFile(filepath.Join(out, "Movie.2026.strm"))
+			if !test.isoEnabled {
+				if !os.IsNotExist(err) || record.NewStrm != 0 {
+					t.Fatalf("custom exclusion still generated ISO STRM: err=%v record=%+v", err, record)
+				}
+				return
+			}
+			if err != nil || record.NewStrm != 1 {
+				t.Fatalf("ISO STRM was not generated: err=%v record=%+v", err, record)
+			}
+			target, err := url.Parse(strings.TrimSpace(string(data)))
+			if err != nil || target.Query().Get("path") != isoPath {
+				t.Fatalf("ISO STRM target = %q: %v", data, err)
+			}
+			play, err := svc.ResolvePlay(ctx, model.StrmProviderLocal, target.Query())
+			if err != nil || play.LocalPath != isoPath {
+				t.Fatalf("ISO playback target = %+v: %v", play, err)
+			}
+		})
 	}
 }
 

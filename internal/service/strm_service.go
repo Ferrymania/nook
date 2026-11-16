@@ -49,7 +49,7 @@ const (
 )
 
 const (
-	StrmDefaultVideoExt = "mkv,mp4,avi,rmvb,rm,mov,ts,wmv,flv,m4v,mpg,mpeg,webm"
+	StrmDefaultVideoExt = "mkv,mp4,avi,rmvb,rm,mov,ts,wmv,flv,m4v,iso,mpg,mpeg,webm"
 	StrmDefaultMetaExt  = "nfo,jpg,jpeg,png,srt,ass,ssa,sub,txt,bmp,webp,img"
 	StrmDefaultExclude  = "sample,trailer,预告"
 )
@@ -63,7 +63,7 @@ var StrmSettingDefs = map[string]struct {
 	Help    string
 }{
 	StrmSettingBaseURL:         {Default: "", Label: "STRM 播放地址", Kind: "text", Help: "此地址会写入生成的 STRM 文件。如果用 Emby 读取 STRM，请填写 Emby 服务器能访问的 Nook 地址。例如 http://127.0.0.1:18080"},
-	StrmSettingVideoExt:        {Default: StrmDefaultVideoExt, Label: "视频扩展名", Kind: "text", Help: "逗号分隔；命中即生成 .strm。暂时不支持 ISO，默认不生成 ISO 的 STRM"},
+	StrmSettingVideoExt:        {Default: StrmDefaultVideoExt, Label: "视频扩展名", Kind: "text", Help: "逗号分隔；命中即生成 .strm，默认包含 ISO"},
 	StrmSettingMetaExt:         {Default: StrmDefaultMetaExt, Label: "元数据扩展名", Kind: "text", Help: "逗号分隔；进入下载/上传队列的文件类型（nfo/图片/字幕）"},
 	StrmSettingExcludeName:     {Default: StrmDefaultExclude, Label: "排除文件名", Kind: "text", Help: "逗号分隔；文件名包含任一关键词即跳过"},
 	StrmSettingMinVideoSizeMB:  {Default: "0", Label: "最小视频大小(MB)", Kind: "number", Help: "小于该大小的视频文件不生成 STRM，0 表示不限"},
@@ -734,7 +734,7 @@ func (s *StrmService) strmSetting(ctx context.Context, key string) string {
 
 // Upgrade the previously saved default without overwriting custom lists.
 func currentStrmDefault(key, value string) string {
-	if key == StrmSettingVideoExt && value == "mkv,mp4,avi,rmvb,rm,mov,ts,wmv,flv,m4v,iso,mpg,mpeg,webm" {
+	if key == StrmSettingVideoExt && value == "mkv,mp4,avi,rmvb,rm,mov,ts,wmv,flv,m4v,mpg,mpeg,webm" {
 		return StrmDefaultVideoExt
 	}
 	return value
