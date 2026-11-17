@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { MonitorPlay } from 'lucide-react'
 
 import { SettingsSection, SettingsSwitch } from '../components/SettingsSection'
@@ -5,6 +6,7 @@ import { SettingRow } from './SettingsRow'
 import { generalSettingsGroup } from './settingsGroupGeneral'
 
 const directOnlySetting = generalSettingsGroup.items.find((item) => item.key === 'playback.direct_only')!
+const proxyRemoteSetting = generalSettingsGroup.items.find((item) => item.key === 'playback.proxy_remote')!
 const parameterKeys = [
   'transcode.hw_enabled', 'transcode.hw_accel', 'transcode.max_jobs',
   'transcode.threads', 'transcode.idle_timeout_seconds', 'transcode.realtime',
@@ -17,6 +19,7 @@ type Props = {
 }
 
 export function PlaybackSettingsPanel({ values, saving = false, onChange }: Props) {
+  const proxyDescriptionID = useId()
   const valueOf = (key: string) => values[key] ?? generalSettingsGroup.items.find((item) => item.key === key)?.defaultValue ?? ''
   const isOn = (key: string) => ['true', '1', 'on'].includes(valueOf(key))
   // Preserve the legacy restriction and synchronize both keys with the selected mode.
@@ -39,6 +42,14 @@ export function PlaybackSettingsPanel({ values, saving = false, onChange }: Prop
         ))}
       </fieldset>
       {directOnly && <p className="settings-help-text">客户端不支持源格式时将无法播放。</p>}
+      <div className="settings-mode-row settings-disclosure-divided">
+        <div className="min-w-0">
+          <span>{proxyRemoteSetting.label}</span>
+          <p id={proxyDescriptionID} className="settings-help-text mt-1!">{proxyRemoteSetting.hint}</p>
+        </div>
+        <SettingsSwitch label={proxyRemoteSetting.label} checked={isOn(proxyRemoteSetting.key)} disabled={saving}
+          describedBy={proxyDescriptionID} onChange={(checked) => onChange(proxyRemoteSetting.key, String(checked))} />
+      </div>
       {!directOnly && <details className="settings-disclosure settings-disclosure-divided" open>
         <summary>转码参数</summary>
         <div className="settings-fields mt-4">

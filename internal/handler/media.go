@@ -837,11 +837,13 @@ func streamHandler(svc *service.Container) gin.HandlerFunc {
 				c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 				return
 			}
-			if !service.EmbyMountLibraryAllowed(mediaVisibilityForRequest(c, svc), mount) {
+			visibility := mediaVisibilityForRequest(c, svc)
+			if !service.EmbyMountLibraryAllowed(visibility, mount) {
 				c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 				return
 			}
-			if visibility := mediaVisibilityForRequest(c, svc); visibility.Restricted() {
+			ctx = service.WithContentRatingPolicy(ctx, visibility.ContentRatingPolicy)
+			if visibility.Restricted() {
 				media, err := svc.EmbyRemote.RemoteMediaDetail(ctx, mount, acct, remoteID)
 				if err != nil || media == nil || !visibility.Allows(media) {
 					c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
@@ -851,20 +853,25 @@ func streamHandler(svc *service.Container) gin.HandlerFunc {
 			// 远程条目可能是「整部剧/季/目录」：这类条目自身没有媒体源，远程 Emby 对它
 			// 们的 /Videos/{id}/stream 会直接回 500（Unable to cast object of type
 			// 'Series' to type 'IHasMediaSources'）。网页端、外部播放器、第三方客户端都
-			// 可能把这种 ID 送进来，这里统一改投第一集：302 让客户端自己跟过去，播放器
-			// 原有的 token / proxy 查询参数一并保留。
+			// 可能把这种 ID 送进来，这里统一改投第一集；代理模式在当前请求里取流，
+			// 直连模式通过保留原查询参数的 302 交给客户端。
+			forceProxy := service.RemotePlaybackProxyEnabled(ctx, svc.Repo)
 			if playable := svc.EmbyRemote.PlayableRemoteID(ctx, acct, remoteID); playable != "" && playable != remoteID {
-				target := "/api/stream/" + service.EncodeEmbyRemoteID(mountID, playable)
-				if rawQuery := c.Request.URL.RawQuery; rawQuery != "" {
-					target += "?" + rawQuery
+				if forceProxy {
+					remoteID = playable
+				} else {
+					target := "/api/stream/" + service.EncodeEmbyRemoteID(mountID, playable)
+					if rawQuery := c.Request.URL.RawQuery; rawQuery != "" {
+						target += "?" + rawQuery
+					}
+					setRedirectNoStoreHeaders(c)
+					c.Redirect(http.StatusFound, target)
+					return
 				}
-				setRedirectNoStoreHeaders(c)
-				c.Redirect(http.StatusFound, target)
-				return
 			}
 			// 远程 Emby 条目的同源转发：VR 全景需要浏览器读帧（见 stream_proxy.go），
 			// 与挂载账号的 proxy_play 开关等价。
-			if mount.ProxyPlay || wantSameOriginProxy(c) {
+			if mount.ProxyPlay || forceProxy || wantSameOriginProxy(c) {
 				if err := svc.Emby.ProxyRemoteVideoStream(ctx, c.Writer, c.Request, mountID, remoteID); err != nil {
 					if !c.Writer.Written() {
 						c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
@@ -922,9 +929,12 @@ func streamHandler(svc *service.Container) gin.HandlerFunc {
 			c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 			return
 		}
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
+		if err != nil && !c.Writer.Written() {
+			status := http.StatusInternalServerError
+			if service.RemotePlaybackProxyEnabled(ctx, svc.Repo) {
+				status = http.StatusBadGateway
+			}
+			c.JSON(status, gin.H{"error": err.Error()})
 		}
 	}
 }

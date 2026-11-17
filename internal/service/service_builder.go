@@ -146,9 +146,9 @@ func (b *serviceContainerBuilder) initContentServices() {
 		SetRuntimeCache(b.c.Cache)
 	b.c.Scraper.SetMediaProbe(b.c.MediaProbe)
 	b.c.Stream.SetMediaProbe(b.c.MediaProbe)
-	// 播放链路：/Videos/{id}/stream 与 /api/stream/{id} 在服务端完成换链后直接
-	// 302 到最终直链，客户端少跟随一次 302（高延迟线路上省一个往返）。
-	b.c.Stream.SetStrmPlayTargetResolver(b.c.Strm.ResolvePlayTargetWithUA)
+	// 网页与兼容客户端共用换链和原画代理能力，由全局播放设置决定传输方式。
+	b.c.Stream.SetStrmPlayTargetResolver(b.c.Strm.ResolvePlayTargetWithUA).
+		SetStrmMediaProxy(b.c.Strm.ProxyMediaDirect)
 	// 弹幕识别需要把远程 Emby 条目解析为 Media 元数据及可拉取前 16MB 的直链 URL。
 	if b.c.EmbyRemote != nil {
 		b.c.Danmaku.SetRemoteMediaResolver(b.resolveDanmakuRemoteMedia)

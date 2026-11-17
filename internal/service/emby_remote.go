@@ -1168,7 +1168,7 @@ func (r *EmbyRemoteService) RemotePlaybackInfo(ctx context.Context, mount *model
 		return nil, err
 	}
 	RewriteEmbyRemoteIDs(out, mount.ID)
-	r.rewritePlayURLs(out, mount, cfg, remoteID)
+	r.rewritePlayURLs(ctx, out, mount, cfg, remoteID)
 	return out, nil
 }
 
@@ -1176,8 +1176,11 @@ func (r *EmbyRemoteService) RemotePlaybackInfo(ctx context.Context, mount *model
 // 远程 Emby 的 PlaybackInfo 通常不返回 DirectStreamUrl（客户端靠它拼
 // /Videos/{Id}/stream），因此这里总是强制构造播放地址，完全由 Nook 掌控
 // 直连（远程绝对 URL）或代理（本地 /Videos/{encoded}）的最终去向。
-func (r *EmbyRemoteService) rewritePlayURLs(value any, mount *model.EmbyMount, cfg *EmbyRemoteConfig, remoteID string) {
+func (r *EmbyRemoteService) rewritePlayURLs(ctx context.Context, value any, mount *model.EmbyMount, cfg *EmbyRemoteConfig, remoteID string) {
 	encoded := EncodeEmbyRemoteID(mount.ID, remoteID)
+	proxyPlay := mount.ProxyPlay || RemotePlaybackProxyEnabled(ctx, r.repo)
+	subtitleConfig := *cfg
+	subtitleConfig.ProxyPlay = proxyPlay
 	sources := collectMediaSources(value)
 	if sources == nil {
 		return
@@ -1185,7 +1188,7 @@ func (r *EmbyRemoteService) rewritePlayURLs(value any, mount *model.EmbyMount, c
 	for _, src := range sources {
 		mediaSourceID, _ := src["Id"].(string)
 		var streamPath, subtitlePlayURL string
-		if mount.ProxyPlay {
+		if proxyPlay {
 			streamPath = "/Videos/" + url.PathEscape(encoded) + "/stream"
 			subtitlePlayURL = "/Videos/" + url.PathEscape(encoded)
 		} else {
@@ -1201,7 +1204,7 @@ func (r *EmbyRemoteService) rewritePlayURLs(value any, mount *model.EmbyMount, c
 		if _, exists := src["TranscodingUrl"]; exists {
 			src["TranscodingUrl"] = streamPath
 		}
-		rewriteSubtitleDeliveryURLs(src, subtitlePlayURL, cfg)
+		rewriteSubtitleDeliveryURLs(src, subtitlePlayURL, &subtitleConfig)
 	}
 }
 
@@ -1551,19 +1554,30 @@ func (r *EmbyRemoteService) proxyVideoStreamOnLine(ctx context.Context, w http.R
 	if encoded := q.Encode(); encoded != "" {
 		endpoint += "?" + encoded
 	}
-	upstream, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	method := http.MethodGet
+	if req.Method == http.MethodHead {
+		method = http.MethodHead
+	}
+	upstream, err := http.NewRequestWithContext(ctx, method, endpoint, nil)
 	if err != nil {
 		return err
 	}
 	upstream.Header.Set("X-Emby-Token", cfg.Token)
-	if rangeHeader := req.Header.Get("Range"); rangeHeader != "" {
-		upstream.Header.Set("Range", rangeHeader)
+	upstream.Header.Set("User-Agent", req.UserAgent())
+	upstream.Header.Set("Accept-Encoding", "identity")
+	for _, header := range []string{"Range", "If-Range"} {
+		if value := req.Header.Get(header); value != "" {
+			upstream.Header.Set(header, value)
+		}
 	}
 	resp, err := r.stream.Do(upstream)
 	if err != nil {
 		return fmt.Errorf("连接远程 Emby 视频流失败: %w", err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode >= 300 && resp.StatusCode < 400 && resp.StatusCode != http.StatusNotModified {
+		return errors.New("远程 Emby 返回了未能解析的播放跳转")
+	}
 	if resp.StatusCode >= 400 {
 		data, _ := io.ReadAll(io.LimitReader(resp.Body, 256))
 		detail := strings.TrimSpace(string(data))
@@ -1583,18 +1597,15 @@ func (r *EmbyRemoteService) proxyVideoStreamOnLine(ctx context.Context, w http.R
 		}
 		return redactSensitiveError(fmt.Errorf("远程 Emby 视频流失败(%d): %s", resp.StatusCode, detail))
 	}
-	for _, header := range []string{"Content-Type", "Content-Length", "Content-Range", "Accept-Ranges", "ETag", "Cache-Control"} {
+	for _, header := range []string{"Content-Type", "Content-Length", "Content-Range", "Accept-Ranges", "ETag", "Last-Modified", "Cache-Control"} {
 		if value := resp.Header.Get(header); value != "" {
 			w.Header().Set(header, value)
 		}
 	}
-	if resp.StatusCode == http.StatusPartialContent || resp.StatusCode == http.StatusOK {
-		w.WriteHeader(resp.StatusCode)
-	} else {
-		w.WriteHeader(resp.StatusCode)
-	}
-	if resp.StatusCode == http.StatusPartialContent || resp.StatusCode == http.StatusOK {
-		_, _ = io.Copy(w, resp.Body)
+	w.WriteHeader(resp.StatusCode)
+	if method != http.MethodHead && (resp.StatusCode == http.StatusPartialContent || resp.StatusCode == http.StatusOK) {
+		_, err = io.Copy(w, resp.Body)
+		return err
 	}
 	return nil
 }

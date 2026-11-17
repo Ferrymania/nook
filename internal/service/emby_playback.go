@@ -423,7 +423,7 @@ func embyMediaContainer(m *model.Media) string {
 }
 
 func (e *EmbyService) embyMediaPlayURL(ctx context.Context, m *model.Media, container string, isCloud bool) string {
-	if !isCloud {
+	if !isCloud || RemotePlaybackProxyEnabled(ctx, e.repo) {
 		return embyDirectStreamURL(m.ID, container)
 	}
 	switch CloudPlaybackMode(ctx, e.repo) {

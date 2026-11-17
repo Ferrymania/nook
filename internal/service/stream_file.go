@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/url"
 	"os"
@@ -15,9 +16,8 @@ import (
 // ServeFile streams the file backing the given media ID using
 // http.ServeContent so HEAD / Range / If-Modified-Since are handled for free.
 //
-// When the media row has a STRMURL set we redirect (302) to that URL
-// instead of opening a local file. This lets WebDAV / Alist / S3 / HTTP
-// direct links flow through the rest of the player UI unchanged.
+// Remote STRM targets use a 302 by default, or stream their original bytes
+// through Nook when the global remote-playback proxy setting is enabled.
 func (s *StreamService) ServeFile(w http.ResponseWriter, r *http.Request, mediaID string) error {
 	return s.ServeFileWithCloudMode(w, r, mediaID, "")
 }
@@ -54,6 +54,12 @@ func (s *StreamService) ServeFileWithCloudMode(w http.ResponseWriter, r *http.Re
 		if !cloudPlaybackModeEnabled(r.Context(), s.repo, cloudMode) {
 			return ErrCloudPlaybackDisabled
 		}
+		if RemotePlaybackProxyEnabled(r.Context(), s.repo) {
+			if s.strmProxy == nil {
+				return errors.New("远程视频代理不可用，请检查 STRM 服务")
+			}
+			return s.strmProxy(r.Context(), w, r, m)
+		}
 		// 能在服务端换到最终直链就直接 302 过去：客户端少跟随一次 302，等于
 		// 省掉一次「DNS+TCP+TLS+请求」的往返。解析结果同时写进 strm 层直链
 		// 缓存，后续 /api/strm/play 请求直接命中。
@@ -80,7 +86,11 @@ func (s *StreamService) ServeFileWithCloudMode(w http.ResponseWriter, r *http.Re
 		// 502 + 原因，方便用户在播放器/日志里定位。
 		return ErrCloudPlaybackUnavailable
 	}
-	f, err := os.Open(m.Path)
+	return serveLocalMediaFile(w, r, m.Path)
+}
+
+func serveLocalMediaFile(w http.ResponseWriter, r *http.Request, path string) error {
+	f, err := os.Open(path)
 	if err != nil {
 		return ErrMediaNotFound
 	}

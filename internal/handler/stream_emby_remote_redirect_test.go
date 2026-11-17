@@ -31,6 +31,9 @@ func TestStreamRedirectsRemoteContainerToPlayableEpisode(t *testing.T) {
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"Id": "series-100", "Name": "某部新番", "Type": "Series", "IsFolder": true,
 			})
+		case "/emby/Videos/ep-1/stream":
+			w.Header().Set("Content-Type", "video/mp4")
+			_, _ = w.Write([]byte("episode-video"))
 		case "/emby/Users/uid-1/Items":
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"Items": []map[string]any{
@@ -107,6 +110,15 @@ func TestStreamRedirectsRemoteContainerToPlayableEpisode(t *testing.T) {
 	want := "/api/stream/" + service.EncodeEmbyRemoteID("mount-1", "ep-1") + "?token=tok-1&profile=p-1"
 	if got := w.Header().Get("Location"); got != want {
 		t.Fatalf("Location = %q, want %q", got, want)
+	}
+	if err := repos.Setting.Set(t.Context(), service.PlaybackProxyRemoteSettingKey, "true"); err != nil {
+		t.Fatal(err)
+	}
+	svc.Emby = service.NewEmbyService(cfg, log, repos).SetEmbyRemote(remote)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req.Clone(t.Context()))
+	if w.Code != http.StatusOK || w.Header().Get("Location") != "" || w.Body.String() != "episode-video" {
+		t.Fatalf("proxy must serve the resolved episode without a redirect: %d %v %s", w.Code, w.Header(), w.Body.String())
 	}
 }
 
