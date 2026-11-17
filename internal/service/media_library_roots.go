@@ -40,12 +40,20 @@ var ErrLibraryAlreadyExists = errors.New("同名同类型媒体库已存在，�
 
 // Settings are persisted with the library and roots, before its initial scan.
 type LibraryCreateOptions struct {
-	CreateOnly     bool                         `json:"create_only"`
-	ScrapeSettings *model.LibraryScrapeSettings `json:"scrape_settings"`
-	AutoProbe      bool                         `json:"auto_probe"`
+	CreateOnly         bool                         `json:"create_only"`
+	ScrapeSettings     *model.LibraryScrapeSettings `json:"scrape_settings"`
+	AutoProbe          bool                         `json:"auto_probe"`
+	PlayedThresholdPct *int                         `json:"played_threshold_pct"`
 }
 
 func (s *MediaService) CreateLibraryWithOptions(ctx context.Context, name, kind, coverURL string, inputs []LibraryRootInput, options LibraryCreateOptions) (*model.Library, error) {
+	percent := model.DefaultPlayedThresholdPct
+	if options.PlayedThresholdPct != nil {
+		percent = *options.PlayedThresholdPct
+		if err := ValidatePlayedThresholdPct(percent); err != nil {
+			return nil, err
+		}
+	}
 	if options.ScrapeSettings != nil {
 		if err := validateLibraryScrapeSettings(*options.ScrapeSettings); err != nil {
 			return nil, err
@@ -63,7 +71,7 @@ func (s *MediaService) CreateLibraryWithOptions(ctx context.Context, name, kind,
 		return nil, err
 	} else if existing != nil {
 		// Requests with creation settings must never rewrite an existing library.
-		if options.CreateOnly || options.ScrapeSettings != nil {
+		if options.CreateOnly || options.ScrapeSettings != nil || options.PlayedThresholdPct != nil {
 			return nil, ErrLibraryAlreadyExists
 		}
 		if strings.TrimSpace(coverURL) != "" {
@@ -79,14 +87,15 @@ func (s *MediaService) CreateLibraryWithOptions(ctx context.Context, name, kind,
 		return lib, nil
 	}
 	lib := &model.Library{
-		Name:            strings.TrimSpace(name),
-		Path:            roots[0].Path,
-		Type:            kind,
-		CoverURL:        strings.TrimSpace(coverURL),
-		Enabled:         true,
-		CarouselEnabled: true,
-		AutoProbe:       options.AutoProbe,
-		ScrapeSettings:  options.ScrapeSettings,
+		Name:               strings.TrimSpace(name),
+		Path:               roots[0].Path,
+		Type:               kind,
+		CoverURL:           strings.TrimSpace(coverURL),
+		Enabled:            true,
+		CarouselEnabled:    true,
+		AutoProbe:          options.AutoProbe,
+		PlayedThresholdPct: percent,
+		ScrapeSettings:     options.ScrapeSettings,
 	}
 	if err := s.repo.Library.CreateWithRoots(ctx, lib, roots); err != nil {
 		return nil, err
@@ -153,9 +162,15 @@ func (s *MediaService) UpdateLibraryCover(ctx context.Context, libraryID, coverU
 		Update("cover_url", strings.TrimSpace(coverURL)).Error
 }
 
-// UpdateLibraryFields updates the library's display and automatic probe settings.
-func (s *MediaService) UpdateLibraryFields(ctx context.Context, libraryID string, sortOrder *int, carouselEnabled, autoProbe *bool) error {
+// UpdateLibraryFields updates display, automatic probe and playback settings.
+func (s *MediaService) UpdateLibraryFields(ctx context.Context, libraryID string, sortOrder *int, carouselEnabled, autoProbe *bool, playedThresholdPct *int) error {
 	updates := map[string]any{}
+	if playedThresholdPct != nil {
+		if err := ValidatePlayedThresholdPct(*playedThresholdPct); err != nil {
+			return err
+		}
+		updates["played_threshold_pct"] = *playedThresholdPct
+	}
 	if sortOrder != nil {
 		updates["sort_order"] = *sortOrder
 	}

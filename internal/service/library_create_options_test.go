@@ -21,24 +21,26 @@ func TestLibraryCreationSettingsAndExplicitCreate(t *testing.T) {
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos)
 	prewarm := false
 	settings := model.LibraryScrapeSettings{AutoOnScan: true, Providers: []string{"bangumi", "tmdb"}, Language: "en-US", DelayMinMS: 100, DelayMaxMS: 200, SegmentPrewarmEnabled: &prewarm}
-	options := LibraryCreateOptions{CreateOnly: true, ScrapeSettings: &settings, AutoProbe: true}
+	percent := 95
+	options := LibraryCreateOptions{CreateOnly: true, ScrapeSettings: &settings, AutoProbe: true, PlayedThresholdPct: &percent}
 	firstPath, secondPath := t.TempDir(), t.TempDir()
 	lib, err := svc.CreateLibraryWithOptions(t.Context(), "收藏", "movie", "original-cover", []LibraryRootInput{{Path: firstPath}}, options)
 	if err != nil {
 		t.Fatal(err)
 	}
 	stored, err := repos.Library.FindByID(t.Context(), lib.ID)
-	if err != nil || stored == nil || !stored.AutoProbe || !reflect.DeepEqual(stored.ScrapeSettings, &settings) || len(stored.Roots) != 1 {
+	if err != nil || stored == nil || !stored.AutoProbe || stored.PlayedThresholdPct != 95 || !reflect.DeepEqual(stored.ScrapeSettings, &settings) || len(stored.Roots) != 1 {
 		t.Fatalf("creation did not persist settings and roots together: %#v %v", stored, err)
 	}
 	changed := settings
 	changed.Language = "ja-JP"
 	options.ScrapeSettings = &changed
+	percent = 80
 	if _, err := svc.CreateLibraryWithOptions(t.Context(), " 收藏 ", "movie", "replaced-cover", []LibraryRootInput{{Path: secondPath}}, options); !errors.Is(err, ErrLibraryAlreadyExists) {
 		t.Fatalf("explicit creation silently appended: %v", err)
 	}
 	stored, err = repos.Library.FindByID(t.Context(), lib.ID)
-	if err != nil || stored.CoverURL != "original-cover" || len(stored.Roots) != 1 || !reflect.DeepEqual(stored.ScrapeSettings, &settings) {
+	if err != nil || stored.CoverURL != "original-cover" || stored.PlayedThresholdPct != 95 || len(stored.Roots) != 1 || !reflect.DeepEqual(stored.ScrapeSettings, &settings) {
 		t.Fatalf("conflict modified the existing library: %#v %v", stored, err)
 	}
 	invalid := settings
@@ -71,8 +73,12 @@ func TestLibraryCreationBatchRollsBackConflictAndSavesSettings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if original.PlayedThresholdPct != 90 {
+		t.Fatalf("new library default threshold = %d, want 90", original.PlayedThresholdPct)
+	}
 	settings := model.LibraryScrapeSettings{Providers: []string{"tmdb"}, Language: "zh-TW", DelayMinMS: 0, DelayMaxMS: 0}
-	options := LibraryCreateOptions{CreateOnly: true, ScrapeSettings: &settings, AutoProbe: true}
+	percent := 97
+	options := LibraryCreateOptions{CreateOnly: true, ScrapeSettings: &settings, AutoProbe: true, PlayedThresholdPct: &percent}
 	if _, err := svc.CreateLibrariesPerSubfolderWithOptions(t.Context(), parent, "movie", "", options); !errors.Is(err, ErrLibraryAlreadyExists) {
 		t.Fatalf("batch conflict = %v", err)
 	}
@@ -89,7 +95,7 @@ func TestLibraryCreationBatchRollsBackConflictAndSavesSettings(t *testing.T) {
 	}
 	for _, lib := range created {
 		stored, err := repos.Library.FindByID(t.Context(), lib.ID)
-		if err != nil || stored == nil || !stored.AutoProbe || !reflect.DeepEqual(stored.ScrapeSettings, &settings) || len(stored.Roots) != 1 {
+		if err != nil || stored == nil || !stored.AutoProbe || stored.PlayedThresholdPct != 97 || !reflect.DeepEqual(stored.ScrapeSettings, &settings) || len(stored.Roots) != 1 {
 			t.Fatalf("batch settings = %#v %v", stored, err)
 		}
 	}

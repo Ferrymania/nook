@@ -357,10 +357,11 @@ func writeLibraryCreateError(c *gin.Context, err error) {
 }
 
 type updateLibraryReq struct {
-	CoverURL        *string `json:"cover_url"`
-	SortOrder       *int    `json:"sort_order"`
-	CarouselEnabled *bool   `json:"carousel_enabled"`
-	AutoProbe       *bool   `json:"auto_probe"`
+	CoverURL           *string `json:"cover_url"`
+	SortOrder          *int    `json:"sort_order"`
+	CarouselEnabled    *bool   `json:"carousel_enabled"`
+	AutoProbe          *bool   `json:"auto_probe"`
+	PlayedThresholdPct *int    `json:"played_threshold_pct"`
 }
 
 func updateLibraryHandler(svc *service.Container) gin.HandlerFunc {
@@ -370,14 +371,20 @@ func updateLibraryHandler(svc *service.Container) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		if req.PlayedThresholdPct != nil {
+			if err := service.ValidatePlayedThresholdPct(*req.PlayedThresholdPct); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+		}
 		if req.CoverURL != nil {
 			if err := svc.Media.UpdateLibraryCover(c.Request.Context(), c.Param("id"), *req.CoverURL); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
 		}
-		if req.SortOrder != nil || req.CarouselEnabled != nil || req.AutoProbe != nil {
-			if err := svc.Media.UpdateLibraryFields(c.Request.Context(), c.Param("id"), req.SortOrder, req.CarouselEnabled, req.AutoProbe); err != nil {
+		if req.SortOrder != nil || req.CarouselEnabled != nil || req.AutoProbe != nil || req.PlayedThresholdPct != nil {
+			if err := svc.Media.UpdateLibraryFields(c.Request.Context(), c.Param("id"), req.SortOrder, req.CarouselEnabled, req.AutoProbe, req.PlayedThresholdPct); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}

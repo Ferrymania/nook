@@ -3,6 +3,7 @@ import { AdminLibraryCreateForm } from './AdminLibraryPanelSections'
 import { AdminLibraryTable } from './AdminLibraryTable'
 import { LibraryStorageStats } from './LibraryStorageStats'
 import { LibraryCoverDialog } from './LibraryCoverDialog'
+import { LibraryPlaybackSettingsDialog } from './LibraryPlaybackSettingsDialog'
 import { LibraryPathChangeDialog } from './LibraryPathChangeDialog'
 import { useAdminLibraryPanel } from './useAdminLibraryPanel'
 import './AdminLibraryPanel.css'
@@ -29,11 +30,18 @@ export function AdminLibraryPanel() {
         onRemoveLibrary={libraryActions.removeLibrary}
         onAddLibraryRoot={createForm.openAppend}
         onEditLibraryCover={libraryActions.editLibraryCover}
+        onEditPlaybackSettings={libraryActions.editPlaybackSettings}
         onToggleCarousel={libraryActions.toggleCarouselLibrary}
         onReorder={libraryActions.reorderLibraries}
       />
       </div>
       <LibraryStorageStats key={libs.map(library => library.id).sort().join(',')} />
+      {libraryActions.playbackLibrary && <LibraryPlaybackSettingsDialog
+        key={libraryActions.playbackLibrary.id}
+        library={libraryActions.playbackLibrary}
+        onClose={libraryActions.closePlaybackSettings}
+        onSave={libraryActions.savePlaybackSettings}
+      />}
       {rootActions.pathChange && (
         <LibraryPathChangeDialog
           {...rootActions.pathChange}
