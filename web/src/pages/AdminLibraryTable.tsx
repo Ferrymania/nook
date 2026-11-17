@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type DragEvent, type MouseEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Folder, GripVertical, Image, MoreVertical, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Folder, GripVertical, Image, MonitorPlay, MoreVertical, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 import { LocalDirBrowserDialog } from '../components/LocalDirBrowserDialog'
@@ -22,6 +22,7 @@ type LibraryTableProps = {
   onRemoveLibrary: (library: Library) => Promise<unknown>
   onAddLibraryRoot: (library: Library) => void
   onEditLibraryCover: (library: Library) => void
+  onEditPlaybackSettings: (library: Library) => void
   onToggleCarousel: (library: Library) => Promise<unknown>
   onReorder: (orderedLibs: Library[]) => Promise<unknown>
 }
@@ -79,6 +80,7 @@ export function AdminLibraryTable({ libs, disabled = false, ...actions }: Librar
           <div className="nook-library-manager-menu"><ActionMenu label={`${library.name}更多操作`} disabled={blocked}>
             <MenuButton icon={<RefreshCw size={14} />} label="扫描媒体库" onClick={() => void run(() => actions.onScanLibrary(library))}>扫描媒体库</MenuButton>
             <MenuButton icon={<Image size={14} />} label="修改封面" onClick={() => actions.onEditLibraryCover(library)}>修改封面</MenuButton>
+            <MenuButton icon={<MonitorPlay size={14} />} label="播放设置" onClick={() => actions.onEditPlaybackSettings(library)}>播放设置</MenuButton>
             <MenuButton icon={<ArrowUp size={14} />} label="上移" disabled={index === 0} onClick={() => reorder(library.id, libs[index - 1].id)}>上移</MenuButton>
             <MenuButton icon={<ArrowDown size={14} />} label="下移" disabled={index === libs.length - 1} onClick={() => reorder(library.id, libs[index + 1].id)}>下移</MenuButton>
             <MenuButton danger icon={<Trash2 size={14} />} label="删除媒体库" onClick={() => void run(() => actions.onRemoveLibrary(library))}>删除媒体库</MenuButton>

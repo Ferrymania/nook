@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, Folder, Loader2, Plus, Settings2, Trash2, X } f
 
 import { LocalDirBrowserDialog } from '../components/LocalDirBrowserDialog'
 import { LibraryScrapeSettingsFields } from './LibraryScrapeSettingsFields'
+import { LibraryPlaybackThresholdField } from './LibraryPlaybackSettingsDialog'
 import { libraryTypeLabels, type RootDraft } from './adminLibraryPanelModel'
 import type { useAdminLibraryPanel } from './useAdminLibraryPanel'
 
@@ -45,6 +46,7 @@ export function AdminLibraryCreateForm({ form }: CreateFormProps) {
           {!form.createPerSubfolder && <button type="button" className="nook-library-manager-text-button" onClick={form.addRoot}><Plus size={16} />再添加一个目录</button>}
         </div>
         {!appending && <>
+          <section className="my-5" aria-label="播放设置"><LibraryPlaybackThresholdField value={form.playedThresholdPct} onChange={form.setPlayedThresholdPct} /></section>
           <div className="nook-library-manager-scrape-entry"><button type="button" className="nook-library-manager-button" aria-expanded={scrapeOpen} aria-controls="create-library-scrape-settings" onClick={() => setScrapeOpen(!scrapeOpen)}><Settings2 size={16} />刮削设置{scrapeOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</button><span>创建时一并保存</span></div>
           {form.loadingScrape && <p role="status" className="nook-library-manager-muted">正在加载刮削默认设置…</p>}
           {form.scrapeError && <p role="alert" className="nook-library-manager-danger">{form.scrapeError} <button type="button" className="nook-library-manager-text-button" onClick={() => void form.loadScrapeDefaults()}>重试</button></p>}

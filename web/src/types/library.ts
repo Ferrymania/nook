@@ -20,6 +20,8 @@ export interface Library {
   carousel_enabled?: boolean
   /** 刮削时按需探测媒体技术信息，默认关闭。 */
   auto_probe?: boolean
+  /** 本库播放完成的百分比阈值，默认 90。 */
+  played_threshold_pct?: number
   roots?: LibraryRoot[]
   created_at: string
   updated_at: string

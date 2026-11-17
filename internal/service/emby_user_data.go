@@ -126,13 +126,17 @@ func (e *EmbyService) RecordProgressWithSession(ctx context.Context, userID, med
 		}
 	}
 	playSessionID = strings.TrimSpace(playSessionID)
-	err := e.repo.History.UpsertProgress(ctx, &model.PlaybackHistory{
+	percent, err := libraryPlayedThresholdPct(ctx, e.repo, mediaID)
+	if err != nil {
+		return err
+	}
+	err = e.repo.History.UpsertProgress(ctx, &model.PlaybackHistory{
 		UserID:             userID,
 		MediaID:            mediaID,
 		PositionMs:         pos,
 		DurationMs:         dur,
 		WatchedAt:          time.Now(),
-		Completed:          playbackProgressCompleted(pos, dur),
+		Completed:          playbackProgressCompleted(pos, dur, percent),
 		SessionID:          playSessionID,
 		SessionStartedAtMs: embyPlaySessionStartedAtMs(playSessionID),
 	})

@@ -151,11 +151,12 @@ func (r *EmbyRemoteService) mapRemoteMountToLibrary(mount *model.EmbyMount, acct
 		libType = "music"
 	}
 	lib := &model.Library{
-		Base:      model.Base{ID: EncodeEmbyRemoteID(mount.ID, mount.RemoteViewID)},
-		Name:      name,
-		Type:      libType,
-		Enabled:   true,
-		SortOrder: 1000 + mount.SortOrder, // 远程库排在本地库之后，且保持挂载库排序
+		Base:               model.Base{ID: EncodeEmbyRemoteID(mount.ID, mount.RemoteViewID)},
+		Name:               name,
+		Type:               libType,
+		Enabled:            true,
+		SortOrder:          1000 + mount.SortOrder, // 远程库排在本地库之后，且保持挂载库排序
+		PlayedThresholdPct: model.DefaultPlayedThresholdPct,
 	}
 	// 远程媒体库封面只有真实存在图片标签才下发。
 	if remoteItemHasImageTag(item, "Primary") {

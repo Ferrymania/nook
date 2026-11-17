@@ -23,7 +23,7 @@ func TestRecordProgressHandlerIgnoresStaleSessionSequence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := db.AutoMigrate(&model.PlaybackHistory{}); err != nil {
+	if err := db.AutoMigrate(&model.PlaybackHistory{}, &model.Media{}, &model.Library{}); err != nil {
 		t.Fatal(err)
 	}
 	repos := repository.New(db)
@@ -48,7 +48,7 @@ func TestRecordProgressHandlerIgnoresStaleSessionSequence(t *testing.T) {
 		return w.Code
 	}
 
-	if code := post(`{"media_id":"m-1","position_ms":90000,"duration_ms":120000,"session_id":"s-1","session_started_at_ms":1000,"sequence":2}`); code != http.StatusNoContent {
+	if code := post(`{"media_id":"m-1","position_ms":108000,"duration_ms":120000,"session_id":"s-1","session_started_at_ms":1000,"sequence":2}`); code != http.StatusNoContent {
 		t.Fatalf("newer progress status = %d", code)
 	}
 	if code := post(`{"media_id":"m-1","position_ms":10000,"duration_ms":120000,"session_id":"s-1","session_started_at_ms":1000,"sequence":1}`); code != http.StatusNoContent {
@@ -59,7 +59,7 @@ func TestRecordProgressHandlerIgnoresStaleSessionSequence(t *testing.T) {
 	if err := db.Where("user_id = ? AND media_id = ?", "user-1", "m-1").First(&got).Error; err != nil {
 		t.Fatal(err)
 	}
-	if got.PositionMs != 90_000 || got.Sequence != 2 {
+	if got.PositionMs != 108_000 || got.Sequence != 2 || !got.Completed {
 		t.Fatalf("stale handler request overwrote newer state: %#v", got)
 	}
 }

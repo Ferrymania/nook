@@ -72,13 +72,17 @@ func (p *PlaybackService) RecordProgressUpdate(ctx context.Context, update Progr
 		return errors.New("missing user or media")
 	}
 	dur := p.resolvePlaybackDuration(ctx, update.UserID, update.MediaID, update.DurationMs)
+	percent, err := libraryPlayedThresholdPct(ctx, p.repo, update.MediaID)
+	if err != nil {
+		return err
+	}
 	h := &model.PlaybackHistory{
 		UserID:             update.UserID,
 		MediaID:            update.MediaID,
 		PositionMs:         update.PositionMs,
 		DurationMs:         dur,
 		WatchedAt:          time.Now(),
-		Completed:          playbackProgressCompleted(update.PositionMs, dur),
+		Completed:          playbackProgressCompleted(update.PositionMs, dur, percent),
 		SessionID:          update.SessionID,
 		SessionStartedAtMs: update.SessionStartedAtMs,
 		Sequence:           update.Sequence,
@@ -86,17 +90,39 @@ func (p *PlaybackService) RecordProgressUpdate(ctx context.Context, update Progr
 	return p.repo.History.UpsertProgress(ctx, h)
 }
 
-// playbackProgressCompleted deliberately requires a positive position. For
-// very short clips the 90% threshold avoids marking a zero-second sample as
-// finished; otherwise the last 30 seconds are treated as completed.
-func playbackProgressCompleted(position, duration int64) bool {
-	if position <= 0 || duration <= 0 {
+// playbackProgressCompleted uses the media library's completion percentage.
+// A positive position is required so an empty report never marks an item played.
+func playbackProgressCompleted(position, duration int64, percent int) bool {
+	if position <= 0 || duration <= 0 || percent < 1 || percent > 100 {
 		return false
 	}
-	if duration <= 30_000 {
-		return position*10 >= duration*9
+	// Round the threshold up to a whole millisecond without overflowing int64.
+	threshold := duration/100*int64(percent) + (duration%100*int64(percent)+99)/100
+	return position >= threshold
+}
+
+func libraryPlayedThresholdPct(ctx context.Context, repo *repository.Container, mediaID string) (int, error) {
+	// Mounted remote libraries are read-only and use the default threshold.
+	if IsEmbyRemoteID(mediaID) {
+		return model.DefaultPlayedThresholdPct, nil
 	}
-	return position >= duration-30_000
+	var percent int
+	libraryID := repo.DB.Model(&model.Media{}).Select("library_id").Where("id = ?", mediaID)
+	if err := repo.DB.WithContext(ctx).Model(&model.Library{}).Select("played_threshold_pct").
+		Where("id = (?)", libraryID).Scan(&percent).Error; err != nil {
+		return 0, err
+	}
+	if percent < 1 || percent > 100 {
+		percent = model.DefaultPlayedThresholdPct
+	}
+	return percent, nil
+}
+
+func ValidatePlayedThresholdPct(percent int) error {
+	if percent < 1 || percent > 100 {
+		return errors.New("播放完成阈值须为 1–100 的整数百分比")
+	}
+	return nil
 }
 
 // GetProgress returns the saved resume row for one media item, or nil when absent.

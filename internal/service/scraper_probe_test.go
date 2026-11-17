@@ -124,7 +124,7 @@ func TestScraperProbeRequiresOptInAndKeepsManualProbeAvailable(t *testing.T) {
 			}
 			mediaService := NewMediaService(&config.Config{}, zap.NewNop(), repos)
 			enabled := true
-			if err := mediaService.UpdateLibraryFields(t.Context(), lib.ID, nil, nil, &enabled); err != nil {
+			if err := mediaService.UpdateLibraryFields(t.Context(), lib.ID, nil, nil, &enabled, nil); err != nil {
 				t.Fatal(err)
 			}
 			scrape()
@@ -139,7 +139,7 @@ func TestScraperProbeRequiresOptInAndKeepsManualProbeAvailable(t *testing.T) {
 				t.Fatal(err)
 			}
 			enabled = false
-			if err := mediaService.UpdateLibraryFields(t.Context(), lib.ID, nil, nil, &enabled); err != nil {
+			if err := mediaService.UpdateLibraryFields(t.Context(), lib.ID, nil, nil, &enabled, nil); err != nil {
 				t.Fatal(err)
 			}
 			scrape()
