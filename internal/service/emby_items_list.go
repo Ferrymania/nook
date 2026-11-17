@@ -180,7 +180,6 @@ func (e *EmbyService) payloadsForMedia(ctx context.Context, rows []model.Media, 
 	e.prefetchPayloadCache(ctx, rows)
 	rows = e.collapseMediaVersionRows(ctx, rows)
 	userFavs := map[string]bool{}
-	userPos := map[string]int64{}
 	if userID != "" && len(rows) > 0 {
 		mediaIDs := make([]string, 0, len(rows))
 		for _, row := range rows {
@@ -197,17 +196,11 @@ func (e *EmbyService) payloadsForMedia(ctx context.Context, rows []model.Media, 
 		for _, f := range favs {
 			userFavs[f.MediaID] = true
 		}
-		var hist []model.PlaybackHistory
-		histQuery := e.repo.DB.WithContext(ctx).Where("user_id = ?", userID).Where("media_id IN ?", mediaIDs)
-		_ = histQuery.Find(&hist).Error
-		for _, h := range hist {
-			userPos[h.MediaID] = h.PositionMs
-		}
 	}
 
 	items := make([]map[string]any, 0, len(rows))
 	for _, m := range rows {
-		items = append(items, e.itemPayload(ctx, &m, userFavs[m.ID], userPos[m.ID], false))
+		items = append(items, e.itemPayload(ctx, &m, userFavs[m.ID], 0, false))
 	}
 	return items, nil
 }

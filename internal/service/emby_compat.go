@@ -212,7 +212,7 @@ func (e *EmbyService) Items(ctx context.Context, p ItemsParams) (map[string]any,
 	if err != nil {
 		return nil, err
 	}
-	return e.withFolderUserDataEnvelope(ctx, p.UserID, out)
+	return e.withUserDataEnvelope(ctx, p.UserID, out)
 }
 
 func (e *EmbyService) items(ctx context.Context, p ItemsParams) (map[string]any, error) {
