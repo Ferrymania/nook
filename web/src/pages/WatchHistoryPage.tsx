@@ -8,8 +8,7 @@ import { ARTWORK, imageURL } from '../api/client'
 import { confirmAction } from '../components/confirmAction'
 import { ArtworkImage } from '../components/ArtworkImage'
 import { artworkSources } from '../utils/artworkSources'
-import { isRemoteEmbyID } from '../utils/remoteEmby'
-import type { HistoryItem, Media } from '../types'
+import type { HistoryItem } from '../types'
 
 function fmtDuration(ms: number): string {
   if (!ms || ms <= 0) return '—'
@@ -166,12 +165,8 @@ export function WatchHistoryPanel({ embedded = false }: { embedded?: boolean }) 
       <div ref={scrollRef} role={embedded ? 'list' : undefined} aria-label={embedded ? '最近观看记录' : undefined} tabIndex={embedded && items.length > 0 ? 0 : undefined}
         className={embedded ? 'flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 focus-visible:outline-2 focus-visible:outline-offset-2' : 'space-y-3'}>
         {!loading && !error && items.map((h) => {
-          const m: Media = h.media || ({
-            id: h.media_id,
-            title: isRemoteEmbyID(h.media_id) ? '远程媒体' : h.media_id,
-            poster_url: '',
-            updated_at: h.watched_at,
-          } as Media)
+          if (!h.media) return null
+          const m = h.media
           const progress =
             h.duration_ms > 0 ? h.position_ms / h.duration_ms : 0
           if (embedded) {
@@ -188,7 +183,7 @@ export function WatchHistoryPanel({ embedded = false }: { embedded?: boolean }) 
                   <time dateTime={h.watched_at} className="block">{new Date(h.watched_at).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}</time>
                 </div>
                 <Link to={`/play/${m.id}`} state={{ from }} className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-full border border-(--app-border) text-sm transition-colors hover:bg-(--app-hover)">
-                  <Play size={14} /> {h.completed ? '播放' : '继续播放'}
+                  <Play size={14} /> {h.resumable ? '继续播放' : '播放'}
                 </Link>
               </article>
             )
@@ -238,7 +233,7 @@ export function WatchHistoryPanel({ embedded = false }: { embedded?: boolean }) 
                   state={{ from }}
                   className="neon-button px-3! py-1! text-xs!"
                 >
-                  <Play size={12} /> 继续
+                  <Play size={12} /> {h.resumable ? '继续播放' : '播放'}
                 </Link>
                 <button
                   onClick={() => removeOne(h.id)}

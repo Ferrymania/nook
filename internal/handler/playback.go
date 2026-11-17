@@ -65,7 +65,7 @@ func recentHistoryHandler(svc *service.Container) gin.HandlerFunc {
 		visibility := mediaVisibilityForRequest(c, svc)
 		filtered := make([]service.HistoryItem, 0, len(items))
 		for _, item := range items {
-			if item.Media == nil || visibility.Allows(item.Media) {
+			if item.Media != nil && visibility.Allows(item.Media) {
 				filtered = append(filtered, item)
 			}
 		}

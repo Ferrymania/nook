@@ -18,13 +18,13 @@ import (
 	"github.com/Ferrymania/nook/internal/service"
 )
 
-func TestHistoryContinueRemovesMissingMedia(t *testing.T) {
+func TestHistoryContinueHidesMissingMediaWithoutRemovingHistory(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db, err := testutil.Open(t, &gorm.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := db.AutoMigrate(&model.PlaybackHistory{}, &model.Media{}); err != nil {
+	if err := db.AutoMigrate(&model.PlaybackHistory{}, &model.Media{}, &model.Library{}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -43,7 +43,7 @@ func TestHistoryContinueRemovesMissingMedia(t *testing.T) {
 		UserID:     "user-1",
 		MediaID:    valid.ID,
 		PositionMs: 30_000,
-		DurationMs: 120_000,
+		DurationMs: 600_000,
 		WatchedAt:  now.Add(-time.Minute),
 	}).Error; err != nil {
 		t.Fatal(err)
@@ -53,7 +53,7 @@ func TestHistoryContinueRemovesMissingMedia(t *testing.T) {
 		UserID:     "user-1",
 		MediaID:    "media-deleted",
 		PositionMs: 60_000,
-		DurationMs: 120_000,
+		DurationMs: 600_000,
 		WatchedAt:  now,
 	}).Error; err != nil {
 		t.Fatal(err)
@@ -72,7 +72,7 @@ func TestHistoryContinueRemovesMissingMedia(t *testing.T) {
 	})
 	router.GET("/watch-history/continue", historyContinueHandler(svc))
 
-	req := httptest.NewRequest(http.MethodGet, "/watch-history/continue?limit=10", nil)
+	req := httptest.NewRequest(http.MethodGet, "/watch-history/continue?limit=1", nil)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -99,7 +99,7 @@ func TestHistoryContinueRemovesMissingMedia(t *testing.T) {
 		Count(&staleCount).Error; err != nil {
 		t.Fatal(err)
 	}
-	if staleCount != 0 {
-		t.Fatalf("stale history rows remaining = %d, want 0", staleCount)
+	if staleCount != 1 {
+		t.Fatalf("stale history rows remaining = %d, want 1", staleCount)
 	}
 }

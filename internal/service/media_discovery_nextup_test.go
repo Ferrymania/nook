@@ -14,8 +14,7 @@ import (
 
 // seedEpisode 插入一集，并把播放历史指向 `watched`（nil 表示没有历史）。
 //
-// position_ms / duration_ms 只是占位值，NextUp 只看历史行的 completed 字段：
-// 未看完的那一集本身就是「接下来该看的一集」。
+// 使用超过默认续播门槛的进度，验证未看完的当前集与已看完后的下一集。
 func seedEpisode(
 	t *testing.T,
 	repos *repository.Container,
@@ -46,8 +45,8 @@ func seedEpisode(
 		h := &model.PlaybackHistory{
 			UserID:     "user-1",
 			MediaID:    m.ID,
-			PositionMs: 1000,
-			DurationMs: 2000,
+			PositionMs: 300_000,
+			DurationMs: 600_000,
 			WatchedAt:  watched,
 			Completed:  completed,
 		}

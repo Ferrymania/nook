@@ -105,11 +105,11 @@ func TestMountedRemoteNextUpKeepsPartiallyWatchedEpisode(t *testing.T) {
 		t.Fatalf("create user: %v", err)
 	}
 
-	// 第 2 集只播了 3.5 秒就退出：有进度、未标记看完。
+	// 第 2 集播了 10% 后退出：有可续播进度、未标记看完。
 	if err := repos.DB.Create(&model.PlaybackHistory{
 		UserID:     user.ID,
 		MediaID:    EncodeEmbyRemoteID(mount.ID, "ep-2"),
-		PositionMs: 3582,
+		PositionMs: 144006,
 		DurationMs: 1440064,
 		WatchedAt:  time.Now(),
 		Completed:  false,
@@ -130,8 +130,8 @@ func TestMountedRemoteNextUpKeepsPartiallyWatchedEpisode(t *testing.T) {
 		t.Fatalf("Id = %q, want %q (未看完的那一集不能被跳过)", id, wantID)
 	}
 	userData, _ := items[0]["UserData"].(map[string]any)
-	if ticks, _ := userData["PlaybackPositionTicks"].(int64); ticks != 35820000 {
-		t.Fatalf("PlaybackPositionTicks = %#v, want 35820000 (详情页要能续播到 3.5 秒)", userData["PlaybackPositionTicks"])
+	if ticks, _ := userData["PlaybackPositionTicks"].(int64); ticks != 1440060000 {
+		t.Fatalf("PlaybackPositionTicks = %#v, want 1440060000", userData["PlaybackPositionTicks"])
 	}
 }
 

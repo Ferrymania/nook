@@ -39,6 +39,14 @@ func (e *EmbyService) withMediaUserData(ctx context.Context, userID string, item
 			histories[rows[i].MediaID] = &rows[i]
 		}
 	}
+	historyIDs := make([]string, 0, len(histories))
+	for id := range histories {
+		historyIDs = append(historyIDs, id)
+	}
+	policies, err := mediaPlaybackPolicies(ctx, e.repo, historyIDs)
+	if err != nil {
+		return nil, err
+	}
 	out := append([]map[string]any(nil), items...)
 	for i, item := range items {
 		id, _ := item["Id"].(string)
@@ -50,7 +58,8 @@ func (e *EmbyService) withMediaUserData(ctx context.Context, userID string, item
 			favorite, _ = raw["IsFavorite"].(bool)
 		}
 		out[i] = maps.Clone(item)
-		out[i]["UserData"] = applyNookUserData(item["UserData"], historyWithPayloadDuration(histories[id], item), favorite)
+		history := historyWithPayloadDuration(histories[id], item)
+		out[i]["UserData"] = applyNookUserData(item["UserData"], policies[id].resumeHistory(history), favorite)
 	}
 	return out, nil
 }
@@ -272,7 +281,11 @@ func (e *EmbyService) mergeRemoteUserData(ctx context.Context, userID string, pa
 	}
 	for _, item := range items {
 		id, _ := item["Id"].(string)
-		item["UserData"] = applyNookUserData(item["UserData"], byMediaID[id], favSet[id])
+		if !IsEmbyRemoteID(id) {
+			continue
+		}
+		history := historyWithPayloadDuration(byMediaID[id], item)
+		item["UserData"] = applyNookUserData(item["UserData"], defaultLibraryPlaybackSettings().resumeHistory(history), favSet[id])
 	}
 	return nil
 }

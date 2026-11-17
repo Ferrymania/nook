@@ -141,6 +141,11 @@ func (e *EmbyService) nextUpForRemoteSeries(ctx context.Context, userID, seriesI
 // A merged home feed already knows the latest history anchoring this series.
 // Reuse selection without rescanning a smaller global remote-history window.
 func (e *EmbyService) remoteNextUpFromHistories(ctx context.Context, userID string, mount *model.EmbyMount, acct *model.StrmAccount, remoteSeriesID string, hist []model.PlaybackHistory, limit int) (map[string]any, error) {
+	var err error
+	hist, err = filterResumeHistories(ctx, e.repo, hist, true)
+	if err != nil {
+		return nil, err
+	}
 	episodes, err := e.remote.RemoteEpisodes(ctx, mount, acct, remoteSeriesID)
 	if err != nil || len(episodes) == 0 {
 		return emptyItemsEnvelope(0), nil

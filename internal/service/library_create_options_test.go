@@ -21,15 +21,15 @@ func TestLibraryCreationSettingsAndExplicitCreate(t *testing.T) {
 	svc := NewMediaService(&config.Config{}, zap.NewNop(), repos)
 	prewarm := false
 	settings := model.LibraryScrapeSettings{AutoOnScan: true, Providers: []string{"bangumi", "tmdb"}, Language: "en-US", DelayMinMS: 100, DelayMaxMS: 200, SegmentPrewarmEnabled: &prewarm}
-	percent := 95
-	options := LibraryCreateOptions{CreateOnly: true, ScrapeSettings: &settings, AutoProbe: true, PlayedThresholdPct: &percent}
+	percent, minimum, duration := 95, 10, 300
+	options := LibraryCreateOptions{CreateOnly: true, ScrapeSettings: &settings, AutoProbe: true, PlayedThresholdPct: &percent, MinResumePct: &minimum, MinResumeDurationSeconds: &duration}
 	firstPath, secondPath := t.TempDir(), t.TempDir()
 	lib, err := svc.CreateLibraryWithOptions(t.Context(), "收藏", "movie", "original-cover", []LibraryRootInput{{Path: firstPath}}, options)
 	if err != nil {
 		t.Fatal(err)
 	}
 	stored, err := repos.Library.FindByID(t.Context(), lib.ID)
-	if err != nil || stored == nil || !stored.AutoProbe || stored.PlayedThresholdPct != 95 || !reflect.DeepEqual(stored.ScrapeSettings, &settings) || len(stored.Roots) != 1 {
+	if err != nil || stored == nil || !stored.AutoProbe || stored.PlayedThresholdPct != 95 || stored.MinResumePct != 10 || stored.MinResumeDurationSeconds != 300 || !reflect.DeepEqual(stored.ScrapeSettings, &settings) || len(stored.Roots) != 1 {
 		t.Fatalf("creation did not persist settings and roots together: %#v %v", stored, err)
 	}
 	changed := settings
@@ -73,12 +73,12 @@ func TestLibraryCreationBatchRollsBackConflictAndSavesSettings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if original.PlayedThresholdPct != 90 {
+	if original.PlayedThresholdPct != 90 || original.MinResumePct != 5 || original.MinResumeDurationSeconds != 180 {
 		t.Fatalf("new library default threshold = %d, want 90", original.PlayedThresholdPct)
 	}
 	settings := model.LibraryScrapeSettings{Providers: []string{"tmdb"}, Language: "zh-TW", DelayMinMS: 0, DelayMaxMS: 0}
-	percent := 97
-	options := LibraryCreateOptions{CreateOnly: true, ScrapeSettings: &settings, AutoProbe: true, PlayedThresholdPct: &percent}
+	percent, zero := 97, 0
+	options := LibraryCreateOptions{CreateOnly: true, ScrapeSettings: &settings, AutoProbe: true, PlayedThresholdPct: &percent, MinResumePct: &zero, MinResumeDurationSeconds: &zero}
 	if _, err := svc.CreateLibrariesPerSubfolderWithOptions(t.Context(), parent, "movie", "", options); !errors.Is(err, ErrLibraryAlreadyExists) {
 		t.Fatalf("batch conflict = %v", err)
 	}
@@ -95,7 +95,7 @@ func TestLibraryCreationBatchRollsBackConflictAndSavesSettings(t *testing.T) {
 	}
 	for _, lib := range created {
 		stored, err := repos.Library.FindByID(t.Context(), lib.ID)
-		if err != nil || stored == nil || !stored.AutoProbe || stored.PlayedThresholdPct != 97 || !reflect.DeepEqual(stored.ScrapeSettings, &settings) || len(stored.Roots) != 1 {
+		if err != nil || stored == nil || !stored.AutoProbe || stored.PlayedThresholdPct != 97 || stored.MinResumePct != 0 || stored.MinResumeDurationSeconds != 0 || !reflect.DeepEqual(stored.ScrapeSettings, &settings) || len(stored.Roots) != 1 {
 			t.Fatalf("batch settings = %#v %v", stored, err)
 		}
 	}

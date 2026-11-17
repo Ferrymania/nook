@@ -22,6 +22,10 @@ export interface Library {
   auto_probe?: boolean
   /** 本库播放完成的百分比阈值，默认 90。 */
   played_threshold_pct?: number
+  /** 最小续播比例，默认 5；0 关闭比例限制。 */
+  min_resume_pct?: number
+  /** 可续播视频的最短总时长（秒），默认 180；0 关闭时长限制。 */
+  min_resume_duration_seconds?: number
   roots?: LibraryRoot[]
   created_at: string
   updated_at: string

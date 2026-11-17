@@ -32,7 +32,7 @@ func TestLibraryPlaybackThresholdValidationAndIsolation(t *testing.T) {
 		return w
 	}
 	initial, err := svc.Repo.Library.FindByID(t.Context(), libraryID)
-	if err != nil || initial == nil || initial.PlayedThresholdPct != 90 {
+	if err != nil || initial == nil || initial.PlayedThresholdPct != 90 || initial.MinResumePct != 5 || initial.MinResumeDurationSeconds != 180 {
 		t.Fatalf("default threshold: library=%#v err=%v", initial, err)
 	}
 	if w := patch("user", `{"played_threshold_pct":95}`); w.Code != http.StatusForbidden {
@@ -43,6 +43,12 @@ func TestLibraryPlaybackThresholdValidationAndIsolation(t *testing.T) {
 		`{"played_threshold_pct":101}`,
 		`{"played_threshold_pct":-1}`,
 		`{"played_threshold_pct":90.5}`,
+		`{"min_resume_pct":-1,"cover_url":"bad"}`,
+		`{"min_resume_pct":90}`,
+		`{"min_resume_pct":5.5}`,
+		`{"min_resume_duration_seconds":-1}`,
+		`{"min_resume_duration_seconds":180.5}`,
+		`{"min_resume_duration_seconds":2147483648}`,
 	} {
 		if w := patch("admin", body); w.Code != http.StatusBadRequest {
 			t.Fatalf("invalid threshold accepted: %s: %d %s", body, w.Code, w.Body.String())
@@ -58,7 +64,7 @@ func TestLibraryPlaybackThresholdValidationAndIsolation(t *testing.T) {
 	}{
 		{`{"played_threshold_pct":95}`, 95},
 		{`{"auto_probe":true}`, 95},
-		{`{"played_threshold_pct":1}`, 1},
+		{`{"played_threshold_pct":1,"min_resume_pct":0,"min_resume_duration_seconds":0}`, 1},
 		{`{"played_threshold_pct":100}`, 100},
 	} {
 		w := patch("admin", step.body)
@@ -71,8 +77,29 @@ func TestLibraryPlaybackThresholdValidationAndIsolation(t *testing.T) {
 			t.Fatalf("threshold not persisted: %#v %v", stored, err)
 		}
 		untouched, err := svc.Repo.Library.FindByID(t.Context(), other.ID)
-		if err != nil || untouched == nil || untouched.PlayedThresholdPct != 90 {
+		if err != nil || untouched == nil || untouched.PlayedThresholdPct != 90 || untouched.MinResumePct != 5 || untouched.MinResumeDurationSeconds != 180 {
 			t.Fatalf("another library changed: %#v %v", untouched, err)
+		}
+	}
+	for _, role := range []string{"admin", "user"} {
+		w := patch(role, `{"played_threshold_pct":95,"min_resume_pct":10,"min_resume_duration_seconds":300}`)
+		if role == "user" {
+			if w.Code != http.StatusForbidden {
+				t.Fatalf("non-admin changed resume settings: %d", w.Code)
+			}
+			continue
+		}
+		var response model.Library
+		if w.Code != http.StatusOK || json.Unmarshal(w.Body.Bytes(), &response) != nil || response.MinResumePct != 10 || response.MinResumeDurationSeconds != 300 {
+			t.Fatalf("resume settings: %d %s", w.Code, w.Body.String())
+		}
+		// Reject a partial update that would conflict with the saved minimum.
+		if w := patch(role, `{"played_threshold_pct":5,"cover_url":"bad"}`); w.Code != http.StatusBadRequest {
+			t.Fatalf("conflicting update: %d", w.Code)
+		}
+		stored, _ := svc.Repo.Library.FindByID(t.Context(), libraryID)
+		if stored.MinResumePct != 10 || stored.MinResumeDurationSeconds != 300 || stored.PlayedThresholdPct != 95 || stored.CoverURL != initial.CoverURL {
+			t.Fatalf("invalid update changed settings: %+v", stored)
 		}
 	}
 }

@@ -173,7 +173,7 @@ func TestLibraryPlaybackThresholdIsIndependentAndAppliesToNewReports(t *testing.
 	assertCompleted(0, true)
 	assertCompleted(1, false)
 	percent := 80
-	if err := mediaService.UpdateLibraryFields(ctx, media[1].LibraryID, nil, nil, nil, &percent); err != nil {
+	if err := mediaService.UpdateLibraryFields(ctx, media[1].LibraryID, nil, nil, nil, &percent, nil, nil); err != nil {
 		t.Fatal(err)
 	}
 	// Saving a threshold does not rewrite an existing user's history.

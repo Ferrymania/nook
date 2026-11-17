@@ -78,7 +78,7 @@ func TestContinueWatchingMountedEpisodesUseNookProgressAndPermissions(t *testing
 	now := time.Now()
 	history := func(uid, id string, completed bool, minute int) {
 		t.Helper()
-		if err := e.repo.History.Upsert(ctx, &model.PlaybackHistory{UserID: uid, MediaID: id, PositionMs: 14000, DurationMs: 600000, Completed: completed, WatchedAt: now.Add(-time.Duration(minute) * time.Minute)}); err != nil {
+		if err := e.repo.History.Upsert(ctx, &model.PlaybackHistory{UserID: uid, MediaID: id, PositionMs: 30000, DurationMs: 600000, Completed: completed, WatchedAt: now.Add(-time.Duration(minute) * time.Minute)}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -97,7 +97,7 @@ func TestContinueWatchingMountedEpisodesUseNookProgressAndPermissions(t *testing
 		t.Fatalf("mounted series not grouped: %v", got)
 	}
 	data := out["Items"].([]map[string]any)[0]["UserData"].(map[string]any)
-	if data["Played"] != false || data["PlaybackPositionTicks"] != int64(140000000) || data["IsFavorite"] != false {
+	if data["Played"] != false || data["PlaybackPositionTicks"] != int64(300000000) || data["IsFavorite"] != false {
 		t.Fatalf("upstream account data leaked: %#v", data)
 	}
 	history("viewer", ep2, true, 0)

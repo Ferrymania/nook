@@ -153,7 +153,7 @@ func TestEmbyItemsFiltersResumableForHome(t *testing.T) {
 	if err := svc.repo.Library.Create(t.Context(), &lib); err != nil {
 		t.Fatalf("create library: %v", err)
 	}
-	resumable := model.Media{Base: model.Base{ID: "resume-1"}, LibraryID: lib.ID, Title: "继续观看", Path: `/media/movies/resume.mkv`, DurationSec: 120}
+	resumable := model.Media{Base: model.Base{ID: "resume-1"}, LibraryID: lib.ID, Title: "继续观看", Path: `/media/movies/resume.mkv`, DurationSec: 600}
 	normal := model.Media{Base: model.Base{ID: "normal-1"}, LibraryID: lib.ID, Title: "普通电影", Path: `/media/movies/normal.mkv`, DurationSec: 120}
 	if err := svc.repo.DB.Create(&resumable).Error; err != nil {
 		t.Fatalf("create resumable media: %v", err)
@@ -165,7 +165,7 @@ func TestEmbyItemsFiltersResumableForHome(t *testing.T) {
 		UserID:     viewer.ID,
 		MediaID:    resumable.ID,
 		PositionMs: 30_000,
-		DurationMs: 120_000,
+		DurationMs: 600_000,
 		WatchedAt:  time.Now(),
 		Completed:  false,
 	}).Error; err != nil {
