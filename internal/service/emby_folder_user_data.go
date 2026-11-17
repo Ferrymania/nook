@@ -9,12 +9,12 @@ import (
 	"github.com/Ferrymania/nook/internal/model"
 )
 
-func (e *EmbyService) withFolderUserDataEnvelope(ctx context.Context, userID string, envelope map[string]any) (map[string]any, error) {
+func (e *EmbyService) withUserDataEnvelope(ctx context.Context, userID string, envelope map[string]any) (map[string]any, error) {
 	items, ok := envelope["Items"].([]map[string]any)
 	if !ok {
 		return envelope, nil
 	}
-	items, err := e.withFolderUserData(ctx, userID, items)
+	items, err := e.withUserData(ctx, userID, items)
 	if err != nil {
 		return nil, err
 	}

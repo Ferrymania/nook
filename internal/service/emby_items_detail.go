@@ -115,6 +115,7 @@ func (e *EmbyService) item(ctx context.Context, mediaID, userID string) (map[str
 	}
 	fav := false
 	pos := int64(0)
+	var history *model.PlaybackHistory
 	if userID != "" {
 		var f model.Favorite
 		ferr := e.repo.DB.WithContext(ctx).Where("user_id = ? AND media_id = ?", userID, mediaID).First(&f).Error
@@ -125,12 +126,15 @@ func (e *EmbyService) item(ctx context.Context, mediaID, userID string) (map[str
 		herr := e.repo.DB.WithContext(ctx).Where("user_id = ? AND media_id = ?", userID, mediaID).
 			Order("watched_at desc").First(&h).Error
 		if herr == nil {
+			history = &h
 			pos = h.PositionMs
 			m = mediaWithHistoryDuration(m, h.DurationMs)
 		}
 	}
 	// 单条目 payload 内部对库类型/series 标题有多次查找，挂请求级缓存合并。
-	return e.itemPayload(e.withPayloadCache(ctx), m, fav, pos, true), nil
+	item := e.itemPayload(e.withPayloadCache(ctx), m, fav, pos, true)
+	item["UserData"] = applyNookUserData(item["UserData"], historyWithPayloadDuration(history, item), fav)
+	return item, nil
 }
 
 // LatestItems 最近添加，全库或指定库。远程媒体库(parentID 带前缀)走远程并缓存。
@@ -139,7 +143,7 @@ func (e *EmbyService) LatestItems(ctx context.Context, userID, parentID string, 
 	if err != nil {
 		return nil, err
 	}
-	return e.withFolderUserData(ctx, userID, items)
+	return e.withUserData(ctx, userID, items)
 }
 
 func (e *EmbyService) latestItems(ctx context.Context, userID, parentID string, limit int) ([]map[string]any, error) {
@@ -339,7 +343,7 @@ func (e *EmbyService) ResumeItems(ctx context.Context, userID, parentID string, 
 	if err != nil {
 		return nil, err
 	}
-	return e.withFolderUserDataEnvelope(ctx, userID, out)
+	return e.withUserDataEnvelope(ctx, userID, out)
 }
 
 // favoriteItems returns favourited media for Emby clients, including mounted
@@ -760,7 +764,6 @@ func (e *EmbyService) itemPayload(ctx context.Context, m *model.Media, fav bool,
 			break
 		}
 	}
-	played := posMs > 0 && durationMs > 0 && posMs >= durationMs*9/10
 	pct := 0.0
 	if durationMs > 0 {
 		pct = float64(posMs) / float64(durationMs) * 100
@@ -802,7 +805,7 @@ func (e *EmbyService) itemPayload(ctx context.Context, m *model.Media, fav bool,
 			"PlaybackPositionTicks": posMs * 10_000,
 			"PlayCount":             0,
 			"IsFavorite":            fav,
-			"Played":                played,
+			"Played":                false,
 			"PlayedPercentage":      pct,
 		},
 		"MediaSources": mediaSources,

@@ -43,7 +43,7 @@ func (e *EmbyService) NextUp(ctx context.Context, userID, seriesID string, limit
 		if err != nil {
 			return nil, err
 		}
-		return e.withFolderUserDataEnvelope(ctx, userID, out)
+		return e.withUserDataEnvelope(ctx, userID, out)
 	}
 
 	rows, err := discovery.NextUpCandidates(ctx, userID, limit, e.mediaVisibility(ctx, userID))
@@ -56,7 +56,7 @@ func (e *EmbyService) NextUp(ctx context.Context, userID, seriesID string, limit
 	if err != nil {
 		return nil, err
 	}
-	return e.withFolderUserDataEnvelope(ctx, userID, map[string]any{
+	return e.withUserDataEnvelope(ctx, userID, map[string]any{
 		"Items":            items,
 		"TotalRecordCount": int64(len(items)),
 	})
@@ -211,7 +211,7 @@ func (e *EmbyService) SimilarItems(ctx context.Context, mediaID, userID string, 
 	if err != nil {
 		return nil, err
 	}
-	return e.withFolderUserDataEnvelope(ctx, userID, out)
+	return e.withUserDataEnvelope(ctx, userID, out)
 }
 
 func (e *EmbyService) similarItems(ctx context.Context, mediaID, userID string, limit int) (map[string]any, error) {

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"maps"
 	"strconv"
 	"strings"
 	"sync"
@@ -10,6 +11,66 @@ import (
 
 	"github.com/Ferrymania/nook/internal/model"
 )
+
+// Overlay user state after metadata caches are read. Completion is persisted by
+// progress reports and manual actions; DTOs must never infer it from position.
+func (e *EmbyService) withMediaUserData(ctx context.Context, userID string, items []map[string]any) ([]map[string]any, error) {
+	ids := make([]string, 0, len(items))
+	wanted := map[string]bool{}
+	for _, item := range items {
+		id, _ := item["Id"].(string)
+		kind, _ := item["Type"].(string)
+		if id == "" || IsEmbyRemoteID(id) || (kind != "Movie" && kind != "Episode" && kind != "Video") || wanted[id] {
+			continue
+		}
+		wanted[id] = true
+		ids = append(ids, id)
+	}
+	if len(ids) == 0 {
+		return items, nil
+	}
+	histories := map[string]*model.PlaybackHistory{}
+	if strings.TrimSpace(userID) != "" {
+		var rows []model.PlaybackHistory
+		if err := e.repo.DB.WithContext(ctx).Where("user_id = ? AND media_id IN ?", userID, ids).Find(&rows).Error; err != nil {
+			return nil, err
+		}
+		for i := range rows {
+			histories[rows[i].MediaID] = &rows[i]
+		}
+	}
+	out := append([]map[string]any(nil), items...)
+	for i, item := range items {
+		id, _ := item["Id"].(string)
+		if !wanted[id] {
+			continue
+		}
+		favorite := false
+		if raw, ok := item["UserData"].(map[string]any); ok && userID != "" {
+			favorite, _ = raw["IsFavorite"].(bool)
+		}
+		out[i] = maps.Clone(item)
+		out[i]["UserData"] = applyNookUserData(item["UserData"], historyWithPayloadDuration(histories[id], item), favorite)
+	}
+	return out, nil
+}
+
+func historyWithPayloadDuration(history *model.PlaybackHistory, item map[string]any) *model.PlaybackHistory {
+	if history == nil || history.DurationMs > 0 {
+		return history
+	}
+	copy := *history
+	copy.DurationMs = remoteItemInt64(item, "RunTimeTicks") / 10_000
+	return &copy
+}
+
+func (e *EmbyService) withUserData(ctx context.Context, userID string, items []map[string]any) ([]map[string]any, error) {
+	items, err := e.withMediaUserData(ctx, userID, items)
+	if err != nil {
+		return nil, err
+	}
+	return e.withFolderUserData(ctx, userID, items)
+}
 
 // SetFavorite 把 mediaID 标为 userID 的收藏。只写入 Nook 本地 favourites 表，
 // 按 user_id 隔离；挂载远程 Emby 共用账号，不能再透传收藏以免串用户。
@@ -252,8 +313,8 @@ func mergedRemoteUserData(raw any, history *model.PlaybackHistory) map[string]an
 	return applyNookUserData(raw, history, favorite)
 }
 
-// applyNookUserData rebuilds UserData for a remote item using only Nook-local
-// per-user state. Shared upstream Emby favourite/progress fields are discarded.
+// applyNookUserData rebuilds UserData using Nook-local per-user state. Shared
+// upstream Emby fields and cached progress/completion fields are discarded.
 func applyNookUserData(raw any, history *model.PlaybackHistory, favorite bool) map[string]any {
 	userData := map[string]any{}
 	if existing, ok := raw.(map[string]any); ok {
