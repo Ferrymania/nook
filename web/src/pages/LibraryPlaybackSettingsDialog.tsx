@@ -4,32 +4,60 @@ import { Loader2, MonitorPlay, Save, X } from 'lucide-react'
 
 import type { Library } from '../types'
 import { apiErrorMessage } from './adminLibraryPanelModel'
+import { playbackSettingsError, type LibraryPlaybackSettings } from '../utils/libraryPlaybackSettings'
 
-export function LibraryPlaybackThresholdField({ value, onChange, inputRef }: {
+function PlaybackNumberField({ label, value, onChange, min, max, unit, help, inputRef }: {
+  label: string
   value: string
   onChange: (value: string) => void
+  min: number
+  max: number
+  unit: string
+  help: string
   inputRef?: Ref<HTMLInputElement>
 }) {
   const id = useId()
   return <div>
-    <label htmlFor={id} className="mb-2 block text-sm font-medium">播放完成阈值</label>
+    <label htmlFor={id} className="mb-2 block text-sm font-medium">{label}</label>
     <div className="flex max-w-40 items-center gap-2">
-      <input ref={inputRef} id={id} type="number" required min={1} max={100} step={1} value={value}
+      <input ref={inputRef} id={id} type="number" required min={min} max={max} step={1} value={value}
         aria-describedby={`${id}-help`} className="input-base min-w-0 w-full"
-        onInvalid={event => event.currentTarget.setCustomValidity('请输入 1–100 的整数百分比')}
+        onInvalid={event => event.currentTarget.setCustomValidity(`请输入 ${min}–${max} 的整数${unit === '%' ? '百分比' : '秒数'}`)}
         onChange={event => { event.currentTarget.setCustomValidity(''); onChange(event.target.value) }} />
-      <span className="text-sm text-(--app-muted)">%</span>
+      <span className="shrink-0 text-sm text-(--app-muted)">{unit}</span>
     </div>
-    <p id={`${id}-help`} className="mt-2 text-xs leading-6 text-(--app-muted)">播放达到此百分比时标记为已观看。仅对本库生效，适用于网页和 Emby 兼容客户端；默认 90%。</p>
+    <p id={`${id}-help`} className="mt-2 text-xs leading-6 text-(--app-muted)">{help}</p>
+  </div>
+}
+
+export function LibraryPlaybackSettingsFields({ percent, minimum, duration, onPercentChange, onMinimumChange, onDurationChange, inputRef }: {
+  percent: string
+  minimum: string
+  duration: string
+  onPercentChange: (value: string) => void
+  onMinimumChange: (value: string) => void
+  onDurationChange: (value: string) => void
+  inputRef?: Ref<HTMLInputElement>
+}) {
+  return <div className="space-y-5">
+    <p className="text-xs leading-6 text-(--app-muted)">仅对本库生效，适用于网页和 Emby 兼容客户端。</p>
+    <PlaybackNumberField label="最小续播百分比" value={minimum} onChange={onMinimumChange} min={0} max={99} unit="%" inputRef={inputRef}
+      help="播放进度低于此值时不续播，也不进入“继续观看”。默认 5%；设为 0 关闭比例限制。" />
+    <PlaybackNumberField label="播放完成阈值" value={percent} onChange={onPercentChange} min={1} max={100} unit="%"
+      help="播放达到此百分比时标记为已观看。默认 90%，须大于最小续播百分比。" />
+    <PlaybackNumberField label="最短可续播视频时长" value={duration} onChange={onDurationChange} min={0} max={2147483647} unit="秒"
+      help="按视频总时长判断。短于此时长的视频不续播，仍可标记已观看。默认 180 秒；设为 0 关闭时长限制。" />
   </div>
 }
 
 export function LibraryPlaybackSettingsDialog({ library, onClose, onSave }: {
   library: Library
   onClose: () => void
-  onSave: (library: Library, percent: number) => Promise<void>
+  onSave: (library: Library, settings: LibraryPlaybackSettings) => Promise<void>
 }) {
   const [percent, setPercent] = useState(String(library.played_threshold_pct ?? 90))
+  const [minimum, setMinimum] = useState(String(library.min_resume_pct ?? 5))
+  const [duration, setDuration] = useState(String(library.min_resume_duration_seconds ?? 180))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const savingRef = useRef(false)
@@ -49,12 +77,12 @@ export function LibraryPlaybackSettingsDialog({ library, onClose, onSave }: {
   const save = async (event: FormEvent) => {
     event.preventDefault()
     if (savingRef.current) return
-    const value = Number(percent)
-    if (!Number.isInteger(value) || value < 1 || value > 100) { setError('播放完成阈值须为 1–100 的整数百分比'); return }
+    const validation = playbackSettingsError(percent, minimum, duration)
+    if (validation) { setError(validation); return }
     savingRef.current = true
     setSaving(true)
     setError('')
-    try { await onSave(library, value) }
+    try { await onSave(library, { played_threshold_pct: Number(percent), min_resume_pct: Number(minimum), min_resume_duration_seconds: Number(duration) }) }
     catch (err: unknown) { setError(apiErrorMessage(err, '保存播放设置失败，请重试')) }
     finally { savingRef.current = false; setSaving(false) }
   }
@@ -81,11 +109,11 @@ export function LibraryPlaybackSettingsDialog({ library, onClose, onSave }: {
           <button type="button" aria-label="关闭播放设置" onClick={close} disabled={saving} className="rounded-lg p-1 text-(--app-muted) hover:bg-(--app-panel-soft)"><X size={20} /></button>
         </header>
         <fieldset disabled={saving} className="space-y-4 overflow-y-auto px-5 py-5 sm:px-6">
-          <LibraryPlaybackThresholdField value={percent} onChange={setPercent} inputRef={inputRef} />
+          <LibraryPlaybackSettingsFields percent={percent} minimum={minimum} duration={duration} onPercentChange={setPercent} onMinimumChange={setMinimum} onDurationChange={setDuration} inputRef={inputRef} />
           {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
         </fieldset>
         <footer className="flex items-center justify-between gap-3 border-t border-(--app-border) px-5 py-4 sm:px-6">
-          <p className="text-xs text-(--app-muted)">保存后用于后续播放进度</p>
+          <p className="text-xs text-(--app-muted)">保存后用于本库播放</p>
           <div className="flex gap-2">
             <button type="button" onClick={close} disabled={saving} className="btn-outline px-4! py-2! text-xs">取消</button>
             <button type="submit" disabled={saving} className="btn-primary px-4! py-2! text-xs">{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}保存设置</button>

@@ -23,16 +23,16 @@ func TestLibraryPlaybackThresholdMigration(t *testing.T) {
 		t.Fatal(err)
 	}
 	var library model.Library
-	if err := db.First(&library, "id = ?", "existing").Error; err != nil || library.PlayedThresholdPct != 90 {
+	if err := db.First(&library, "id = ?", "existing").Error; err != nil || library.PlayedThresholdPct != 90 || library.MinResumePct != 5 || library.MinResumeDurationSeconds != 180 {
 		t.Fatalf("migration default: %#v %v", library, err)
 	}
-	if err := db.Model(&library).Update("played_threshold_pct", 95).Error; err != nil {
+	if err := db.Model(&library).Updates(map[string]any{"played_threshold_pct": 95, "min_resume_pct": 0, "min_resume_duration_seconds": 0}).Error; err != nil {
 		t.Fatal(err)
 	}
 	if err := AutoMigrate(db); err != nil {
 		t.Fatal(err)
 	}
-	if err := db.First(&library, "id = ?", "existing").Error; err != nil || library.PlayedThresholdPct != 95 {
+	if err := db.First(&library, "id = ?", "existing").Error; err != nil || library.PlayedThresholdPct != 95 || library.MinResumePct != 0 || library.MinResumeDurationSeconds != 0 {
 		t.Fatalf("migration replaced saved threshold: %#v %v", library, err)
 	}
 }

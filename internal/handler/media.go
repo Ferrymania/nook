@@ -357,11 +357,13 @@ func writeLibraryCreateError(c *gin.Context, err error) {
 }
 
 type updateLibraryReq struct {
-	CoverURL           *string `json:"cover_url"`
-	SortOrder          *int    `json:"sort_order"`
-	CarouselEnabled    *bool   `json:"carousel_enabled"`
-	AutoProbe          *bool   `json:"auto_probe"`
-	PlayedThresholdPct *int    `json:"played_threshold_pct"`
+	CoverURL                 *string `json:"cover_url"`
+	SortOrder                *int    `json:"sort_order"`
+	CarouselEnabled          *bool   `json:"carousel_enabled"`
+	AutoProbe                *bool   `json:"auto_probe"`
+	PlayedThresholdPct       *int    `json:"played_threshold_pct"`
+	MinResumePct             *int    `json:"min_resume_pct"`
+	MinResumeDurationSeconds *int    `json:"min_resume_duration_seconds"`
 }
 
 func updateLibraryHandler(svc *service.Container) gin.HandlerFunc {
@@ -371,8 +373,13 @@ func updateLibraryHandler(svc *service.Container) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		if req.PlayedThresholdPct != nil {
-			if err := service.ValidatePlayedThresholdPct(*req.PlayedThresholdPct); err != nil {
+		lib, err := svc.Repo.Library.FindByID(c.Request.Context(), c.Param("id"))
+		if err != nil || lib == nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "library not found"})
+			return
+		}
+		if req.PlayedThresholdPct != nil || req.MinResumePct != nil || req.MinResumeDurationSeconds != nil {
+			if _, err := service.ResolveLibraryPlaybackSettings(lib, req.PlayedThresholdPct, req.MinResumePct, req.MinResumeDurationSeconds); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 				return
 			}
@@ -383,13 +390,13 @@ func updateLibraryHandler(svc *service.Container) gin.HandlerFunc {
 				return
 			}
 		}
-		if req.SortOrder != nil || req.CarouselEnabled != nil || req.AutoProbe != nil || req.PlayedThresholdPct != nil {
-			if err := svc.Media.UpdateLibraryFields(c.Request.Context(), c.Param("id"), req.SortOrder, req.CarouselEnabled, req.AutoProbe, req.PlayedThresholdPct); err != nil {
+		if req.SortOrder != nil || req.CarouselEnabled != nil || req.AutoProbe != nil || req.PlayedThresholdPct != nil || req.MinResumePct != nil || req.MinResumeDurationSeconds != nil {
+			if err := svc.Media.UpdateLibraryFields(c.Request.Context(), c.Param("id"), req.SortOrder, req.CarouselEnabled, req.AutoProbe, req.PlayedThresholdPct, req.MinResumePct, req.MinResumeDurationSeconds); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
 		}
-		lib, err := svc.Repo.Library.FindByID(c.Request.Context(), c.Param("id"))
+		lib, err = svc.Repo.Library.FindByID(c.Request.Context(), c.Param("id"))
 		if err != nil || lib == nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "library not found"})
 			return

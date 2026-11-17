@@ -8,6 +8,7 @@ export interface HistoryItem {
   duration_ms: number
   watched_at: string
   completed: boolean
+  resumable?: boolean
   media?: Media
 }
 

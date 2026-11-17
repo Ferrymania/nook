@@ -182,6 +182,11 @@ func (s *MediaDiscoveryService) NextUpCandidates(ctx context.Context, userID str
 // nextUpFromHistories lets Continue Watching use the same episode selection
 // rules and history window without another history query.
 func (s *MediaDiscoveryService) nextUpFromHistories(ctx context.Context, userID string, limit int, visibility MediaVisibility, histories []model.PlaybackHistory) ([]model.Media, error) {
+	var err error
+	histories, err = filterResumeHistories(ctx, s.repo, histories, true)
+	if err != nil {
+		return nil, err
+	}
 	if len(histories) == 0 {
 		return nil, nil
 	}

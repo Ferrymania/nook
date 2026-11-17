@@ -11,6 +11,7 @@ import (
 	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/repository"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type LibraryRootInput struct {
@@ -40,19 +41,18 @@ var ErrLibraryAlreadyExists = errors.New("同名同类型媒体库已存在，�
 
 // Settings are persisted with the library and roots, before its initial scan.
 type LibraryCreateOptions struct {
-	CreateOnly         bool                         `json:"create_only"`
-	ScrapeSettings     *model.LibraryScrapeSettings `json:"scrape_settings"`
-	AutoProbe          bool                         `json:"auto_probe"`
-	PlayedThresholdPct *int                         `json:"played_threshold_pct"`
+	CreateOnly               bool                         `json:"create_only"`
+	ScrapeSettings           *model.LibraryScrapeSettings `json:"scrape_settings"`
+	AutoProbe                bool                         `json:"auto_probe"`
+	PlayedThresholdPct       *int                         `json:"played_threshold_pct"`
+	MinResumePct             *int                         `json:"min_resume_pct"`
+	MinResumeDurationSeconds *int                         `json:"min_resume_duration_seconds"`
 }
 
 func (s *MediaService) CreateLibraryWithOptions(ctx context.Context, name, kind, coverURL string, inputs []LibraryRootInput, options LibraryCreateOptions) (*model.Library, error) {
-	percent := model.DefaultPlayedThresholdPct
-	if options.PlayedThresholdPct != nil {
-		percent = *options.PlayedThresholdPct
-		if err := ValidatePlayedThresholdPct(percent); err != nil {
-			return nil, err
-		}
+	playback, err := ResolveLibraryPlaybackSettings(nil, options.PlayedThresholdPct, options.MinResumePct, options.MinResumeDurationSeconds)
+	if err != nil {
+		return nil, err
 	}
 	if options.ScrapeSettings != nil {
 		if err := validateLibraryScrapeSettings(*options.ScrapeSettings); err != nil {
@@ -71,7 +71,7 @@ func (s *MediaService) CreateLibraryWithOptions(ctx context.Context, name, kind,
 		return nil, err
 	} else if existing != nil {
 		// Requests with creation settings must never rewrite an existing library.
-		if options.CreateOnly || options.ScrapeSettings != nil || options.PlayedThresholdPct != nil {
+		if options.CreateOnly || options.ScrapeSettings != nil || options.PlayedThresholdPct != nil || options.MinResumePct != nil || options.MinResumeDurationSeconds != nil {
 			return nil, ErrLibraryAlreadyExists
 		}
 		if strings.TrimSpace(coverURL) != "" {
@@ -87,17 +87,28 @@ func (s *MediaService) CreateLibraryWithOptions(ctx context.Context, name, kind,
 		return lib, nil
 	}
 	lib := &model.Library{
-		Name:               strings.TrimSpace(name),
-		Path:               roots[0].Path,
-		Type:               kind,
-		CoverURL:           strings.TrimSpace(coverURL),
-		Enabled:            true,
-		CarouselEnabled:    true,
-		AutoProbe:          options.AutoProbe,
-		PlayedThresholdPct: percent,
-		ScrapeSettings:     options.ScrapeSettings,
+		Name:                     strings.TrimSpace(name),
+		Path:                     roots[0].Path,
+		Type:                     kind,
+		CoverURL:                 strings.TrimSpace(coverURL),
+		Enabled:                  true,
+		CarouselEnabled:          true,
+		AutoProbe:                options.AutoProbe,
+		PlayedThresholdPct:       playback.PlayedThresholdPct,
+		MinResumePct:             playback.MinResumePct,
+		MinResumeDurationSeconds: playback.MinResumeDurationSeconds,
+		ScrapeSettings:           options.ScrapeSettings,
 	}
-	if err := s.repo.Library.CreateWithRoots(ctx, lib, roots); err != nil {
+	if err := s.repo.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := repository.New(tx).Library.CreateWithRoots(ctx, lib, roots); err != nil {
+			return err
+		}
+		// GORM substitutes nonzero defaults on Create. Explicit zero disables
+		// either resume restriction, so persist those values in the same transaction.
+		lib.MinResumePct = playback.MinResumePct
+		lib.MinResumeDurationSeconds = playback.MinResumeDurationSeconds
+		return tx.Model(lib).Updates(map[string]any{"min_resume_pct": playback.MinResumePct, "min_resume_duration_seconds": playback.MinResumeDurationSeconds}).Error
+	}); err != nil {
 		return nil, err
 	}
 	s.invalidateMediaCache(ctx)
@@ -163,13 +174,19 @@ func (s *MediaService) UpdateLibraryCover(ctx context.Context, libraryID, coverU
 }
 
 // UpdateLibraryFields updates display, automatic probe and playback settings.
-func (s *MediaService) UpdateLibraryFields(ctx context.Context, libraryID string, sortOrder *int, carouselEnabled, autoProbe *bool, playedThresholdPct *int) error {
+func (s *MediaService) UpdateLibraryFields(ctx context.Context, libraryID string, sortOrder *int, carouselEnabled, autoProbe *bool, playedThresholdPct, minResumePct, minResumeDurationSeconds *int) error {
 	updates := map[string]any{}
 	if playedThresholdPct != nil {
 		if err := ValidatePlayedThresholdPct(*playedThresholdPct); err != nil {
 			return err
 		}
 		updates["played_threshold_pct"] = *playedThresholdPct
+	}
+	if minResumePct != nil {
+		updates["min_resume_pct"] = *minResumePct
+	}
+	if minResumeDurationSeconds != nil {
+		updates["min_resume_duration_seconds"] = *minResumeDurationSeconds
 	}
 	if sortOrder != nil {
 		updates["sort_order"] = *sortOrder
@@ -183,8 +200,18 @@ func (s *MediaService) UpdateLibraryFields(ctx context.Context, libraryID string
 	if len(updates) == 0 || strings.TrimSpace(libraryID) == "" {
 		return nil
 	}
-	return s.repo.DB.WithContext(ctx).Model(&model.Library{}).
-		Where("id = ?", libraryID).Updates(updates).Error
+	return s.repo.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if playedThresholdPct != nil || minResumePct != nil || minResumeDurationSeconds != nil {
+			var lib model.Library
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&lib, "id = ?", libraryID).Error; err != nil {
+				return err
+			}
+			if _, err := ResolveLibraryPlaybackSettings(&lib, playedThresholdPct, minResumePct, minResumeDurationSeconds); err != nil {
+				return err
+			}
+		}
+		return tx.Model(&model.Library{}).Where("id = ?", libraryID).Updates(updates).Error
+	})
 }
 
 // ReorderLibraries persists a full media-library ordering.

@@ -171,15 +171,21 @@ func (p *PlaybackService) resolvePlaybackDuration(ctx context.Context, userID, m
 // gets a fully-populated card without a second round-trip.
 type HistoryItem struct {
 	model.PlaybackHistory
-	Media *model.Media `json:"media,omitempty"`
+	Media     *model.Media `json:"media,omitempty"`
+	Resumable bool         `json:"resumable"`
 }
 
 // RecentHistory returns the most recently-watched items for a user. We
 // fetch the history rows first then attach each Media row in a single
 // follow-up query.
 func (p *PlaybackService) RecentHistory(ctx context.Context, userID string, limit int) ([]HistoryItem, error) {
-	rows, err := p.repo.History.ListByUser(ctx, userID, limit)
-	if err != nil {
+	var rows []model.PlaybackHistory
+	// Filter missing local media before LIMIT so deleted entries cannot crowd
+	// valid cards off the page. Remote availability is checked during hydration.
+	localIDs := p.repo.DB.Model(&model.Media{}).Select("id")
+	if err := p.repo.DB.WithContext(ctx).Where("user_id = ?", userID).
+		Where("media_id IN (?) OR media_id LIKE ?", localIDs, EmbyRemoteIDPrefix+"%").
+		Order("watched_at desc, id asc").Limit(limit).Find(&rows).Error; err != nil {
 		return nil, err
 	}
 	mediaIDs := make([]string, 0, len(rows))
@@ -191,17 +197,29 @@ func (p *PlaybackService) RecentHistory(ctx context.Context, userID string, limi
 	mediaByID := map[string]model.Media{}
 	if len(mediaIDs) > 0 {
 		var mediaRows []model.Media
-		if err := p.repo.DB.WithContext(ctx).Where("id IN ?", mediaIDs).Find(&mediaRows).Error; err == nil {
-			for _, media := range mediaRows {
-				mediaByID[media.ID] = media
-			}
+		if err := p.repo.DB.WithContext(ctx).Where("id IN ?", mediaIDs).Find(&mediaRows).Error; err != nil {
+			return nil, err
+		}
+		for _, media := range mediaRows {
+			mediaByID[media.ID] = media
 		}
 	}
 	items := make([]HistoryItem, 0, len(rows))
+	policies, err := mediaPlaybackPolicies(ctx, p.repo, mediaIDs)
+	if err != nil {
+		return nil, err
+	}
+	historyItem := func(h model.PlaybackHistory, media *model.Media) HistoryItem {
+		policy := policies[h.MediaID]
+		if media != nil && media.DurationSec > 0 {
+			policy.DurationSec = int64(media.DurationSec)
+		}
+		return HistoryItem{PlaybackHistory: h, Media: media, Resumable: policy.resumable(policy.historyWithDuration(&h))}
+	}
 	for i := range rows {
 		if m, ok := mediaByID[rows[i].MediaID]; ok {
 			media := m
-			items = append(items, HistoryItem{PlaybackHistory: rows[i], Media: &media})
+			items = append(items, historyItem(rows[i], &media))
 			continue
 		}
 		if p.remote != nil && IsEmbyRemoteID(rows[i].MediaID) {
@@ -209,12 +227,13 @@ func (p *PlaybackService) RecentHistory(ctx context.Context, userID string, limi
 			if mount, acct, _ := p.remote.ResolveMount(ctx, mountID); mount != nil && acct != nil {
 				if rm, err := p.remote.RemoteMediaDetail(ctx, mount, acct, remoteID); err == nil && rm != nil {
 					media := *rm
-					items = append(items, HistoryItem{PlaybackHistory: rows[i], Media: &media})
+					items = append(items, historyItem(rows[i], &media))
 					continue
 				}
 			}
 		}
-		items = append(items, HistoryItem{PlaybackHistory: rows[i]})
+		// Missing metadata is not a playable card. Preserve the history itself,
+		// including when a remote server is only temporarily unavailable.
 	}
 	return items, nil
 }

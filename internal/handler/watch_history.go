@@ -45,7 +45,7 @@ func historyListHandler(svc *service.Container) gin.HandlerFunc {
 		visibility := mediaVisibilityForRequest(c, svc)
 		filtered := make([]service.HistoryItem, 0, len(items))
 		for _, item := range items {
-			if item.Media == nil || visibility.Allows(item.Media) {
+			if item.Media != nil && visibility.Allows(item.Media) {
 				filtered = append(filtered, item)
 			}
 		}
@@ -283,11 +283,19 @@ func historyContinueHandler(svc *service.Container) gin.HandlerFunc {
 			limit = 10
 		}
 		var rows []model.PlaybackHistory
-		if err := svc.Repo.DB.
+		localIDs := svc.Repo.DB.Model(&model.Media{}).Select("id")
+		if err := svc.Repo.DB.WithContext(c.Request.Context()).
 			Where("user_id = ? AND completed = ?", userID, false).
+			Where("media_id IN (?) OR media_id LIKE ?", localIDs, service.EmbyRemoteIDPrefix+"%").
 			Order("watched_at desc").
-			Limit(limit).
+			Limit(limit * 4).
 			Find(&rows).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		var err error
+		rows, err = svc.Playback.FilterResumableHistories(c.Request.Context(), rows)
+		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -298,15 +306,20 @@ func historyContinueHandler(svc *service.Container) gin.HandlerFunc {
 		}
 		var media []model.Media
 		if len(ids) > 0 {
-			_ = svc.Repo.DB.Where("id IN ?", ids).Find(&media).Error
+			if err := svc.Repo.DB.WithContext(c.Request.Context()).Where("id IN ?", ids).Find(&media).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
 		}
 		mIdx := make(map[string]model.Media, len(media))
 		for _, m := range media {
 			mIdx[m.ID] = m
 		}
 		out := make([]gin.H, 0, len(rows))
-		staleIDs := make([]string, 0)
 		for _, r := range rows {
+			if len(out) >= limit {
+				break
+			}
 			m, ok := mIdx[r.MediaID]
 			if ok {
 				if mediaVisibleForRequest(c, svc, &m) {
@@ -335,14 +348,8 @@ func historyContinueHandler(svc *service.Container) gin.HandlerFunc {
 				}
 			}
 
-			// 媒体记录已不存在。继续返回占位卡只会让用户点击后遇到 404，
-			// 因此清理这条失效播放记录，不再占用继续观看列表。
-			staleIDs = append(staleIDs, r.MediaID)
-		}
-		if len(staleIDs) > 0 {
-			_ = svc.Repo.DB.WithContext(c.Request.Context()).Unscoped().
-				Where("user_id = ? AND media_id IN ?", userID, staleIDs).
-				Delete(&model.PlaybackHistory{}).Error
+			// Hide missing media without deleting watch state. Remote timeouts
+			// must not erase a user's progress either.
 		}
 		c.JSON(http.StatusOK, out)
 	}

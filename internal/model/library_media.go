@@ -1,21 +1,27 @@
 package model
 
-const DefaultPlayedThresholdPct = 90
+const (
+	DefaultPlayedThresholdPct       = 90
+	DefaultMinResumePct             = 5
+	DefaultMinResumeDurationSeconds = 180
+)
 
 // Library 表示一个逻辑媒体库。Path 保留为兼容字段，指向第一条 LibraryRoot。
 type Library struct {
 	Base
-	Name               string                 `gorm:"size:128;not null" json:"name"`
-	Path               string                 `gorm:"size:1024;not null" json:"path"`
-	Type               string                 `gorm:"size:16;not null;default:movie" json:"type"` // movie / tv / anime / music
-	CoverURL           string                 `gorm:"size:1024" json:"cover_url,omitempty"`
-	Enabled            bool                   `gorm:"default:true" json:"enabled"`
-	SortOrder          int                    `gorm:"index;default:0" json:"sort_order"`        // 手动拖拽排序用，越小越靠前
-	CarouselEnabled    bool                   `gorm:"default:true" json:"carousel_enabled"`     // 是否参与首页海报轮播（默认参与）
-	AutoProbe          bool                   `gorm:"not null;default:false" json:"auto_probe"` // 刮削时按需探测技术信息（默认关闭）
-	PlayedThresholdPct int                    `gorm:"not null;default:90" json:"played_threshold_pct"`
-	ScrapeSettings     *LibraryScrapeSettings `gorm:"serializer:json;type:text" json:"-"` // 未保存时使用默认值，各媒体库独立配置。
-	Roots              []LibraryRoot          `gorm:"foreignKey:LibraryID" json:"roots,omitempty"`
+	Name                     string                 `gorm:"size:128;not null" json:"name"`
+	Path                     string                 `gorm:"size:1024;not null" json:"path"`
+	Type                     string                 `gorm:"size:16;not null;default:movie" json:"type"` // movie / tv / anime / music
+	CoverURL                 string                 `gorm:"size:1024" json:"cover_url,omitempty"`
+	Enabled                  bool                   `gorm:"default:true" json:"enabled"`
+	SortOrder                int                    `gorm:"index;default:0" json:"sort_order"`        // 手动拖拽排序用，越小越靠前
+	CarouselEnabled          bool                   `gorm:"default:true" json:"carousel_enabled"`     // 是否参与首页海报轮播（默认参与）
+	AutoProbe                bool                   `gorm:"not null;default:false" json:"auto_probe"` // 刮削时按需探测技术信息（默认关闭）
+	PlayedThresholdPct       int                    `gorm:"not null;default:90" json:"played_threshold_pct"`
+	MinResumePct             int                    `gorm:"not null;default:5" json:"min_resume_pct"`
+	MinResumeDurationSeconds int                    `gorm:"not null;default:180" json:"min_resume_duration_seconds"`
+	ScrapeSettings           *LibraryScrapeSettings `gorm:"serializer:json;type:text" json:"-"` // 未保存时使用默认值，各媒体库独立配置。
+	Roots                    []LibraryRoot          `gorm:"foreignKey:LibraryID" json:"roots,omitempty"`
 }
 
 type LibraryScrapeSettings struct {

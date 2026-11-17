@@ -137,7 +137,7 @@ func TestEmbyNextUpReturnsNextEpisode(t *testing.T) {
 	}
 }
 
-// 回归：用户在剧集详情页点播放、只看了几秒就退出（历史行 completed=false）后，
+// 回归：用户在剧集详情页点播放、达到最小续播比例后退出（历史行 completed=false），
 // Yamby 再次进入详情页带的 NextUp 仍要指向那一集本身，否则「继续播放」会跳到下一集。
 func TestEmbyNextUpKeepsPartiallyWatchedEpisode(t *testing.T) {
 	router, svc, userID := newEmbyDiscoveryEnv(t)
@@ -156,9 +156,9 @@ func TestEmbyNextUpKeepsPartiallyWatchedEpisode(t *testing.T) {
 		episodeIDs[ep] = m.ID
 	}
 
-	// 第 2 集播放了 3 秒后退出：有进度、未标记看完。
+	// 第 2 集播放了 10% 后退出：有可续播进度、未标记看完。
 	if err := svc.Repo.DB.Create(&model.PlaybackHistory{
-		UserID: userID, MediaID: episodeIDs[2], PositionMs: 3582, DurationMs: 1440064,
+		UserID: userID, MediaID: episodeIDs[2], PositionMs: 144006, DurationMs: 1440064,
 		WatchedAt: time.Now(), Completed: false,
 	}).Error; err != nil {
 		t.Fatal(err)
@@ -407,11 +407,19 @@ func TestEmbyContinueWatchingProgressPipeline(t *testing.T) {
 			t.Fatalf("progress response: %d %s", w.Code, w.Body.String())
 		}
 	}
+	// A preview below 5% must not create a resume card or a NextUp anchor.
 	postProgress(140000000)
+	for _, path := range []string{"/emby/Items/Resume", "/emby/Items?Filters=IsResumable", "/emby/Shows/NextUp?SeriesId=continue-show"} {
+		w := embyGet(t, router, path, token)
+		if w.Code != http.StatusOK || len(decodeItemsEnvelope(t, w.Body.Bytes())) != 0 {
+			t.Fatalf("below minimum: %d %s", w.Code, w.Body.String())
+		}
+	}
+	postProgress(300000000)
 	for _, path := range []string{"/emby/Users/" + userID + "/Items/Resume", "/emby/Items/Resume", "/emby/users/" + userID + "/items/resume"} {
 		w := embyGet(t, router, path, token)
 		items := decodeItemsEnvelope(t, w.Body.Bytes())
-		if w.Code != http.StatusOK || len(items) != 1 || items[0]["Id"] != "continue-e1" || items[0]["UserData"].(map[string]any)["PlaybackPositionTicks"] != float64(140000000) {
+		if w.Code != http.StatusOK || len(items) != 1 || items[0]["Id"] != "continue-e1" || items[0]["UserData"].(map[string]any)["PlaybackPositionTicks"] != float64(300000000) {
 			t.Fatalf("partial Resume: %d %s", w.Code, w.Body.String())
 		}
 	}

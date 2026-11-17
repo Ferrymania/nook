@@ -86,7 +86,7 @@ func playbackProgressHandler(svc *service.Container) gin.HandlerFunc {
 func playbackResumeHandler(svc *service.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		uid, _ := c.Get(middleware.CtxUserID)
-		row, err := svc.Playback.GetProgress(c.Request.Context(), toString(uid), c.Param("id"))
+		row, err := svc.Playback.GetResumeProgress(c.Request.Context(), toString(uid), c.Param("id"))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

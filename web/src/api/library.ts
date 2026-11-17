@@ -39,6 +39,8 @@ export interface LibraryCreateOptions {
   scrape_settings?: LibraryScrapeSettings
   auto_probe?: boolean
   played_threshold_pct?: number
+  min_resume_pct?: number
+  min_resume_duration_seconds?: number
 }
 import {
   EMPTY_LIBRARY_FILTERS,
@@ -215,6 +217,8 @@ export const libraryAPI = {
       carousel_enabled?: boolean | null
       auto_probe?: boolean
       played_threshold_pct?: number
+      min_resume_pct?: number
+      min_resume_duration_seconds?: number
     },
   ) => api.patch<Library>(`/libraries/${id}`, payload).then((r) => r.data),
 

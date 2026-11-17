@@ -6,6 +6,7 @@ import type { Library, LibraryRoot } from '../types'
 import { invalidateLibraries } from '../utils/libraryCache'
 import { confirmAction } from '../components/confirmAction'
 import { apiErrorMessage, createRootPayload, duplicateLibrary, rootDraftError, scrapeSettingsError, displayLibraryRootName, displayLibraryRootPath, emptyRootDraft, rootDraftKey, type RootDraft } from './adminLibraryPanelModel'
+import { playbackSettingsError, type LibraryPlaybackSettings } from '../utils/libraryPlaybackSettings'
 
 export function useAdminLibraryPanel() {
   const { libs, refresh } = useAdminLibraryList()
@@ -43,6 +44,8 @@ function useCreateLibraryForm(refresh: () => Promise<void>, libs: Library[]) {
   const [type, setType] = useState('movie')
   const [coverURL, setCoverURL] = useState('')
   const [playedThresholdPct, setPlayedThresholdPct] = useState('90')
+  const [minResumePct, setMinResumePct] = useState('5')
+  const [minResumeDurationSeconds, setMinResumeDurationSeconds] = useState('180')
   const [createPerSubfolder, setCreatePerSubfolder] = useState(false)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
@@ -67,6 +70,8 @@ function useCreateLibraryForm(refresh: () => Promise<void>, libs: Library[]) {
     setType('movie')
     setCoverURL('')
     setPlayedThresholdPct('90')
+    setMinResumePct('5')
+    setMinResumeDurationSeconds('180')
     setCreatePerSubfolder(false)
     setError('')
     if (!library) { setScrape(null); void loadScrapeDefaults() }
@@ -79,8 +84,8 @@ function useCreateLibraryForm(refresh: () => Promise<void>, libs: Library[]) {
     const validation = rootDraftError(roots, existingRoots)
     if (validation) { setError(validation); return }
     if (mode === 'create') {
-      const percent = Number(playedThresholdPct)
-      if (!Number.isInteger(percent) || percent < 1 || percent > 100) { setError('播放完成阈值须为 1–100 的整数百分比'); return }
+      const playbackValidation = playbackSettingsError(playedThresholdPct, minResumePct, minResumeDurationSeconds)
+      if (playbackValidation) { setError(playbackValidation); return }
       if (!createPerSubfolder && !name.trim()) { setError('请填写媒体库名称'); return }
       if (!createPerSubfolder && duplicateLibrary(libs, name, type)) { setError('同名同类型媒体库已存在，请使用该库的“添加目录”'); return }
       if (!scrape) { setError('请先加载刮削设置'); return }
@@ -98,7 +103,7 @@ function useCreateLibraryForm(refresh: () => Promise<void>, libs: Library[]) {
         }
         toast.success(`已向「${targetLibrary.name}」添加 ${added} 个目录`)
       } else {
-        const options = { create_only: true, scrape_settings: scrape!.settings, auto_probe: scrape!.auto_probe, played_threshold_pct: Number(playedThresholdPct) }
+        const options = { create_only: true, scrape_settings: scrape!.settings, auto_probe: scrape!.auto_probe, played_threshold_pct: Number(playedThresholdPct), min_resume_pct: Number(minResumePct), min_resume_duration_seconds: Number(minResumeDurationSeconds) }
         if (createPerSubfolder) {
           const { libraries } = await libraryAPI.createPerSubfolder(roots[0].path.trim(), type, coverURL.trim(), options)
           toast.success(`已按目录创建 ${libraries.length} 个媒体库`)
@@ -125,7 +130,7 @@ function useCreateLibraryForm(refresh: () => Promise<void>, libs: Library[]) {
   return {
     mode, targetLibrary, name, type, coverURL, roots, createPerSubfolder, creating, error,
     scrape, setScrape, loadingScrape, scrapeError, loadScrapeDefaults,
-    setName, setType, setCoverURL, playedThresholdPct, setPlayedThresholdPct, setCreatePerSubfolder, updateRoot,
+    setName, setType, setCoverURL, playedThresholdPct, setPlayedThresholdPct, minResumePct, setMinResumePct, minResumeDurationSeconds, setMinResumeDurationSeconds, setCreatePerSubfolder, updateRoot,
     openCreate: () => open(), openAppend: (library: Library) => open(library),
     close: () => { if (!creating) setMode(null) },
     addRoot: () => setRoots(previous => [...previous, emptyRootDraft()]),
@@ -236,8 +241,8 @@ function useLibraryActions(refresh: () => Promise<void>) {
   const [coverLibrary, setCoverLibrary] = useState<Library | null>(null)
   const [playbackLibrary, setPlaybackLibrary] = useState<Library | null>(null)
 
-  const savePlaybackSettings = async (library: Library, percent: number) => {
-    await libraryAPI.update(library.id, { played_threshold_pct: percent })
+  const savePlaybackSettings = async (library: Library, settings: LibraryPlaybackSettings) => {
+    await libraryAPI.update(library.id, settings)
     toast.success('本库播放设置已保存')
     setPlaybackLibrary(null)
     await refresh().catch(() => toast.error('设置已保存，媒体库列表刷新失败，请刷新页面'))

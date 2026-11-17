@@ -23,7 +23,7 @@ func (e *EmbyService) Item(ctx context.Context, mediaID, userID string) (map[str
 	if err != nil || item == nil {
 		return item, err
 	}
-	items, err := e.withFolderUserData(ctx, userID, []map[string]any{item})
+	items, err := e.withUserData(ctx, userID, []map[string]any{item})
 	if err != nil {
 		return nil, err
 	}
@@ -356,7 +356,7 @@ func (e *EmbyService) favoriteItems(ctx context.Context, p ItemsParams) (map[str
 		p.StartIndex = 0
 	}
 	if strings.TrimSpace(p.UserID) == "" {
-		return map[string]any{"Items": []any{}, "TotalRecordCount": int64(0), "StartIndex": p.StartIndex}, nil
+		return emptyItemsEnvelope(p.StartIndex), nil
 	}
 
 	var favs []model.Favorite
@@ -522,7 +522,15 @@ func (e *EmbyService) resumableItems(ctx context.Context, p ItemsParams) (map[st
 		return nil, err
 	}
 	if len(hist) == 0 {
-		return map[string]any{"Items": []any{}, "TotalRecordCount": int64(0), "StartIndex": p.StartIndex}, nil
+		return emptyItemsEnvelope(p.StartIndex), nil
+	}
+	var err error
+	hist, err = filterResumeHistories(ctx, e.repo, hist, false)
+	if err != nil {
+		return nil, err
+	}
+	if len(hist) == 0 {
+		return emptyItemsEnvelope(p.StartIndex), nil
 	}
 
 	mediaIDs := make([]string, 0, len(hist))

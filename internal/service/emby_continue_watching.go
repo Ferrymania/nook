@@ -42,6 +42,11 @@ func (e *EmbyService) continueWatchingItems(ctx context.Context, p ItemsParams) 
 		Find(&histories).Error; err != nil {
 		return nil, err
 	}
+	var err error
+	histories, err = filterResumeHistories(ctx, e.repo, histories, true)
+	if err != nil {
+		return nil, err
+	}
 	localIDs := make([]string, 0, len(histories))
 	for _, h := range histories {
 		if !IsEmbyRemoteID(h.MediaID) {
