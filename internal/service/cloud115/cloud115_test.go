@@ -402,6 +402,48 @@ func TestFsListRefreshContinue(t *testing.T) {
 	}
 }
 
+func TestMkDirRetriesOnlyAfterExplicitAuthRejection(t *testing.T) {
+	t.Run("auth rejection", func(t *testing.T) {
+		var creates, refreshes int
+		mockAPI(t, func(w http.ResponseWriter, r *http.Request) {
+			switch r.URL.Path {
+			case "/open/refreshToken":
+				refreshes++
+				w.Write([]byte(`{"state":true,"data":{"access_token":"renewed","refresh_token":"new-rt"}}`))
+			case "/open/folder/add":
+				creates++
+				if r.Header.Get("Authorization") == "Bearer old" {
+					w.Write([]byte(`{"state":false,"code":40140126}`))
+					return
+				}
+				if r.Header.Get("Authorization") != "Bearer renewed" {
+					t.Errorf("unexpected authorization on retry")
+				}
+				w.Write([]byte(`{"state":true,"data":{"file_id":"301"}}`))
+			default:
+				http.NotFound(w, r)
+			}
+		})
+		client := NewOpenClient("100195125", "old", "rt")
+		id, err := client.MkDir(t.Context(), "0", "电影")
+		if err != nil || id != "301" || creates != 2 || refreshes != 1 {
+			t.Fatalf("id=%q err=%v creates=%d refreshes=%d", id, err, creates, refreshes)
+		}
+	})
+	t.Run("unknown outcome", func(t *testing.T) {
+		var calls int
+		mockAPI(t, func(w http.ResponseWriter, r *http.Request) {
+			calls++
+			w.WriteHeader(http.StatusBadGateway)
+		})
+		client := NewOpenClient("100195125", "token", "rt")
+		_, err := client.MkDir(t.Context(), "0", "电影")
+		if err == nil || calls != 1 {
+			t.Fatalf("err=%v calls=%d", err, calls)
+		}
+	})
+}
+
 // TestGetDownloadURLsBatch 验证批量换链：多个 pick_code 合并为一次逗号分隔
 // 请求；响应按文件 ID 为键、以条目内 pick_code 映射回请求侧；已缓存的
 // pick_code 不再发起请求；缺失项（空 URL）不出现在结果中。

@@ -317,22 +317,25 @@ func (c *OpenClient) Upload(ctx context.Context, filePath, parentCID, signKey, s
 // MkDir 在 115 的 parentCid 下创建目录，返回新目录 cid。
 func (c *OpenClient) MkDir(ctx context.Context, parentCID, name string) (string, error) {
 	params := map[string]string{
-		"cname": name,
-		"pid":   parentCID,
+		"file_name": name,
+		"pid":       parentCID,
 	}
-	resp, err := c.doAuthJSON(ctx, "POST", ProAPIBase+"/open/folder/add", params, 2)
+	resp, err := c.doAuthJSON(ctx, "POST", ProAPIBase+"/open/folder/add", params, 0)
 	if err != nil {
 		return "", err
 	}
-	// /open/folder/add 结构：{ aid, cid, fid, name, pid, ... }，单一对象
 	var r struct {
-		Cid string `json:"cid"`
+		FileID string `json:"file_id"`
+		Cid    string `json:"cid"`
 	}
 	if err := json.Unmarshal(resp.Data, &r); err != nil {
 		return "", fmt.Errorf("115: 解析 folder/add 结果失败：%w", err)
 	}
+	if r.FileID != "" {
+		return r.FileID, nil
+	}
 	if r.Cid == "" {
-		return "", errors.New("115: folder/add 未返回 cid")
+		return "", errors.New("115 已受理创建请求，但未返回目录 ID，请刷新目录确认")
 	}
 	return r.Cid, nil
 }

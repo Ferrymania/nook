@@ -23,8 +23,9 @@ import { confirmAction } from '../components/confirmAction'
 import type { StrmAccount, StrmSyncPath, StrmSyncRecord, StrmSyncRecordPage } from '../types/strm'
 import { STRM_PROVIDER_LABELS } from '../types/strm'
 import { StrmAccountDialog, StrmSettingsDialog, StrmSyncPathDialog } from './StrmDialogs'
+import { StrmAccountFilesDialog } from './strm-dialogs/StrmAccountFilesDialog'
 
-type StrmDialogKey = 'account' | 'settings' | 'path' | null
+type StrmDialogKey = 'account' | 'files' | 'settings' | 'path' | null
 type AccountTestState = { pending: boolean; error?: string }
 type PlaybackAddressStatus = 'loading' | 'unavailable' | 'missing' | 'ready'
 
@@ -274,6 +275,7 @@ export function StrmManagePage() {
             accountTests={accountTests}
             onAdd={() => { setEditingAccount(null); setDialog('account') }}
             onEdit={(account) => { setEditingAccount(account); setDialog('account') }}
+            onFiles={(account) => { setEditingAccount(account); setDialog('files') }}
             onDelete={deleteAccount}
             onTest={testAccount}
           />
@@ -309,6 +311,9 @@ export function StrmManagePage() {
           onSaved={() => { setDialog(null); refresh().catch(() => undefined) }}
         />
       )}
+      {dialog === 'files' && editingAccount && (
+        <StrmAccountFilesDialog key={editingAccount.id} account={editingAccount} onClose={() => setDialog(null)} />
+      )}
       {dialog === 'settings' && (
         <StrmSettingsDialog
           onClose={() => setDialog(null)}
@@ -334,6 +339,7 @@ function AccountSection({
   accounts,
   accountTests,
   onAdd,
+  onFiles,
   onEdit,
   onDelete,
   onTest,
@@ -341,6 +347,7 @@ function AccountSection({
   accounts: StrmAccount[]
   accountTests: Record<string, AccountTestState>
   onAdd: () => void
+  onFiles: (account: StrmAccount) => void
   onEdit: (account: StrmAccount) => void
   onDelete: (account: StrmAccount) => void
   onTest: (account: StrmAccount) => void
@@ -406,6 +413,12 @@ function AccountSection({
                   </div>
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  {account.provider === 'cloud115' && (
+                    <button type="button" disabled={!account.enabled || !account.has_credential}
+                      onClick={() => onFiles(account)} className={iconButtonCls}>
+                      <Folder size={14} />文件管理
+                    </button>
+                  )}
                   <button type="button" disabled={testing} aria-busy={testing} onClick={() => onTest(account)} className={iconButtonCls}>
                     <RefreshCw size={14} className={testing ? 'animate-spin' : undefined} />
                     {testing ? '测试中…' : '测试'}

@@ -140,6 +140,7 @@ func (c *OpenClient) doJSON(ctx context.Context, method, rawURL string, form map
 	}
 
 	var lastErr error
+	refreshed := false
 	for attempt := 0; attempt <= retries; attempt++ {
 		// 1. 获取全局三级令牌桶（QPS/QPM/QPH）令牌，若在熔断状态则阻塞等待冷却
 		if err := executor.Acquire(ctx); err != nil {
@@ -219,7 +220,10 @@ func (c *OpenClient) doJSON(ctx context.Context, method, rawURL string, form map
 		// refresh_token 刷新后重试一次。刷新失败或重试后仍失败才返回，
 		// 避免长时间同步因 token 过期而整体失败。
 		if isTokenCode(base.Code) {
-			if access && c.tryRefreshTokenLocked(ctx, attemptedAccess) {
+			if access && !refreshed && c.tryRefreshTokenLocked(ctx, attemptedAccess) {
+				// 鉴权已被明确拒绝，可以用新令牌重发，即使写操作关闭了网络重试。
+				refreshed = true
+				retries++
 				continue
 			}
 			if access {
