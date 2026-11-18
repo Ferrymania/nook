@@ -34,7 +34,7 @@ import { lastPathSegment, remoteTailNameOf, syncLocalPathWithRemote } from '../u
 
 // ─── 弹框外壳 ────────────────────────────────────────────────────────────────
 
-function DialogShell({
+export function DialogShell({
   title,
   subtitle,
   children,

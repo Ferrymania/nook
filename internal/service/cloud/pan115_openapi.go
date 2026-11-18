@@ -28,6 +28,7 @@ import (
 type OpenAPI115Provider interface {
 	Provider
 	OpenClient() *cloud115.OpenClient
+	ListPage(ctx context.Context, dirID string, offset, limit int) ([]FileEntry, error)
 }
 
 // openAPI115Provider 实现 Provider 接口：List 列目录、Resolve 用 pickcode
@@ -60,21 +61,11 @@ func (p *openAPI115Provider) List(ctx context.Context, dirID string) ([]FileEntr
 	const pageSize = 1150
 	var out []FileEntry
 	for offset := 0; ; offset += pageSize {
-		files, _, err := p.c.GetFsList(ctx, dirID, offset, pageSize)
+		files, err := p.ListPage(ctx, dirID, offset, pageSize)
 		if err != nil {
 			return nil, err
 		}
-		for _, f := range files {
-			out = append(out, FileEntry{
-				ID:       f.FileId,
-				Name:     f.FileName,
-				IsDir:    f.Category == cloud115.TypeDir,
-				Size:     f.FileSize,
-				MTime:    f.ModifiedAt(),
-				PickCode: f.PickCode,
-				Sha1:     f.Sha1,
-			})
-		}
+		out = append(out, files...)
 		if len(files) < pageSize {
 			break
 		}
@@ -85,6 +76,26 @@ func (p *openAPI115Provider) List(ctx context.Context, dirID string) ([]FileEntr
 		}
 	}
 	return out, nil
+}
+
+func (p *openAPI115Provider) ListPage(ctx context.Context, dirID string, offset, limit int) ([]FileEntry, error) {
+	files, _, err := p.c.GetFsList(ctx, dirID, offset, limit)
+	if err != nil {
+		return nil, err
+	}
+	entries := make([]FileEntry, 0, len(files))
+	for _, f := range files {
+		entries = append(entries, FileEntry{
+			ID:       f.FileId,
+			Name:     f.FileName,
+			IsDir:    f.Category == cloud115.TypeDir,
+			Size:     f.FileSize,
+			MTime:    f.ModifiedAt(),
+			PickCode: f.PickCode,
+			Sha1:     f.Sha1,
+		})
+	}
+	return entries, nil
 }
 
 func (p *openAPI115Provider) Resolve(ctx context.Context, fileRef string) (*DirectLink, error) {

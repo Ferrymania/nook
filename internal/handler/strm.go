@@ -187,6 +187,52 @@ func listStrmRemoteDirHandler(svc *service.Container) gin.HandlerFunc {
 	}
 }
 
+func listStrmAccountFilesHandler(svc *service.Container) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "页码无效"})
+			return
+		}
+		result, err := svc.Strm.ListAccountFiles(c.Request.Context(), c.Param("id"), c.DefaultQuery("parent_id", "0"), page)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, result)
+	}
+}
+
+func createStrmAccountFolderHandler(svc *service.Container) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req struct {
+			ParentID string `json:"parent_id" binding:"required"`
+			Name     string `json:"name" binding:"required"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "缺少父目录或文件夹名称"})
+			return
+		}
+		id, err := svc.Strm.CreateAccountFolder(c.Request.Context(), c.Param("id"), req.ParentID, req.Name)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusCreated, gin.H{"id": id})
+	}
+}
+
+func deleteStrmAccountFileHandler(svc *service.Container) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		err := svc.Strm.DeleteAccountFile(c.Request.Context(), c.Param("id"), c.Query("parent_id"), c.Param("fileID"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.Status(http.StatusAccepted)
+	}
+}
+
 // resolveStrmRemoteDirHandler 按远端目录引用（115 为目录 ID）反查完整展示路径。
 func resolveStrmRemoteDirHandler(svc *service.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {
