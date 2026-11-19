@@ -16,6 +16,7 @@ import { adminAPI } from '../api/admin'
 import { libraryAPI } from '../api/library'
 import type { Library, User } from '../types'
 import { libraryDisplayPath } from '../pages/libraryDisplayModel'
+import { SettingsSwitch } from './SettingsSection'
 
 type AdminUserLibrariesDialogProps = {
   user: User | null
@@ -34,11 +35,13 @@ export function AdminUserLibrariesDialog({
   const [saving, setSaving] = useState(false)
   const [libraries, setLibraries] = useState<Library[]>([])
   const [mode, setMode] = useState<'all' | 'custom'>('all')
+  const [allowWebAccess, setAllowWebAccess] = useState(true)
   const [selectedIDs, setSelectedIDs] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (!isOpen || !user) return
 
+    setAllowWebAccess(user.role === 'admin' || !user.web_access_disabled)
     setLoading(true)
     libraryAPI
       .list({ includeHidden: true })
@@ -101,12 +104,8 @@ export function AdminUserLibrariesDialog({
         }
       }
 
-      const updated = await adminAPI.updateUserLibraries(user.id, payloadIDs)
-      toast.success(
-        payloadIDs && payloadIDs.length > 0
-          ? `已成功配置用户【${user.username}】仅可访问 ${payloadIDs.length} 个媒体库`
-          : `已恢复用户【${user.username}】全库访问权限`,
-      )
+      const updated = await adminAPI.updateUserAccess(user.id, payloadIDs, allowWebAccess)
+      toast.success('已保存用户权限')
       onSaved(updated)
       onClose()
     } catch (err: unknown) {
@@ -136,7 +135,7 @@ export function AdminUserLibrariesDialog({
             </div>
             <div>
               <h3 className="font-display text-lg font-bold text-ink-600">
-                配置媒体库访问权限
+                用户权限
               </h3>
               <p className="text-xs text-sand-500">
                 用户：<span className="font-semibold text-ink-600">{user.username}</span>
@@ -158,7 +157,24 @@ export function AdminUserLibrariesDialog({
 
         {/* Content */}
         <div className="p-5 space-y-4 max-h-[65vh] overflow-y-auto">
-          {/* 模式选择 */}
+          <div className="flex items-center justify-between gap-4 rounded-2xl border border-sand-200 p-3.5">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-ink-600">允许访问 Nook 网页</p>
+              <p id="admin-user-web-access-help" className="text-xs text-sand-500">
+                {user.role === 'admin'
+                  ? '管理员始终可以访问网页。'
+                  : '关闭后，用户只能通过 Emby 兼容客户端访问媒体。'}
+              </p>
+            </div>
+            <SettingsSwitch
+              label="允许访问 Nook 网页"
+              describedBy="admin-user-web-access-help"
+              checked={allowWebAccess}
+              disabled={saving || user.role === 'admin'}
+              onChange={setAllowWebAccess}
+            />
+          </div>
+          <p className="text-sm font-semibold text-ink-600">媒体库访问权限</p>
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"

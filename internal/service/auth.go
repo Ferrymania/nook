@@ -54,6 +54,7 @@ func NewAuthService(cfg *config.Config, log *zap.Logger, repo *repository.Contai
 // Common service-level errors.
 var (
 	ErrInvalidCredentials    = errors.New("invalid username or password")
+	ErrWebAccessDisabled     = errors.New("此账号仅允许通过 Emby 客户端访问")
 	ErrUsernameTaken         = errors.New("username already taken")
 	ErrUserInactive          = errors.New("user account is inactive")
 	ErrUserLimitReached      = errors.New("user limit reached")
@@ -173,6 +174,41 @@ type LoginResponse struct {
 
 // Login validates credentials and returns the user + a fresh JWT token pair.
 func (s *AuthService) Login(ctx context.Context, username, password string) (*LoginResponse, error) {
+	u, err := s.authenticatePassword(ctx, username, password)
+	if err != nil {
+		return nil, err
+	}
+	if !u.AllowsWebAccess() {
+		return nil, ErrWebAccessDisabled
+	}
+	tokens, err := s.loginTokens(ctx, u, true)
+	if err != nil {
+		return nil, err
+	}
+	s.touchLoginBestEffort(u.ID)
+	return &LoginResponse{User: u, Tokens: tokens}, nil
+}
+
+// LoginEmby authenticates a compatible client with a password or a one-time code.
+func (s *AuthService) LoginEmby(ctx context.Context, username, password string) (*model.User, string, error) {
+	u, err := s.authenticatePassword(ctx, username, password)
+	if errors.Is(err, ErrInvalidCredentials) {
+		if user, ok := s.VerifyAndConsumeTemporaryPassword(ctx, username, password); ok {
+			u, err = user, nil
+		}
+	}
+	if err != nil {
+		return nil, "", err
+	}
+	token, err := s.IssueEmbyToken(u)
+	if err != nil {
+		return nil, "", err
+	}
+	s.touchLoginBestEffort(u.ID)
+	return u, token, nil
+}
+
+func (s *AuthService) authenticatePassword(ctx context.Context, username, password string) (*model.User, error) {
 	u, err := s.repo.User.FindByUsername(ctx, username)
 	if err != nil {
 		return nil, err
@@ -196,13 +232,7 @@ func (s *AuthService) Login(ctx context.Context, username, password string) (*Lo
 			return nil, err
 		}
 	}
-	// 签发令牌对
-	tokens, err := s.loginTokens(ctx, u, true)
-	if err != nil {
-		return nil, err
-	}
-	s.touchLoginBestEffort(u.ID)
-	return &LoginResponse{User: u, Tokens: tokens}, nil
+	return u, nil
 }
 
 func (s *AuthService) requirePasswordReset(ctx context.Context, u *model.User) error {
@@ -409,23 +439,4 @@ func (s *AuthService) VerifyAndConsumeTemporaryPassword(ctx context.Context, use
 		return nil, false
 	}
 	return user, true
-}
-
-// LoginWithTemporaryPassword 尝试使用 6 位数字临时登录密码 (OTP) 进行登录。
-func (s *AuthService) LoginWithTemporaryPassword(ctx context.Context, username, code string) (*LoginResponse, error) {
-	user, ok := s.VerifyAndConsumeTemporaryPassword(ctx, username, code)
-	if !ok || user == nil {
-		return nil, ErrInvalidCredentials
-	}
-	if s.tokenSvc == nil {
-		return nil, errors.New("token service unavailable")
-	}
-	tokens, err := s.tokenSvc.IssuePair(ctx, user.ID, user.Role, user.Tier)
-	if err != nil {
-		return nil, err
-	}
-	return &LoginResponse{
-		User:   user,
-		Tokens: tokens,
-	}, nil
 }

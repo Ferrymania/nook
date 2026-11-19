@@ -132,7 +132,8 @@ export function AdminUsersTable({
                 )}
                 <button
                   className="rounded-lg border border-brand-400/40 px-2 py-1 text-xs text-brand-600 hover:bg-brand-400/10"
-                  title="配置媒体库访问权限"
+                  title="用户权限"
+                  aria-label="用户权限"
                   onClick={() => onConfigureLibraries(u)}
                 >
                   <FolderLock size={12} />

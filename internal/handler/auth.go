@@ -31,6 +31,10 @@ func loginHandler(svc *service.Container) gin.HandlerFunc {
 		}
 		resp, err := svc.Auth.Login(c.Request.Context(), req.Username, req.Password)
 		if err != nil {
+			if errors.Is(err, service.ErrWebAccessDisabled) {
+				denyWebAccess(c)
+				return
+			}
 			if errors.Is(err, service.ErrInvalidCredentials) {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 				return

@@ -19,6 +19,7 @@ type User struct {
 	AvatarURL          string     `gorm:"size:255" json:"avatar_url,omitempty"`
 	ForcePasswordReset bool       `gorm:"default:false" json:"force_password_reset"`
 	IsActive           bool       `gorm:"default:true" json:"is_active"`
+	WebAccessDisabled  bool       `gorm:"not null;default:false" json:"web_access_disabled"`
 	LastLoginAt        *time.Time `json:"last_login_at,omitempty"`
 	// AllowedLibraryIDs 存储管理员为该用户指定的受限可访问媒体库 ID 列表（JSON 字符串）。
 	// 为空时代表不限制（全库可访问）。
@@ -65,6 +66,11 @@ type User struct {
 	IsProtected         bool       `gorm:"-" json:"is_protected,omitempty"`
 	RealtimeOnline      bool       `gorm:"-" json:"realtime_online,omitempty"`
 	RealtimeDeviceCount int        `gorm:"-" json:"realtime_device_count,omitempty"`
+}
+
+// AllowsWebAccess reports whether the account may use the native Nook web API.
+func (u *User) AllowsWebAccess() bool {
+	return u.Role == "admin" || !u.WebAccessDisabled
 }
 
 // DecodeAllowedLibraryIDs 解析 AllowedLibraryIDs 字段。

@@ -12,6 +12,7 @@ export interface User {
   player_volume?: number
   force_password_reset: boolean
   is_active: boolean
+  web_access_disabled?: boolean
   allowed_library_ids?: string[]
   pinned_library_ids?: string[]
   /** 当前用户维护的媒体库标签分组。 */

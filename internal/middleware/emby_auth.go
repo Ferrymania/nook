@@ -9,6 +9,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // EmbyCtxUserID 是 Emby 认证中间件设置的用户 ID 上下文键。
@@ -55,7 +57,7 @@ func EmbyAuthRequired(secret string) gin.HandlerFunc {
 		// media）只允许走 /api/stream|/hls|/cloud/play，绝不能作为全功能
 		// 凭据访问 Emby 兼容面；否则外链 URL 一旦泄漏，持有者可获得
 		// 该用户最长 24h 的全部 Emby API 权限。
-		if strings.TrimSpace(claims.Purpose) != "" {
+		if !claims.AllowsEmbyAPI() {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"Code":    40101,
 				"Message": "Invalid token",
@@ -70,6 +72,12 @@ func EmbyAuthRequired(secret string) gin.HandlerFunc {
 		c.Set(CtxUserTier, claims.Tier)
 		c.Next()
 	}
+}
+
+// AllowsEmbyAPI reports whether a validated token can authenticate Emby API requests.
+func (claims *Claims) AllowsEmbyAPI() bool {
+	purpose := strings.TrimSpace(claims.Purpose)
+	return purpose == "" || purpose == model.EmbyTokenPurpose
 }
 
 func extractEmbyToken(c *gin.Context) string {

@@ -199,8 +199,12 @@ func (s *TokenService) Refresh(ctx context.Context, refreshToken string) (*Token
 
 	flight, leader := s.startRefreshFlight(tokenHash)
 	if !leader {
-		// 已有一次刷新在途：等它的结果，不再拿同一个一次性凭证轮换第二次。
-		return s.waitForRefreshFlight(flight)
+		// Reuse the rotation, while checking restrictions that changed during it.
+		pair, err := s.waitForRefreshFlight(flight)
+		if err != nil {
+			return nil, err
+		}
+		return s.validateReusedRefreshPair(ctx, pair, "")
 	}
 
 	pair, err := s.refreshOnce(ctx, tokenHash)
@@ -265,6 +269,9 @@ func (s *TokenService) refreshOnce(ctx context.Context, tokenHash string) (*Toke
 	if user.ExpiredAt != nil && s.currentTime().After(*user.ExpiredAt) {
 		return nil, ErrUserExpired
 	}
+	if !user.AllowsWebAccess() {
+		return nil, ErrWebAccessDisabled
+	}
 	if user.ForcePasswordReset {
 		return nil, ErrPasswordResetRequired
 	}
@@ -308,6 +315,9 @@ func (s *TokenService) validateReusedRefreshPair(ctx context.Context, pair *Toke
 	}
 	if u.ExpiredAt != nil && s.currentTime().After(*u.ExpiredAt) {
 		return nil, ErrUserExpired
+	}
+	if !u.AllowsWebAccess() {
+		return nil, ErrWebAccessDisabled
 	}
 	if u.ForcePasswordReset {
 		return nil, ErrPasswordResetRequired

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -15,7 +16,7 @@ import (
 // embyAuthByNameHandler 处理 POST /Users/AuthenticateByName。
 //
 // 这是 Emby 客户端登录的唯一入口（Infuse / Yamby / Hills 等都走这里）。
-// 用户名+密码 → 调用我们已有的 AuthService.Login → 返回 AccessToken + User。
+// 验证账号凭据后返回 Emby 访问令牌和用户信息。
 func embyAuthByNameHandler(svc *service.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		req, err := parseEmbyAuthByNameReq(c)
@@ -35,39 +36,32 @@ func embyAuthByNameHandler(svc *service.Container) gin.HandlerFunc {
 			embyError(c, http.StatusBadRequest, "missing username or password")
 			return
 		}
-		resp, err := svc.Auth.Login(c.Request.Context(), req.Username, password)
+		user, accessToken, err := svc.Auth.LoginEmby(c.Request.Context(), req.Username, password)
 		if err != nil {
-			// 支持电视端/客户端一次性 6 位临时密码登录 (OTP)
-			if tempResp, tempErr := svc.Auth.LoginWithTemporaryPassword(c.Request.Context(), req.Username, password); tempErr == nil {
-				resp = tempResp
-				err = nil
+			status := http.StatusUnauthorized
+			if errors.Is(err, service.ErrPasswordResetRequired) {
+				status = http.StatusForbidden
 			}
-		}
-		if err != nil {
-			embyError(c, http.StatusUnauthorized, err.Error())
-			return
-		}
-		if resp.User.ForcePasswordReset {
-			embyError(c, http.StatusForbidden, service.ErrPasswordResetRequired.Error())
+			embyError(c, status, err.Error())
 			return
 		}
 		// 记录登录设备会话并执行防共享检测（登录客户端数 / 设备指纹）。
 		clientInfo := embyClientInfoFromRequest(c)
 		if svc.Sessions != nil {
-			svc.Sessions.RecordLogin(c.Request.Context(), resp.User.ID, resp.User.Username,
+			svc.Sessions.RecordLogin(c.Request.Context(), user.ID, user.Username,
 				clientInfo.DeviceID,
 				clientInfo.DeviceName,
 				clientInfo.Client,
 				c.ClientIP())
 		}
 		if svc.Device != nil {
-			svc.Device.RecordLogin(c.Request.Context(), resp.User.ID,
+			svc.Device.RecordLogin(c.Request.Context(), user.ID,
 				clientInfo.DeviceID,
 				clientInfo.DeviceName,
 				clientInfo.Client,
 				c.ClientIP())
 		}
-		userPayload, _ := svc.Emby.FindUser(c.Request.Context(), resp.User.ID)
+		userPayload, _ := svc.Emby.FindUser(c.Request.Context(), user.ID)
 		// Login updates its timestamp asynchronously. The successful response
 		// must already contain concrete dates, including on the first login.
 		now := time.Now().UTC()
@@ -75,23 +69,15 @@ func embyAuthByNameHandler(svc *service.Container) gin.HandlerFunc {
 			userPayload["LastLoginDate"] = now
 			userPayload["LastActivityDate"] = now
 		}
-		// Emby/Jellyfin 客户端没有 refresh token 机制：它们把这里返回的
-		// AccessToken 长期保存并反复使用。若返回 60 分钟的普通 access
-		// token，客户端每小时就会掉登录、无法播放、媒体库无法刷新。因此
-		// 签发长期令牌（IssueEmbyToken）匹配 Emby 持久化令牌语义。
-		accessToken := resp.Tokens.AccessToken
-		if longLived, err := svc.Auth.IssueEmbyToken(resp.User); err == nil && longLived != "" {
-			accessToken = longLived
-		}
 		embyRememberCompatSession(c, accessToken)
 		c.JSON(http.StatusOK, gin.H{
 			"AccessToken": accessToken,
 			"ServerId":    "nook-001",
 			"User":        userPayload,
 			"SessionInfo": gin.H{
-				"Id":                    resp.User.ID,
-				"UserId":                resp.User.ID,
-				"UserName":              resp.User.Username,
+				"Id":                    user.ID,
+				"UserId":                user.ID,
+				"UserName":              user.Username,
 				"Client":                clientInfo.Client,
 				"DeviceId":              clientInfo.DeviceID,
 				"DeviceName":            clientInfo.DeviceName,

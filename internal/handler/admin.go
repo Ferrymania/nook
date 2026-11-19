@@ -268,6 +268,7 @@ func updateUserStatusHandler(svc *service.Container) gin.HandlerFunc {
 
 type adminUpdateUserLibrariesReq struct {
 	AllowedLibraryIDs *[]string `json:"allowed_library_ids"`
+	WebAccessDisabled *bool     `json:"web_access_disabled"`
 }
 
 func updateUserLibrariesHandler(svc *service.Container) gin.HandlerFunc {
@@ -308,6 +309,9 @@ func updateUserLibrariesHandler(svc *service.Container) gin.HandlerFunc {
 		}
 
 		updates := map[string]any{"allowed_library_ids": rawJSON}
+		if req.WebAccessDisabled != nil && user.Role != "admin" {
+			updates["web_access_disabled"] = *req.WebAccessDisabled
+		}
 		if err := svc.Repo.User.UpdateFields(c.Request.Context(), userID, updates); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
