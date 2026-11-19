@@ -136,7 +136,7 @@ export function RecognitionWordsActions({
 }) {
   return (
     <div className="flex flex-wrap justify-end gap-2">
-      <button type="button" className="btn-secondary" onClick={onSync} disabled={syncing}>
+      <button type="button" className="neon-button" onClick={onSync} disabled={syncing}>
         {syncing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
         同步共享词
       </button>
