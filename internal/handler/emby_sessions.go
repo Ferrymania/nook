@@ -101,7 +101,7 @@ func embyPublicSessionIdentity(c *gin.Context, svc *service.Container, jwtSecret
 	if err != nil || !parsed.Valid {
 		return "", ""
 	}
-	if strings.TrimSpace(claims.Purpose) != "" {
+	if !claims.AllowsEmbyAPI() {
 		return "", ""
 	}
 	uid := strings.TrimSpace(claims.UserID)

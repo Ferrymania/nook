@@ -1,4 +1,5 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import toast from 'react-hot-toast'
 
 import { useAuthStore } from '../stores/auth'
 import type { RefreshOutcome } from '../utils/authRefresh'
@@ -62,7 +63,19 @@ api.interceptors.response.use(
   async (err: AxiosError) => {
     const originalRequest = err.config as InternalAxiosRequestConfig & { _retry?: boolean }
 
-    if (err.response?.status === 403 && (err.response.data as { code?: number })?.code === 40305) {
+    const forbidden = err.response?.status === 403
+      ? err.response.data as { code?: number; message?: string }
+      : undefined
+    if (forbidden?.code === 40306) {
+      const session = useAuthStore.getState()
+      if (session.token && originalRequest?.headers?.Authorization === `Bearer ${session.token}`) {
+        session.logout()
+        toast.error(forbidden.message ?? '此账号仅允许通过 Emby 客户端访问', { id: 'web-access-disabled' })
+      }
+      return Promise.reject(err)
+    }
+
+    if (forbidden?.code === 40305) {
       const { user, setUser } = useAuthStore.getState()
       if (user) setUser({ ...user, force_password_reset: true })
       if (typeof window !== 'undefined' && window.location.pathname !== '/change-password') {

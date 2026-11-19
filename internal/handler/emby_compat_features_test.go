@@ -588,8 +588,8 @@ func TestMeTemporaryPasswordEndpoint(t *testing.T) {
 	}
 
 	// 验证使用生成的临时密码能登录
-	loginResp, err := authSvc.LoginWithTemporaryPassword(t.Context(), "optuser", resp.Code)
-	if err != nil || loginResp == nil || loginResp.User.ID != user.ID {
+	loggedIn, token, err := authSvc.LoginEmby(t.Context(), "optuser", resp.Code)
+	if err != nil || loggedIn == nil || loggedIn.ID != user.ID || token == "" {
 		t.Fatalf("login with temp pass failed: %v", err)
 	}
 	_ = tokens

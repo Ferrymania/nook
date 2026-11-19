@@ -1,4 +1,5 @@
 // 令牌刷新 API 模块。
+import toast from 'react-hot-toast'
 import { RefreshRequestError, type RefreshTokens } from '../utils/authRefresh'
 
 const REFRESH_ENDPOINT = '/api/auth/refresh'
@@ -42,6 +43,9 @@ export async function requestRefreshTokens(refreshToken: string): Promise<Refres
     | null
 
   if (!resp.ok) {
+    if (resp.status === 403 && body?.code === 40306) {
+      toast.error(body.message ?? '此账号仅允许通过 Emby 客户端访问', { id: 'web-access-disabled' })
+    }
     throw new RefreshRequestError(body?.message ?? 'refresh failed', resp.status)
   }
 

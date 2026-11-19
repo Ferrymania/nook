@@ -136,9 +136,16 @@ export function createRefreshCoordinator(
       }
 
       try {
-        deps.applyTokens(await deps.request(current))
+        const tokens = await deps.request(current)
+        if (deps.readRefreshToken() !== current) {
+          return deps.readAccessToken() ? 'refreshed' : 'invalid'
+        }
+        deps.applyTokens(tokens)
         return 'refreshed'
       } catch (error) {
+        if (deps.readRefreshToken() !== current) {
+          return deps.readAccessToken() ? 'refreshed' : 'invalid'
+        }
         const outcome = refreshFailureOutcome(httpStatusOf(error))
         if (outcome === 'invalid') deps.clearSession()
         return outcome

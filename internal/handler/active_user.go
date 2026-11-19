@@ -13,6 +13,12 @@ import (
 
 const embyCtxUserName = "emby_user_name"
 
+func denyWebAccess(c *gin.Context) {
+	clearAccessTokenCookie(c)
+	message := service.ErrWebAccessDisabled.Error()
+	c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"code": 40306, "message": message, "error": message})
+}
+
 func activeUserRequired(svc *service.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		uid, _ := c.Get(middleware.CtxUserID)
@@ -42,6 +48,10 @@ func activeUserRequired(svc *service.Container) gin.HandlerFunc {
 		}
 		if u.ExpiredAt != nil && time.Now().After(*u.ExpiredAt) {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"code": 40303, "message": "user account has expired"})
+			return
+		}
+		if !u.AllowsWebAccess() && c.GetString(middleware.CtxTokenPurpose) != model.EmbyTokenPurpose {
+			denyWebAccess(c)
 			return
 		}
 		if u.ForcePasswordReset && !middleware.PasswordResetRequestAllowed(c) {

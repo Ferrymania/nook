@@ -185,4 +185,17 @@ function coordinatorHarness(overrides: {
   check('retry applied new tokens', state.refreshToken === 'rt-retry')
 }
 
+// An in-flight refresh cannot restore a session cleared by an API access denial.
+{
+  const { state, refreshSession } = coordinatorHarness({
+    request: async () => {
+      state.refreshToken = null
+      state.accessToken = null
+      return { token: 'at-late', refresh_token: 'rt-late' }
+    },
+  })
+  await expectOutcome('web access denied during refresh', refreshSession(), 'invalid')
+  check('late refresh does not restore the session', state.applied.length === 0)
+}
+
 console.log('authRefresh.test.ts ok')

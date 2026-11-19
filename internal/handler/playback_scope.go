@@ -14,11 +14,11 @@ import (
 
 func enforceScopedPlaybackToken(c *gin.Context, mediaID string) bool {
 	mediaID = strings.TrimSpace(mediaID)
-	purpose, _ := c.Get(middleware.CtxTokenPurpose)
-	if strings.TrimSpace(toString(purpose)) == "" {
+	purpose := c.GetString(middleware.CtxTokenPurpose)
+	if purpose == "" || (purpose == model.EmbyTokenPurpose && c.FullPath() == "/api/stream/:id") {
 		return true
 	}
-	if strings.TrimSpace(toString(purpose)) != service.ExternalPlaybackTokenPurpose {
+	if purpose != service.ExternalPlaybackTokenPurpose {
 		c.JSON(http.StatusForbidden, gin.H{"error": "playback token scope denied"})
 		return false
 	}

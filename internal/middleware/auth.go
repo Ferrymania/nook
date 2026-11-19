@@ -8,6 +8,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+
+	"github.com/Ferrymania/nook/internal/model"
 )
 
 // Claims is the JWT payload we issue.
@@ -39,6 +41,9 @@ func AuthRequired(secret string) gin.HandlerFunc {
 		if err != nil || claims.UserID == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": 40101, "message": "invalid token"})
 			return
+		}
+		if claims.isLegacyEmbyToken() {
+			claims.Purpose = model.EmbyTokenPurpose
 		}
 		if !scopedTokenAllowedForRequest(c, claims) {
 			if claims.Purpose == "password_reset" {
@@ -105,6 +110,9 @@ func scopedTokenAllowedForRequest(c *gin.Context, claims *Claims) bool {
 		return true
 	}
 	switch strings.TrimSpace(claims.Purpose) {
+	case model.EmbyTokenPurpose:
+		return c.FullPath() == "/api/stream/:id" &&
+			(c.Request.Method == http.MethodGet || c.Request.Method == http.MethodHead)
 	case "password_reset":
 		return PasswordResetRequestAllowed(c)
 	case "external_play":
@@ -112,6 +120,17 @@ func scopedTokenAllowedForRequest(c *gin.Context, claims *Claims) bool {
 	default:
 		return false
 	}
+}
+
+// Older Emby login tokens had no purpose and were the only access tokens issued
+// for 30 days. The one-second allowance covers the old separate clock reads.
+func (claims *Claims) isLegacyEmbyToken() bool {
+	if claims.Purpose != "" || claims.Issuer != "nook" || claims.Subject != claims.UserID ||
+		claims.IssuedAt == nil || claims.ExpiresAt == nil {
+		return false
+	}
+	lifetime := claims.ExpiresAt.Sub(claims.IssuedAt.Time)
+	return lifetime == model.EmbyTokenDuration || lifetime == model.EmbyTokenDuration+time.Second
 }
 
 // PasswordResetRequestAllowed is an exact method/path allowlist. Profile
