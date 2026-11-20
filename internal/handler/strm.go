@@ -17,6 +17,26 @@ import (
 	"github.com/Ferrymania/nook/internal/service"
 )
 
+func getStrm115RequestStatsHandler(svc *service.Container) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Header("Cache-Control", "no-store")
+		account, err := svc.Repo.StrmAccount.FindByID(c.Request.Context(), c.Param("id"))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "查询网盘账号失败"})
+			return
+		}
+		if account == nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "网盘账号不存在"})
+			return
+		}
+		if account.Provider != model.StrmProvider115 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "接口监控仅支持 115 网盘账号"})
+			return
+		}
+		c.JSON(http.StatusOK, svc.Strm.Account115RequestStats(account.ID))
+	}
+}
+
 // ─── 网盘账号 ──────────────────────────────────────────────────────────────────
 
 type strmAccountReq struct {

@@ -291,6 +291,7 @@ func TestHTTP405AndThrottleRecovery(t *testing.T) {
 
 	c := NewOpenClient("100195125", "at1", "rt1")
 	c.executor = qe
+	c.Monitor = &RequestMonitor{}
 
 	_, err := c.GetDownloadURL(context.Background(), "pickTest")
 	if err == nil {
@@ -298,6 +299,10 @@ func TestHTTP405AndThrottleRecovery(t *testing.T) {
 	}
 	if !tm.IsThrottled() {
 		t.Fatal("405 should trigger throttle status")
+	}
+	stats := c.Monitor.Snapshot()
+	if stats.RequestsLastHour != 2 || stats.AverageResponseMs == nil || recentThrottleCount(stats) != 2 {
+		t.Fatalf("HTTP throttle not included in request stats: %+v", stats)
 	}
 
 	// 验证熔断冷却后能正常恢复
@@ -322,6 +327,7 @@ func TestThrottleCodeHandling(t *testing.T) {
 
 	c := NewOpenClient("100195125", "at1", "rt1")
 	c.executor = qe
+	c.Monitor = &RequestMonitor{}
 
 	_, _, err := c.GetFsList(context.Background(), "0", 0, 100)
 	if err == nil {
@@ -330,6 +336,18 @@ func TestThrottleCodeHandling(t *testing.T) {
 	if !tm.IsThrottled() {
 		t.Fatal("code 770004 should trigger throttle status")
 	}
+	stats := c.Monitor.Snapshot()
+	if stats.RequestsLastHour != 3 || stats.AverageResponseMs == nil || recentThrottleCount(stats) != 3 {
+		t.Fatalf("business throttle not included in request stats: %+v", stats)
+	}
+}
+
+func recentThrottleCount(stats RequestStats) int64 {
+	var total int64
+	for _, hour := range stats.Hourly {
+		total += hour.Throttled
+	}
+	return total
 }
 
 func TestRemoteFileDetailRelativePath(t *testing.T) {

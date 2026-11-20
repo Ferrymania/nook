@@ -170,6 +170,20 @@ export interface StrmQueueSnapshot {
   page_size: number // 单页大小
 }
 
+export interface Strm115RequestHour {
+  start_at: number
+  requests: number
+  throttled: number
+}
+
+export interface Strm115RequestStats {
+  requests_last_second: number
+  requests_last_minute: number
+  requests_last_hour: number
+  average_response_ms: number | null
+  hourly: Strm115RequestHour[]
+}
+
 export interface StrmSettingsMap {
   'strm.base_url': string
   'strm.video_ext': string

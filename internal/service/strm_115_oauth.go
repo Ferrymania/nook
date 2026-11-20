@@ -24,6 +24,7 @@ type strm115AuthSession struct {
 	Source    cloud115.Source
 	QrCode    *cloud115.QrCodeDataReturn
 	CreatedAt time.Time
+	Monitor   *cloud115.RequestMonitor
 }
 
 // Strm115AuthStartResult 是授权发起结果。
@@ -64,13 +65,16 @@ func (s *StrmService) Start115OAuth(ctx context.Context, accountID, authSource, 
 		return nil, err
 	}
 	client := cloud115.NewOpenClient(source.AppID, "", "")
+	s.providerMu.Lock()
+	client.Monitor = s.monitor115Locked(acct.ID)
+	s.providerMu.Unlock()
 	qr, err := client.GetQrCode()
 	if err != nil {
 		return nil, fmt.Errorf("获取 115 授权二维码失败：%w", err)
 	}
 	sessionID := newStrmID()
 	session := &strm115AuthSession{
-		AccountID: accountID, Source: source, QrCode: qr, CreatedAt: time.Now(),
+		AccountID: acct.ID, Source: source, QrCode: qr, CreatedAt: time.Now(), Monitor: client.Monitor,
 	}
 	result := &Strm115AuthStartResult{SessionID: sessionID, Mode: "qrcode", ExpiresIn: 300}
 	result.QRCode = &struct {
@@ -103,6 +107,7 @@ func (s *StrmService) Poll115OAuth(ctx context.Context, sessionID string) (*Strm
 		return &Strm115AuthStatus{Status: "expired", Tip: "授权会话已过期"}, nil
 	}
 	client := cloud115.NewOpenClient(session.Source.AppID, "", "")
+	client.Monitor = session.Monitor
 	status, err := client.QrCodeScanStatus(&session.QrCode.QrCodeData)
 	if err != nil {
 		return nil, fmt.Errorf("查询扫码状态失败：%w", err)
@@ -144,11 +149,11 @@ func (s *StrmService) save115OAuthToken(ctx context.Context, session *strm115Aut
 	cfg["access_token"] = s.crypto.Encrypt(token.AccessToken)
 	cfg["refresh_token"] = s.crypto.Encrypt(token.RefreshToken)
 	// 尝试补充用户信息（失败不阻塞授权）
-	if client := cloud115.NewOpenClient(session.Source.AppID, token.AccessToken, token.RefreshToken); client != nil {
-		if info, err := client.FetchUserInfo(ctx); err == nil && info != nil {
-			cfg["user_id"] = info.UserId.String()
-			cfg["user_name"] = info.UserName
-		}
+	client := cloud115.NewOpenClient(session.Source.AppID, token.AccessToken, token.RefreshToken)
+	client.Monitor = session.Monitor
+	if info, err := client.FetchUserInfo(ctx); err == nil && info != nil {
+		cfg["user_id"] = info.UserId.String()
+		cfg["user_name"] = info.UserName
 	}
 	enc, err := s.strmAccountConfigJSON(cfg)
 	if err != nil {
