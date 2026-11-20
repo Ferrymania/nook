@@ -6,24 +6,16 @@ import type { SettingGroup } from './settingsGroupTypes'
 
 export type { SettingGroup } from './settingsGroupTypes'
 
-export const databaseSettingsGroup: SettingGroup = {
-  key: 'database',
-  label: '数据库',
-  description: '配置 PostgreSQL 连接并查看数据库运行状态',
-  items: [],
-}
-
 export const aboutSettingsGroup: SettingGroup = {
   key: 'about',
   label: '关于',
-  description: '项目信息、运行环境与版本更新',
+  description: '项目信息、版本更新与运行状态',
   items: [],
 }
 
 export const GROUPS: SettingGroup[] = [
   generalSettingsGroup,
   deviceNotifySettingsGroup,
-  databaseSettingsGroup,
   apiConfigsSettingsGroup,
   recognitionWordsSettingsGroup,
   aboutSettingsGroup,

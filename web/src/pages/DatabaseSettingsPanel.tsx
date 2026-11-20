@@ -38,32 +38,32 @@ export function DatabaseSettingsPanel() {
   const metric = (value: number | undefined) => connected ? value ?? unavailable : unavailable
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Database className="h-5 w-5 text-brand-500" />
-          <h2 className="font-display text-lg font-semibold text-ink-600">数据库状态</h2>
-        </div>
+    <section className="about-panel space-y-4" aria-labelledby="about-database-heading" aria-busy={loading}>
+      <div className="about-panel-heading flex-wrap">
+        <h3 id="about-database-heading" className="flex items-center gap-2">
+          <Database size={18} aria-hidden="true" />
+          数据库状态
+        </h3>
         <button
           type="button"
           onClick={() => void refreshStatus()}
           disabled={loading}
-          className="library-toolbar-button disabled:opacity-50"
+          className="about-button"
         >
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} aria-hidden="true" />
           刷新状态
         </button>
       </div>
 
-      <section className="glass-panel space-y-4 p-5" aria-label="PostgreSQL 运行状态" aria-busy={loading}>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 pb-3">
-          <h3 className="text-sm font-medium text-ink-600">PostgreSQL</h3>
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-(--app-border) pb-3">
+          <span className="text-sm font-medium text-ink-600">PostgreSQL</span>
           <span
             role="status"
             className={'inline-flex items-center gap-1.5 text-xs font-medium ' +
               (loading ? 'text-ink-100' : connected && !loadError ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400')}
           >
-            <StatusIcon size={14} className={loading ? 'animate-spin' : ''} />
+            <StatusIcon size={14} className={loading ? 'animate-spin' : ''} aria-hidden="true" />
             {label}
           </span>
         </div>
@@ -98,7 +98,7 @@ export function DatabaseSettingsPanel() {
             </dd>
           </div>
         </dl>
-      </section>
-    </div>
+      </div>
+    </section>
   )
 }

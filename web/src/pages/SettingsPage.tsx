@@ -7,7 +7,6 @@ import { adminAPI } from '../api/admin'
 import type { Setting } from '../types'
 import { APIConfigsPanel } from '../components/APIConfigsPanel'
 import { AboutSettingsPanel } from './AboutSettingsPanel'
-import { DatabaseSettingsPanel } from './DatabaseSettingsPanel'
 import { RecognitionWordsPanel } from './RecognitionWordsPanel'
 import { GeneralSettingsPanel } from './GeneralSettingsPanel'
 import { SettingRow, type SettingDef } from './SettingsRow'
@@ -16,10 +15,9 @@ import { ALL_KEYS, GROUPS } from './settingsGroups'
 
 export function SettingsPage() {
   const [searchParams] = useSearchParams()
-  const [activeGroup, setActiveGroup] = useState(() => {
-    const fromQuery = searchParams.get('group')
-    return GROUPS.some((g) => g.key === fromQuery) ? (fromQuery as string) : GROUPS[0].key
-  })
+  const groupParam = searchParams.get('group')
+  const queryGroup = GROUPS.find((g) => g.key === (groupParam === 'database' ? 'about' : groupParam))?.key
+  const [activeGroup, setActiveGroup] = useState(queryGroup ?? GROUPS[0].key)
   const [values, setValues] = useState<Record<string, string>>({})
   const [savedValues, setSavedValues] = useState<Record<string, string>>({})
   const latestValues = useRef<Record<string, string>>({})
@@ -32,11 +30,8 @@ export function SettingsPage() {
   const httpsEnabled = ['true', '1', 'on'].includes(values['https.enabled'] ?? '')
 
   useEffect(() => {
-    const fromQuery = searchParams.get('group')
-    if (fromQuery && GROUPS.some((g) => g.key === fromQuery)) {
-      setActiveGroup(fromQuery)
-    }
-  }, [searchParams])
+    if (queryGroup) setActiveGroup(queryGroup)
+  }, [queryGroup, searchParams])
 
   const refresh = async () => {
     setLoading(true)
@@ -203,7 +198,6 @@ export function SettingsPage() {
 
       {!loading && (
         <div className="space-y-4">
-          {group.key === 'database' && <DatabaseSettingsPanel />}
           {group.key === 'api-configs' && <APIConfigsPanel />}
           {group.key === 'recognition-words' && <RecognitionWordsPanel />}
           {group.key === 'about' && <AboutSettingsPanel />}
