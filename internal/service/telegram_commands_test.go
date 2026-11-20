@@ -217,7 +217,7 @@ func TestTelegramAdminMenuRegistrationIsScopedAndRotates(t *testing.T) {
 		t.Fatalf("scope: %+v", scope)
 	}
 	commands := calls[1].Payload["commands"].([]any)
-	if len(commands) != 5 {
+	if len(commands) != 6 {
 		t.Fatalf("commands: %+v", commands)
 	}
 	for _, raw := range commands {

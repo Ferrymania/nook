@@ -401,12 +401,14 @@ func (s *StrmService) RefreshStrmAccountUsername(ctx context.Context, acct *mode
 
 // StrmAccountConfigPreview 返回可安全回显给前端的非敏感配置字段。
 type StrmAccountConfigPreview struct {
-	URL         string `json:"url,omitempty"`
-	Server      string `json:"server,omitempty"`
-	Username    string `json:"username,omitempty"`
-	HasPassword bool   `json:"has_password,omitempty"`
-	HasToken    bool   `json:"has_token,omitempty"`
-	HasAPIKey   bool   `json:"has_api_key,omitempty"`
+	URL                      string `json:"url,omitempty"`
+	Server                   string `json:"server,omitempty"`
+	Username                 string `json:"username,omitempty"`
+	HasPassword              bool   `json:"has_password,omitempty"`
+	HasToken                 bool   `json:"has_token,omitempty"`
+	HasAPIKey                bool   `json:"has_api_key,omitempty"`
+	CloudDownloadStagingID   string `json:"cloud_download_staging_id,omitempty"`
+	CloudDownloadStagingPath string `json:"cloud_download_staging_path,omitempty"`
 }
 
 // StrmAccountConfigPreviewOf 从账号配置提取可回显字段（不含密码/令牌明文）。
@@ -421,6 +423,10 @@ func (s *StrmService) StrmAccountConfigPreviewOf(acct *model.StrmAccount) StrmAc
 	}
 	out.URL = strings.TrimSpace(raw["url"])
 	out.Server = strings.TrimSpace(raw["server"])
+	if acct.Provider == model.StrmProvider115 {
+		out.CloudDownloadStagingID = strings.TrimSpace(raw["cloud_download_staging_id"])
+		out.CloudDownloadStagingPath = strings.TrimSpace(raw["cloud_download_staging_path"])
+	}
 	if acct.Provider == model.StrmProviderOpenList {
 		out.HasToken = strings.TrimSpace(raw["token"]) != ""
 		return out
@@ -507,6 +513,9 @@ func (s *StrmService) UpdateStrmAccount(ctx context.Context, id, name string, en
 		acct.Enabled = *enabled
 	}
 	if len(config) > 0 {
+		if id, ok := config["cloud_download_staging_id"]; ok && acct.Provider == model.StrmProvider115 && id != "" && (id == "0" || !valid115ID(id)) {
+			return nil, errors.New("请选择有效的 115 网盘暂存目录，根目录不能作为暂存目录")
+		}
 		enc, err := s.mergeStrmAccountConfig(acct.Config, config)
 		if err != nil {
 			return nil, err

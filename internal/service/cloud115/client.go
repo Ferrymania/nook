@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strings"
@@ -130,13 +131,17 @@ type RespBase struct {
 
 // doJSON 执行 HTTP 请求并解析为统一响应；带 AccessToken（access=true 时）。
 func (c *OpenClient) doJSON(ctx context.Context, method, rawURL string, form map[string]string, access bool, retries int, uas ...string) (*RespBase, error) {
-	executor := c.executor
-	if executor == nil {
-		executor = GetGlobalExecutor()
-	}
 	ua := ""
 	if len(uas) > 0 {
 		ua = uas[0]
+	}
+	return c.doJSONWithEncoding(ctx, method, rawURL, form, access, retries, ua, false)
+}
+
+func (c *OpenClient) doJSONWithEncoding(ctx context.Context, method, rawURL string, form map[string]string, access bool, retries int, ua string, multipartForm bool) (*RespBase, error) {
+	executor := c.executor
+	if executor == nil {
+		executor = GetGlobalExecutor()
 	}
 
 	var lastErr error
@@ -147,7 +152,7 @@ func (c *OpenClient) doJSON(ctx context.Context, method, rawURL string, form map
 			return nil, err
 		}
 
-		req, err := c.buildRequestWithUA(ctx, method, rawURL, form, access, ua)
+		req, err := c.buildRequestWithOptions(ctx, method, rawURL, form, access, ua, multipartForm)
 		if err != nil {
 			return nil, err
 		}
@@ -252,18 +257,32 @@ func (c *OpenClient) doJSON(ctx context.Context, method, rawURL string, form map
 }
 
 func (c *OpenClient) buildRequest(ctx context.Context, method, rawURL string, form map[string]string, access bool) (*http.Request, error) {
-	return c.buildRequestWithUA(ctx, method, rawURL, form, access, "")
+	return c.buildRequestWithOptions(ctx, method, rawURL, form, access, "", false)
 }
 
-func (c *OpenClient) buildRequestWithUA(ctx context.Context, method, rawURL string, form map[string]string, access bool, ua string) (*http.Request, error) {
+func (c *OpenClient) buildRequestWithOptions(ctx context.Context, method, rawURL string, form map[string]string, access bool, ua string, multipartForm bool) (*http.Request, error) {
 	method = strings.ToUpper(method)
 	var body io.Reader
-	if method == http.MethodPost && len(form) > 0 {
+	var contentType string
+	if method == http.MethodPost && multipartForm {
+		var buffer bytes.Buffer
+		writer := multipart.NewWriter(&buffer)
+		for key, value := range form {
+			if err := writer.WriteField(key, value); err != nil {
+				return nil, err
+			}
+		}
+		if err := writer.Close(); err != nil {
+			return nil, err
+		}
+		body, contentType = &buffer, writer.FormDataContentType()
+	} else if method == http.MethodPost && len(form) > 0 {
 		values := url.Values{}
 		for k, v := range form {
 			values.Set(k, v)
 		}
 		body = bytes.NewBufferString(values.Encode())
+		contentType = "application/x-www-form-urlencoded"
 	} else if method == http.MethodGet && len(form) > 0 {
 		u, err := url.Parse(rawURL)
 		if err != nil {
@@ -285,8 +304,8 @@ func (c *OpenClient) buildRequestWithUA(ctx context.Context, method, rawURL stri
 		targetUA = strings.TrimSpace(ua)
 	}
 	req.Header.Set("User-Agent", targetUA)
-	if method == http.MethodPost && len(form) > 0 {
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
 	}
 	if access {
 		// RLock 读取令牌，避免与刷新流程的写入产生数据竞争
@@ -295,6 +314,10 @@ func (c *OpenClient) buildRequestWithUA(ctx context.Context, method, rawURL stri
 		}
 	}
 	return req, nil
+}
+
+func (c *OpenClient) postAuthMultipart(ctx context.Context, rawURL string, form map[string]string) (*RespBase, error) {
+	return c.doJSONWithEncoding(ctx, http.MethodPost, rawURL, form, true, 0, "", true)
 }
 
 // doAuthJSON 带 AccessToken 的业务请求。
