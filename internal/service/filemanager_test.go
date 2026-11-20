@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"go.uber.org/zap"
@@ -31,6 +32,25 @@ func newFileManagerTestService(t *testing.T, root string) *FileManagerService {
 	t.Helper()
 	svc, _ := newFileManagerTestServiceWithRepo(t, root)
 	return svc
+}
+
+func TestFileManagerRootLabelsPreferMainDirectories(t *testing.T) {
+	cfg := &config.Config{}
+	cfg.Cache.CacheDir = t.TempDir()
+	cfg.App.DataDir = t.TempDir()
+	mediaDir := t.TempDir()
+	t.Setenv("NOOK_MEDIA_CONTAINER_DIR", mediaDir)
+	cfg.Media.MoviesDir = mediaDir
+	svc := NewFileManagerService(cfg, zap.NewNop(), nil)
+
+	listing, err := svc.List("", 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []Root{{Label: "cache", Path: cfg.Cache.CacheDir}, {Label: "data", Path: cfg.App.DataDir}, {Label: "media", Path: mediaDir}}
+	if !slices.Equal(listing.Roots, want) {
+		t.Fatalf("roots = %#v, want %#v", listing.Roots, want)
+	}
 }
 
 func TestFileManagerRecursiveListAndMutations(t *testing.T) {

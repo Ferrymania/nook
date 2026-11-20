@@ -1,7 +1,6 @@
 import { apiConfigsSettingsGroup } from './settingsGroupAPIConfigs'
 import { deviceNotifySettingsGroup } from './settingsGroupDeviceNotify'
 import { generalSettingsGroup } from './settingsGroupGeneral'
-import { recognitionWordsSettingsGroup } from './settingsGroupRecognitionWords'
 import type { SettingGroup } from './settingsGroupTypes'
 
 export type { SettingGroup } from './settingsGroupTypes'
@@ -17,7 +16,6 @@ export const GROUPS: SettingGroup[] = [
   generalSettingsGroup,
   deviceNotifySettingsGroup,
   apiConfigsSettingsGroup,
-  recognitionWordsSettingsGroup,
   aboutSettingsGroup,
 ]
 

@@ -57,8 +57,6 @@ export function ScraperQueuePage({
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [autoRefresh, setAutoRefresh] = useState(true)
   const [batchBusy, setBatchBusy] = useState(false)
   const { selectedIds, setSelectedIds, reset: clearSelection, toggleRow: toggleSelectRow, toggleAll: toggleAllIds } = useTaskSelection()
   const [detailTask, setDetailTask] = useState<ScrapeTask | null>(null)
@@ -71,8 +69,7 @@ export function ScraperQueuePage({
   }, [snapshot, onCountsChange])
 
   const refresh = useCallback(
-    async (showLoading = false) => {
-      if (showLoading) setIsRefreshing(true)
+    async () => {
       const seq = ++refreshSeqRef.current
       try {
         const status = filter === 'all' ? undefined : filter
@@ -92,7 +89,6 @@ export function ScraperQueuePage({
         if (seq === refreshSeqRef.current) setPollFailures((n) => n + 1)
       } finally {
         setLoading(false)
-        if (showLoading) setIsRefreshing(false)
       }
     },
     [filter, page],
@@ -103,13 +99,12 @@ export function ScraperQueuePage({
   }, [refresh])
 
   useEffect(() => {
-    if (!autoRefresh) return
     const timer = setInterval(() => {
       if (document.hidden) return
       refresh().catch(() => undefined)
     }, 3000)
     return () => clearInterval(timer)
-  }, [autoRefresh, refresh])
+  }, [refresh])
 
   useEffect(() => {
     clearSelection()
@@ -190,21 +185,6 @@ export function ScraperQueuePage({
     }
   }
 
-  // Enqueue all libraries
-  const handleEnqueueAll = async () => {
-    if (!window.confirm('确定将全库所有未匹配或需要更新的媒体重新推入刮削队列？')) return
-    setBatchBusy(true)
-    try {
-      const res = await scraperAPI.enqueueAll({ include_matched: false, refresh_matched: false })
-      toast.success(`已将 ${res.enqueued} 个媒体项推入刮削队列`)
-      await refresh()
-    } catch (err) {
-      toast.error(apiErrorMessage(err))
-    } finally {
-      setBatchBusy(false)
-    }
-  }
-
   // Filter and search
   const filteredTasks = useMemo(() => {
     let list = snapshot?.tasks ?? []
@@ -241,145 +221,30 @@ export function ScraperQueuePage({
   return (
     <div className="space-y-6">
       {!embedded && (
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-400/30 bg-primary-400/10 text-brand-500 shadow-xs">
+        <header className="flex items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary-400/30 bg-primary-400/10 text-brand-500 shadow-xs">
             <Sparkles size={22} />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-display text-2xl font-bold text-ink-600 sm:text-3xl">刮削队列</h1>
-              {autoRefresh &&
-                (pollFailures >= 3 ? (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-rose-300/40 bg-rose-500/10 px-2 py-0.5 text-[11px] font-semibold text-rose-600">
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-rose-500" />
-                    连接失败，重试中
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-                    实时同步
-                  </span>
-                ))}
+              {pollFailures >= 3 ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-rose-300/40 bg-rose-500/10 px-2 py-0.5 text-[11px] font-semibold text-rose-600">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-rose-500" />
+                  连接失败，重试中
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+                  实时同步
+                </span>
+              )}
             </div>
             <p className="text-xs text-sand-500 mt-0.5">
               媒体元数据在线识别与海报/剧照下载进度（TMDb / Bangumi / TheTVDB）
             </p>
           </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            disabled={batchBusy}
-            onClick={handleEnqueueAll}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-brand-500/40 bg-brand-500/10 px-3 py-2 text-xs font-semibold text-brand-500 shadow-xs transition hover:bg-brand-500/20 disabled:opacity-50"
-            title="将所有媒体库未刮削媒体加入队列"
-          >
-            <Sparkles size={13} />
-            <span>全库重新刮削</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setAutoRefresh((v) => !v)}
-            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
-              autoRefresh
-                ? 'border-emerald-300/50 bg-emerald-50 text-emerald-700 hover:bg-emerald-100/70'
-                : 'border-gray-200 bg-white text-ink-50 hover:bg-gray-50'
-            }`}
-            title={autoRefresh ? '点击暂停自动刷新' : '点击开启 3 秒自动轮询'}
-          >
-            <Clock size={13} />
-            <span>自动刷新: {autoRefresh ? '开启' : '已暂停'}</span>
-          </button>
-
-          <button
-            type="button"
-            disabled={isRefreshing}
-            onClick={() => refresh(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-ink-100 shadow-xs transition hover:border-gray-300 hover:bg-gray-50"
-            title="手动刷新"
-          >
-            <RefreshCw size={13} className={isRefreshing ? 'animate-spin text-brand-500' : ''} />
-            <span>刷新</span>
-          </button>
-
-          <details className="relative inline-block">
-            <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-ink-100 shadow-xs transition hover:border-gray-300 hover:bg-gray-50 [&::-webkit-details-marker]:hidden">
-              <Trash2 size={13} className="text-sand-500" />
-              <span>批量操作</span>
-            </summary>
-            <div className="absolute right-0 top-10 z-30 min-w-44 rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl backdrop-blur-sm">
-              {failedCount > 0 && (
-                <button
-                  type="button"
-                  disabled={batchBusy}
-                  onClick={(e) => {
-                    e.currentTarget.closest('details')?.removeAttribute('open')
-                    runGlobalBatch(() => scraperAPI.retryFailed(), '确定重新入队所有失败任务？')
-                  }}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-brand-500 hover:bg-brand-50"
-                >
-                  <RefreshCw size={13} />
-                  <span>重试所有失败 ({failedCount})</span>
-                </button>
-              )}
-              {activeTaskCount > 0 && (
-                <button
-                  type="button"
-                  disabled={batchBusy}
-                  onClick={(e) => {
-                    e.currentTarget.closest('details')?.removeAttribute('open')
-                    runGlobalBatch(() => scraperAPI.cancelPending(), '确定取消所有排队及进行中的刮削任务？')
-                  }}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-amber-600 hover:bg-amber-50"
-                >
-                  <Ban size={13} />
-                  <span>取消所有进行中 ({activeTaskCount})</span>
-                </button>
-              )}
-              <div className="my-1 border-t border-gray-100" />
-              <button
-                type="button"
-                disabled={batchBusy}
-                onClick={(e) => {
-                  e.currentTarget.closest('details')?.removeAttribute('open')
-                  runGlobalBatch(() => scraperAPI.clearDone(), '确定清空所有已匹配完成的记录？')
-                }}
-                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-ink-100 hover:bg-gray-50"
-              >
-                <CheckCircle2 size={13} className="text-emerald-500" />
-                <span>清空已完成记录</span>
-              </button>
-              <button
-                type="button"
-                disabled={batchBusy}
-                onClick={(e) => {
-                  e.currentTarget.closest('details')?.removeAttribute('open')
-                  runGlobalBatch(() => scraperAPI.clearCanceled(), '确定清空所有已取消的任务记录？')
-                }}
-                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-ink-100 hover:bg-gray-50"
-              >
-                <Ban size={13} className="text-amber-500" />
-                <span>清空已取消记录</span>
-              </button>
-              <button
-                type="button"
-                disabled={batchBusy}
-                onClick={(e) => {
-                  e.currentTarget.closest('details')?.removeAttribute('open')
-                  runGlobalBatch(() => scraperAPI.clearFinished(), '确定清空所有已完成、失败及取消的历史记录？')
-                }}
-                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-rose-500 hover:bg-rose-50"
-              >
-                <Trash2 size={13} />
-                <span>清空全部历史记录</span>
-              </button>
-            </div>
-          </details>
-        </div>
-      </header>
+        </header>
       )}
 
       {/* 2. Status Cards */}

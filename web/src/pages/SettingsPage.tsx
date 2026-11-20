@@ -7,7 +7,6 @@ import { adminAPI } from '../api/admin'
 import type { Setting } from '../types'
 import { APIConfigsPanel } from '../components/APIConfigsPanel'
 import { AboutSettingsPanel } from './AboutSettingsPanel'
-import { RecognitionWordsPanel } from './RecognitionWordsPanel'
 import { GeneralSettingsPanel } from './GeneralSettingsPanel'
 import { SettingRow, type SettingDef } from './SettingsRow'
 import { TelegramNotifyPanel } from './TelegramNotifyPanel'
@@ -199,7 +198,6 @@ export function SettingsPage() {
       {!loading && (
         <div className="space-y-4">
           {group.key === 'api-configs' && <APIConfigsPanel />}
-          {group.key === 'recognition-words' && <RecognitionWordsPanel />}
           {group.key === 'about' && <AboutSettingsPanel />}
           {group.key !== 'library' && group.items.length > 0 && (
             <form onSubmit={onSave} className={group.key === 'general' ? 'general-settings space-y-4' : 'space-y-4'}>

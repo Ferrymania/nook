@@ -1,13 +1,11 @@
 package service
 
 import (
-	"context"
 	"path/filepath"
 	"regexp"
 	"strings"
 
 	"github.com/Ferrymania/nook/internal/model"
-	"github.com/Ferrymania/nook/internal/repository"
 )
 
 var (
@@ -52,23 +50,11 @@ func mediaLooksLikeTheatricalFeature(m *model.Media) bool {
 }
 
 func scrapeQueryCandidates(m *model.Media, lib *model.Library) []string {
-	return scrapeQueryCandidatesWithNormalizer(m, lib, func(raw string) (string, int) {
-		return CleanQuery(raw)
-	})
-}
-
-func scrapeQueryCandidatesWithRecognition(ctx context.Context, repo *repository.Container, m *model.Media, lib *model.Library) []string {
-	return scrapeQueryCandidatesWithNormalizer(m, lib, func(raw string) (string, int) {
-		return CleanQueryWithRecognition(ctx, repo, raw)
-	})
-}
-
-func scrapeQueryCandidatesWithNormalizer(m *model.Media, lib *model.Library, clean func(string) (string, int)) []string {
 	seen := map[string]struct{}{}
 	var out []string
 	add := func(raw string) {
 		for _, variant := range theatricalTitleVariants(raw) {
-			cleaned, _ := clean(variant)
+			cleaned, _ := CleanQuery(variant)
 			if cleaned == "" {
 				cleaned = strings.TrimSpace(variant)
 			}
@@ -98,7 +84,7 @@ func scrapeQueryCandidatesWithNormalizer(m *model.Media, lib *model.Library, cle
 				if stem == "" {
 					stem = strings.TrimSuffix(baseName, filepath.Ext(baseName))
 				}
-				cleanStem, _ := clean(stem)
+				cleanStem, _ := CleanQuery(stem)
 				if cleanStem == "" {
 					cleanStem = stem
 				}
@@ -126,14 +112,14 @@ func scrapeQueryCandidatesWithNormalizer(m *model.Media, lib *model.Library, cle
 				base := pathBaseSlash(parentSlashPath(m.Path))
 				if !isMediaCollectionFolder(base) && !isGenericMediaCategoryFolder(base) &&
 					!isTechnicalMediaFolder(base) && !strictSeasonFolderMatched(base) && !isTheatricalFolder(base) {
-					folderTitle, folderYear := clean(base + ".mkv")
+					folderTitle, folderYear := CleanQuery(base + ".mkv")
 					yearDiff := folderYear - mediaYearHint(m)
 					if containsCJK(folderTitle) && (folderYear == 0 || mediaYearHint(m) == 0 || (yearDiff >= -1 && yearDiff <= 1)) {
 						add(folderTitle)
 					}
 				}
 			}
-			fileTitle, _ := clean(m.Path)
+			fileTitle, _ := CleanQuery(m.Path)
 			if genericMovieFileTitle(fileTitle) {
 				if lib != nil {
 					add(mediaFolderTitle(m.Path, lib.Path))

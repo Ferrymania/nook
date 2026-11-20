@@ -36,12 +36,21 @@ func (s *FileManagerService) allowedRootList() (map[string]string, []Root, error
 	}
 	rootList := make([]Root, 0, len(roots))
 	seen := map[string]struct{}{}
-	for label, p := range roots {
+	add := func(label, p string) {
 		if _, ok := seen[p]; ok {
-			continue
+			return
 		}
 		seen[p] = struct{}{}
 		rootList = append(rootList, Root{Label: label, Path: p})
+	}
+	// Keep the main directory label when a media or library alias shares its path.
+	for _, label := range []string{"cache", "data", "media"} {
+		if p, ok := roots[label]; ok {
+			add(label, p)
+		}
+	}
+	for label, p := range roots {
+		add(label, p)
 	}
 	sort.Slice(rootList, func(i, j int) bool { return rootList[i].Label < rootList[j].Label })
 	return roots, rootList, nil

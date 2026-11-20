@@ -19,7 +19,6 @@ func registerAdminRoutes(api *gin.RouterGroup, cfg *config.Config, svc *service.
 	registerAdminDiagnosticsRoutes(admin, svc)
 	registerAdminBackupRoutes(admin, svc)
 	registerAdminAPIConfigRoutes(admin, svc)
-	registerAdminRecognitionWordRoutes(admin, svc)
 	registerAdminStrmRoutes(admin, svc)
 	registerAdminScraperRoutes(admin, svc)
 	registerAdminSegmentRoutes(admin, svc)
@@ -155,13 +154,6 @@ func registerAdminAPIConfigRoutes(admin *gin.RouterGroup, svc *service.Container
 	provider.PUT("", updateAPIConfigHandler(svc))
 	provider.DELETE("", deleteAPIConfigHandler(svc))
 	provider.POST("/test", testAPIConfigHandler(svc))
-}
-
-func registerAdminRecognitionWordRoutes(admin *gin.RouterGroup, svc *service.Container) {
-	admin.GET("/recognition-words", getRecognitionWordsHandler(svc))
-	admin.PUT("/recognition-words", saveRecognitionWordsHandler(svc))
-	admin.POST("/recognition-words/sync", syncRecognitionWordsHandler(svc))
-	admin.POST("/recognition-words/test", testRecognitionWordsHandler(svc))
 }
 
 func registerAdminDatabaseRoutes(admin *gin.RouterGroup, svc *service.Container) {
