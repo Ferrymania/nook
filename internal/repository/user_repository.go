@@ -121,7 +121,22 @@ func (r *UserRepository) UpdateFields(ctx context.Context, id string, updates ma
 // UpdatePassword sets a new password hash and clears ForcePasswordReset.
 func (r *UserRepository) UpdatePassword(ctx context.Context, id, hash string) error {
 	return r.db.WithContext(ctx).Model(&model.User{}).Where("id = ?", id).
-		Updates(map[string]any{"password_hash": hash, "force_password_reset": false}).Error
+		Updates(passwordFields(hash)).Error
+}
+
+// ReplacePassword changes only the password that was verified. The same write
+// can invalidate every existing session, including tokens pending persistence.
+func (r *UserRepository) ReplacePassword(ctx context.Context, id, currentHash, newHash string, signOutDevices bool) (bool, error) {
+	fields := passwordFields(newHash)
+	if signOutDevices {
+		fields["session_version"] = gorm.Expr("session_version + 1")
+	}
+	result := r.db.WithContext(ctx).Model(&model.User{}).Where("id = ? AND password_hash = ?", id, currentHash).Updates(fields)
+	return result.RowsAffected == 1, result.Error
+}
+
+func passwordFields(hash string) map[string]any {
+	return map[string]any{"password_hash": hash, "force_password_reset": false}
 }
 
 // TouchLogin updates the last login timestamp.

@@ -8,10 +8,17 @@ export const profileAPI = {
     username?: string
     nickname?: string
     email?: string
-    avatar_url?: string
     password?: string
   }) =>
     api.patch<User>('/me', patch).then((r) => r.data),
+
+  avatarImage: (signal: AbortSignal) =>
+    api.get<Blob>('/me/avatar', { signal, responseType: 'blob' }).then((r) => r.data),
+
+  uploadAvatar: (file: File) =>
+    api.post<User>('/me/avatar', file, { headers: { 'Content-Type': 'application/octet-stream' } }).then((r) => r.data),
+
+  removeAvatar: () => api.delete<User>('/me/avatar').then((r) => r.data),
 
   getPinnedLibraries: () =>
     api.get<{ library_ids: string[] }>('/me/pinned-libraries').then((r) => r.data.library_ids ?? []),

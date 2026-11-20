@@ -1,42 +1,38 @@
 import { useEffect, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Check, Copy, KeyRound, Loader2, Save, Tv } from 'lucide-react'
+import { Check, Copy, KeyRound, Loader2, Tv } from 'lucide-react'
 
 import { authAPI } from '../api/auth'
-import { profileAPI } from '../api/profile'
 import { MyDevicesPanel } from '../components/MyDevicesPanel'
-import { requestPassword } from '../components/requestPassword'
 import { useAuthStore } from '../stores/auth'
+import { ProfileEditDialog } from './ProfileEditDialog'
+import { ProfileOverview } from './ProfileOverview'
 import { ProfilePlaybackSettings } from './ProfilePlaybackSettings'
 import { WatchHistoryPanel } from './WatchHistoryPage'
 
 const PROFILE_TABS = [
+  { value: 'history', label: '观看历史' },
   { value: 'info', label: '资料与安全' },
   { value: 'playback', label: '播放设置' },
   { value: 'devices', label: '我的设备' },
-  { value: 'history', label: '观看历史' },
 ] as const
 
 type ProfileTab = typeof PROFILE_TABS[number]['value']
 
 export function ProfilePage() {
   const user = useAuthStore((s) => s.user)
-  const setUser = useAuthStore((s) => s.setUser)
   const location = useLocation()
   const navigate = useNavigate()
   const requestedTab = new URLSearchParams(location.search).get('tab')
   const activeTab: ProfileTab = location.hash === '#tv-otp'
     ? 'devices'
-    : PROFILE_TABS.find((tab) => tab.value === requestedTab)?.value ?? 'info'
+    : PROFILE_TABS.find((tab) => tab.value === requestedTab)?.value ?? 'history'
 
-  const [username, setUsername] = useState(user?.username ?? '')
-  const [nickname, setNickname] = useState(user?.nickname ?? '')
-  const [email, setEmail] = useState(user?.email ?? '')
-  const [avatar, setAvatar] = useState(user?.avatar_url ?? '')
+  const [editingProfile, setEditingProfile] = useState(false)
   const [oldPwd, setOldPwd] = useState('')
   const [newPwd, setNewPwd] = useState('')
-  const [savingProfile, setSavingProfile] = useState(false)
+  const [signOutDevices, setSignOutDevices] = useState(false)
   const [savingPassword, setSavingPassword] = useState(false)
 
   const [otpCode, setOtpCode] = useState('')
@@ -65,7 +61,7 @@ export function ProfilePage() {
 
   const changeTab = (tab: ProfileTab) => {
     const params = new URLSearchParams(location.search)
-    if (tab === 'info') params.delete('tab')
+    if (tab === 'history') params.delete('tab')
     else params.set('tab', tab)
     navigate({ pathname: location.pathname, search: params.toString(), hash: '' }, { preventScrollReset: true })
   }
@@ -113,47 +109,18 @@ export function ProfilePage() {
     }
   }
 
-  const onProfile = async (e: FormEvent) => {
-    e.preventDefault()
-    if (savingProfile) return
-    setSavingProfile(true)
-    try {
-      let password: string | undefined
-      const usernameChanged = username.trim() !== (user?.username ?? '')
-      if (usernameChanged) {
-        const input = await requestPassword({
-          title: '修改用户名',
-          message: '修改用户名后需要使用新用户名登录，请输入当前账号密码确认。',
-          confirmText: '保存设置',
-        })
-        if (!input) return
-        password = input
-      }
-      const patch: Parameters<typeof profileAPI.update>[0] = {
-        username,
-        nickname,
-        email,
-        avatar_url: avatar,
-        password,
-      }
-      const u = await profileAPI.update(patch)
-      setUser(u)
-      toast.success('资料已更新')
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? '保存失败'
-      toast.error(msg)
-    } finally {
-      setSavingProfile(false)
-    }
-  }
-
   const onPwd = async (e: FormEvent) => {
     e.preventDefault()
     if (savingPassword) return
     setSavingPassword(true)
     try {
-      await authAPI.changePassword(oldPwd, newPwd)
+      await authAPI.changePassword(oldPwd, newPwd, signOutDevices)
+      if (signOutDevices) {
+        useAuthStore.getState().logout()
+        toast.success('密码已更新，请使用新密码重新登录')
+        navigate('/login', { replace: true })
+        return
+      }
       toast.success('密码已更新')
       setOldPwd('')
       setNewPwd('')
@@ -172,8 +139,10 @@ export function ProfilePage() {
       <header>
         <h1 className="font-display text-2xl font-semibold">个人主页</h1>
       </header>
+      <ProfileOverview user={user} onEdit={() => setEditingProfile(true)} />
+      {editingProfile && user && <ProfileEditDialog user={user} onClose={() => setEditingProfile(false)} />}
 
-      <div role="tablist" aria-label="个人主页分类" className="flex gap-5 border-b border-(--app-border)">
+      <div role="tablist" aria-label="个人主页分类" className="flex gap-5 overflow-x-auto border-b border-(--app-border)">
         {PROFILE_TABS.map((tab, index) => (
           <button
             key={tab.value}
@@ -185,57 +154,18 @@ export function ProfilePage() {
             tabIndex={activeTab === tab.value ? 0 : -1}
             onClick={() => changeTab(tab.value)}
             onKeyDown={(event) => onTabKeyDown(event, index)}
-            className={`-mb-px min-h-11 border-b-2 py-2 text-sm font-medium transition-colors ${activeTab === tab.value ? 'border-(--app-text) text-(--app-text)' : 'border-transparent text-(--app-muted) hover:text-(--app-text)'}`}
+            className={`-mb-px min-h-11 shrink-0 border-b-2 py-2 text-sm font-medium transition-colors ${activeTab === tab.value ? 'border-(--app-text) text-(--app-text)' : 'border-transparent text-(--app-muted) hover:text-(--app-text)'}`}
           >
             {tab.label}
           </button>
         ))}
       </div>
 
-      <div id="profile-panel-info" role="tabpanel" aria-labelledby="profile-tab-info" hidden={activeTab !== 'info'} className="space-y-4">
-        <form onSubmit={onProfile} className="rounded-xl bg-(--app-panel) p-4 sm:p-5">
-          <h2 className="mb-3 text-base font-semibold">基本信息</h2>
-          <fieldset disabled={savingProfile} className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-            <Field label="用户名">
-              <input
-                required
-                className="input-base"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                autoComplete="username"
-              />
-            </Field>
-            <Field label="昵称">
-              <input
-                className="input-base"
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-              />
-            </Field>
-            <Field label="电子邮箱">
-              <input
-                type="email"
-                className="input-base"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </Field>
-            <Field label="头像 URL">
-              <input
-                className="input-base"
-                value={avatar}
-                onChange={(e) => setAvatar(e.target.value)}
-              />
-            </Field>
-          </fieldset>
-          <div className="mt-3 flex justify-end">
-            <button type="submit" disabled={savingProfile} className="btn-primary">
-              {savingProfile ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-              {savingProfile ? '保存中…' : '保存资料'}
-            </button>
-          </div>
-        </form>
+      <div id="profile-panel-history" role="tabpanel" aria-labelledby="profile-tab-history" hidden={activeTab !== 'history'}>
+        {activeTab === 'history' && <WatchHistoryPanel embedded />}
+      </div>
 
+      <div id="profile-panel-info" role="tabpanel" aria-labelledby="profile-tab-info" hidden={activeTab !== 'info'} className="space-y-4">
         <form onSubmit={onPwd} className="rounded-xl bg-(--app-panel) p-4 sm:p-5">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-base font-semibold">修改密码</h2>
@@ -263,6 +193,13 @@ export function ProfilePage() {
                 autoComplete="new-password"
               />
             </Field>
+            <label className="flex min-h-11 items-start gap-3 py-2 text-sm sm:col-span-2">
+              <input type="checkbox" className="mt-0.5 size-4 shrink-0 accent-brand-500" checked={signOutDevices} onChange={(event) => setSignOutDevices(event.target.checked)} />
+              <span>
+                <span className="block font-medium">改密后退出所有已登录设备</span>
+                <span className="mt-1 block text-xs text-(--app-muted)">包括当前网页。所有设备都需要重新登录。</span>
+              </span>
+            </label>
           </fieldset>
           <div className="mt-3 flex justify-end">
             <button type="submit" disabled={savingPassword} className="btn-outline">
@@ -339,9 +276,6 @@ export function ProfilePage() {
         {activeTab === 'devices' && <MyDevicesPanel />}
       </div>
 
-      <div id="profile-panel-history" role="tabpanel" aria-labelledby="profile-tab-history" hidden={activeTab !== 'history'}>
-        {activeTab === 'history' && <WatchHistoryPanel embedded />}
-      </div>
     </div>
   )
 }

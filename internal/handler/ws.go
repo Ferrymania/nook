@@ -17,8 +17,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 
+	"github.com/Ferrymania/nook/internal/middleware"
 	"github.com/Ferrymania/nook/internal/service"
 )
+
+const wsSessionRevoked = 4001
 
 var wsUpgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
@@ -77,7 +80,12 @@ func wsHandler(svc *service.Container) gin.HandlerFunc {
 					return
 				}
 			case <-ticker.C:
+				user, err := svc.Repo.User.FindByID(c.Request.Context(), c.GetString(middleware.CtxUserID))
 				_ = conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+				if err == nil && (user == nil || !matchesSessionVersion(c, user)) {
+					_ = conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(wsSessionRevoked, "Session revoked"))
+					return
+				}
 				if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 					return
 				}

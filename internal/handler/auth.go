@@ -109,8 +109,9 @@ func meHandler(svc *service.Container) gin.HandlerFunc {
 }
 
 type changePwdReq struct {
-	OldPassword string `json:"old_password" binding:"required"`
-	NewPassword string `json:"new_password" binding:"required,min=6"`
+	OldPassword    string `json:"old_password" binding:"required"`
+	NewPassword    string `json:"new_password" binding:"required,min=6"`
+	SignOutDevices bool   `json:"sign_out_devices"`
 }
 
 func changePasswordHandler(svc *service.Container) gin.HandlerFunc {
@@ -133,14 +134,17 @@ func changePasswordHandler(svc *service.Container) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": message})
 			return
 		}
-		uid, _ := c.Get(middleware.CtxUserID)
-		if err := svc.Auth.ChangePassword(c.Request.Context(), uid.(string), req.OldPassword, req.NewPassword); err != nil {
+		userID := c.GetString(middleware.CtxUserID)
+		if err := svc.Auth.ChangePassword(c.Request.Context(), userID, req.OldPassword, req.NewPassword, req.SignOutDevices); err != nil {
 			if errors.Is(err, service.ErrInvalidCredentials) {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "当前密码不正确"})
 				return
 			}
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
+		}
+		if req.SignOutDevices {
+			svc.Sessions.Logout(c.Request.Context(), userID, "", "")
 		}
 		clearAccessTokenCookie(c)
 		c.Status(http.StatusNoContent)
@@ -154,7 +158,7 @@ func temporaryPasswordHandler(svc *service.Container) gin.HandlerFunc {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			return
 		}
-		code, expireSec, err := svc.Auth.CreateTemporaryPassword(c.Request.Context(), uid.(string))
+		code, expireSec, err := svc.Auth.CreateTemporaryPassword(c.Request.Context(), uid.(string), c.GetInt64(middleware.CtxSessionVersion))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

@@ -24,6 +24,12 @@ export interface HistoryTypeStat {
   count: number
 }
 
+export interface WatchSummary {
+  movies: number
+  series: number
+  episodes: number
+}
+
 export interface HistoryStats {
   total: number
   completed: number

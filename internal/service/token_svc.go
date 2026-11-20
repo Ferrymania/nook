@@ -28,11 +28,12 @@ const (
 
 // Claims 是 JWT 载荷（复制自 middleware 以避免循环导入）。
 type Claims struct {
-	UserID  string `json:"uid"`
-	Role    string `json:"role"`
-	Tier    string `json:"tier,omitempty"`
-	Purpose string `json:"purpose,omitempty"`
-	MediaID string `json:"media_id,omitempty"`
+	UserID         string `json:"uid"`
+	Role           string `json:"role"`
+	Tier           string `json:"tier,omitempty"`
+	Purpose        string `json:"purpose,omitempty"`
+	MediaID        string `json:"media_id,omitempty"`
+	SessionVersion int64  `json:"sv,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -47,7 +48,7 @@ type TokenService struct {
 	// 这些令牌——否则用户登录成功、一小时后 access token 过期，刷新时
 	// 因为 refresh token 从未落库而被判定无效，被强制踢回登录页，
 	// 表现就是「经常登录报错」。
-	delayedStores map[string]pendingRefreshToken
+	delayedStores map[string]model.RefreshToken
 
 	// now 是可替换的时间源（测试用）；为 nil 时退回 time.Now。
 	now func() time.Time
@@ -68,7 +69,7 @@ func NewTokenService(cfg *config.Config, log *zap.Logger, repo *repository.Conta
 		cfg:            cfg,
 		log:            log,
 		repo:           repo,
-		delayedStores:  make(map[string]pendingRefreshToken),
+		delayedStores:  make(map[string]model.RefreshToken),
 		now:            time.Now,
 		refreshFlights: make(map[string]*refreshFlight),
 		rotations:      make(map[string]rotatedRefreshToken),
@@ -91,18 +92,18 @@ var (
 )
 
 // IssuePair 为用户签发新的令牌对。
-func (s *TokenService) IssuePair(ctx context.Context, userID, role, tier string) (*TokenPair, error) {
-	return s.issuePair(ctx, userID, role, tier, false)
+func (s *TokenService) IssuePair(ctx context.Context, user *model.User) (*TokenPair, error) {
+	return s.issuePair(ctx, user, false)
 }
 
 // IssuePairBestEffort issues login tokens and persists the refresh token in the background if the database is temporarily unavailable.
-func (s *TokenService) IssuePairBestEffort(ctx context.Context, userID, role, tier string) (*TokenPair, error) {
-	return s.issuePair(ctx, userID, role, tier, true)
+func (s *TokenService) IssuePairBestEffort(ctx context.Context, user *model.User) (*TokenPair, error) {
+	return s.issuePair(ctx, user, true)
 }
 
-func (s *TokenService) issuePair(ctx context.Context, userID, role, tier string, bestEffort bool) (*TokenPair, error) {
+func (s *TokenService) issuePair(ctx context.Context, user *model.User, bestEffort bool) (*TokenPair, error) {
 	// 生成 Access Token
-	accessToken, err := s.issueAccessToken(userID, role, tier)
+	accessToken, err := s.issueAccessToken(user)
 	if err != nil {
 		return nil, err
 	}
@@ -115,21 +116,15 @@ func (s *TokenService) issuePair(ctx context.Context, userID, role, tier string,
 
 	// 存储 Refresh Token 哈希
 	tokenHash := repository.HashToken(refreshToken)
-	rt := &model.RefreshToken{
-		UserID:    userID,
-		TokenHash: tokenHash,
-		ExpiresAt: time.Now().Add(RefreshTokenDuration),
+	rt := model.RefreshToken{
+		UserID:         user.ID,
+		TokenHash:      tokenHash,
+		ExpiresAt:      time.Now().Add(RefreshTokenDuration),
+		SessionVersion: user.SessionVersion,
 	}
 	if bestEffort {
-		s.storeRefreshTokenBestEffort(userID, tokenHash, rt.ExpiresAt)
-		return &TokenPair{
-			AccessToken:  accessToken,
-			RefreshToken: refreshToken,
-			ExpiresIn:    int64(AccessTokenDuration.Seconds()),
-			TokenType:    "Bearer",
-		}, nil
-	}
-	if err := s.storeRefreshToken(ctx, rt); err != nil {
+		s.storeRefreshTokenBestEffort(rt)
+	} else if err := s.storeRefreshToken(ctx, &rt); err != nil {
 		return nil, err
 	}
 
@@ -145,7 +140,7 @@ func (s *TokenService) storeRefreshToken(ctx context.Context, rt *model.RefreshT
 	if err := s.repo.RefreshToken.Create(ctx, rt); err != nil {
 		return err
 	}
-	if err := s.repo.RefreshToken.RevokeOldestActiveByUserID(ctx, rt.UserID, s.maxActiveRefreshTokens(ctx)); err != nil && s.log != nil {
+	if err := s.repo.RefreshToken.RevokeOldestActiveByUserID(ctx, rt.UserID, rt.SessionVersion, s.maxActiveRefreshTokens(ctx)); err != nil && s.log != nil {
 		s.log.Warn("failed to enforce refresh token session limit", zap.String("user_id", rt.UserID), zap.Error(err))
 	}
 	return nil
@@ -160,16 +155,17 @@ func (s *TokenService) maxActiveRefreshTokens(ctx context.Context) int {
 }
 
 // issueAccessToken 签发 JWT Access Token（HS256，60分钟有效期）。
-func (s *TokenService) issueAccessToken(userID, role, tier string) (string, error) {
+func (s *TokenService) issueAccessToken(user *model.User) (string, error) {
 	claims := Claims{
-		UserID: userID,
-		Role:   role,
-		Tier:   tier,
+		UserID:         user.ID,
+		Role:           user.Role,
+		Tier:           user.Tier,
+		SessionVersion: user.SessionVersion,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(AccessTokenDuration)),
 			Issuer:    "nook",
-			Subject:   userID,
+			Subject:   user.ID,
 		},
 	}
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -204,7 +200,7 @@ func (s *TokenService) Refresh(ctx context.Context, refreshToken string) (*Token
 		if err != nil {
 			return nil, err
 		}
-		return s.validateReusedRefreshPair(ctx, pair, "")
+		return s.validateReusedRefreshPair(ctx, pair)
 	}
 
 	pair, err := s.refreshOnce(ctx, tokenHash)
@@ -229,15 +225,11 @@ func (s *TokenService) refreshOnce(ctx context.Context, tokenHash string) (*Toke
 			// 也可能是「刚轮换完但从未落库」的令牌（同上，行本身不存在），
 			// 宽限期内同样幂等复用。
 			if pair, reused := s.reusedRotation(tokenHash, ""); reused {
-				return s.validateReusedRefreshPair(ctx, pair, "")
+				return s.validateReusedRefreshPair(ctx, pair)
 			}
 			return nil, ErrInvalidRefreshToken
 		}
-		rt = &model.RefreshToken{
-			UserID:    pending.UserID,
-			TokenHash: tokenHash,
-			ExpiresAt: pending.ExpiresAt,
-		}
+		rt = &pending
 	}
 
 	// 检查是否已撤销
@@ -245,7 +237,7 @@ func (s *TokenService) refreshOnce(ctx context.Context, tokenHash string) (*Toke
 		// 刚被轮换过的 token 在宽限期内允许幂等复用，避免并发/重试的
 		// 客户端拿到 revoked 401 后清空整个会话。
 		if pair, ok := s.reusedRotation(tokenHash, rt.UserID); ok {
-			return s.validateReusedRefreshPair(ctx, pair, rt.UserID)
+			return s.validateReusedRefreshPair(ctx, pair)
 		}
 		return nil, ErrTokenRevoked
 	}
@@ -255,35 +247,19 @@ func (s *TokenService) refreshOnce(ctx context.Context, tokenHash string) (*Toke
 		return nil, ErrTokenExpired
 	}
 
-	// 获取用户信息
-	user, err := s.repo.User.FindByID(ctx, rt.UserID)
+	user, err := s.refreshUser(ctx, rt.UserID, rt.SessionVersion)
 	if err != nil {
 		return nil, err
-	}
-	if user == nil {
-		return nil, ErrInvalidRefreshToken
-	}
-	if !user.IsActive {
-		return nil, ErrUserInactive
-	}
-	if user.ExpiredAt != nil && s.currentTime().After(*user.ExpiredAt) {
-		return nil, ErrUserExpired
-	}
-	if !user.AllowsWebAccess() {
-		return nil, ErrWebAccessDisabled
-	}
-	if user.ForcePasswordReset {
-		return nil, ErrPasswordResetRequired
 	}
 
 	// 撤销旧的 Refresh Token（包括可能仍在后台补写队列里的副本）。
 	if err := s.repo.RefreshToken.Revoke(ctx, tokenHash); err != nil {
 		s.log.Warn("failed to revoke old refresh token", zap.Error(err))
 	}
-	s.untrackDelayedStore(rt.UserID, tokenHash)
+	s.untrackDelayedStore(tokenHash)
 
 	// 签发新的令牌对
-	pair, err := s.IssuePairBestEffort(ctx, user.ID, user.Role, user.Tier)
+	pair, err := s.IssuePairBestEffort(ctx, user)
 	if err != nil {
 		return nil, err
 	}
@@ -295,20 +271,27 @@ func (s *TokenService) refreshOnce(ctx context.Context, tokenHash string) (*Toke
 
 // Reused rotations must respect an account restriction added since the first
 // refresh, just like the ordinary database-backed refresh path.
-func (s *TokenService) validateReusedRefreshPair(ctx context.Context, pair *TokenPair, userID string) (*TokenPair, error) {
-	if userID == "" {
-		claims, err := s.ValidateAccessToken(pair.AccessToken)
-		if err != nil {
-			return nil, ErrInvalidRefreshToken
-		}
-		userID = claims.UserID
+func (s *TokenService) validateReusedRefreshPair(ctx context.Context, pair *TokenPair) (*TokenPair, error) {
+	claims, err := s.ValidateAccessToken(pair.AccessToken)
+	if err != nil {
+		return nil, ErrInvalidRefreshToken
 	}
+	if _, err := s.refreshUser(ctx, claims.UserID, claims.SessionVersion); err != nil {
+		return nil, err
+	}
+	return pair, nil
+}
+
+func (s *TokenService) refreshUser(ctx context.Context, userID string, sessionVersion int64) (*model.User, error) {
 	u, err := s.repo.User.FindByID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 	if u == nil {
 		return nil, ErrInvalidRefreshToken
+	}
+	if u.SessionVersion != sessionVersion {
+		return nil, ErrTokenRevoked
 	}
 	if !u.IsActive {
 		return nil, ErrUserInactive
@@ -322,7 +305,7 @@ func (s *TokenService) validateReusedRefreshPair(ctx context.Context, pair *Toke
 	if u.ForcePasswordReset {
 		return nil, ErrPasswordResetRequired
 	}
-	return pair, nil
+	return u, nil
 }
 
 // RevokeAll 撤销用户的所有 Refresh Token（用于登出）。

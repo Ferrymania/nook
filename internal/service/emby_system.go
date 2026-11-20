@@ -92,7 +92,7 @@ func (e *EmbyService) FindUser(ctx context.Context, id string) (map[string]any, 
 func (e *EmbyService) userPayload(u *model.User) map[string]any {
 	canDownload := u.Role == "admin"
 	settings := u.DecodePlaybackSettings()
-	return map[string]any{
+	payload := map[string]any{
 		"Id":                        u.ID,
 		"Name":                      u.Username,
 		"ServerId":                  embyServerID,
@@ -166,6 +166,10 @@ func (e *EmbyService) userPayload(u *model.User) map[string]any {
 			"SimultaneousStreamLimit":          0,
 		},
 	}
+	if tag := u.AvatarImageTag(); tag != "" {
+		payload["PrimaryImageTag"] = tag
+	}
+	return payload
 }
 
 // Views 返回 Emby 中"虚拟根目录"——每个 library 一个条目，外加所有启用的

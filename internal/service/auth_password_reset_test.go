@@ -60,7 +60,7 @@ func TestInitialPasswordResetLoginAndCompletion(t *testing.T) {
 	}
 	u, _ := repos.User.FirstAdmin(ctx)
 	// A refresh credential from before this upgrade must not lift the flag.
-	oldPair, err := auth.tokenSvc.IssuePair(ctx, u.ID, u.Role, u.Tier)
+	oldPair, err := auth.tokenSvc.IssuePair(ctx, u)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func TestInitialPasswordResetLoginAndCompletion(t *testing.T) {
 	if err != nil || claims.Purpose != PasswordResetTokenPurpose || resp.Tokens.RefreshToken != "" {
 		t.Fatalf("reset login issued full credentials: %#v %v", claims, err)
 	}
-	if _, _, err := auth.CreateTemporaryPassword(ctx, u.ID); !errors.Is(err, ErrPasswordResetRequired) {
+	if _, _, err := auth.CreateTemporaryPassword(ctx, u.ID, u.SessionVersion); !errors.Is(err, ErrPasswordResetRequired) {
 		t.Fatalf("OTP: %v", err)
 	}
 	if _, err := auth.IssueEmbyToken(u); !errors.Is(err, ErrPasswordResetRequired) {
@@ -85,7 +85,7 @@ func TestInitialPasswordResetLoginAndCompletion(t *testing.T) {
 		t.Fatalf("external token: %v", err)
 	}
 	for _, input := range []struct{ old, next string }{{"wrong", "valid-password"}, {"admin123", "admin123"}, {"admin123", "short"}} {
-		if err := auth.ChangePassword(ctx, u.ID, input.old, input.next); err == nil {
+		if err := auth.ChangePassword(ctx, u.ID, input.old, input.next, false); err == nil {
 			t.Fatalf("accepted password change: %#v", input)
 		}
 		current, _ := repos.User.FindByID(ctx, u.ID)
@@ -93,7 +93,7 @@ func TestInitialPasswordResetLoginAndCompletion(t *testing.T) {
 			t.Fatal("failed change lifted restriction")
 		}
 	}
-	if err := auth.ChangePassword(ctx, u.ID, "admin123", "valid-password"); err != nil {
+	if err := auth.ChangePassword(ctx, u.ID, "admin123", "valid-password", false); err != nil {
 		t.Fatal(err)
 	}
 	u, _ = repos.User.FindByID(ctx, u.ID)
@@ -110,7 +110,7 @@ func TestInitialPasswordResetLoginAndCompletion(t *testing.T) {
 	if err != nil || resp.Tokens.RefreshToken == "" {
 		t.Fatalf("normal login: %#v %v", resp, err)
 	}
-	if err := auth.ChangePassword(ctx, u.ID, "valid-password", "valid-password"); err == nil {
+	if err := auth.ChangePassword(ctx, u.ID, "valid-password", "valid-password", false); err == nil {
 		t.Fatal("accepted unchanged password")
 	}
 	if err := auth.ResetPassword(ctx, u.ID, DefaultAdminPassword); err == nil {
@@ -132,7 +132,7 @@ func TestTemporaryPasswordCannotBypassNewResetRequirement(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, _, err := auth.CreateTemporaryPassword(t.Context(), u.ID)
+	code, _, err := auth.CreateTemporaryPassword(t.Context(), u.ID, u.SessionVersion)
 	if err != nil {
 		t.Fatal(err)
 	}

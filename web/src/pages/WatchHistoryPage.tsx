@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { ArrowRight, BarChart3, ChevronLeft, ChevronRight, Clock, Play, Trash2 } from 'lucide-react'
+import { ArrowRight, BarChart3, Check, ChevronLeft, ChevronRight, Clock, Play, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 import { historyAPI } from '../api/history'
@@ -8,7 +8,10 @@ import { ARTWORK, imageURL } from '../api/client'
 import { confirmAction } from '../components/confirmAction'
 import { ArtworkImage } from '../components/ArtworkImage'
 import { artworkSources } from '../utils/artworkSources'
-import type { HistoryItem } from '../types'
+import { formatEpisodeNumber } from '../utils/episodeNumber'
+import type { HistoryItem, Media } from '../types'
+
+const watchedDate = new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
 
 function fmtDuration(ms: number): string {
   if (!ms || ms <= 0) return '—'
@@ -22,6 +25,51 @@ export function WatchHistoryPage() {
   return <WatchHistoryPanel />
 }
 
+function RecentHistoryCard({ item, media, from }: { item: HistoryItem; media: Media; from: string }) {
+  const episodeNumber = formatEpisodeNumber(media)
+  const episode = episodeNumber ? `S${media.season_num} · E${episodeNumber}` : ''
+  const title = media.episode_title && media.episode_title !== media.title ? media.episode_title : ''
+  const playLabel = `${item.resumable ? '继续播放' : '播放'}：${[media.title, episode, title].filter(Boolean).join(' · ')}`
+  const date = new Date(item.watched_at)
+  const duration = item.duration_ms || media.duration_sec * 1000
+  const progress = duration > 0 ? Math.min(100, Math.max(0, Math.round(item.position_ms / duration * 100))) : 0
+  const sources = artworkSources(media, 'episode').map(source => imageURL(source, media.updated_at, ARTWORK.backdropStrip))
+
+  return (
+    <article role="listitem" className="w-[min(72vw,18rem)] shrink-0 snap-start space-y-2 sm:w-[clamp(13rem,26%,19rem)]">
+      <div className="relative">
+        <Link to={`/play/${media.id}`} state={{ from }} aria-label={playLabel}
+          className="group relative block aspect-video overflow-hidden rounded-lg bg-(--app-panel-soft) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--app-brand-text)">
+          <div aria-hidden="true" className="h-full w-full">
+            <ArtworkImage sources={sources} alt="" className="h-full w-full object-cover" fallbackClassName="h-full w-full" />
+            <span className="absolute bottom-2.5 left-2.5 grid h-8 w-8 place-items-center rounded-full bg-black/65 text-white transition-colors group-hover:bg-white group-hover:text-black group-focus-visible:bg-white group-focus-visible:text-black">
+              <Play size={14} fill="currentColor" />
+            </span>
+          </div>
+        </Link>
+        {Number.isFinite(date.getTime()) && (
+          <div className="pointer-events-none absolute top-2 right-2 flex items-center gap-1.5 rounded-md bg-black/75 px-2 py-1 text-xs font-medium whitespace-nowrap text-white">
+            {item.completed && <Check size={13} aria-hidden="true" />}
+            <span className="sr-only">{item.completed ? '已看完，观看日期' : '观看日期'}</span>
+            <time dateTime={item.watched_at}>{watchedDate.format(date)}</time>
+          </div>
+        )}
+        {!item.completed && progress > 0 && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1 overflow-hidden rounded-b-lg bg-black/50">
+            <span className="sr-only">已观看 {progress}%</span>
+            <div className="h-full bg-brand-400" style={{ width: `${progress}%` }} />
+          </div>
+        )}
+      </div>
+      <div className="space-y-1">
+        <Link to={`/media/${media.id}`} state={{ from }} title={media.title} className="block truncate text-sm font-semibold hover:text-(--app-brand-text)">{media.title}</Link>
+        {title && <p title={title} className="truncate text-sm text-(--app-muted)">{title}</p>}
+        {(episode || media.year > 0) && <p className="text-xs text-(--app-muted)">{episode || media.year}</p>}
+      </div>
+    </article>
+  )
+}
+
 // The personal homepage previews recent history; /history keeps the full list
 // and its bulk actions. Both views use the same history data and resume links.
 export function WatchHistoryPanel({ embedded = false }: { embedded?: boolean }) {
@@ -33,7 +81,7 @@ export function WatchHistoryPanel({ embedded = false }: { embedded?: boolean }) 
   const [busy, setBusy] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
   const [canScroll, setCanScroll] = useState({ left: false, right: false })
-  const limit = embedded ? 5 : 200
+  const limit = embedded ? 12 : 200
   const from = embedded ? `${location.pathname}${location.search}` : '/history'
   const Heading = embedded ? 'h2' : 'h1'
 
@@ -167,27 +215,8 @@ export function WatchHistoryPanel({ embedded = false }: { embedded?: boolean }) 
         {!loading && !error && items.map((h) => {
           if (!h.media) return null
           const m = h.media
-          const progress =
-            h.duration_ms > 0 ? h.position_ms / h.duration_ms : 0
-          if (embedded) {
-            return (
-              <article key={h.id} role="listitem" className="w-36 shrink-0 snap-start space-y-2 sm:w-40 lg:w-44">
-                <Link to={`/media/${m.id}`} state={{ from }} className="block aspect-2/3 overflow-hidden rounded-lg bg-(--app-panel-soft)">
-                  <ArtworkImage sources={artworkSources(m, 'poster').map(source => imageURL(source, m.updated_at, ARTWORK.posterCard))} alt={m.title}
-                    className="h-full w-full object-cover" fallbackClassName="h-full w-full" />
-                </Link>
-                <Link to={`/media/${m.id}`} state={{ from }} title={m.title} className="block truncate text-sm font-medium hover:text-brand-500">{m.title}</Link>
-                <div className="space-y-1.5 text-xs text-(--app-muted)">
-                  <p>{h.completed ? '已看完' : `${fmtDuration(h.position_ms)} / ${fmtDuration(h.duration_ms)}`}</p>
-                  <div className="h-1 overflow-hidden rounded-full bg-(--app-hover)"><div className="h-full bg-(--app-brand-text)" style={{ width: `${Math.min(100, Math.max(0, Math.round(progress * 100)))}%` }} /></div>
-                  <time dateTime={h.watched_at} className="block">{new Date(h.watched_at).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}</time>
-                </div>
-                <Link to={`/play/${m.id}`} state={{ from }} className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-full border border-(--app-border) text-sm transition-colors hover:bg-(--app-hover)">
-                  <Play size={14} /> {h.resumable ? '继续播放' : '播放'}
-                </Link>
-              </article>
-            )
-          }
+          if (embedded) return <RecentHistoryCard key={h.id} item={h} media={m} from={from} />
+          const progress = h.duration_ms > 0 ? h.position_ms / h.duration_ms : 0
           return (
             <div
               key={h.id}

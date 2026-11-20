@@ -4,11 +4,12 @@ package middleware
 
 // Context keys for values produced by the auth middleware.
 const (
-	CtxUserID       = "ctx_user_id"
-	CtxUserRole     = "ctx_user_role"
-	CtxUserTier     = "ctx_user_tier"
-	CtxTokenPurpose = "ctx_token_purpose"
-	CtxTokenMediaID = "ctx_token_media_id"
+	CtxUserID         = "ctx_user_id"
+	CtxUserRole       = "ctx_user_role"
+	CtxUserTier       = "ctx_user_tier"
+	CtxTokenPurpose   = "ctx_token_purpose"
+	CtxTokenMediaID   = "ctx_token_media_id"
+	CtxSessionVersion = "ctx_session_version"
 
 	// AccessTokenCookieName carries the web access token for browser-managed
 	// resource requests such as <img>, which cannot attach Authorization.

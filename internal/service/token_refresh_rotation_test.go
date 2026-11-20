@@ -42,7 +42,7 @@ func TestConcurrentRefreshSharesSingleRotation(t *testing.T) {
 	svc, repos, db := newRotationTestService(t)
 	u := seedRotationUser(t, repos)
 
-	pair, err := svc.IssuePair(t.Context(), u.ID, u.Role, u.Tier)
+	pair, err := svc.IssuePair(t.Context(), u)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestRefreshReuseAfterRotationReturnsSamePair(t *testing.T) {
 	svc, repos, _ := newRotationTestService(t)
 	u := seedRotationUser(t, repos)
 
-	pair, err := svc.IssuePair(t.Context(), u.ID, u.Role, u.Tier)
+	pair, err := svc.IssuePair(t.Context(), u)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,11 +121,11 @@ func TestRefreshRotationReuseIsPerToken(t *testing.T) {
 	svc, repos, _ := newRotationTestService(t)
 	u := seedRotationUser(t, repos)
 
-	rotated, err := svc.IssuePair(t.Context(), u.ID, u.Role, u.Tier)
+	rotated, err := svc.IssuePair(t.Context(), u)
 	if err != nil {
 		t.Fatal(err)
 	}
-	other, err := svc.IssuePair(t.Context(), u.ID, u.Role, u.Tier)
+	other, err := svc.IssuePair(t.Context(), u)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,7 +150,7 @@ func TestRefreshGraceWindowExpires(t *testing.T) {
 	svc, repos, _ := newRotationTestService(t)
 	u := seedRotationUser(t, repos)
 
-	pair, err := svc.IssuePair(t.Context(), u.ID, u.Role, u.Tier)
+	pair, err := svc.IssuePair(t.Context(), u)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,7 +173,7 @@ func TestRevokeAllDropsRotationReuse(t *testing.T) {
 	svc, repos, _ := newRotationTestService(t)
 	u := seedRotationUser(t, repos)
 
-	pair, err := svc.IssuePair(t.Context(), u.ID, u.Role, u.Tier)
+	pair, err := svc.IssuePair(t.Context(), u)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -30,7 +30,6 @@ type ProfileUpdate struct {
 	Username            *string `json:"username,omitempty"`
 	Nickname            *string `json:"nickname,omitempty"`
 	Email               *string `json:"email,omitempty"`
-	AvatarURL           *string `json:"avatar_url,omitempty"`
 	SubtitleChineseMode *string `json:"subtitle_chinese_mode,omitempty"`
 	Password            string  `json:"password,omitempty"`
 }
@@ -66,9 +65,6 @@ func (p *ProfileService) UpdateProfile(ctx context.Context, userID string, patch
 	if patch.Email != nil {
 		v := strings.TrimSpace(*patch.Email)
 		updates["email"] = v
-	}
-	if patch.AvatarURL != nil {
-		updates["avatar_url"] = strings.TrimSpace(*patch.AvatarURL)
 	}
 	if patch.SubtitleChineseMode != nil {
 		mode := strings.ToLower(strings.TrimSpace(*patch.SubtitleChineseMode))

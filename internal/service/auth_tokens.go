@@ -18,9 +18,10 @@ func (s *AuthService) IssueToken(u *model.User) (string, error) {
 		return "", ErrPasswordResetRequired
 	}
 	claims := Claims{
-		UserID: u.ID,
-		Role:   u.Role,
-		Tier:   u.Tier,
+		UserID:         u.ID,
+		Role:           u.Role,
+		Tier:           u.Tier,
+		SessionVersion: u.SessionVersion,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(60 * time.Minute)),
@@ -40,6 +41,7 @@ func (s *AuthService) issuePasswordResetToken(u *model.User) (*TokenPair, error)
 	const ttl = 15 * time.Minute
 	claims := Claims{
 		UserID: u.ID, Role: u.Role, Tier: u.Tier, Purpose: PasswordResetTokenPurpose,
+		SessionVersion: u.SessionVersion,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(ttl)),
@@ -87,11 +89,12 @@ func (s *AuthService) IssueExternalPlaybackToken(u *model.User, mediaID string, 
 		return "", errors.New("media id required")
 	}
 	claims := Claims{
-		UserID:  u.ID,
-		Role:    u.Role,
-		Tier:    u.Tier,
-		Purpose: ExternalPlaybackTokenPurpose,
-		MediaID: mediaID,
+		UserID:         u.ID,
+		Role:           u.Role,
+		Tier:           u.Tier,
+		Purpose:        ExternalPlaybackTokenPurpose,
+		MediaID:        mediaID,
+		SessionVersion: u.SessionVersion,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(ExternalPlaybackTokenDurationForMedia(durationSec))),
@@ -118,10 +121,11 @@ func (s *AuthService) IssueEmbyToken(u *model.User) (string, error) {
 	}
 	now := time.Now()
 	claims := Claims{
-		UserID:  u.ID,
-		Role:    u.Role,
-		Tier:    u.Tier,
-		Purpose: model.EmbyTokenPurpose,
+		UserID:         u.ID,
+		Role:           u.Role,
+		Tier:           u.Tier,
+		Purpose:        model.EmbyTokenPurpose,
+		SessionVersion: u.SessionVersion,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(EmbyTokenDuration)),

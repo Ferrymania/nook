@@ -42,6 +42,11 @@ func activeUserRequired(svc *service.Container) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": 40101, "message": "user not found"})
 			return
 		}
+		if !matchesSessionVersion(c, u) {
+			clearAccessTokenCookie(c)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": 40101, "message": "请重新登录"})
+			return
+		}
 		if !u.IsActive {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"code": 40302, "message": "user account is disabled"})
 			return
@@ -89,6 +94,10 @@ func activeEmbyUserRequired(svc *service.Container) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"Code": 40101, "Message": "User not found"})
 			return
 		}
+		if !matchesSessionVersion(c, u) {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"Code": 40101, "Message": "Session revoked; sign in again"})
+			return
+		}
 		if !u.IsActive {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"Code": 40302, "Message": "User account is disabled"})
 			return
@@ -106,4 +115,8 @@ func activeEmbyUserRequired(svc *service.Container) gin.HandlerFunc {
 		c.Request = c.Request.WithContext(service.WithContentRatingPolicy(c.Request.Context(), model.ContentRatingPolicy{MaxContentRatingLevel: model.ContentRatingLevel(settings.ContentRatingLimit, "US"), HideUnrated: settings.HideUnrated}))
 		c.Next()
 	}
+}
+
+func matchesSessionVersion(c *gin.Context, u *model.User) bool {
+	return c.GetInt64(middleware.CtxSessionVersion) == u.SessionVersion
 }

@@ -94,11 +94,7 @@ func embyUserImageHandler(svc *service.Container) gin.HandlerFunc {
 		if svc != nil && svc.Emby != nil && uid != "" {
 			raw = svc.Emby.UserAvatarURL(c.Request.Context(), uid)
 		}
-		if raw == "" || svc == nil || svc.ImageProxy == nil {
-			embyMissingAvatar(c)
-			return
-		}
-		if err := svc.ImageProxy.Serve(c.Request.Context(), c.Writer, c.Request, raw); err != nil {
+		if !serveUserAvatar(c.Writer, c.Request, svc, uid, raw) {
 			embyMissingAvatar(c)
 		}
 	}
