@@ -53,13 +53,6 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("ai.timeout", 30)
 	v.SetDefault("ai.max_concurrent", 3)
 
-	v.SetDefault("recognition_words.enabled", true)
-	v.SetDefault("recognition_words.shared_urls", []string{
-		"https://raw.githubusercontent.com/Putarku/MoviePilot-Help/main/Words/general.txt",
-		"https://raw.githubusercontent.com/Putarku/MoviePilot-Help/main/Words/TV.txt",
-		"https://raw.githubusercontent.com/Putarku/MoviePilot-Help/main/Words/anime.txt",
-	})
-
 	v.SetDefault("transcoder.encoder", "")
 	v.SetDefault("transcoder.enabled", true)
 	v.SetDefault("transcoder.hardware_accel", false)

@@ -92,7 +92,6 @@ func (b *serviceContainerBuilder) initProviderServices() {
 	b.c.Bangumi.apiConfig = b.c.APIConfig
 	b.c.TheTVDB.apiConfig = b.c.APIConfig
 	b.c.Fanart.apiConfig = b.c.APIConfig
-	b.c.RecognitionWords = NewRecognitionWordsService(b.log, b.repos)
 	b.c.Danmaku = NewDanmakuService(b.log, b.repos)
 
 	b.c.Scraper = NewScraperService(

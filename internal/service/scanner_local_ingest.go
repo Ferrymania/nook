@@ -183,7 +183,7 @@ type localScanMediaInput struct {
 }
 
 func (s *ScannerService) buildLocalScanMedia(in localScanMediaInput) *model.Media {
-	title, year := CleanQueryWithRecognition(context.Background(), s.repo, in.path)
+	title, year := CleanQuery(in.path)
 	if title == "" {
 		title = mediaSidecarBase(in.path)
 		if title == "" {

@@ -64,7 +64,7 @@ func (s *ScraperService) EnrichOneWithOptions(ctx context.Context, m *model.Medi
 	if options.RetryNoMatch && s != nil {
 		s.lookupCache.clearNegatives()
 	}
-	candidates := scrapeQueryCandidatesWithRecognition(ctx, s.repo, m, lib)
+	candidates := scrapeQueryCandidates(m, lib)
 	var query string
 	match := (*Match)(nil)
 	failure := scrapeLookupFailure{}
