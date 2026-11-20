@@ -80,7 +80,12 @@ export function ProfileEditDialog({ user, onClose }: { user: User; onClose: () =
   }
 
   return createPortal(
-    <dialog ref={dialog} aria-labelledby={titleID} onCancel={(event) => { event.preventDefault(); close() }}
+    <dialog ref={dialog} aria-labelledby={titleID} onCancel={(event) => {
+      // The file picker also emits a cancel event that bubbles to the dialog.
+      if (event.target !== event.currentTarget) return
+      event.preventDefault()
+      close()
+    }}
       className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl border border-(--app-border) bg-(--app-panel-elevated) p-0 text-(--app-text) shadow-xl backdrop:bg-black/40">
       <form onSubmit={save}>
         <header className="flex items-center justify-between gap-3 border-b border-(--app-border) px-5 py-3">
