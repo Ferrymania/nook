@@ -42,6 +42,8 @@ type Container struct {
 	StrmDirCache   *StrmDirCacheRepository
 	ScrapeTask     *ScrapeTaskRepository
 	EmbyMount      *EmbyMountRepository
+
+	TelegramCloudDownload *TelegramCloudDownloadRepository
 }
 
 // New 将每个 repository 连接到单个 *gorm.DB。
@@ -73,5 +75,7 @@ func New(db *gorm.DB) *Container {
 		StrmDirCache:   &StrmDirCacheRepository{db: db},
 		ScrapeTask:     &ScrapeTaskRepository{db: db},
 		EmbyMount:      &EmbyMountRepository{db: db},
+
+		TelegramCloudDownload: &TelegramCloudDownloadRepository{db: db},
 	}
 }

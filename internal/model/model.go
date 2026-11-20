@@ -55,6 +55,7 @@ func AllModels() []interface{} {
 		&StrmAccount{},
 		&StrmSyncPath{},
 		&StrmSyncRecord{},
+		&TelegramCloudDownload{},
 		&StrmDownloadTask{},
 		&StrmUploadTask{},
 		&StrmDirCache{},

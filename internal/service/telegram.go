@@ -63,6 +63,8 @@ type TelegramService struct {
 	images     *ImageProxy
 	people     func(context.Context, *model.Media) []map[string]any
 	mediaOnce  sync.Once
+
+	cloudDownloadWake chan struct{}
 }
 
 // NewTelegramService 构建 TelegramService。
@@ -73,6 +75,8 @@ func NewTelegramService(log *zap.Logger, repo *repository.Container) *TelegramSe
 		apiBase:    "https://api.telegram.org",
 		client:     &http.Client{Timeout: telegramAPITimeout},
 		pollClient: &http.Client{Timeout: telegramPollClientTimeout},
+
+		cloudDownloadWake: make(chan struct{}, 1),
 	}
 }
 
@@ -83,6 +87,9 @@ func (s *TelegramService) Start(ctx context.Context) {
 		return
 	}
 	helper.Go(s.log, "service.telegramBotPoll", func() { s.pollLoop(ctx) })
+	if s.strm != nil {
+		helper.Go(s.log, "service.telegramCloudDownload", func() { s.telegramCloudDownloadLoop(ctx) })
+	}
 	if s.log != nil {
 		s.log.Info("telegram poller started")
 	}
@@ -366,10 +373,11 @@ type telegramSender struct {
 }
 
 type telegramMessage struct {
-	Text string         `json:"text"`
-	Date int64          `json:"date"`
-	Chat telegramChat   `json:"chat"`
-	From telegramSender `json:"from"`
+	MessageID int64          `json:"message_id"`
+	Text      string         `json:"text"`
+	Date      int64          `json:"date"`
+	Chat      telegramChat   `json:"chat"`
+	From      telegramSender `json:"from"`
 }
 
 type telegramCallbackQuery struct {
@@ -415,6 +423,10 @@ func (s *TelegramService) handleUpdate(ctx context.Context, token string, u tele
 	command := telegramCommand(text)
 	if isTelegramControlCommand(text) || command == "/start" {
 		if s.adminControlAllowed(ctx, token, u.Message.Chat, u.Message.From.ID) {
+			if command == "/download" && s.strm != nil {
+				s.createCloudDownloadDraft(ctx, token, u.Message)
+				return
+			}
 			s.handleAdminCommand(ctx, token, chatID, command)
 			return
 		}

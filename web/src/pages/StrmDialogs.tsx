@@ -141,6 +141,11 @@ export function StrmAccountDialog({
   const [hasPassword, setHasPassword] = useState(defaults.hasPassword)
   const [hasToken, setHasToken] = useState(defaults.hasToken)
   const [saving, setSaving] = useState(false)
+  const [stagingDir, setStagingDir] = useState({
+    id: existing?.config_preview?.cloud_download_staging_id ?? '',
+    path: existing?.config_preview?.cloud_download_staging_path ?? '',
+  })
+  const [browsingStaging, setBrowsingStaging] = useState(false)
 
   const openListAuth = {
     server, token,
@@ -149,6 +154,11 @@ export function StrmAccountDialog({
 
   const buildConfig = (): Record<string, string> => {
     switch (provider) {
+      case 'cloud115':
+        return stagingDir.id === (existing?.config_preview?.cloud_download_staging_id ?? '') ? {} : {
+          cloud_download_staging_id: stagingDir.id,
+          cloud_download_staging_path: stagingDir.path,
+        }
       case 'openlist':
         return openListAuthConfig(openListAuth)
       case 'emby_remote': {
@@ -271,6 +281,23 @@ export function StrmAccountDialog({
               onSaved()
             }}
           />
+        )}
+
+        {provider === 'cloud115' && existing && (
+          <section aria-label="云下载暂存目录" className="space-y-2 rounded-xl border border-gray-100 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-ink-100">云下载暂存目录</p>
+                <p className="mt-0.5 break-all text-xs text-ink-50">{stagingDir.path || stagingDir.id || '未选择目录'}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {stagingDir.id && <button type="button" className="text-sm text-ink-50" onClick={() => setStagingDir({ id: '', path: '' })}>清除</button>}
+                <button type="button" className="neon-button disabled:opacity-50" disabled={!existing.has_credential || !existing.enabled}
+                  onClick={() => setBrowsingStaging(true)}><Folder size={14} />选择目录</button>
+              </div>
+            </div>
+            <p className="text-xs text-sand-500">请选择 STRM 同步范围之外的目录。通过 Bot 下载的文件会保存在这里。</p>
+          </section>
         )}
 
         {provider === 'openlist' && (
@@ -468,6 +495,17 @@ export function StrmAccountDialog({
           </div>
         )}
       </form>
+      {browsingStaging && existing && (
+        <StrmDirBrowserDialog accountId={existing.id} onClose={() => setBrowsingStaging(false)}
+          onSelect={(id, _name, fullPath) => {
+            if (!id || id === '0') {
+              toast.error('请选择一个网盘文件夹作为暂存目录。')
+              return
+            }
+            setStagingDir({ id, path: fullPath ?? '' })
+            setBrowsingStaging(false)
+          }} />
+      )}
     </DialogShell>
   )
 }

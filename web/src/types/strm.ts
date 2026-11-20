@@ -43,6 +43,8 @@ export interface StrmAccountConfigPreview {
   has_password?: boolean
   has_token?: boolean
   has_api_key?: boolean
+  cloud_download_staging_id?: string
+  cloud_download_staging_path?: string
 }
 
 export interface StrmAccountInput {
