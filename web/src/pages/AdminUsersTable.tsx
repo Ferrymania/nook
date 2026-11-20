@@ -1,5 +1,8 @@
+import { useId, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   FolderLock,
+  Info,
   KeyRound,
   Loader2,
   MonitorSmartphone,
@@ -50,7 +53,9 @@ export function AdminUsersTable({
         <thead className="text-xs text-sand-500">
           <tr>
             <th className="py-2 whitespace-nowrap">用户名</th>
-            <th className="whitespace-nowrap">角色</th>
+            <th className="whitespace-nowrap">
+              <div className="flex items-center gap-1">角色<AdminRoleInfo /></div>
+            </th>
             <th className="whitespace-nowrap">媒体库</th>
             <th className="whitespace-nowrap">状态</th>
             <th className="whitespace-nowrap">最近登录</th>
@@ -181,4 +186,61 @@ export function AdminUsersTable({
       </table>
     </div>
   )
+}
+
+function AdminRoleInfo() {
+  const [open, setOpen] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const noteRef = useRef<HTMLDivElement>(null)
+  const noteID = useId()
+
+  useLayoutEffect(() => {
+    const trigger = triggerRef.current
+    const note = noteRef.current
+    if (!open || !trigger || !note) return
+
+    const triggerRect = trigger.getBoundingClientRect()
+    const noteRect = note.getBoundingClientRect()
+    const maxLeft = window.innerWidth - noteRect.width - 8
+    const maxTop = window.innerHeight - noteRect.height - 8
+    const below = triggerRect.bottom + 6
+    const top = below <= maxTop ? below : triggerRect.top - noteRect.height - 6
+    note.style.left = `${Math.max(8, Math.min(triggerRect.left, maxLeft))}px`
+    note.style.top = `${Math.max(8, Math.min(top, maxTop))}px`
+
+    const close = () => setOpen(false)
+    const closeOutside = (event: PointerEvent) => {
+      const target = event.target as Node
+      if (!trigger.contains(target) && !note.contains(target)) close()
+    }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') close()
+    }
+    document.addEventListener('pointerdown', closeOutside)
+    document.addEventListener('keydown', closeOnEscape)
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    return () => {
+      document.removeEventListener('pointerdown', closeOutside)
+      document.removeEventListener('keydown', closeOnEscape)
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+    }
+  }, [open])
+
+  return <>
+    <button ref={triggerRef} type="button" aria-label="角色权限说明" aria-expanded={open}
+      aria-controls={open ? noteID : undefined} aria-describedby={open ? noteID : undefined}
+      className="inline-flex size-7 items-center justify-center rounded-md text-(--app-muted) hover:bg-(--app-hover) hover:text-(--app-text) aria-expanded:text-(--app-text)"
+      onClick={() => setOpen((value) => !value)}>
+      <Info size={14} aria-hidden="true" />
+    </button>
+    {open && createPortal(
+      <div ref={noteRef} id={noteID} role="note"
+        className="fixed z-50 w-72 max-w-[calc(100vw-1rem)] space-y-1.5 rounded-xl border border-(--app-border) bg-(--app-panel-elevated) px-3 py-2.5 text-sm leading-6 text-(--app-muted) shadow-lg">
+        <p><strong className="font-medium text-(--app-text)">管理员：</strong>全部管理权限。</p>
+        <p><strong className="font-medium text-(--app-text)">普通用户：</strong>可浏览、播放和使用外部播放器，不能下载或操作文件。</p>
+      </div>, document.body,
+    )}
+  </>
 }

@@ -3,6 +3,7 @@ import { ExternalLink, Github, RefreshCw } from 'lucide-react'
 
 import { systemAPI } from '../api/system'
 import { formatAppVersion } from '../utils/formatAppVersion'
+import { DatabaseSettingsPanel } from './DatabaseSettingsPanel'
 import { VersionUpdatePanel } from './VersionUpdatePanel'
 import { DiagnosticsPanel } from './DiagnosticsPanel'
 import './AboutSettingsPanel.css'
@@ -70,6 +71,7 @@ export function AboutSettingsPanel() {
           </div>}
         </section>
       </div>
+      <DatabaseSettingsPanel />
       <DiagnosticsPanel />
     </div>
   )

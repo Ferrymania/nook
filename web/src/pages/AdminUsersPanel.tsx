@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 
 import { adminAPI } from '../api/admin'
@@ -17,12 +17,7 @@ const DEFAULT_MAX_USERS = 20
 export function AdminUsersPanel() {
   const [users, setUsers] = useState<User[]>([])
   const [maxUsers, setMaxUsers] = useState(DEFAULT_MAX_USERS)
-  const [maxUsersDraft, setMaxUsersDraft] = useState(String(DEFAULT_MAX_USERS))
   const savedMaxUsers = useRef(DEFAULT_MAX_USERS)
-  const [savingLimit, setSavingLimit] = useState(false)
-  const [creating, setCreating] = useState(false)
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
   const [editingID, setEditingID] = useState<string | null>(null)
   const [editingUsername, setEditingUsername] = useState('')
   const [resettingPasswordID, setResettingPasswordID] = useState<string | null>(null)
@@ -30,12 +25,12 @@ export function AdminUsersPanel() {
   const [managingDevicesUser, setManagingDevicesUser] = useState<User | null>(null)
 
   const refresh = async () => {
-    const data = await adminAPI.listUsers()
     const previousLimit = savedMaxUsers.current
-    savedMaxUsers.current = data.max_users
+    const data = await adminAPI.listUsers()
     setUsers(data.users)
+    if (previousLimit !== savedMaxUsers.current) return
+    savedMaxUsers.current = data.max_users
     setMaxUsers(data.max_users)
-    setMaxUsersDraft((draft) => draft === String(previousLimit) ? String(data.max_users) : draft)
   }
   useEffect(() => {
     refresh().catch(() => undefined)
@@ -48,52 +43,20 @@ export function AdminUsersPanel() {
 
   const userLimitReached = users.length >= maxUsers
 
-  const handleSaveMaxUsers = async () => {
-    const next = Number(maxUsersDraft)
-    if (!Number.isFinite(next) || next < 1) {
-      toast.error('用户上限至少为 1')
-      return
-    }
-    if (next > 10000) {
-      toast.error('用户上限不能超过 10000')
-      return
-    }
-    if (next === maxUsers) return
-    setSavingLimit(true)
-    try {
-      const data = await adminAPI.updateUserLimit(next)
-      savedMaxUsers.current = data.max_users
-      setMaxUsers(data.max_users)
-      setMaxUsersDraft(String(data.max_users))
-      toast.success(`用户上限已更新为 ${data.max_users} 人`)
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-        '保存用户上限失败'
-      toast.error(msg)
-    } finally {
-      setSavingLimit(false)
-    }
+  const handleSaveMaxUsers = async (next: number) => {
+    const data = await adminAPI.updateUserLimit(next)
+    savedMaxUsers.current = data.max_users
+    setMaxUsers(data.max_users)
+    toast.success(`用户上限已更新为 ${data.max_users} 人`)
   }
 
-  const handleCreate = async (e: FormEvent) => {
-    e.preventDefault()
-    if (creating) return
-    setCreating(true)
+  const handleCreate = async (username: string, password: string) => {
     try {
       await adminAPI.createUser({ username, password })
       toast.success('用户已添加，默认仅允许浏览与播放媒体')
-      setUsername('')
-      setPassword('')
-    } catch (err: unknown) {
-      const msg =
-        userCreateErrorMessage(err) ??
-        '添加用户失败'
-      toast.error(msg)
     } finally {
-      setCreating(false)
+      void refresh().catch(() => undefined)
     }
-    await refresh().catch(() => undefined)
   }
 
   const startEdit = (u: User) => {
@@ -182,17 +145,9 @@ export function AdminUsersPanel() {
       <AdminUsersForm
         usersCount={users.length}
         maxUsers={maxUsers}
-        maxUsersDraft={maxUsersDraft}
-        savingLimit={savingLimit}
-        creating={creating}
-        username={username}
-        password={password}
         userLimitReached={userLimitReached}
-        onMaxUsersDraftChange={setMaxUsersDraft}
         onSaveMaxUsers={handleSaveMaxUsers}
-        onUsernameChange={setUsername}
-        onPasswordChange={setPassword}
-        onSubmit={handleCreate}
+        onCreate={handleCreate}
       />
 
       <CurrentPlaybackPanel />
@@ -232,13 +187,4 @@ export function AdminUsersPanel() {
       />
     </div>
   )
-}
-
-function userCreateErrorMessage(err: unknown): string | undefined {
-  const data = (err as { response?: { data?: { error?: string; max_users?: number } } })?.response?.data
-  if (!data?.error) return undefined
-  if (data.error === 'user limit reached' && data.max_users != null) {
-    return `用户数量已达到上限：${data.max_users} 人`
-  }
-  return data.error
 }
