@@ -33,6 +33,16 @@ func (r *TelegramCloudDownloadRepository) Update(ctx context.Context, task *mode
 	return result.RowsAffected == 1, result.Error
 }
 
+func (r *TelegramCloudDownloadRepository) SetResultPage(ctx context.Context, taskID string, page int) error {
+	return r.db.WithContext(ctx).Model(&model.TelegramCloudDownload{}).
+		Where("id = ?", taskID).Updates(map[string]any{"detail_page": page, "reported": false}).Error
+}
+
+func (r *TelegramCloudDownloadRepository) UpdateReport(ctx context.Context, task *model.TelegramCloudDownload, fields map[string]any) error {
+	return r.db.WithContext(ctx).Model(&model.TelegramCloudDownload{}).
+		Where("id = ? AND updated_at = ?", task.ID, task.UpdatedAt).Updates(fields).Error
+}
+
 func (r *TelegramCloudDownloadRepository) Due(ctx context.Context, botKey string, chatID int64, now time.Time) ([]model.TelegramCloudDownload, error) {
 	var tasks []model.TelegramCloudDownload
 	active := []string{model.CloudDownloadQueued, model.CloudDownloadSubmitting, model.CloudDownloadTracking}

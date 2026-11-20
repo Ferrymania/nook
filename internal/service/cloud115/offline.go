@@ -14,6 +14,7 @@ const (
 	OfflineTaskFailed      = -1
 	OfflineTaskDownloading = 1
 	OfflineTaskComplete    = 2
+	OfflineLinkBatchLimit  = 115
 )
 
 type OfflineTask struct {
@@ -30,35 +31,31 @@ type OfflineTaskPage struct {
 	Tasks     []OfflineTask `json:"tasks"`
 }
 
-// AddOfflineLink submits a single link. Transport and ambiguous response errors
-// leave the caller responsible for reconciliation through the task list.
-func (c *OpenClient) AddOfflineLink(ctx context.Context, link, folderID string) (string, error) {
+type OfflineLinkResult struct {
+	Accepted RespState `json:"state"`
+	Code     int       `json:"code"`
+	Message  string    `json:"message"`
+	TaskID   string    `json:"info_hash"`
+	URL      string    `json:"url"`
+}
+
+// AddOfflineLinks submits one request for the entire batch. The caller
+// reconciles any missing or ambiguous results through the task list.
+func (c *OpenClient) AddOfflineLinks(ctx context.Context, links []string, folderID string) ([]OfflineLinkResult, error) {
+	if len(links) == 0 || len(links) > OfflineLinkBatchLimit {
+		return nil, fmt.Errorf("115 云下载每次接受 1–%d 条链接", OfflineLinkBatchLimit)
+	}
 	resp, err := c.postAuthMultipart(ctx, ProAPIBase+"/open/offline/add_task_urls", map[string]string{
-		"urls": link, "wp_path_id": folderID,
+		"urls": strings.Join(links, "\n"), "wp_path_id": folderID,
 	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	var rows []struct {
-		State    RespState `json:"state"`
-		Code     int       `json:"code"`
-		Message  string    `json:"message"`
-		InfoHash string    `json:"info_hash"`
-	}
+	var rows []OfflineLinkResult
 	if err := json.Unmarshal(resp.Data, &rows); err != nil {
-		return "", fmt.Errorf("解析 115 云下载提交结果：%w", err)
+		return nil, fmt.Errorf("解析 115 云下载提交结果：%w", err)
 	}
-	if len(rows) != 1 {
-		return "", errors.New("115 未返回唯一的云下载提交结果")
-	}
-	row := rows[0]
-	if !row.State {
-		return "", NewOpenAPIError(row.Code, row.Message)
-	}
-	if strings.TrimSpace(row.InfoHash) == "" {
-		return "", errors.New("115 未返回云下载任务 ID")
-	}
-	return row.InfoHash, nil
+	return rows, nil
 }
 
 func (c *OpenClient) ListOfflineTasks(ctx context.Context, page int) (OfflineTaskPage, error) {

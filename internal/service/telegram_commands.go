@@ -76,7 +76,7 @@ func (s *TelegramService) registerAdminCommands(ctx context.Context, cfg telegra
 			{"command": "sync", "description": "选择目录增量同步"},
 			{"command": "status", "description": "查看媒体数量、用户数和正在播放人数"},
 			{"command": "cancel", "description": "选择并取消同步任务"},
-			{"command": "download", "description": "将 ED2K 文件下载到 115 暂存目录"},
+			{"command": "download", "description": "批量将 ED2K 文件下载到 115 暂存目录"},
 		},
 	}, nil)
 }
@@ -98,7 +98,7 @@ func (s *TelegramService) handleAdminCommand(ctx context.Context, token, chatID,
 	case "/cancel":
 		s.sendPathMenu(ctx, token, chatID, "cancel", 0)
 	default:
-		s.controlReply(ctx, token, chatID, "Nook 管理员操作\n\n/strm_inc — 全部目录依次增量同步\n/sync — 选择目录增量同步\n/status — 查看媒体数量、用户数和正在播放人数\n/cancel — 选择取消任务\n/download &lt;ED2K 链接&gt; — 提交 115 云下载\n\n使用系统设置中的 Bot 和管理员私聊 ID，无需个人资料绑定。", nil)
+		s.controlReply(ctx, token, chatID, "Nook 管理员操作\n\n/strm_inc — 全部目录依次增量同步\n/sync — 选择目录增量同步\n/status — 查看媒体数量、用户数和正在播放人数\n/cancel — 选择取消任务\n/download — 批量提交 115 云下载。可先发命令再发链接，也可一起发。每行一条 ED2K 文件链接。\n\n使用系统设置中的 Bot 和管理员私聊 ID，无需个人资料绑定。", nil)
 	}
 }
 
@@ -120,7 +120,7 @@ func (s *TelegramService) handleAdminCallback(ctx context.Context, token string,
 		return
 	}
 	switch parts[1] {
-	case "dl", "dlpage":
+	case "dl", "dlpage", "dlresult":
 		s.handleCloudDownloadCallback(ctx, token, q.Message, parts)
 	case "sync":
 		if len(parts) == 3 {
