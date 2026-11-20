@@ -24,6 +24,9 @@ type OpenClient struct {
 	RefreshTokenStr string
 	executor        *QueueExecutor
 
+	// Monitor is optional and must be assigned before the client is used.
+	Monitor *RequestMonitor
+
 	// OnTokenRefreshed 在 access_token 刷新成功后回调（参数为新令牌对），
 	// 供上层持久化新令牌使用；nil 安全，且在 tokenMu 释放后调用以避免死锁。
 	OnTokenRefreshed func(accessToken, refreshToken string)
@@ -158,6 +161,8 @@ func (c *OpenClient) doJSONWithEncoding(ctx context.Context, method, rawURL stri
 		}
 		attemptedAccess := strings.TrimPrefix(req.Header.Get("Authorization"), "Bearer ")
 
+		started := time.Now()
+		c.Monitor.recordRequest(started)
 		resp, err := c.HTTP.Do(req)
 		if err != nil {
 			lastErr = err
@@ -170,6 +175,7 @@ func (c *OpenClient) doJSONWithEncoding(ctx context.Context, method, rawURL stri
 
 		body, readErr := io.ReadAll(io.LimitReader(resp.Body, 16<<20))
 		_ = resp.Body.Close()
+		elapsed := time.Since(started)
 		if readErr != nil {
 			lastErr = readErr
 			continue
@@ -177,7 +183,9 @@ func (c *OpenClient) doJSONWithEncoding(ctx context.Context, method, rawURL stri
 
 		// 检查 HTTP 状态码：特别处理 405/406/429 等限流和异常阻断
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			if resp.StatusCode == http.StatusMethodNotAllowed || resp.StatusCode == http.StatusNotAcceptable || resp.StatusCode == http.StatusTooManyRequests {
+			throttled := resp.StatusCode == http.StatusMethodNotAllowed || resp.StatusCode == http.StatusNotAcceptable || resp.StatusCode == http.StatusTooManyRequests
+			c.Monitor.recordResponse(started, elapsed, throttled)
+			if throttled {
 				// 触发全局熔断冷却，防止短时间连续重试导致 IP 被完全拉黑
 				executor.MarkThrottled()
 				lastErr = fmt.Errorf("115 接口触发频控/安全拦截（HTTP %d）：%s", resp.StatusCode, strings.TrimSpace(string(body)))
@@ -199,7 +207,10 @@ func (c *OpenClient) doJSONWithEncoding(ctx context.Context, method, rawURL stri
 		}
 
 		var base RespBase
-		if err := json.Unmarshal(body, &base); err != nil {
+		err = json.Unmarshal(body, &base)
+		throttled := err == nil && !bool(base.State) && IsThrottleCode(base.Code)
+		c.Monitor.recordResponse(started, elapsed, throttled)
+		if err != nil {
 			return nil, fmt.Errorf("115 接口响应解析失败：%w", err)
 		}
 		base.Raw = body
@@ -208,7 +219,7 @@ func (c *OpenClient) doJSONWithEncoding(ctx context.Context, method, rawURL stri
 		}
 
 		// 业务返回限流错误码（406 / 770004）：标记全局熔断，等待冷却后重试
-		if IsThrottleCode(base.Code) {
+		if throttled {
 			executor.MarkThrottled()
 			lastErr = NewOpenAPIResponseError(base.Code, base.Errno, base.Message, base.Error, "115 访问频率达到上限，已进入冷却")
 			if attempt < retries {

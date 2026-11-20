@@ -40,6 +40,7 @@ func TestStrmAdminRoutesAreRegistered(t *testing.T) {
 		"DELETE /api/admin/strm/accounts/:id",
 		"POST /api/admin/strm/accounts/:id/test",
 		"GET /api/admin/strm/accounts/:id/list",
+		"GET /api/admin/strm/accounts/:id/request-stats",
 		"POST /api/admin/strm/accounts/:id/oauth/start",
 		"POST /api/admin/strm/accounts/:id/oauth/poll",
 		"GET /api/admin/strm/settings",
@@ -77,6 +78,11 @@ func TestStrmAdminRoutesAreRegistered(t *testing.T) {
 		if routes[removed] {
 			t.Fatalf("removed authorization callback is still registered: %s", removed)
 		}
+	}
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/api/admin/strm/accounts/account-a/request-stats", nil))
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("unauthenticated request stats request = %d, want 401", w.Code)
 	}
 }
 

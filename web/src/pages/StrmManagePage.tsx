@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { isAxiosError } from 'axios'
 import toast from 'react-hot-toast'
 import {
+  Activity,
   Ban,
   Cloud,
   Download,
@@ -23,9 +24,10 @@ import { confirmAction } from '../components/confirmAction'
 import type { StrmAccount, StrmSyncPath, StrmSyncRecord, StrmSyncRecordPage } from '../types/strm'
 import { STRM_PROVIDER_LABELS } from '../types/strm'
 import { Strm115RateDialog, StrmAccountDialog, StrmSettingsDialog, StrmSyncPathDialog } from './StrmDialogs'
+import { Strm115MonitorDialog } from './strm-dialogs/Strm115MonitorDialog'
 import { StrmAccountFilesDialog } from './strm-dialogs/StrmAccountFilesDialog'
 
-type StrmDialogKey = 'account' | 'files' | 'settings' | '115-rate' | 'path' | null
+type StrmDialogKey = 'account' | 'files' | 'settings' | '115-rate' | '115-monitor' | 'path' | null
 type AccountTestState = { pending: boolean; error?: string }
 type PlaybackAddressStatus = 'loading' | 'unavailable' | 'missing' | 'ready'
 
@@ -275,6 +277,7 @@ export function StrmManagePage() {
             accountTests={accountTests}
             onAdd={() => { setEditingAccount(null); setDialog('account') }}
             onEdit115Rate={() => setDialog('115-rate')}
+            onOpen115Monitor={(account) => { setEditingAccount(account); setDialog('115-monitor') }}
             onEdit={(account) => { setEditingAccount(account); setDialog('account') }}
             onFiles={(account) => { setEditingAccount(account); setDialog('files') }}
             onDelete={deleteAccount}
@@ -316,6 +319,9 @@ export function StrmManagePage() {
         <StrmAccountFilesDialog key={editingAccount.id} account={editingAccount} onClose={() => setDialog(null)} />
       )}
       {dialog === '115-rate' && <Strm115RateDialog onClose={() => setDialog(null)} />}
+      {dialog === '115-monitor' && editingAccount && (
+        <Strm115MonitorDialog key={editingAccount.id} account={editingAccount} onClose={() => setDialog(null)} />
+      )}
       {dialog === 'settings' && (
         <StrmSettingsDialog
           onClose={() => setDialog(null)}
@@ -342,6 +348,7 @@ function AccountSection({
   accountTests,
   onAdd,
   onEdit115Rate,
+  onOpen115Monitor,
   onFiles,
   onEdit,
   onDelete,
@@ -351,6 +358,7 @@ function AccountSection({
   accountTests: Record<string, AccountTestState>
   onAdd: () => void
   onEdit115Rate: () => void
+  onOpen115Monitor: (account: StrmAccount) => void
   onFiles: (account: StrmAccount) => void
   onEdit: (account: StrmAccount) => void
   onDelete: (account: StrmAccount) => void
@@ -423,10 +431,15 @@ function AccountSection({
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-1.5">
                   {account.provider === 'cloud115' && (
-                    <button type="button" disabled={!account.enabled || !account.has_credential}
-                      onClick={() => onFiles(account)} className={iconButtonCls}>
-                      <Folder size={14} />文件管理
-                    </button>
+                    <>
+                      <button type="button" disabled={!account.enabled || !account.has_credential}
+                        onClick={() => onFiles(account)} className={iconButtonCls}>
+                        <Folder size={14} />文件管理
+                      </button>
+                      <button type="button" onClick={() => onOpen115Monitor(account)} className={iconButtonCls} aria-haspopup="dialog">
+                        <Activity size={14} />接口监控
+                      </button>
+                    </>
                   )}
                   <button type="button" disabled={testing} aria-busy={testing} onClick={() => onTest(account)} className={iconButtonCls}>
                     <RefreshCw size={14} className={testing ? 'animate-spin' : undefined} />

@@ -1,5 +1,6 @@
 import { api } from './client'
 import type {
+  Strm115RequestStats,
   StrmAccount,
   StrmAccountInput,
   StrmQueueSnapshot,
@@ -60,6 +61,9 @@ export interface Strm115OAuthStatus {
 export const strmAPI = {
   // ── 网盘账号 ────────────────────────────────────────────
   listAccounts: () => api.get<StrmAccount[]>('/admin/strm/accounts').then((r) => r.data),
+
+  get115RequestStats: (accountId: string, signal: AbortSignal) =>
+    api.get<Strm115RequestStats>(`/admin/strm/accounts/${accountId}/request-stats`, { signal }).then((r) => r.data),
 
   createAccount: (payload: StrmAccountInput) =>
     api.post<StrmAccount>('/admin/strm/accounts', payload).then((r) => r.data),

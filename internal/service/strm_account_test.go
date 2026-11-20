@@ -68,6 +68,51 @@ func TestPersist115TokensKeepsOtherCredentialsEncrypted(t *testing.T) {
 	}
 }
 
+func TestAccount115RequestStatsStaySeparateAcrossProviderChanges(t *testing.T) {
+	svc := NewStrmService(nil, zap.NewNop(), nil, NewCryptoService("test-secret", zap.NewNop()))
+	useProvider := func(id string, requests int) {
+		t.Helper()
+		account := &model.StrmAccount{
+			Base:     model.Base{ID: id},
+			Provider: model.StrmProvider115,
+			Config:   mustJSON(map[string]string{"app_id": "test", "access_token": svc.crypto.Encrypt(id)}),
+		}
+		provider, err := svc.providerFor(t.Context(), account)
+		if err != nil {
+			t.Fatal(err)
+		}
+		provider.(cloud.OpenAPI115Provider).OpenClient().HTTP = &http.Client{
+			Transport: imageRoundTripFunc(func(req *http.Request) (*http.Response, error) {
+				if req.Header.Get("Authorization") != "Bearer "+id {
+					t.Fatalf("wrong account used for request for %s", id)
+				}
+				return remoteDeleteResponse(`{"state":true,"data":[]}`), nil
+			}),
+		}
+		for range requests {
+			if err := provider.Ping(t.Context()); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	useProvider("account-a", 1)
+	useProvider("account-b", 2)
+	svc.invalidate115Provider("account-a")
+	useProvider("account-a", 3)
+
+	for accountID, expected := range map[string]int64{"account-a": 4, "account-b": 2, "unused": 0} {
+		stats := svc.Account115RequestStats(accountID)
+		var hourlyRequests int64
+		for _, hour := range stats.Hourly {
+			hourlyRequests += hour.Requests
+		}
+		if stats.RequestsLastHour != expected || hourlyRequests != expected || (stats.AverageResponseMs != nil) != (expected > 0) {
+			t.Errorf("%s stats = %+v, want %d requests", accountID, stats, expected)
+		}
+	}
+}
+
 func TestOpenListTokenValidationAndPreview(t *testing.T) {
 	svc := &StrmService{crypto: NewCryptoService("test-secret", zap.NewNop())}
 	encrypted := svc.crypto.Encrypt("saved-token")

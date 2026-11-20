@@ -100,10 +100,11 @@ type StrmService struct {
 	oauthSessions       map[string]*strm115AuthSession
 	wafUntil            time.Time // 115 风控/限流熔断截止时间（由 mu 保护）
 
-	providerMu       sync.Mutex
-	provider115Cache map[string]cloud.Provider // account ID -> shared provider/OpenClient
-	syncPathMu       sync.Mutex                // 名称、输出目录冲突检查与配置写入串行执行
-	apiRateMu        sync.Mutex                // 115 接口速率的保存与生效串行执行
+	providerMu         sync.Mutex
+	provider115Cache   map[string]cloud.Provider // account ID -> shared provider/OpenClient
+	account115Monitors map[string]*cloud115.RequestMonitor
+	syncPathMu         sync.Mutex // 名称、输出目录冲突检查与配置写入串行执行
+	apiRateMu          sync.Mutex // 115 接口速率的保存与生效串行执行
 
 	downloadSem115  chan struct{} // 115 换直链+下载并发上限（风控兜底）
 	downloadSemDAV  chan struct{} // WebDAV/OpenList 元数据下载并发上限
@@ -550,7 +551,10 @@ func (s *StrmService) DeleteStrmAccount(ctx context.Context, id string) error {
 	if err := s.repo.StrmAccount.Delete(ctx, id); err != nil {
 		return err
 	}
-	s.invalidate115Provider(id)
+	s.providerMu.Lock()
+	delete(s.provider115Cache, id)
+	delete(s.account115Monitors, id)
+	s.providerMu.Unlock()
 	// 级联清理远程 Emby 挂载：否则留下孤儿挂载，挂载计数/列表仍会显示。
 	// 账号已删，挂载清理失败只记日志，不让删除请求报错。
 	if _, err := s.repo.EmbyMount.DeleteByAccountID(ctx, id); err != nil && s.log != nil {
@@ -632,6 +636,9 @@ func (s *StrmService) providerFor(ctx context.Context, acct *model.StrmAccount) 
 		if err != nil {
 			return nil, err
 		}
+		if openProvider, ok := provider.(cloud.OpenAPI115Provider); ok {
+			openProvider.OpenClient().Monitor = s.monitor115Locked(acct.ID)
+		}
 		s.provider115Cache[acct.ID] = provider
 		return provider, nil
 	}
@@ -674,6 +681,26 @@ func (s *StrmService) invalidate115Provider(accountID string) {
 	s.providerMu.Lock()
 	delete(s.provider115Cache, accountID)
 	s.providerMu.Unlock()
+}
+
+func (s *StrmService) monitor115Locked(accountID string) *cloud115.RequestMonitor {
+	if s.account115Monitors == nil {
+		s.account115Monitors = make(map[string]*cloud115.RequestMonitor)
+	}
+	monitor := s.account115Monitors[accountID]
+	if monitor == nil {
+		monitor = &cloud115.RequestMonitor{}
+		s.account115Monitors[accountID] = monitor
+	}
+	return monitor
+}
+
+// Account115RequestStats returns the current process's request statistics for the account.
+func (s *StrmService) Account115RequestStats(accountID string) cloud115.RequestStats {
+	s.providerMu.Lock()
+	monitor := s.account115Monitors[accountID]
+	s.providerMu.Unlock()
+	return monitor.Snapshot()
 }
 
 func (s *StrmService) isCurrent115Client(accountID string, client *cloud115.OpenClient) bool {
