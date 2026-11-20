@@ -181,6 +181,7 @@ export interface StrmSettingsMap {
   'strm.keep_ext': string
   'strm.download_threads': string
   'strm.upload_threads': string
+  'strm.115_api_qps': string
   [key: string]: string
 }
 

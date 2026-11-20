@@ -22,10 +22,10 @@ import { strmAPI } from '../api/strm'
 import { confirmAction } from '../components/confirmAction'
 import type { StrmAccount, StrmSyncPath, StrmSyncRecord, StrmSyncRecordPage } from '../types/strm'
 import { STRM_PROVIDER_LABELS } from '../types/strm'
-import { StrmAccountDialog, StrmSettingsDialog, StrmSyncPathDialog } from './StrmDialogs'
+import { Strm115RateDialog, StrmAccountDialog, StrmSettingsDialog, StrmSyncPathDialog } from './StrmDialogs'
 import { StrmAccountFilesDialog } from './strm-dialogs/StrmAccountFilesDialog'
 
-type StrmDialogKey = 'account' | 'files' | 'settings' | 'path' | null
+type StrmDialogKey = 'account' | 'files' | 'settings' | '115-rate' | 'path' | null
 type AccountTestState = { pending: boolean; error?: string }
 type PlaybackAddressStatus = 'loading' | 'unavailable' | 'missing' | 'ready'
 
@@ -274,6 +274,7 @@ export function StrmManagePage() {
             accounts={accounts}
             accountTests={accountTests}
             onAdd={() => { setEditingAccount(null); setDialog('account') }}
+            onEdit115Rate={() => setDialog('115-rate')}
             onEdit={(account) => { setEditingAccount(account); setDialog('account') }}
             onFiles={(account) => { setEditingAccount(account); setDialog('files') }}
             onDelete={deleteAccount}
@@ -314,6 +315,7 @@ export function StrmManagePage() {
       {dialog === 'files' && editingAccount && (
         <StrmAccountFilesDialog key={editingAccount.id} account={editingAccount} onClose={() => setDialog(null)} />
       )}
+      {dialog === '115-rate' && <Strm115RateDialog onClose={() => setDialog(null)} />}
       {dialog === 'settings' && (
         <StrmSettingsDialog
           onClose={() => setDialog(null)}
@@ -339,6 +341,7 @@ function AccountSection({
   accounts,
   accountTests,
   onAdd,
+  onEdit115Rate,
   onFiles,
   onEdit,
   onDelete,
@@ -347,6 +350,7 @@ function AccountSection({
   accounts: StrmAccount[]
   accountTests: Record<string, AccountTestState>
   onAdd: () => void
+  onEdit115Rate: () => void
   onFiles: (account: StrmAccount) => void
   onEdit: (account: StrmAccount) => void
   onDelete: (account: StrmAccount) => void
@@ -354,14 +358,19 @@ function AccountSection({
 }) {
   return (
     <section className="glass-panel space-y-3 p-5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Cloud size={18} className="text-brand-500" />
           <h2 className="font-display text-lg font-semibold text-ink-600">网盘账号</h2>
         </div>
-        <button type="button" onClick={onAdd} className="inline-flex items-center gap-1 text-sm font-semibold text-brand-500 hover:text-brand-600">
-          <Plus size={14} />新建
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="button" onClick={onEdit115Rate} className={iconButtonCls}>
+            <Settings size={14} />115 接口速率
+          </button>
+          <button type="button" onClick={onAdd} className="inline-flex items-center gap-1 text-sm font-semibold text-brand-500 hover:text-brand-600">
+            <Plus size={14} />新建
+          </button>
+        </div>
       </div>
       {accounts.length === 0 ? (
         <p className="rounded-xl bg-gray-50 px-4 py-6 text-center text-sm text-sand-500">

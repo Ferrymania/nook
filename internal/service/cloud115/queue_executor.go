@@ -3,22 +3,19 @@ package cloud115
 import (
 	"context"
 	"sync"
-	"time"
 
 	"golang.org/x/time/rate"
 )
 
+const DefaultQPS = 1
+
 // QueueExecutor 全局 115 请求调度执行器，通过三级令牌桶（QPS / QPM / QPH）平滑所有外发请求。
 type QueueExecutor struct {
-	sync.RWMutex
+	configMu        sync.Mutex
 	qpsLimiter      *rate.Limiter
 	qpmLimiter      *rate.Limiter
 	qphLimiter      *rate.Limiter
 	throttleManager *ThrottleManager
-
-	qpsConfig int
-	qpmConfig int
-	qphConfig int
 }
 
 var (
@@ -26,15 +23,10 @@ var (
 	executorOnce   sync.Once
 )
 
-// GetGlobalExecutor 获取全局队列执行器单例（默认 QPS=3, QPM=200, QPH=12000，保障 115 API 调用安全不超频）。
-//
-// 历史教训：QPS 提到 8 后，下载换直链接口（/open/ufile/downurl，WAF 重点盯防对象）
-// 瞬时突发撞上 115 风控，返回阿里云 405 阻断页（HTTP 405），导致全量同步失败。
-// 因此回调到 3——这是经过实测的安全上限：宁慢勿触发风控，一旦 405 冷却 180 秒，
-// 整体吞吐反而更低。下载实际走 CDN 不受此限速影响，瓶颈仅在换链环节。
+// GetGlobalExecutor returns the request limiter shared by all 115 clients.
 func GetGlobalExecutor() *QueueExecutor {
 	executorOnce.Do(func() {
-		globalExecutor = NewQueueExecutor(3, 200, 12000)
+		globalExecutor = NewQueueExecutor(DefaultQPS, DefaultQPS*60, DefaultQPS*3600)
 	})
 	return globalExecutor
 }
@@ -42,23 +34,20 @@ func GetGlobalExecutor() *QueueExecutor {
 // NewQueueExecutor 创建新的队列调度执行器。
 func NewQueueExecutor(qps, qpm, qph int) *QueueExecutor {
 	if qps <= 0 {
-		qps = 3
+		qps = DefaultQPS
 	}
 	if qpm <= 0 {
-		qpm = 200
+		qpm = qps * 60
 	}
 	if qph <= 0 {
-		qph = 12000
+		qph = qps * 3600
 	}
 
 	return &QueueExecutor{
 		qpsLimiter:      rate.NewLimiter(rate.Limit(qps), qps),
-		qpmLimiter:      rate.NewLimiter(rate.Every(time.Minute/time.Duration(qpm)), qpm),
-		qphLimiter:      rate.NewLimiter(rate.Every(time.Hour/time.Duration(qph)), qph),
+		qpmLimiter:      rate.NewLimiter(rate.Limit(qpm)/60, qpm),
+		qphLimiter:      rate.NewLimiter(rate.Limit(qph)/3600, qph),
 		throttleManager: GetGlobalThrottleManager(),
-		qpsConfig:       qps,
-		qpmConfig:       qpm,
-		qphConfig:       qph,
 	}
 }
 
@@ -83,26 +72,18 @@ func (qe *QueueExecutor) Acquire(ctx context.Context) error {
 	return nil
 }
 
-// SetRateLimitConfig 动态调整速率限制。
-func (qe *QueueExecutor) SetRateLimitConfig(qps, qpm, qph int) {
-	qe.Lock()
-	defer qe.Unlock()
+// SetRequestsPerSecond updates all three buckets from the validated QPS setting.
+func (qe *QueueExecutor) SetRequestsPerSecond(qps int) {
+	qe.configMu.Lock()
+	defer qe.configMu.Unlock()
 
-	if qps > 0 {
-		qe.qpsConfig = qps
-		qe.qpsLimiter.SetLimit(rate.Limit(qps))
-		qe.qpsLimiter.SetBurst(qps)
-	}
-	if qpm > 0 {
-		qe.qpmConfig = qpm
-		qe.qpmLimiter.SetLimit(rate.Every(time.Minute / time.Duration(qpm)))
-		qe.qpmLimiter.SetBurst(qpm)
-	}
-	if qph > 0 {
-		qe.qphConfig = qph
-		qe.qphLimiter.SetLimit(rate.Every(time.Hour / time.Duration(qph)))
-		qe.qphLimiter.SetBurst(qph)
-	}
+	limit := rate.Limit(qps)
+	qe.qpsLimiter.SetLimit(limit)
+	qe.qpsLimiter.SetBurst(qps)
+	qe.qpmLimiter.SetLimit(limit)
+	qe.qpmLimiter.SetBurst(qps * 60)
+	qe.qphLimiter.SetLimit(limit)
+	qe.qphLimiter.SetBurst(qps * 3600)
 }
 
 // MarkThrottled 触发限流熔断。

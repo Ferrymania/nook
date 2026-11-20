@@ -476,6 +476,70 @@ export function StrmAccountDialog({
 
 // QR 尺寸：物理像素 = CSS 像素（避免 canvas 被 CSS 缩放导致裁切/模糊）
 const STRM_BASE_URL = 'strm.base_url'
+const STRM_115_API_QPS = 'strm.115_api_qps'
+
+export function Strm115RateDialog({ onClose }: { onClose: () => void }) {
+  const inputID = useId()
+  const [qps, setQPS] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let active = true
+    strmAPI.getSettings()
+      .then((settings) => { if (active) setQPS(settings[STRM_115_API_QPS]) })
+      .catch((err) => { if (active) setError(apiErrorMessage(err)) })
+    return () => { active = false }
+  }, [])
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault()
+    if (qps === null || saving) return
+    setSaving(true)
+    setError('')
+    try {
+      await strmAPI.updateSettings({ [STRM_115_API_QPS]: qps })
+      toast.success('115 接口速率已保存')
+      onClose()
+    } catch (err) {
+      setError(apiErrorMessage(err))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <DialogShell title="115 接口速率" subtitle="所有 115 网盘账号共用，保存后立即生效" onClose={() => { if (!saving) onClose() }}>
+      {qps === null ? (
+        error ? <p role="alert" className="text-sm text-rose-600">{error}</p> : (
+          <div role="status" className="flex justify-center py-8 text-ink-50">
+            <Loader2 className="animate-spin" aria-label="正在加载" />
+          </div>
+        )
+      ) : (
+        <form onSubmit={submit} className="space-y-4">
+          <div className="space-y-1">
+            <label htmlFor={inputID} className="text-sm font-medium text-ink-100">每秒请求数</label>
+            <input id={inputID} type="number" min={1} step={1} required disabled={saving}
+              aria-describedby={`${inputID}-help`} className={inputCls} value={qps}
+              onChange={(event) => { setQPS(event.target.value); setError('') }} />
+            <p id={`${inputID}-help`} className="text-xs text-sand-500">默认每秒 1 次，用于文件管理、同步和获取播放直链等操作。</p>
+          </div>
+          {error && <p role="alert" className="text-sm text-rose-600">{error}</p>}
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={onClose} disabled={saving} className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-ink-100 hover:bg-gray-50 disabled:opacity-50">
+              取消
+            </button>
+            <button type="submit" disabled={saving} className="neon-button disabled:opacity-50">
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              保存
+            </button>
+          </div>
+        </form>
+      )}
+    </DialogShell>
+  )
+}
 
 function strmPlaybackHostname(address: string) {
   if (!/^https?:\/\/[^/\s]/i.test(address)) return ''
@@ -560,7 +624,9 @@ export function StrmSettingsDialog({ onClose, onAddressChange }: { onClose: () =
     }
     setSaving(true)
     try {
-      await strmAPI.updateSettings(values)
+      const payload = { ...values }
+      delete payload[STRM_115_API_QPS]
+      await strmAPI.updateSettings(payload)
       onAddressChange(address.trim())
       toast.success('STRM 设置已保存')
       onClose()
