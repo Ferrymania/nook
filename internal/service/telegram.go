@@ -64,7 +64,9 @@ type TelegramService struct {
 	people     func(context.Context, *model.Media) []map[string]any
 	mediaOnce  sync.Once
 
-	cloudDownloadWake chan struct{}
+	cloudDownloadWake     chan struct{}
+	cloudDownloadReportMu sync.Mutex
+	cloudDownloadInput    cloudDownloadInput // guarded by mu
 }
 
 // NewTelegramService 构建 TelegramService。
@@ -353,6 +355,7 @@ func (s *TelegramService) initializePolling(ctx context.Context, token string) e
 	}
 	s.mu.Lock()
 	s.lastUpdateID = offset
+	s.cloudDownloadInput = cloudDownloadInput{}
 	s.mu.Unlock()
 	return nil
 }
@@ -424,12 +427,16 @@ func (s *TelegramService) handleUpdate(ctx context.Context, token string, u tele
 	if isTelegramControlCommand(text) || command == "/start" {
 		if s.adminControlAllowed(ctx, token, u.Message.Chat, u.Message.From.ID) {
 			if command == "/download" && s.strm != nil {
-				s.createCloudDownloadDraft(ctx, token, u.Message)
+				s.handleCloudDownloadCommand(ctx, token, u.Message, text)
 				return
 			}
 			s.handleAdminCommand(ctx, token, chatID, command)
 			return
 		}
+	}
+	if s.strm != nil && !strings.HasPrefix(text, "/") {
+		s.handleCloudDownloadFollowUp(ctx, token, u.Message, text)
+		return
 	}
 	if command == "/start" {
 		message := "Nook Bot 提供管理员运维通知与同步控制。"

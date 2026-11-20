@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"html"
 	"strconv"
@@ -12,29 +13,58 @@ import (
 	"unicode"
 
 	"github.com/Ferrymania/nook/internal/model"
+	"github.com/Ferrymania/nook/internal/service/cloud115"
 )
 
 const (
-	cloudDownloadDraftLifetime = 15 * time.Minute
-	cloudDownloadWorkerTick    = 30 * time.Second
+	cloudDownloadInputLifetime  = 5 * time.Minute
+	cloudDownloadDraftLifetime  = 15 * time.Minute
+	cloudDownloadWorkerTick     = 30 * time.Second
+	cloudDownloadResultPageSize = 8
 )
+
+type cloudDownloadInput struct {
+	botKey    string
+	chatID    int64
+	expiresAt time.Time
+}
 
 func cloudDownloadBotKey(token string) string {
 	sum := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(sum[:])
 }
 
-func cloudDownloadLink(text string) string {
-	text = strings.TrimSpace(text)
-	pos := strings.IndexFunc(text, unicode.IsSpace)
-	if pos < 0 {
-		return ""
+func cloudDownloadLinks(text string) ([]string, error) {
+	lines := strings.Split(strings.TrimSpace(text), "\n")
+	var links []string
+	seen := make(map[string]bool)
+	for i, line := range lines {
+		link := strings.TrimSpace(line)
+		if link == "" {
+			continue
+		}
+		if !validCloudDownloadED2K(link) {
+			return nil, fmt.Errorf("第 %d 行的 ED2K 文件链接格式无效。请每行填写一条链接。", i+1)
+		}
+		key := cloudDownloadLinkKey(link)
+		if !seen[key] {
+			seen[key] = true
+			links = append(links, link)
+		}
 	}
-	link := strings.TrimSpace(text[pos:])
-	if !validCloudDownloadED2K(link) {
-		return ""
+	if len(links) == 0 {
+		return nil, errors.New("请发送 ED2K 文件链接，每行一条。")
 	}
-	return link
+	if len(links) > cloud115.OfflineLinkBatchLimit {
+		return nil, fmt.Errorf("每批最多提交 %d 条 ED2K 链接，请分批发送。", cloud115.OfflineLinkBatchLimit)
+	}
+	return links, nil
+}
+
+// Only call with a validated ED2K file link.
+func cloudDownloadLinkKey(link string) string {
+	parts := strings.SplitN(link, "|", 6)
+	return strings.ToLower(parts[4])
 }
 
 func validCloudDownloadED2K(link string) bool {
@@ -122,15 +152,61 @@ func cloudDownloadKeyboard(id string, accounts []cloudDownloadAccount, page int)
 	return keyboard
 }
 
-const cloudDownloadDraftText = "☁️ 115 云下载\n\n请选择 115 账号。文件会保存到所选账号的暂存目录。"
+func cloudDownloadDraftText(count int) string {
+	return fmt.Sprintf("☁️ 115 云下载 · %d 个文件\n\n请选择 115 账号。文件会保存到所选账号的暂存目录，同一文件只提交一次。", count)
+}
 
-func (s *TelegramService) createCloudDownloadDraft(ctx context.Context, token string, message *telegramMessage) {
-	chatID := strconv.FormatInt(message.Chat.ID, 10)
-	link := cloudDownloadLink(message.Text)
-	if link == "" {
-		s.controlReply(ctx, token, chatID, "云下载只接受 ED2K 单文件链接。请发送 <code>/download &lt;ED2K 链接&gt;</code>，每次一条。", nil)
+func (s *TelegramService) handleCloudDownloadCommand(ctx context.Context, token string, message *telegramMessage, text string) {
+	if pos := strings.IndexFunc(text, unicode.IsSpace); pos >= 0 {
+		s.handleCloudDownloadLinks(ctx, token, message, text[pos:])
 		return
 	}
+	s.mu.Lock()
+	s.cloudDownloadInput = cloudDownloadInput{
+		botKey: cloudDownloadBotKey(token), chatID: message.Chat.ID, expiresAt: time.Now().Add(cloudDownloadInputLifetime),
+	}
+	s.mu.Unlock()
+	s.controlReply(ctx, token, strconv.FormatInt(message.Chat.ID, 10), "请在 5 分钟内发送 ED2K 文件链接，每行一条。", nil)
+}
+
+func (s *TelegramService) handleCloudDownloadFollowUp(ctx context.Context, token string, message *telegramMessage, text string) {
+	s.mu.Lock()
+	input := s.cloudDownloadInput
+	s.mu.Unlock()
+	if input.chatID != message.Chat.ID || input.botKey != cloudDownloadBotKey(token) ||
+		!s.adminControlAllowed(ctx, token, message.Chat, message.From.ID) {
+		return
+	}
+	if time.Now().Before(input.expiresAt) {
+		s.handleCloudDownloadLinks(ctx, token, message, text)
+		return
+	}
+	s.mu.Lock()
+	if s.cloudDownloadInput == input {
+		s.cloudDownloadInput = cloudDownloadInput{}
+	}
+	s.mu.Unlock()
+	if strings.HasPrefix(strings.ToLower(text), "ed2k://") {
+		s.controlReply(ctx, token, strconv.FormatInt(message.Chat.ID, 10), "等待链接已超时，请重新发送 /download。", nil)
+	}
+}
+
+func (s *TelegramService) handleCloudDownloadLinks(ctx context.Context, token string, message *telegramMessage, text string) {
+	links, err := cloudDownloadLinks(text)
+	if err != nil {
+		s.controlReply(ctx, token, strconv.FormatInt(message.Chat.ID, 10), html.EscapeString(err.Error()), nil)
+		return
+	}
+	s.mu.Lock()
+	if s.cloudDownloadInput.chatID == message.Chat.ID && s.cloudDownloadInput.botKey == cloudDownloadBotKey(token) {
+		s.cloudDownloadInput = cloudDownloadInput{}
+	}
+	s.mu.Unlock()
+	s.createCloudDownloadDraft(ctx, token, message, links)
+}
+
+func (s *TelegramService) createCloudDownloadDraft(ctx context.Context, token string, message *telegramMessage, links []string) {
+	chatID := strconv.FormatInt(message.Chat.ID, 10)
 	accounts, err := s.cloudDownloadAccounts(ctx)
 	if err != nil {
 		s.controlReply(ctx, token, chatID, "读取 115 账号失败，请稍后重试。", nil)
@@ -140,19 +216,26 @@ func (s *TelegramService) createCloudDownloadDraft(ctx context.Context, token st
 		s.controlReply(ctx, token, chatID, "没有配置暂存目录的可用 115 账号。请先授权账号并设置云下载暂存目录。", nil)
 		return
 	}
-	encrypted := ""
-	if s.strm.crypto != nil {
-		encrypted = s.strm.crypto.Encrypt(link)
-	}
-	if encrypted == "" || !s.strm.crypto.IsEncrypted(encrypted) {
+	if s.strm.crypto == nil {
 		s.controlReply(ctx, token, chatID, "加密服务暂不可用，无法保存下载任务。", nil)
 		return
+	}
+	items := make([]model.TelegramCloudDownloadItem, 0, len(links))
+	for _, link := range links {
+		encrypted := s.strm.crypto.Encrypt(link)
+		if !s.strm.crypto.IsEncrypted(encrypted) {
+			s.controlReply(ctx, token, chatID, "加密服务暂不可用，无法保存下载任务。", nil)
+			return
+		}
+		items = append(items, model.TelegramCloudDownloadItem{
+			Name: strings.SplitN(link, "|", 4)[2], EncryptedLink: encrypted, Status: model.CloudDownloadQueued, Progress: -1,
+		})
 	}
 	key := cloudDownloadBotKey(token)
 	sum := sha256.Sum256([]byte(fmt.Sprintf("%s:%d:%d", key, message.Chat.ID, message.MessageID)))
 	task := &model.TelegramCloudDownload{
 		Base:   model.Base{ID: hex.EncodeToString(sum[:8])},
-		BotKey: key, ChatID: message.Chat.ID, Status: model.CloudDownloadDraft, EncryptedLink: encrypted,
+		BotKey: key, ChatID: message.Chat.ID, Status: model.CloudDownloadDraft, Items: items,
 	}
 	inserted, err := s.repo.TelegramCloudDownload.Create(ctx, task)
 	if err != nil {
@@ -165,7 +248,7 @@ func (s *TelegramService) createCloudDownloadDraft(ctx context.Context, token st
 	}
 	var result telegramMessage
 	err = s.call(ctx, token, "sendMessage", map[string]any{
-		"chat_id": message.Chat.ID, "text": cloudDownloadDraftText,
+		"chat_id": message.Chat.ID, "text": cloudDownloadDraftText(len(items)),
 		"reply_markup": map[string]any{"inline_keyboard": cloudDownloadKeyboard(task.ID, accounts, 0)},
 	}, &result)
 	if err != nil || result.MessageID == 0 {
@@ -188,6 +271,18 @@ func (s *TelegramService) handleCloudDownloadCallback(ctx context.Context, token
 		task.ChatID != message.Chat.ID || task.BotKey != cloudDownloadBotKey(token) {
 		return
 	}
+	if parts[1] == "dlresult" {
+		page, err := strconv.Atoi(parts[3])
+		if err != nil || task.Status == model.CloudDownloadDraft || page < 0 || page >= cloudDownloadResultPages(len(task.Items)) {
+			return
+		}
+		if err := s.repo.TelegramCloudDownload.SetResultPage(ctx, task.ID, page); err != nil {
+			s.warn("save cloud download result page failed", "admin", err)
+			return
+		}
+		s.reportCloudDownload(ctx, token, task.ID, time.Now())
+		return
+	}
 	if task.Status != model.CloudDownloadDraft {
 		return
 	}
@@ -204,7 +299,7 @@ func (s *TelegramService) handleCloudDownloadCallback(ctx context.Context, token
 		page, err := strconv.Atoi(parts[3])
 		pageCount := (len(accounts) + telegramPathPageSize - 1) / telegramPathPageSize
 		if err == nil && page >= 0 && page < pageCount {
-			_ = s.editCloudDownloadMessage(ctx, token, task, cloudDownloadDraftText, cloudDownloadKeyboard(task.ID, accounts, page))
+			_ = s.editCloudDownloadMessage(ctx, token, task, cloudDownloadDraftText(len(cloudDownloadItems(task))), cloudDownloadKeyboard(task.ID, accounts, page))
 		}
 		return
 	}
@@ -253,26 +348,84 @@ func clampTelegramRunes(value string, limit int) string {
 	return string(runes[:limit-1]) + "…"
 }
 
-func cloudDownloadMessage(task *model.TelegramCloudDownload) string {
-	var status string
-	switch task.Status {
-	case model.CloudDownloadQueued:
-		status = "准备提交"
-	case model.CloudDownloadSubmitting:
-		status = "正在确认 115 是否已接收任务"
-	case model.CloudDownloadTracking:
-		status = "已提交，等待 115 下载"
-		if task.Progress >= 0 {
-			status = fmt.Sprintf("115 下载中 · %d%%", task.Progress)
-		}
-	case model.CloudDownloadDone:
-		status = "下载完成，文件已存入暂存目录"
-	case model.CloudDownloadFailed:
-		status = "115 云下载失败"
+// Records created before batch support have a single link stored on the task.
+func cloudDownloadItems(task *model.TelegramCloudDownload) []model.TelegramCloudDownloadItem {
+	if len(task.Items) > 0 {
+		return task.Items
 	}
-	text := "☁️ <b>115 云下载</b>\n\n暂存目录：" + html.EscapeString(clampTelegramRunes(task.Directory, 200)) + "\n状态：" + status
+	return []model.TelegramCloudDownloadItem{{
+		EncryptedLink: task.EncryptedLink, Status: task.Status, RemoteTaskID: task.RemoteTaskID,
+		MissingSince: task.MissingSince, Progress: task.Progress, Detail: task.Detail,
+	}}
+}
+
+func cloudDownloadItemStatus(item model.TelegramCloudDownloadItem) string {
+	switch item.Status {
+	case model.CloudDownloadQueued:
+		return "准备提交"
+	case model.CloudDownloadSubmitting:
+		return "正在确认 115 是否已接收任务"
+	case model.CloudDownloadTracking:
+		if item.Progress >= 0 {
+			return fmt.Sprintf("115 下载中 · %d%%", item.Progress)
+		}
+		return "已提交，等待 115 下载"
+	case model.CloudDownloadDone:
+		return "下载完成，文件已存入暂存目录"
+	case model.CloudDownloadFailed:
+		return "115 云下载失败"
+	}
+	return "等待提交"
+}
+
+func cloudDownloadResultPages(count int) int {
+	return (count + cloudDownloadResultPageSize - 1) / cloudDownloadResultPageSize
+}
+
+func cloudDownloadMessage(task *model.TelegramCloudDownload) (string, [][]telegramButton) {
+	text := "☁️ <b>115 云下载</b>\n\n暂存目录：" + html.EscapeString(clampTelegramRunes(task.Directory, 200))
+	items := cloudDownloadItems(task)
+	if len(items) == 1 {
+		text += "\n状态：" + cloudDownloadItemStatus(items[0])
+		if detail := firstNonEmpty(items[0].Detail, task.Detail); detail != "" {
+			text += "\n" + html.EscapeString(clampTelegramRunes(detail, 320))
+		}
+		return text, nil
+	}
+	var done, failed int
+	for _, item := range items {
+		switch item.Status {
+		case model.CloudDownloadDone:
+			done++
+		case model.CloudDownloadFailed:
+			failed++
+		}
+	}
+	text += fmt.Sprintf("\n共 %d 项 · 已完成 %d · 处理中 %d · 失败 %d", len(items), done, len(items)-done-failed, failed)
 	if task.Detail != "" {
 		text += "\n" + html.EscapeString(clampTelegramRunes(task.Detail, 320))
 	}
-	return text
+	pages := cloudDownloadResultPages(len(items))
+	page := min(max(task.DetailPage, 0), pages-1)
+	start := page * cloudDownloadResultPageSize
+	end := min(start+cloudDownloadResultPageSize, len(items))
+	for i := start; i < end; i++ {
+		item := items[i]
+		text += fmt.Sprintf("\n\n%d. %s\n%s", i+1, html.EscapeString(clampTelegramRunes(item.Name, 64)), cloudDownloadItemStatus(item))
+		if item.Detail != "" {
+			text += " · " + html.EscapeString(clampTelegramRunes(item.Detail, 100))
+		}
+	}
+	if pages == 1 {
+		return text, nil
+	}
+	text += fmt.Sprintf("\n\n第 %d/%d 页", page+1, pages)
+	var navigation []telegramButton
+	if page > 0 {
+		navigation = append(navigation, telegramButton{Text: "上一页", Data: fmt.Sprintf("nook:dlresult:%s:%d", task.ID, page-1)})
+	}
+	if page+1 < pages {
+		navigation = append(navigation, telegramButton{Text: "下一页", Data: fmt.Sprintf("nook:dlresult:%s:%d", task.ID, page+1)})
+	}
+	return text, [][]telegramButton{navigation}
 }

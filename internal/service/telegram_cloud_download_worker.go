@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"time"
@@ -90,9 +91,8 @@ func (s *TelegramService) runCloudDownload(ctx context.Context, token string, ta
 	if err != nil || !updated {
 		return err
 	}
-	task.CheckAfter = checkAfter
 	if task.Status == model.CloudDownloadQueued && !task.Reported {
-		s.reportCloudDownload(ctx, token, task, now)
+		s.reportCloudDownload(ctx, token, task.ID, now)
 	}
 	switch task.Status {
 	case model.CloudDownloadQueued:
@@ -103,24 +103,35 @@ func (s *TelegramService) runCloudDownload(ctx context.Context, token string, ta
 	if err != nil {
 		return err
 	}
-	latest, err := s.repo.TelegramCloudDownload.Find(ctx, task.ID)
-	if err == nil && latest != nil && !latest.Reported {
-		s.reportCloudDownload(ctx, token, latest, now)
-	}
-	return err
+	s.reportCloudDownload(ctx, token, task.ID, now)
+	return nil
 }
 
-func (s *TelegramService) reportCloudDownload(ctx context.Context, token string, task *model.TelegramCloudDownload, now time.Time) {
+func (s *TelegramService) reportCloudDownload(ctx context.Context, token, taskID string, now time.Time) {
+	// Navigation and progress share the same message. Read the latest page and
+	// results after the previous edit finishes so an older edit cannot arrive last.
+	s.cloudDownloadReportMu.Lock()
+	defer s.cloudDownloadReportMu.Unlock()
+	task, err := s.repo.TelegramCloudDownload.Find(ctx, taskID)
+	if err != nil {
+		s.warn("load cloud download notification failed", "admin", err)
+		return
+	}
+	if task == nil || task.Reported {
+		return
+	}
 	if !s.adminControlAllowed(ctx, token, telegramChat{ID: task.ChatID, Type: "private"}, task.ChatID) {
 		return
 	}
-	text := cloudDownloadMessage(task)
+	text, keyboard := cloudDownloadMessage(task)
 	fields := map[string]any{"reported": true}
-	if err := s.editCloudDownloadMessage(ctx, token, task, text, nil); err != nil {
+	if err := s.editCloudDownloadMessage(ctx, token, task, text, keyboard); err != nil {
 		var apiErr *telegramAPIError
 		switch {
 		case errors.As(err, &apiErr) && apiErr.RetryAfter > 0:
-			// A messaging retry must not bring the next 115 lookup forward.
+			if task.Status != model.CloudDownloadDone && task.Status != model.CloudDownloadFailed {
+				return
+			}
 			retryAt := now.Add(time.Duration(apiErr.RetryAfter) * time.Second)
 			if !retryAt.After(task.CheckAfter) {
 				return
@@ -133,7 +144,7 @@ func (s *TelegramService) reportCloudDownload(ctx context.Context, token string,
 			return
 		}
 	}
-	if _, err := s.repo.TelegramCloudDownload.Update(ctx, task, fields); err != nil {
+	if err := s.repo.TelegramCloudDownload.UpdateReport(ctx, task, fields); err != nil {
 		s.warn("save cloud download notification status failed", "admin", err)
 	}
 }
@@ -143,53 +154,133 @@ func (s *TelegramService) updateCloudDownload(ctx context.Context, task *model.T
 	return err
 }
 
-func (s *TelegramService) failCloudDownload(ctx context.Context, task *model.TelegramCloudDownload, detail string) error {
-	return s.updateCloudDownload(ctx, task, map[string]any{
-		"status": model.CloudDownloadFailed, "detail": detail, "encrypted_link": "", "reported": false,
-	})
+func (s *TelegramService) saveCloudDownloadItems(ctx context.Context, task *model.TelegramCloudDownload, items []model.TelegramCloudDownloadItem, now time.Time) (bool, error) {
+	var completed, failed, tracking int
+	for _, item := range items {
+		switch item.Status {
+		case model.CloudDownloadDone:
+			completed++
+		case model.CloudDownloadFailed:
+			failed++
+		case model.CloudDownloadTracking:
+			tracking++
+		}
+	}
+	status := model.CloudDownloadSubmitting
+	switch {
+	case failed == len(items):
+		status = model.CloudDownloadFailed
+	case completed+failed == len(items):
+		status = model.CloudDownloadDone
+	case tracking > 0:
+		status = model.CloudDownloadTracking
+	}
+
+	data, err := json.Marshal(items)
+	if err != nil {
+		return false, err
+	}
+	fields := map[string]any{
+		"status": status, "items": string(data), "encrypted_link": "", "detail": "", "reported": false,
+	}
+	if task.Status == model.CloudDownloadQueued && status == model.CloudDownloadSubmitting {
+		fields["submitted_at"] = now
+	}
+	if status == model.CloudDownloadDone || status == model.CloudDownloadFailed {
+		fields["check_after"] = now.Add(cloudDownloadWorkerTick)
+	}
+	return s.repo.TelegramCloudDownload.Update(ctx, task, fields)
+}
+
+func failCloudDownloadItem(item *model.TelegramCloudDownloadItem, detail string) {
+	item.Status, item.Detail, item.EncryptedLink = model.CloudDownloadFailed, detail, ""
+}
+
+func (s *TelegramService) failCloudDownload(ctx context.Context, task *model.TelegramCloudDownload, now time.Time, detail string) error {
+	items := cloudDownloadItems(task)
+	for i := range items {
+		failCloudDownloadItem(&items[i], detail)
+	}
+	_, err := s.saveCloudDownloadItems(ctx, task, items, now)
+	return err
 }
 
 func (s *TelegramService) submitCloudDownload(ctx context.Context, task *model.TelegramCloudDownload, now time.Time) error {
 	if !valid115ID(task.StagingFolderID) || task.StagingFolderID == "0" {
-		return s.failCloudDownload(ctx, task, "请为该账号选择独立的云下载暂存目录。")
+		return s.failCloudDownload(ctx, task, now, "请为该账号选择独立的云下载暂存目录。")
 	}
 	provider, err := s.strm.accountFilesProvider(ctx, task.AccountID, task.StagingFolderID)
 	if err != nil {
-		return s.failCloudDownload(ctx, task, "115 账号不可用，请检查账号和开放平台授权。")
+		return s.failCloudDownload(ctx, task, now, "115 账号不可用，请检查账号和开放平台授权。")
 	}
 	if err := s.checkCloudDownloadStaging(ctx, task, provider.OpenClient()); err != nil {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		return s.failCloudDownload(ctx, task, err.Error())
+		return s.failCloudDownload(ctx, task, now, err.Error())
 	}
-	link, err := s.strm.crypto.Decrypt(task.EncryptedLink)
-	if err != nil || link == "" {
-		return s.failCloudDownload(ctx, task, "无法读取原始下载链接，请重新发送 /download。")
+	items := cloudDownloadItems(task)
+	links := make([]string, len(items))
+	for i := range items {
+		link, err := s.strm.crypto.Decrypt(items[i].EncryptedLink)
+		if err != nil || !validCloudDownloadED2K(link) {
+			return s.failCloudDownload(ctx, task, now, "无法读取已保存的 ED2K 链接，请重新发送 /download。")
+		}
+		links[i] = link
+		items[i].Status, items[i].Progress = model.CloudDownloadSubmitting, -1
 	}
-	if !validCloudDownloadED2K(link) {
-		return s.failCloudDownload(ctx, task, "云下载只接受 ED2K 单文件链接，请重新发送 /download。")
-	}
-	// Record intent before the POST. A crash or timeout is reconciled by
-	// looking for the exact link and directory instead of repeating the POST.
-	claimed, err := s.repo.TelegramCloudDownload.Update(ctx, task, map[string]any{
-		"status": model.CloudDownloadSubmitting, "submitted_at": now, "reported": false,
-	})
+	// Persist the submission before making the POST. A lost response is
+	// reconciled against the task list, so a restart never resends a batch.
+	claimed, err := s.saveCloudDownloadItems(ctx, task, items, now)
 	if err != nil || !claimed {
 		return err
 	}
 	task.Status = model.CloudDownloadSubmitting
-	id, err := provider.OpenClient().AddOfflineLink(ctx, link, task.StagingFolderID)
+	task.Items = items
+	results, err := provider.OpenClient().AddOfflineLinks(ctx, links, task.StagingFolderID)
 	var apiErr *cloud115.OpenAPIError
 	if errors.As(err, &apiErr) {
-		return s.failCloudDownload(ctx, task, cloudDownloadProviderError(apiErr, link))
+		return s.failCloudDownload(ctx, task, now, cloudDownloadProviderError(apiErr, links...))
 	}
 	if err != nil {
 		return nil
 	}
-	return s.updateCloudDownload(ctx, task, map[string]any{
-		"status": model.CloudDownloadTracking, "remote_task_id": id, "encrypted_link": "", "progress": -1, "reported": false,
-	})
+
+	// 115 returns each submitted URL. Correlate by the ED2K file hash to
+	// tolerate normalized URLs and different response order.
+	byKey := make(map[string]cloud115.OfflineLinkResult, len(results))
+	ambiguous := make(map[string]bool)
+	for _, result := range results {
+		var key string
+		url := strings.TrimSpace(result.URL)
+		switch {
+		case url == "" && len(links) == 1 && len(results) == 1:
+			key = cloudDownloadLinkKey(links[0])
+		case validCloudDownloadED2K(url):
+			key = cloudDownloadLinkKey(url)
+		default:
+			continue
+		}
+		if _, exists := byKey[key]; exists {
+			ambiguous[key] = true
+		}
+		byKey[key] = result
+	}
+	for i, link := range links {
+		key := cloudDownloadLinkKey(link)
+		result, ok := byKey[key]
+		if !ok || ambiguous[key] {
+			continue
+		}
+		if !result.Accepted {
+			detail := cloudDownloadProviderError(cloud115.NewOpenAPIError(result.Code, result.Message), append(links, result.URL)...)
+			failCloudDownloadItem(&items[i], detail)
+		} else if id := strings.TrimSpace(result.TaskID); id != "" {
+			items[i].Status, items[i].RemoteTaskID, items[i].EncryptedLink = model.CloudDownloadTracking, id, ""
+		}
+	}
+	_, err = s.saveCloudDownloadItems(ctx, task, items, now)
+	return err
 }
 
 // Fetch each page at most once per 115 account in one polling round.
@@ -227,77 +318,98 @@ func (p *cloudDownloadTaskPages) find(ctx context.Context, client *cloud115.Open
 func (s *TelegramService) trackCloudDownload(ctx context.Context, task *model.TelegramCloudDownload, now time.Time, pages map[string]*cloudDownloadTaskPages) error {
 	provider, err := s.strm.accountFilesProvider(ctx, task.AccountID, task.StagingFolderID)
 	if err != nil {
-		// A temporary account or database problem does not stop an accepted task.
 		return s.updateCloudDownloadNotice(ctx, task, "暂时无法查询 115，请检查网盘账号和授权。")
 	}
 	if pages[task.AccountID] == nil {
 		pages[task.AccountID] = &cloudDownloadTaskPages{}
 	}
-	link := ""
-	if task.Status == model.CloudDownloadSubmitting {
-		link, err = s.strm.crypto.Decrypt(task.EncryptedLink)
-		if err != nil || link == "" || task.SubmittedAt == nil {
-			return s.failCloudDownload(ctx, task, "提交结果无法确认，请在 115 中查看。")
+	items := cloudDownloadItems(task)
+	changed := task.Detail != ""
+	for i := range items {
+		if items[i].Status == model.CloudDownloadDone || items[i].Status == model.CloudDownloadFailed {
+			continue
+		}
+		item := s.checkCloudDownloadItem(ctx, task, items[i], now, pages[task.AccountID], provider.OpenClient())
+		if item != items[i] {
+			items[i] = item
+			changed = true
 		}
 	}
-	remote, err := pages[task.AccountID].find(ctx, provider.OpenClient(), func(remote cloud115.OfflineTask) bool {
+	if !changed {
+		return nil
+	}
+	_, err = s.saveCloudDownloadItems(ctx, task, items, now)
+	return err
+}
+
+func (s *TelegramService) checkCloudDownloadItem(ctx context.Context, task *model.TelegramCloudDownload, item model.TelegramCloudDownloadItem, now time.Time, pages *cloudDownloadTaskPages, client *cloud115.OpenClient) model.TelegramCloudDownloadItem {
+	var link, linkKey string
+	if item.RemoteTaskID == "" {
+		var err error
+		link, err = s.strm.crypto.Decrypt(item.EncryptedLink)
+		if err != nil || !validCloudDownloadED2K(link) || task.SubmittedAt == nil {
+			failCloudDownloadItem(&item, "提交结果无法确认，请在 115 中查看。")
+			return item
+		}
+		linkKey = cloudDownloadLinkKey(link)
+	}
+	remote, err := pages.find(ctx, client, func(remote cloud115.OfflineTask) bool {
 		if remote.ID == "" {
 			return false
 		}
-		if task.RemoteTaskID != "" {
-			return strings.EqualFold(task.RemoteTaskID, remote.ID)
+		if item.RemoteTaskID != "" {
+			return strings.EqualFold(item.RemoteTaskID, remote.ID)
+		}
+		if remote.FolderID != task.StagingFolderID || !validCloudDownloadED2K(remote.URL) {
+			return false
 		}
 		addedAt, err := remote.AddedAt.Int64()
-		return err == nil && remote.URL == link && remote.FolderID == task.StagingFolderID &&
+		return err == nil && cloudDownloadLinkKey(remote.URL) == linkKey &&
 			addedAt >= task.SubmittedAt.Add(-time.Minute).Unix()
 	})
 	if err != nil {
-		detail := "暂时无法查询 115 云下载进度，将继续重试。"
+		item.Detail = "暂时无法查询 115 云下载进度，将继续重试。"
 		var apiErr *cloud115.OpenAPIError
 		if errors.As(err, &apiErr) {
-			detail = cloudDownloadProviderError(apiErr, link)
+			item.Detail = cloudDownloadProviderError(apiErr, link)
 		}
-		return s.updateCloudDownloadNotice(ctx, task, detail)
+		return item
 	}
 	if remote == nil {
-		if task.MissingSince == nil {
-			return s.updateCloudDownload(ctx, task, map[string]any{"missing_since": now})
-		}
-		if now.Sub(*task.MissingSince) > cloudDownloadMissingTimeout {
+		if item.MissingSince == nil {
+			item.MissingSince = &now
+		} else if now.Sub(*item.MissingSince) > cloudDownloadMissingTimeout {
 			detail := "连续查询不到此任务，请在 115 云下载列表查看。"
-			if task.Status == model.CloudDownloadSubmitting {
+			if item.Status == model.CloudDownloadSubmitting {
 				detail = "未能确认 115 已接受提交，请在 115 中核对后再提交。"
 			}
-			return s.failCloudDownload(ctx, task, detail)
+			failCloudDownloadItem(&item, detail)
 		}
-		return nil
+		return item
 	}
+
+	item.Status, item.RemoteTaskID, item.EncryptedLink = model.CloudDownloadTracking, remote.ID, ""
+	item.MissingSince, item.Detail = nil, ""
 	status, err := remote.Status.Int64()
 	if err != nil {
-		return s.updateCloudDownloadNotice(ctx, task, "115 暂未返回可识别的任务状态。")
+		item.Detail = "115 暂未返回可识别的任务状态。"
+		return item
 	}
-	if status == cloud115.OfflineTaskFailed {
-		return s.failCloudDownload(ctx, task, "115 报告下载失败，可在 115 云下载列表查看详情。")
-	}
-	next := model.CloudDownloadTracking
-	progressValue, _ := remote.Progress.Float64()
-	progress := -1
-	if status == cloud115.OfflineTaskDownloading {
-		progress = max(0, min(100, int(progressValue)))
-	}
-	if status == cloud115.OfflineTaskComplete {
+	item.Progress = -1
+	switch status {
+	case cloud115.OfflineTaskFailed:
+		failCloudDownloadItem(&item, "115 报告下载失败，可在 115 云下载列表查看详情。")
+	case cloud115.OfflineTaskDownloading:
+		progress, _ := remote.Progress.Float64()
+		item.Progress = max(0, min(100, int(progress)))
+	case cloud115.OfflineTaskComplete:
 		if remote.FolderID != "" && remote.FolderID != task.StagingFolderID {
-			return s.failCloudDownload(ctx, task, "115 报告的保存目录与暂存目录不一致，请在网盘中核对文件。")
+			failCloudDownloadItem(&item, "115 报告的保存目录与暂存目录不一致，请在网盘中核对文件。")
+		} else {
+			item.Status, item.Progress = model.CloudDownloadDone, 100
 		}
-		next, progress = model.CloudDownloadDone, 100
 	}
-	if next == task.Status && progress == task.Progress && task.MissingSince == nil && task.Detail == "" {
-		return nil
-	}
-	return s.updateCloudDownload(ctx, task, map[string]any{
-		"status": next, "remote_task_id": remote.ID, "encrypted_link": "", "progress": progress,
-		"missing_since": nil, "detail": "", "reported": false,
-	})
+	return item
 }
 
 func (s *TelegramService) checkCloudDownloadStaging(ctx context.Context, task *model.TelegramCloudDownload, client *cloud115.OpenClient) error {
@@ -322,10 +434,12 @@ func (s *TelegramService) checkCloudDownloadStaging(ctx context.Context, task *m
 	return nil
 }
 
-func cloudDownloadProviderError(err *cloud115.OpenAPIError, link string) string {
+func cloudDownloadProviderError(err *cloud115.OpenAPIError, links ...string) string {
 	detail := err.Error()
-	if link != "" {
-		detail = strings.ReplaceAll(detail, link, "[链接]")
+	for _, link := range links {
+		if link != "" {
+			detail = strings.ReplaceAll(detail, link, "[链接]")
+		}
 	}
 	return redactSensitiveError(errors.New(detail)).Error()
 }
