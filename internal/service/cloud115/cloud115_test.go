@@ -252,6 +252,33 @@ func TestSourceCatalog(t *testing.T) {
 	}
 }
 
+func TestQueueExecutorDefaultAndUpdatedRequestRate(t *testing.T) {
+	check := func(executor *QueueExecutor, want int) {
+		t.Helper()
+		for _, bucket := range []struct {
+			name  string
+			limit float64
+			burst int
+			span  int
+		}{
+			{"second", float64(executor.qpsLimiter.Limit()), executor.qpsLimiter.Burst(), 1},
+			{"minute", float64(executor.qpmLimiter.Limit()), executor.qpmLimiter.Burst(), 60},
+			{"hour", float64(executor.qphLimiter.Limit()), executor.qphLimiter.Burst(), 3600},
+		} {
+			if bucket.limit != float64(want) || bucket.burst != want*bucket.span {
+				t.Errorf("%s bucket: rate %g, burst %d; want %d, %d", bucket.name, bucket.limit, bucket.burst, want, want*bucket.span)
+			}
+		}
+	}
+	check(GetGlobalExecutor(), 1)
+	executor := NewQueueExecutor(0, 0, 0)
+	check(executor, 1)
+	executor.SetRequestsPerSecond(3)
+	check(executor, 3)
+	executor.SetRequestsPerSecond(1)
+	check(executor, 1)
+}
+
 func TestHTTP405AndThrottleRecovery(t *testing.T) {
 	tm := NewThrottleManager(100 * time.Millisecond)
 	qe := NewQueueExecutor(10, 200, 12000)

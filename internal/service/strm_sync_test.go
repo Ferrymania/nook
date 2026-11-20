@@ -63,6 +63,33 @@ func TestRemovedStrmProviderIsRejected(t *testing.T) {
 	}
 }
 
+func TestStrm115APIRateSetting(t *testing.T) {
+	svc := testStrmService(t)
+	ctx := t.Context()
+	t.Cleanup(func() { cloud115.GetGlobalExecutor().SetRequestsPerSecond(cloud115.DefaultQPS) })
+	checkRate := func(want string) {
+		t.Helper()
+		settings, err := svc.GetStrmSettings(ctx)
+		if err != nil || settings[StrmSetting115APIQPS] != want {
+			t.Fatalf("115 API rate = %q, %v; want %s", settings[StrmSetting115APIQPS], err, want)
+		}
+	}
+	checkRate("1")
+	if err := svc.UpdateStrmSettings(ctx, map[string]string{StrmSetting115APIQPS: " 2 "}); err != nil {
+		t.Fatal(err)
+	}
+	checkRate("2")
+	for _, invalid := range []string{"", "0", "-1", "1.5", "9999999999999999"} {
+		if err := svc.UpdateStrmSettings(ctx, map[string]string{StrmSetting115APIQPS: invalid}); err == nil {
+			t.Errorf("accepted invalid 115 API rate %q", invalid)
+		}
+	}
+	if err := svc.UpdateStrmSettings(ctx, map[string]string{StrmSettingMinVideoSizeMB: "5"}); err != nil {
+		t.Fatal(err)
+	}
+	checkRate("2")
+}
+
 func TestStrmVideoExtensionsUpgradeSavedDefault(t *testing.T) {
 	svc := testStrmService(t)
 	ctx := t.Context()

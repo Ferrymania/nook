@@ -129,6 +129,7 @@ func (b *serviceContainerBuilder) initContentServices() {
 	b.c.Profile = NewProfileService(b.log, b.repos)
 	b.c.Audit = NewAuditService(b.log, b.repos)
 	b.c.Strm = NewStrmService(b.cfg, b.log, b.repos, b.c.Crypto)
+	b.c.Strm.load115APIRate(context.Background())
 	b.c.Cloud115 = NewCloud115PlaybackService(b.cfg, b.log, b.repos, b.c.Strm)
 	// 本地 HLS 档位的可用性取决于 ffmpeg 是否可用；未注入时按不可用处理。
 	b.c.Cloud115.SetTranscoder(b.c.Transcoder)

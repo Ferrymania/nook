@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"net/http"
 	"os"
@@ -46,6 +47,7 @@ const (
 	StrmSettingKeepExt         = "strm.keep_ext"
 	StrmSettingDownloadThreads = "strm.download_threads"
 	StrmSettingUploadThreads   = "strm.upload_threads"
+	StrmSetting115APIQPS       = "strm.115_api_qps"
 )
 
 const (
@@ -72,8 +74,9 @@ var StrmSettingDefs = map[string]struct {
 	StrmSettingUploadMeta:      {Default: "false", Label: "上传元数据", Kind: "bool", Help: "同步时把本地元数据上传到远端；本地与网盘元数据不同时以本地为准覆盖（需网盘支持写入）"},
 	StrmSettingDeleteDir:       {Default: "false", Label: "清理空目录", Kind: "bool", Help: "清理远端已删除的多余 .strm/元数据后，删除空目录"},
 	StrmSettingKeepExt:         {Default: "false", Label: "保留视频扩展名（多版本）", Kind: "bool", Help: "关闭（默认）：同名不同扩展（如 竞女01.mkv / 竞女01.mp4）按体积→mtime→扩展名优先级择优生成一条 name.strm；开启：分别生成 name.mkv.strm / name.mp4.strm，保留全部版本供播放切换"},
-	StrmSettingDownloadThreads: {Default: "6", Label: "下载队列线程数", Kind: "number", Help: "OpenList 元数据下载并发数（115 独立限速为 3）"},
+	StrmSettingDownloadThreads: {Default: "6", Label: "下载队列线程数", Kind: "number", Help: "OpenList 元数据下载并发数（115 元数据下载最多并发 3 个任务）"},
 	StrmSettingUploadThreads:   {Default: "2", Label: "上传队列线程数", Kind: "number", Help: "元数据上传并发数"},
+	StrmSetting115APIQPS:       {Default: strconv.Itoa(cloud115.DefaultQPS), Label: "115 接口速率", Kind: "number", Help: "所有 115 账号共用的每秒请求数"},
 }
 
 // StrmAccountSecretKeys 是账号配置中需要加密存储的字段。
@@ -100,6 +103,7 @@ type StrmService struct {
 	providerMu       sync.Mutex
 	provider115Cache map[string]cloud.Provider // account ID -> shared provider/OpenClient
 	syncPathMu       sync.Mutex                // 名称、输出目录冲突检查与配置写入串行执行
+	apiRateMu        sync.Mutex                // 115 接口速率的保存与生效串行执行
 
 	downloadSem115  chan struct{} // 115 换直链+下载并发上限（风控兜底）
 	downloadSemDAV  chan struct{} // WebDAV/OpenList 元数据下载并发上限
@@ -691,9 +695,17 @@ func (s *StrmService) GetStrmSettings(ctx context.Context) (map[string]string, e
 
 // UpdateStrmSettings 校验并保存全局 strm 设置。
 func (s *StrmService) UpdateStrmSettings(ctx context.Context, values map[string]string) error {
+	var apiQPS int
+	if value, ok := values[StrmSetting115APIQPS]; ok {
+		var err error
+		apiQPS, err = parse115APIQPS(value)
+		if err != nil {
+			return err
+		}
+	}
 	for key, value := range values {
 		def, ok := StrmSettingDefs[key]
-		if !ok {
+		if !ok || key == StrmSetting115APIQPS {
 			continue
 		}
 		value = strings.TrimSpace(value)
@@ -716,7 +728,36 @@ func (s *StrmService) UpdateStrmSettings(ctx context.Context, values map[string]
 			return err
 		}
 	}
+	if apiQPS > 0 {
+		s.apiRateMu.Lock()
+		defer s.apiRateMu.Unlock()
+		if err := s.repo.Setting.Set(ctx, StrmSetting115APIQPS, strconv.Itoa(apiQPS)); err != nil {
+			return err
+		}
+		cloud115.GetGlobalExecutor().SetRequestsPerSecond(apiQPS)
+	}
 	return nil
+}
+
+func (s *StrmService) load115APIRate(ctx context.Context) {
+	value, err := s.repo.Setting.Get(ctx, StrmSetting115APIQPS)
+	qps := cloud115.DefaultQPS
+	if err == nil && strings.TrimSpace(value) != "" {
+		qps, err = parse115APIQPS(value)
+	}
+	if err != nil {
+		s.log.Warn("load 115 API request rate failed, using default", zap.Error(err))
+		qps = cloud115.DefaultQPS
+	}
+	cloud115.GetGlobalExecutor().SetRequestsPerSecond(qps)
+}
+
+func parse115APIQPS(value string) (int, error) {
+	qps, err := strconv.Atoi(strings.TrimSpace(value))
+	if err != nil || qps < 1 || qps > math.MaxInt/3600 {
+		return 0, errors.New("115 接口速率必须是有效的正整数")
+	}
+	return qps, nil
 }
 
 // strmSetting 读取单个 strm 设置（带默认值）。
