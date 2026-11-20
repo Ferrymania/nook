@@ -350,7 +350,7 @@ func TestEmbyTemporaryPasswordLogin(t *testing.T) {
 	}
 
 	// 1. 生成 6 位纯数字临时密码 (OTP)
-	code, expireSec, err := authSvc.CreateTemporaryPassword(t.Context(), user.ID)
+	code, expireSec, err := authSvc.CreateTemporaryPassword(t.Context(), user.ID, user.SessionVersion)
 	if err != nil {
 		t.Fatalf("create temp password: %v", err)
 	}

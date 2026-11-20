@@ -33,6 +33,7 @@ func (b *Base) BeforeCreate(_ *gorm.DB) error {
 func AllModels() []interface{} {
 	return []interface{}{
 		&User{},
+		&UserAvatar{},
 		&Library{},
 		&LibraryRoot{},
 		&Series{},

@@ -1,5 +1,6 @@
 import { api } from './client'
 import type { HistoryItem, HistoryStats, Media } from '../types'
+import type { WatchSummary } from '../types/history'
 
 // historyAPI wraps /watch-history and /history. The two share storage on
 // the backend; we treat /watch-history as the rich admin/dashboard
@@ -11,6 +12,8 @@ export const historyAPI = {
       .then((r) => r.data),
 
   stats: () => api.get<HistoryStats>('/watch-history/stats').then((r) => r.data),
+
+  summary: (signal: AbortSignal) => api.get<WatchSummary>('/watch-history/summary', { signal }).then((r) => r.data),
 
   continueWatching: (limit = 10) =>
     api

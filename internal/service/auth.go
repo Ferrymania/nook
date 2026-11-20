@@ -22,9 +22,10 @@ import (
 )
 
 type temporaryPasswordEntry struct {
-	userID    string
-	username  string
-	expiresAt time.Time
+	userID         string
+	username       string
+	sessionVersion int64
+	expiresAt      time.Time
 }
 
 // AuthService handles registration, login, and JWT issuance.
@@ -254,9 +255,9 @@ func (s *AuthService) loginTokens(ctx context.Context, u *model.User, bestEffort
 		return s.issuePasswordResetToken(u)
 	}
 	if bestEffort {
-		return s.tokenSvc.IssuePairBestEffort(ctx, u.ID, u.Role, u.Tier)
+		return s.tokenSvc.IssuePairBestEffort(ctx, u)
 	}
-	return s.tokenSvc.IssuePair(ctx, u.ID, u.Role, u.Tier)
+	return s.tokenSvc.IssuePair(ctx, u)
 }
 
 func (s *AuthService) touchLoginBestEffort(userID string) {
@@ -275,7 +276,7 @@ func (s *AuthService) touchLoginBestEffort(userID string) {
 }
 
 // ChangePassword updates the user password if the old one matches.
-func (s *AuthService) ChangePassword(ctx context.Context, userID, oldPwd, newPwd string) error {
+func (s *AuthService) ChangePassword(ctx context.Context, userID, oldPwd, newPwd string, signOutDevices bool) error {
 	if strings.TrimSpace(newPwd) == "" || len(newPwd) < 6 {
 		return errors.New("new password must be at least 6 characters")
 	}
@@ -299,14 +300,14 @@ func (s *AuthService) ChangePassword(ctx context.Context, userID, oldPwd, newPwd
 	if err != nil {
 		return err
 	}
-	if u.ForcePasswordReset {
-		// A reset login itself has no refresh token. Revoke any older refresh
-		// credentials before lifting the account restriction.
-		if err := s.tokenSvc.RevokeAll(ctx, userID); err != nil {
-			return err
-		}
+	changed, err := s.repo.User.ReplacePassword(ctx, userID, u.PasswordHash, hash, signOutDevices || u.ForcePasswordReset)
+	if err != nil {
+		return err
 	}
-	return s.repo.User.UpdatePassword(ctx, userID, hash)
+	if !changed {
+		return ErrInvalidCredentials
+	}
+	return nil
 }
 
 // ResetPassword lets an administrator set a new password without knowing the
@@ -363,12 +364,12 @@ const temporaryPasswordTTL = 5 * time.Minute
 
 // CreateTemporaryPassword 为指定用户生成一个 6 位数字的临时登录密码（有效期 5 分钟），
 // 供 Emby 电视端/客户端进行无键盘或快速输入登录。
-func (s *AuthService) CreateTemporaryPassword(ctx context.Context, userID string) (string, int, error) {
+func (s *AuthService) CreateTemporaryPassword(ctx context.Context, userID string, sessionVersion int64) (string, int, error) {
 	if s == nil || s.repo == nil {
 		return "", 0, errors.New("auth service unavailable")
 	}
 	user, err := s.repo.User.FindByID(ctx, userID)
-	if err != nil || user == nil {
+	if err != nil || user == nil || user.SessionVersion != sessionVersion {
 		return "", 0, ErrInvalidCredentials
 	}
 	if !user.IsActive {
@@ -396,9 +397,10 @@ func (s *AuthService) CreateTemporaryPassword(ctx context.Context, userID string
 		}
 	}
 	s.tempPasswords[code] = temporaryPasswordEntry{
-		userID:    user.ID,
-		username:  user.Username,
-		expiresAt: now.Add(temporaryPasswordTTL),
+		userID:         user.ID,
+		username:       user.Username,
+		sessionVersion: user.SessionVersion,
+		expiresAt:      now.Add(temporaryPasswordTTL),
 	}
 
 	return code, int(temporaryPasswordTTL.Seconds()), nil
@@ -429,7 +431,7 @@ func (s *AuthService) VerifyAndConsumeTemporaryPassword(ctx context.Context, use
 	}
 
 	user, err := s.repo.User.FindByID(ctx, entry.userID)
-	if err != nil || user == nil || !user.IsActive {
+	if err != nil || user == nil || !user.IsActive || user.SessionVersion != entry.sessionVersion {
 		return nil, false
 	}
 	if user.ExpiredAt != nil && time.Now().After(*user.ExpiredAt) {

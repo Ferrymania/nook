@@ -47,7 +47,55 @@ func newHistoryStatsEnv(t *testing.T) (*gin.Engine, *service.Container, string) 
 		c.Next()
 	})
 	authed.GET("/watch-history/stats", historyStatsHandler(svc))
+	authed.GET("/watch-history/summary", historySummaryHandler(svc))
 	return router, svc, userID
+}
+
+func TestHistorySummaryCountsVisibleCompletedTitles(t *testing.T) {
+	router, svc, userID := newHistoryStatsEnv(t)
+	ctx := t.Context()
+	movies := &model.Library{Name: "电影", Type: "movie", Path: "/movies"}
+	shows := &model.Library{Name: "剧集", Type: "tv", Path: "/shows"}
+	hidden := &model.Library{Name: "隐藏库", Type: "movie", Path: "/hidden"}
+	for _, library := range []*model.Library{movies, shows, hidden} {
+		if err := svc.Repo.DB.Create(library).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	allowed, err := json.Marshal([]string{movies.ID, shows.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.Repo.User.UpdateFields(ctx, userID, map[string]any{"allowed_library_ids": string(allowed)}); err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range []struct {
+		item      model.Media
+		owner     string
+		completed bool
+	}{
+		{model.Media{LibraryID: movies.ID, Title: "测试电影", Path: "/movies/one.mkv", TMDbID: 11}, userID, true},
+		{model.Media{LibraryID: movies.ID, Title: "测试电影", Path: "/movies/one-4k.mkv", TMDbID: 11}, userID, true},
+		{model.Media{LibraryID: movies.ID, Title: "漏掉的电影", Path: "/movies/incomplete.mkv", TMDbID: 12}, userID, false},
+		{model.Media{LibraryID: movies.ID, Title: "别人看的电影", Path: "/movies/other.mkv", TMDbID: 13}, "another-user", true},
+		{model.Media{LibraryID: hidden.ID, Title: "不可见电影", Path: "/hidden/hidden.mkv", TMDbID: 14}, userID, true},
+		{model.Media{LibraryID: shows.ID, SeriesID: "show-a", Title: "剧集 A", Path: "/shows/a/01.mkv", SeasonNum: 1, EpisodeNum: 1}, userID, true},
+		{model.Media{LibraryID: shows.ID, SeriesID: "show-a", Title: "剧集 A", Path: "/shows/a/01-4k.mkv", SeasonNum: 1, EpisodeNum: 1}, userID, true},
+		{model.Media{LibraryID: shows.ID, SeriesID: "show-a", Title: "剧集 A", Path: "/shows/a/02.mkv", SeasonNum: 1, EpisodeNum: 2}, userID, true},
+	} {
+		if err := svc.Repo.DB.Create(&row.item).Error; err != nil {
+			t.Fatal(err)
+		}
+		if err := svc.Repo.DB.Create(&model.PlaybackHistory{UserID: row.owner, MediaID: row.item.ID, Completed: row.completed}).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/api/watch-history/summary", nil))
+	var summary service.WatchSummary
+	if err := json.Unmarshal(w.Body.Bytes(), &summary); err != nil || w.Code != http.StatusOK || summary != (service.WatchSummary{Movies: 1, Series: 1, Episodes: 2}) {
+		t.Fatalf("unexpected watch summary: status=%d body=%s error=%v", w.Code, w.Body.String(), err)
+	}
 }
 
 type historyStatsPayload struct {

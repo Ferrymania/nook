@@ -379,7 +379,7 @@ func embyPlaybackRedirectToken(c *gin.Context, svc *service.Container) string {
 		return ""
 	}
 	u, err := svc.Repo.User.FindByID(c.Request.Context(), uid)
-	if err != nil || u == nil {
+	if err != nil || u == nil || !matchesSessionVersion(c, u) {
 		return ""
 	}
 	token, err := svc.Auth.IssueEmbyToken(u)

@@ -35,7 +35,7 @@ func TestRefreshAcceptsPendingDelayedToken(t *testing.T) {
 
 	refreshToken := "pending-token-value"
 	hash := repository.HashToken(refreshToken)
-	if !svc.trackDelayedStore(u.ID, hash, time.Now().Add(time.Hour)) {
+	if !svc.trackDelayedStore(model.RefreshToken{UserID: u.ID, TokenHash: hash, ExpiresAt: time.Now().Add(time.Hour)}) {
 		t.Fatal("trackDelayedStore returned false")
 	}
 
@@ -76,7 +76,7 @@ func TestRefreshRejectsRotatedTokenAfterGraceWindow(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	pair, err := svc.IssuePair(t.Context(), u.ID, u.Role, u.Tier)
+	pair, err := svc.IssuePair(t.Context(), u)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,9 +102,36 @@ func TestRefreshRejectsExpiredPendingToken(t *testing.T) {
 
 	refreshToken := "expired-pending"
 	hash := repository.HashToken(refreshToken)
-	svc.trackDelayedStore("user-x", hash, time.Now().Add(-time.Minute))
+	svc.trackDelayedStore(model.RefreshToken{UserID: "user-x", TokenHash: hash, ExpiresAt: time.Now().Add(-time.Minute)})
 
 	if _, err := svc.Refresh(t.Context(), refreshToken); err == nil {
 		t.Fatal("expired pending token should be rejected")
+	}
+}
+
+func TestRefreshRejectsOldSessionVersionBeforeAndAfterDelayedStore(t *testing.T) {
+	repos, auth, _, _ := newAuthTestServices(t)
+	ctx := t.Context()
+	user, _, err := auth.Register(ctx, "owner", "original-password")
+	if err != nil {
+		t.Fatal(err)
+	}
+	const refreshToken = "pending-session-token"
+	row := model.RefreshToken{
+		UserID: user.ID, TokenHash: repository.HashToken(refreshToken),
+		ExpiresAt: time.Now().Add(time.Hour), SessionVersion: user.SessionVersion,
+	}
+	auth.tokenSvc.trackDelayedStore(row)
+	if err := auth.ChangePassword(ctx, user.ID, "original-password", "updated-password", true); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := auth.RefreshTokens(ctx, refreshToken); !errors.Is(err, ErrTokenRevoked) {
+		t.Fatalf("old pending token refresh: got %v, want ErrTokenRevoked", err)
+	}
+	if err := repos.RefreshToken.Create(ctx, &row); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := auth.RefreshTokens(ctx, refreshToken); !errors.Is(err, ErrTokenRevoked) {
+		t.Fatalf("old stored token refresh: got %v, want ErrTokenRevoked", err)
 	}
 }

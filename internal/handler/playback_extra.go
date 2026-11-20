@@ -161,6 +161,9 @@ func externalPlaybackToken(c *gin.Context, svc *service.Container, mediaID strin
 		}
 		return ""
 	}
+	if !matchesSessionVersion(c, u) {
+		return ""
+	}
 	token, err := svc.Auth.IssueExternalPlaybackToken(u, mediaID, durationSec)
 	if err != nil {
 		// 静默返回空串会让 stream_url 变成 ?token=（空）、外部播放器只看到

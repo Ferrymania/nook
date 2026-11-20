@@ -10,6 +10,9 @@ import (
 func registerAuthedUserAndLicenseRoutes(authed *gin.RouterGroup, svc *service.Container) {
 	authed.GET("/me", meHandler(svc))
 	authed.PATCH("/me", updateProfileHandler(svc))
+	authed.GET("/me/avatar", profileAvatarHandler(svc))
+	authed.POST("/me/avatar", saveProfileAvatarHandler(svc, false))
+	authed.DELETE("/me/avatar", saveProfileAvatarHandler(svc, true))
 	authed.GET("/me/playback-settings", getPlaybackSettingsHandler(svc))
 	authed.PUT("/me/playback-settings", updatePlaybackSettingsHandler(svc))
 	authed.GET("/me/playback-settings/libraries", playbackSettingsLibrariesHandler(svc))

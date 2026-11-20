@@ -5,6 +5,8 @@ import { ChevronDown, LogOut, Settings, Tv, User } from 'lucide-react'
 
 import { LayoutThemeToggle } from './LayoutThemeToggle'
 import { TemporaryPasswordDialog } from './TemporaryPasswordDialog'
+import { UserAvatar } from './UserAvatar'
+import type { User as AccountUser } from '../types'
 import type { ThemeMode } from './useThemeMode'
 
 type MenuPosition = {
@@ -12,10 +14,7 @@ type MenuPosition = {
   right: number
 }
 
-type LayoutUser = {
-  username?: string
-  role?: string
-}
+type LayoutUser = Pick<AccountUser, 'id' | 'username' | 'role' | 'avatar_url'>
 
 type LayoutUserMenuProps = {
   user: LayoutUser | null | undefined
@@ -156,9 +155,7 @@ export function LayoutUserMenu({
         aria-haspopup="menu"
         className="nook-user-trigger relative z-122 flex items-center gap-2.5 rounded-full p-1 pr-3 transition-colors hover:bg-(--app-hover)"
       >
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-(--app-hover) text-xs font-medium text-(--app-text)">
-          {user?.username?.slice(0, 2).toUpperCase() || 'US'}
-        </div>
+        <UserAvatar user={user} className="size-8 text-xs" />
         <div className="hidden text-left md:block">
           <p className="text-[13px] font-medium leading-none text-(--app-text)">{user?.username}</p>
           <p className="mt-1 text-[11px] leading-none text-(--app-muted)">

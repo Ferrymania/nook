@@ -53,6 +53,17 @@ func historyListHandler(svc *service.Container) gin.HandlerFunc {
 	}
 }
 
+func historySummaryHandler(svc *service.Container) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		summary, err := service.CompletedWatchSummary(c.Request.Context(), svc.Repo, currentUserID(c), mediaVisibilityForRequest(c, svc))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "无法加载观看统计"})
+			return
+		}
+		c.JSON(http.StatusOK, summary)
+	}
+}
+
 // historyStatsHandler returns aggregate watch time + completion counts
 // for the caller. Used by the WatchHistoryPage hero card and the dedicated
 // personal statistics page.

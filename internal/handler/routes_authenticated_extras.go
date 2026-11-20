@@ -16,6 +16,7 @@ func registerAuthedUISurfaceRoutes(authed *gin.RouterGroup, svc *service.Contain
 
 	authed.GET("/watch-history", historyListHandler(svc))
 	authed.GET("/watch-history/stats", requirePermission(svc, "can_view_history"), historyStatsHandler(svc))
+	authed.GET("/watch-history/summary", requirePermission(svc, "can_view_history"), historySummaryHandler(svc))
 	authed.GET("/watch-history/continue", historyContinueHandler(svc))
 	authed.PATCH("/watch-history/:id/played", historySetPlayedHandler(svc))
 	authed.DELETE("/watch-history", historyDeleteHandler(svc))

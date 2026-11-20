@@ -42,16 +42,15 @@ func (r *RefreshTokenRepository) RevokeByUserID(ctx context.Context, userID stri
 		Where("user_id = ?", userID).Update("revoked", true).Error
 }
 
-// RevokeOldestActiveByUserID keeps at most limit active refresh tokens for a
-// user by revoking the oldest non-expired, non-revoked tokens.
-func (r *RefreshTokenRepository) RevokeOldestActiveByUserID(ctx context.Context, userID string, limit int) error {
+// RevokeOldestActiveByUserID limits active refresh tokens in one session version.
+func (r *RefreshTokenRepository) RevokeOldestActiveByUserID(ctx context.Context, userID string, sessionVersion int64, limit int) error {
 	if limit < 1 {
 		limit = 1
 	}
 
 	var tokens []model.RefreshToken
 	if err := r.db.WithContext(ctx).
-		Where("user_id = ? AND revoked = ? AND expires_at > ?", userID, false, time.Now()).
+		Where("user_id = ? AND session_version = ? AND revoked = ? AND expires_at > ?", userID, sessionVersion, false, time.Now()).
 		Order("created_at desc, id desc").
 		Find(&tokens).Error; err != nil {
 		return err

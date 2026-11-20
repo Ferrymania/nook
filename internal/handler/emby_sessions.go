@@ -109,9 +109,11 @@ func embyPublicSessionIdentity(c *gin.Context, svc *service.Container, jwtSecret
 		return "", ""
 	}
 	if svc != nil && svc.Repo != nil && svc.Repo.User != nil {
-		if user, err := svc.Repo.User.FindByID(c.Request.Context(), uid); err == nil && user != nil {
-			return uid, user.Username
+		user, err := svc.Repo.User.FindByID(c.Request.Context(), uid)
+		if err != nil || user == nil || user.SessionVersion != claims.SessionVersion {
+			return "", ""
 		}
+		return uid, user.Username
 	}
 	return uid, ""
 }

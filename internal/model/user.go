@@ -12,6 +12,7 @@ type User struct {
 	Base
 	Username           string     `gorm:"uniqueIndex;size:64;not null" json:"username"`
 	PasswordHash       string     `gorm:"size:128;not null" json:"-"`
+	SessionVersion     int64      `gorm:"not null;default:0" json:"-"`
 	Role               string     `gorm:"size:16;not null;default:user" json:"role"`
 	Tier               string     `gorm:"size:16;default:free" json:"tier"` // free / plus
 	Nickname           string     `gorm:"size:128" json:"nickname,omitempty"`

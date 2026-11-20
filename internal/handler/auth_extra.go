@@ -22,7 +22,7 @@ func refreshHandler(svc *service.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		uid, _ := c.Get(middleware.CtxUserID)
 		u, err := svc.Repo.User.FindByID(c.Request.Context(), toString(uid))
-		if err != nil || u == nil {
+		if err != nil || u == nil || !matchesSessionVersion(c, u) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid session"})
 			return
 		}

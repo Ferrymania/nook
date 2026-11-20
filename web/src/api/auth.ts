@@ -15,9 +15,9 @@ export const authAPI = {
 
   me: () => api.get<User>('/me').then((r) => r.data),
 
-  changePassword: (oldPassword: string, newPassword: string) =>
+  changePassword: (oldPassword: string, newPassword: string, signOutDevices = false) =>
     api
-      .post('/me/password', { old_password: oldPassword, new_password: newPassword })
+      .post('/me/password', { old_password: oldPassword, new_password: newPassword, sign_out_devices: signOutDevices })
       .then((r) => r.data),
 
   logout: () => api.post('/me/logout'),
