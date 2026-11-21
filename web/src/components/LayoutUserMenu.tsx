@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useLocation } from 'react-router-dom'
-import { ChevronDown, LogOut, Settings, Tv, User } from 'lucide-react'
+import { ChevronDown, LogOut, Settings, User } from 'lucide-react'
 
 import { LayoutThemeToggle } from './LayoutThemeToggle'
-import { TemporaryPasswordDialog } from './TemporaryPasswordDialog'
 import { UserAvatar } from './UserAvatar'
 import type { User as AccountUser } from '../types'
 import type { ThemeMode } from './useThemeMode'
@@ -39,7 +38,6 @@ export function LayoutUserMenu({
   const triggerRef = useRef<HTMLButtonElement>(null)
   const onCloseRef = useRef(onClose)
   const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null)
-  const [isOtpOpen, setIsOtpOpen] = useState(false)
 
   useEffect(() => {
     onCloseRef.current = onClose
@@ -104,17 +102,6 @@ export function LayoutUserMenu({
             onPointerDown={(event) => event.stopPropagation()}
           >
             <UserMenuLink to="/profile" icon={<User size={16} />} label="个人主页" onNavigate={onClose} />
-	            <button
-	              type="button"
-	              onClick={() => {
-	                onClose()
-	                setIsOtpOpen(true)
-	              }}
-	              className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-(--app-subtle) transition-colors hover:bg-(--app-hover) hover:text-(--app-text)"
-	            >
-	              <Tv size={16} />
-	              <span>电视端临时登录码</span>
-	            </button>
             {themeMode && onThemeChange ? (
               <div className="px-3 py-2 sm:hidden">
                 <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-(--app-muted)">
@@ -165,7 +152,6 @@ export function LayoutUserMenu({
         <ChevronDown size={14} className="text-(--app-muted)" />
       </button>
       {menuPortal}
-      <TemporaryPasswordDialog isOpen={isOtpOpen} onClose={() => setIsOtpOpen(false)} />
     </div>
   )
 }

@@ -13,7 +13,6 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/Ferrymania/nook/internal/config"
-	"github.com/Ferrymania/nook/internal/middleware"
 	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/repository"
 	"github.com/Ferrymania/nook/internal/service"
@@ -320,82 +319,6 @@ func TestEmbyImageClearNoStore(t *testing.T) {
 	}
 }
 
-func TestEmbyTemporaryPasswordLogin(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	db, err := testutil.Open(t, &gorm.Config{})
-	if err != nil {
-		t.Fatalf("open db: %v", err)
-	}
-	if err := db.AutoMigrate(model.AllModels()...); err != nil {
-		t.Fatalf("migrate: %v", err)
-	}
-	repos := repository.New(db)
-	cfg := &config.Config{}
-	cfg.Secrets.JWTSecret = "test-jwt-secret-very-secure-key-12345"
-	log := zap.NewNop()
-	permissions := service.NewPermissionService(log, repos)
-	tokenSvc := service.NewTokenService(cfg, log, repos)
-	authSvc := service.NewAuthService(cfg, log, repos, tokenSvc, permissions)
-	embySvc := service.NewEmbyService(nil, nil, repos)
-	svc := &service.Container{
-		Repo:  repos,
-		Auth:  authSvc,
-		Token: tokenSvc,
-		Emby:  embySvc,
-	}
-
-	user, _, err := authSvc.Register(t.Context(), "tvuser", "strongpassword123")
-	if err != nil {
-		t.Fatalf("register: %v", err)
-	}
-
-	// 1. 生成 6 位纯数字临时密码 (OTP)
-	code, expireSec, err := authSvc.CreateTemporaryPassword(t.Context(), user.ID, user.SessionVersion)
-	if err != nil {
-		t.Fatalf("create temp password: %v", err)
-	}
-	if len(code) != 6 || expireSec <= 0 {
-		t.Fatalf("invalid temp password format: %s, expire: %d", code, expireSec)
-	}
-
-	router := gin.New()
-	registerEmbyRoutes(router, "test-jwt-secret-very-secure-key-12345", svc)
-
-	// 2. 使用临时密码在 Emby 接口登录
-	body := `{"Username":"tvuser","Pw":"` + code + `"}`
-	req := httptest.NewRequest(http.MethodPost, "/emby/Users/AuthenticateByName", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("login with temp password code = %d: %s", w.Code, w.Body.String())
-	}
-	var loginResp struct {
-		AccessToken string `json:"AccessToken"`
-		User        struct {
-			ID   string `json:"Id"`
-			Name string `json:"Name"`
-		} `json:"User"`
-	}
-	if err := json.Unmarshal(w.Body.Bytes(), &loginResp); err != nil {
-		t.Fatalf("unmarshal login resp: %v", err)
-	}
-	if loginResp.AccessToken == "" || loginResp.User.ID != user.ID {
-		t.Fatalf("unexpected login payload: %#v", loginResp)
-	}
-
-	// 3. 验证阅后即焚：第二次使用同一临时密码应登录失败 (401)
-	req2 := httptest.NewRequest(http.MethodPost, "/emby/Users/AuthenticateByName", strings.NewReader(body))
-	req2.Header.Set("Content-Type", "application/json")
-	w2 := httptest.NewRecorder()
-	router.ServeHTTP(w2, req2)
-
-	if w2.Code != http.StatusUnauthorized {
-		t.Fatalf("second login with consumed temp password should fail, got %d", w2.Code)
-	}
-}
-
 func TestEmbySeriesArtworkInheritanceAndRunTimeTicksFallback(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db, err := testutil.Open(t, &gorm.Config{})
@@ -531,66 +454,4 @@ func TestEmbySeriesArtworkInheritanceAndRunTimeTicksFallback(t *testing.T) {
 	if playedPct <= 0 {
 		t.Fatalf("ep PlayedPercentage should be > 0, got %v", playedPct)
 	}
-}
-
-func TestMeTemporaryPasswordEndpoint(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	db, err := testutil.Open(t, &gorm.Config{})
-	if err != nil {
-		t.Fatalf("open db: %v", err)
-	}
-	if err := db.AutoMigrate(model.AllModels()...); err != nil {
-		t.Fatalf("migrate: %v", err)
-	}
-	repos := repository.New(db)
-	cfg := &config.Config{}
-	cfg.Secrets.JWTSecret = "test-secret-temp"
-	log := zap.NewNop()
-	permissions := service.NewPermissionService(log, repos)
-	tokenSvc := service.NewTokenService(cfg, log, repos)
-	authSvc := service.NewAuthService(cfg, log, repos, tokenSvc, permissions)
-	svc := &service.Container{
-		Repo:  repos,
-		Auth:  authSvc,
-		Token: tokenSvc,
-	}
-
-	user, tokens, err := authSvc.Register(t.Context(), "optuser", "password123")
-	if err != nil {
-		t.Fatalf("register: %v", err)
-	}
-
-	router := gin.New()
-	api := router.Group("/api")
-	authed := api.Group("")
-	authed.Use(func(c *gin.Context) {
-		c.Set(middleware.CtxUserID, user.ID)
-		c.Next()
-	})
-	registerAuthedUserAndLicenseRoutes(authed, svc)
-
-	req := httptest.NewRequest(http.MethodPost, "/api/me/temporary-password", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("generate temp password code = %d: %s", w.Code, w.Body.String())
-	}
-	var resp struct {
-		Code      string `json:"code"`
-		ExpiresIn int    `json:"expires_in"`
-	}
-	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("unmarshal resp: %v", err)
-	}
-	if len(resp.Code) != 6 || resp.ExpiresIn <= 0 {
-		t.Fatalf("invalid temp password resp: %#v", resp)
-	}
-
-	// 验证使用生成的临时密码能登录
-	loggedIn, token, err := authSvc.LoginEmby(t.Context(), "optuser", resp.Code)
-	if err != nil || loggedIn == nil || loggedIn.ID != user.ID || token == "" {
-		t.Fatalf("login with temp pass failed: %v", err)
-	}
-	_ = tokens
 }

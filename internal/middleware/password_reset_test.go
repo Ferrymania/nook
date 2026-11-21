@@ -21,8 +21,7 @@ func TestPasswordResetTokenOnlyAllowsPasswordWorkflow(t *testing.T) {
 		{"GET", "/api/me", 204}, {"GET", "/api/me?detail=1", 204},
 		{"POST", "/api/me/password", 204}, {"POST", "/api/me/logout", 204},
 		{"PATCH", "/api/me", 403}, {"POST", "/api/me", 403},
-		{"GET", "/api/me/password", 403}, {"GET", "/api/me/temporary-password", 403},
-		{"POST", "/api/me/temporary-password", 403}, {"GET", "/api/admin/settings", 403},
+		{"GET", "/api/me/password", 403}, {"GET", "/api/admin/settings", 403},
 		{"GET", "/api/stream/movie", 403}, {"GET", "/api/me/../admin/settings", 403},
 	} {
 		t.Run(tc.method+tc.path, func(t *testing.T) {

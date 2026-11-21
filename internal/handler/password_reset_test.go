@@ -71,7 +71,7 @@ func TestPasswordResetEnforcedAcrossWebAdminAndEmby(t *testing.T) {
 		router.ServeHTTP(w, req)
 		return w
 	}
-	for _, path := range []string{"/api/libraries", "/api/admin/users", "/api/admin/settings", "/api/me/temporary-password", "/api/stream/movie", "/emby/Users/Me", "/emby/Items"} {
+	for _, path := range []string{"/api/libraries", "/api/admin/users", "/api/admin/settings", "/api/stream/movie", "/emby/Users/Me", "/emby/Items"} {
 		w := request("GET", path, pair.AccessToken, "")
 		if w.Code != 403 || !strings.Contains(w.Body.String(), "40305") {
 			t.Fatalf("old token %s: %d %s", path, w.Code, w.Body.String())
@@ -154,10 +154,6 @@ func TestChangePasswordOptionRevokesExistingSessions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	code, _, err := auth.CreateTemporaryPassword(ctx, user.ID, user.SessionVersion)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	router := gin.New()
 	Register(router, cfg, log, svc)
@@ -196,9 +192,6 @@ func TestChangePasswordOptionRevokesExistingSessions(t *testing.T) {
 		request("POST", "/api/auth/refresh", "", `{"refresh_token":"`+refreshToken+`"}`, 401)
 	}
 	request("GET", "/api/me", otherPair.AccessToken, "", 200)
-	if _, ok := auth.VerifyAndConsumeTemporaryPassword(ctx, user.Username, code); ok {
-		t.Fatal("temporary password survived session revocation")
-	}
 
 	request("POST", "/api/auth/login", "", `{"username":"owner","password":"updated-password"}`, 401)
 	login, err := auth.Login(ctx, user.Username, "final-password")

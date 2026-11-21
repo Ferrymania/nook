@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-
-	"github.com/Ferrymania/nook/internal/model"
 )
 
 func TestSeedAdminRequiresChangingDefaultPassword(t *testing.T) {
@@ -75,9 +73,6 @@ func TestInitialPasswordResetLoginAndCompletion(t *testing.T) {
 	if err != nil || claims.Purpose != PasswordResetTokenPurpose || resp.Tokens.RefreshToken != "" {
 		t.Fatalf("reset login issued full credentials: %#v %v", claims, err)
 	}
-	if _, _, err := auth.CreateTemporaryPassword(ctx, u.ID, u.SessionVersion); !errors.Is(err, ErrPasswordResetRequired) {
-		t.Fatalf("OTP: %v", err)
-	}
 	if _, err := auth.IssueEmbyToken(u); !errors.Is(err, ErrPasswordResetRequired) {
 		t.Fatalf("Emby token: %v", err)
 	}
@@ -123,30 +118,6 @@ func TestFirstRegisteredAdminWithDefaultPasswordRequiresReset(t *testing.T) {
 	u, pair, err := auth.Register(t.Context(), "owner", DefaultAdminPassword)
 	if err != nil || u.Role != "admin" || !u.ForcePasswordReset || pair.RefreshToken != "" {
 		t.Fatalf("registration bypass: %#v %#v %v", u, pair, err)
-	}
-}
-
-func TestTemporaryPasswordCannotBypassNewResetRequirement(t *testing.T) {
-	repos, auth, _, _ := newAuthTestServices(t)
-	u, _, err := auth.Register(t.Context(), "owner", "custom-password")
-	if err != nil {
-		t.Fatal(err)
-	}
-	code, _, err := auth.CreateTemporaryPassword(t.Context(), u.ID, u.SessionVersion)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := repos.User.UpdateFields(t.Context(), u.ID, map[string]any{"force_password_reset": true}); err != nil {
-		t.Fatal(err)
-	}
-	if _, ok := auth.VerifyAndConsumeTemporaryPassword(t.Context(), u.Username, code); ok {
-		t.Fatal("old OTP bypassed reset")
-	}
-	// No other user fields should be changed by the flag.
-	var count int64
-	repos.DB.Model(&model.User{}).Where("id = ? AND username = ?", u.ID, u.Username).Count(&count)
-	if count != 1 {
-		t.Fatal("user was replaced")
 	}
 }
 
