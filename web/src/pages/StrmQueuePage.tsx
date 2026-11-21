@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 
 import { strmAPI } from '../api/strm'
-import type { StrmQueueCounts, StrmQueueSnapshot, StrmTask, StrmTaskStatus } from '../types/strm'
+import type { StrmQueueSnapshot, StrmTask, StrmTaskStatus } from '../types/strm'
 import { STRM_PROVIDER_LABELS } from '../types/strm'
 import { apiErrorMessage, formatBytes, formatTime, taskStatusMeta } from './StrmManagePage'
 import { TaskDetailModal } from './strm-queue/TaskDetailModal'
@@ -36,15 +36,7 @@ const FILTERS: { key: 'all' | StrmTaskStatus; label: string; icon: typeof Clock;
 
 const PAGE_SIZE = 50
 
-export function StrmQueuePanel({
-  kind,
-  embedded = false,
-  onCountsChange,
-}: {
-  kind: 'download' | 'upload'
-  embedded?: boolean
-  onCountsChange?: (counts: StrmQueueCounts) => void
-}) {
+function StrmQueuePanel({ kind }: { kind: 'download' | 'upload' }) {
   const [snapshot, setSnapshot] = useState<StrmQueueSnapshot | null>(null)
   const [filter, setFilter] = useState<'all' | StrmTaskStatus>('all')
   const [search, setSearch] = useState('')
@@ -59,10 +51,6 @@ export function StrmQueuePanel({
   // 轮询/翻页/切筛选并发时用递增序号丢弃过期响应
   const refreshSeqRef = useRef(0)
   const [pollFailures, setPollFailures] = useState(0)
-
-  useEffect(() => {
-    if (snapshot) onCountsChange?.(snapshot.counts)
-  }, [snapshot, onCountsChange])
 
   const isDownload = kind === 'download'
   const Icon = isDownload ? Download : Upload
@@ -230,7 +218,6 @@ export function StrmQueuePanel({
 
   return (
     <div className="space-y-6">
-      {!embedded && (
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-400/30 bg-primary-400/10 text-brand-500 shadow-xs">
@@ -397,7 +384,6 @@ export function StrmQueuePanel({
           </details>
         </div>
       </header>
-      )}
 
       {/* 2. Interactive Status Cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">

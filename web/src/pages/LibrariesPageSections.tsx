@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
-import { Link } from 'react-router-dom'
-import { Library as LibraryIcon, Loader2, Sparkles } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
+import { Library as LibraryIcon, ListVideo, Loader2, Sparkles } from 'lucide-react'
 
 import { LibraryListSortDropdown } from '../components/LibraryListSortDropdown'
+import { isAdminEntrySearch } from '../components/layoutNavigation'
 import { useRememberedListPosition } from '../hooks/useListPositionMemory'
 import type { LibraryListSortField, LibraryListSortOrder } from '../utils/libraryListSort'
 import { HomeLibrariesSection, HomeLibraryRowSection } from './HomePageSections'
@@ -33,6 +34,8 @@ export function LibrariesHeader({
   onScrape: () => void
   onManageLibraries: () => void
 }) {
+  const { search } = useLocation()
+  const queueSearch = isAdminEntrySearch(search) ? '?from=admin' : ''
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
       <div>
@@ -50,12 +53,20 @@ export function LibrariesHeader({
               {scraping ? '正在刮削…' : '刮削全部媒体库'}
             </button>
             <Link
-              to="/scraper/queue"
+              to={{ pathname: '/scraper/queue', search: queueSearch }}
               className="library-toolbar-button"
               title="查看正在进行的刮削任务与进度"
             >
               <Sparkles size={16} />
               <span>刮削队列</span>
+            </Link>
+            <Link
+              to={{ pathname: '/segments/queue', search: queueSearch }}
+              className="library-toolbar-button"
+              title="查看所有媒体的片头片尾查询记录"
+            >
+              <ListVideo size={16} />
+              <span>片头片尾队列</span>
             </Link>
             <button
               type="button"

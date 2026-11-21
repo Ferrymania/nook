@@ -69,7 +69,7 @@ export function LibraryPageHeader({
               {scanning ? <Loader2 size={16} className="animate-spin" /> : <ScanLine size={16} />}
               {scanLabel}
             </button>
-            <button type="button" onClick={onScrape} disabled={scraping || !library} aria-busy={scraping} className="library-toolbar-button" title="刮削当前库全部媒体，包括已匹配项；进度可在任务队列查看">
+            <button type="button" onClick={onScrape} disabled={scraping || !library} aria-busy={scraping} className="library-toolbar-button" title="刮削当前库全部媒体，包括已匹配项；进度可在刮削队列查看">
               {scraping ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
               {scraping ? '正在刮削…' : '刮削媒体库'}
             </button>

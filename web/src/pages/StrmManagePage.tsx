@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isAxiosError } from 'axios'
+import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
   Activity,
@@ -654,16 +655,21 @@ function RecordSection({ snapshot, paths, loading, error, onPageChange, onDelete
 
   return (
     <section className="glass-panel space-y-3 p-5">
-      <div className="flex items-center gap-2">
-        <History size={18} className="text-brand-500" />
-        <h2 className="font-display text-lg font-semibold text-ink-600">同步记录</h2>
-        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-sand-500">{snapshot.total}</span>
-        {snapshot.total > 0 && (
-          <button type="button" onClick={clearRecords} disabled={busy} className={iconButtonCls + ' ml-auto'}>
-            <Trash2 size={14} />
-            清空
-          </button>
-        )}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <History size={18} className="text-brand-500" />
+          <h2 className="font-display text-lg font-semibold text-ink-600">同步记录</h2>
+          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-sand-500">{snapshot.total}</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link to="/strm/downloads" className={iconButtonCls}><Download size={14} />下载队列</Link>
+          <Link to="/strm/uploads" className={iconButtonCls}><Upload size={14} />上传队列</Link>
+          {snapshot.total > 0 && (
+            <button type="button" onClick={clearRecords} disabled={busy} className={iconButtonCls}>
+              <Trash2 size={14} />清空
+            </button>
+          )}
+        </div>
       </div>
       {error && (
         <p role="alert" className="flex items-center gap-3 text-sm text-rose-500">

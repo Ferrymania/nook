@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { lazy, type ReactElement } from 'react'
+import { Navigate, useSearchParams } from 'react-router-dom'
 
 const HomePageLoader = () => import('./pages/HomePage').then((m) => ({ default: m.HomePage }))
 const LibraryPageLoader = () => import('./pages/LibraryPage').then((m) => ({ default: m.LibraryPage }))
@@ -42,7 +43,24 @@ const StrmUploadQueuePage = lazy(() =>
   import('./pages/StrmQueuePage').then((m) => ({ default: m.StrmUploadQueuePage })),
 )
 const ScraperQueuePage = lazy(() => import('./pages/ScraperQueuePage').then((m) => ({ default: m.ScraperQueuePage })))
-const TaskQueuePage = lazy(() => import('./pages/TaskQueuePage').then((m) => ({ default: m.TaskQueuePage })))
+const SegmentQueuePage = lazy(() => import('./pages/SegmentQueuePage').then((m) => ({ default: m.SegmentQueuePage })))
+
+function LegacyTaskQueueRedirect() {
+  const [params] = useSearchParams()
+  const type = params.get('type')
+  switch (type) {
+    case 'scrape':
+      return <Navigate to="/scraper/queue" replace />
+    case 'download':
+      return <Navigate to="/strm/downloads" replace />
+    case 'upload':
+      return <Navigate to="/strm/uploads" replace />
+    case 'segments':
+      return <Navigate to="/segments/queue" replace />
+    default:
+      return <Navigate to="/libraries" replace />
+  }
+}
 
 // 常用页面的路由 chunk 空闲预取：应用加载完成后浏览器一空闲就把浏览路径
 // （库列表/库详情/媒体详情/收藏/历史等）的 chunk 拉下来，
@@ -111,6 +129,7 @@ export const appRoutes: AppRoute[] = [
   { path: 'strm/downloads', element: <StrmDownloadQueuePage />, adminOnly: true },
   { path: 'strm/uploads', element: <StrmUploadQueuePage />, adminOnly: true },
   { path: 'scraper/queue', element: <ScraperQueuePage />, adminOnly: true },
-  { path: 'queue', element: <TaskQueuePage />, adminOnly: true },
+  { path: 'segments/queue', element: <SegmentQueuePage />, adminOnly: true },
+  { path: 'queue', element: <LegacyTaskQueueRedirect />, adminOnly: true },
   { path: 'admin', element: <AdminPage />, adminOnly: true },
 ]
