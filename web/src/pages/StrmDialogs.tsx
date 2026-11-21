@@ -849,6 +849,9 @@ export function StrmSyncPathDialog({
   const availableAccounts = accounts.filter((a) => a.provider === form.provider && a.has_credential)
   const remoteDisplayPath = isLocal ? '' : form.remote_display_path?.trim() ?? ''
   const remoteTail = isLocal ? '' : remoteTailNameOf(form.remote_path, remoteDisplayPath)
+  const sourceLabel = isLocal ? '本地源目录' : '远端目录'
+  const remotePlaceholder = form.account_id ? '根目录（默认）' : '请先选择网盘账号'
+  const sourcePath = remoteDisplayPath || form.remote_path || (isLocal ? '请选择本地源目录' : remotePlaceholder)
 
   // 编辑旧配置时补齐展示路径，保留已保存的本地输出目录。
   useEffect(() => {
@@ -953,34 +956,16 @@ export function StrmSyncPathDialog({
         </div>
 
         <div className="space-y-1">
-          {isLocal ? (
-            <label htmlFor="strm-remote-path" className="block text-sm font-medium text-ink-100">本地源目录</label>
-          ) : (
-            <p className="text-sm font-medium text-ink-100">远端目录</p>
-          )}
+          <p className="text-sm font-medium text-ink-100">{sourceLabel}</p>
           <div className="flex items-stretch gap-2">
-            {isLocal ? (
-              <input
-                id="strm-remote-path"
-                aria-describedby="strm-remote-path-hint"
-                className={`${inputCls} min-w-0 flex-1`}
-                value={form.remote_path}
-                placeholder="D:\movies"
-                onChange={(e) => set('remote_path', e.target.value)}
-                onBlur={(e) => set('remote_path', e.target.value.trim())}
-              />
-            ) : (
-              <p className={`${directoryDisplayCls} flex-1`}>
-                {remoteDisplayPath || form.remote_path || (form.account_id ? '根目录（默认）' : '请先选择网盘账号')}
-              </p>
-            )}
+            <p className={`${directoryDisplayCls} flex-1`}>{sourcePath}</p>
             <BrowseDirectoryButton
-              label={isLocal ? '浏览本地源目录' : '浏览远端目录'}
+              label={`浏览${sourceLabel}`}
               disabled={!isLocal && !form.account_id}
               onClick={isLocal ? () => setBrowsingLocal('remote_path') : () => setBrowsing(true)}
             />
           </div>
-          {isLocal && <p id="strm-remote-path-hint" className="text-xs text-ink-50">扫描该目录下的视频生成 strm</p>}
+          {isLocal && <p className="text-xs text-ink-50">扫描该目录下的视频生成 strm</p>}
         </div>
 
         <div className="space-y-1">
