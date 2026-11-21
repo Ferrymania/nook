@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ExternalLink, Github, RefreshCw } from 'lucide-react'
+import { ExternalLink, Github } from 'lucide-react'
 
 import { systemAPI } from '../api/system'
 import { formatAppVersion } from '../utils/formatAppVersion'
@@ -14,26 +14,16 @@ const GITHUB_REPO_URL = 'https://github.com/Ferrymania/nook'
 export function AboutSettingsPanel() {
   const [info, setInfo] = useState<SystemInfo | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
-  const [revision, setRevision] = useState(0)
 
   useEffect(() => {
     let disposed = false
-    setLoading(true)
-    setError(false)
     systemAPI.info()
       .then((value) => { if (!disposed) setInfo(value) })
-      .catch(() => { if (!disposed) setError(true) })
+      .catch(() => undefined)
       .finally(() => { if (!disposed) setLoading(false) })
     return () => { disposed = true }
-  }, [revision])
+  }, [])
 
-  const environment = [
-    { label: '系统', value: [info?.os, info?.arch].filter(Boolean).join(' / ') },
-    { label: 'Go', value: info?.go },
-    { label: '数据目录', value: info?.data_dir, path: true },
-    { label: '缓存目录', value: info?.cache_dir, path: true },
-  ]
   return (
     <div className="about-settings">
       <header className="about-identity">
@@ -41,7 +31,7 @@ export function AboutSettingsPanel() {
           <img src="/brand/logo-64.png" alt="" width={48} height={48} />
           <div className="about-product-name">
             <h2>{info?.name || 'Nook'}</h2>
-            <span className={`about-version${loading && !info ? ' about-placeholder' : ''}`}>
+            <span className="about-version">
               {loading && !info ? '读取版本…' : formatAppVersion(info?.version)}
             </span>
           </div>
@@ -51,26 +41,7 @@ export function AboutSettingsPanel() {
         </a>
       </header>
 
-      <div className="about-overview">
-        <VersionUpdatePanel />
-        <section className="about-panel about-environment" aria-labelledby="about-environment-heading" aria-busy={loading}>
-          <div className="about-panel-heading">
-            <h3 id="about-environment-heading">运行环境</h3>
-          </div>
-          <dl className="about-environment-list">
-            {environment.map((row) => <div key={row.label}>
-              <dt>{row.label}</dt>
-              <dd title={row.value || undefined} className={`${row.path ? 'about-path ' : ''}${loading && !info ? 'about-placeholder' : ''}`}>
-                {loading && !info ? '读取中…' : row.value || '—'}
-              </dd>
-            </div>)}
-          </dl>
-          {error && <div className="about-error" role="alert">
-            <span>无法加载运行信息</span>
-            <button type="button" className="about-button about-button-quiet" onClick={() => setRevision((value) => value + 1)}><RefreshCw size={14} aria-hidden="true" />重试</button>
-          </div>}
-        </section>
-      </div>
+      <VersionUpdatePanel />
       <DatabaseSettingsPanel />
       <DiagnosticsPanel />
     </div>

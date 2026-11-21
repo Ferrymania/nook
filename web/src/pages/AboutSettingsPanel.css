@@ -23,14 +23,6 @@
 .about-product-name h2 { font-size: 26px; font-weight: 650; letter-spacing: -.025em; }
 .about-version { color: var(--app-muted); font-size: 14px; font-variant-numeric: tabular-nums; }
 
-/* Both columns share one 24px gutter and fill the canvas; below 960px they stack. */
-.about-overview {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 1fr);
-  gap: 24px;
-  align-items: stretch;
-}
-
 .about-panel {
   min-width: 0;
   border: 1px solid var(--app-border);
@@ -66,7 +58,6 @@
 .about-button:disabled { cursor: not-allowed; color: var(--app-muted); background: var(--app-panel); }
 .about-button-primary { background: var(--app-command-bg); color: var(--app-command-text); border-color: var(--app-command-bg); }
 .about-button-primary:hover:not(:disabled) { background: var(--app-subtle); }
-.about-button-quiet { border-color: transparent; padding-inline: 6px; }
 .about-update { display: grid; gap: 20px; }
 .about-update-heading { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px 16px; }
 .about-update-heading > .about-release-state { flex: 1 1 180px; }
@@ -83,18 +74,8 @@
 .about-update-footer { flex-wrap: wrap; gap: 8px 16px; font-size: 12px; color: var(--app-muted); line-height: 20px; }
 .about-text-link { display: inline-flex; min-height: 28px; align-items: center; gap: 5px; color: var(--app-text); }
 .about-text-link:hover { text-decoration: underline; }
-.about-environment { display: flex; flex-direction: column; }
-.about-environment-list { display: grid; flex: 1; grid-template-rows: repeat(4, minmax(0, 1fr)); margin-top: 12px; }
-.about-environment-list > div { display: grid; grid-template-columns: 84px minmax(0, 1fr); align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--app-border); font-size: 14px; line-height: 22px; }
-.about-environment-list > div:last-child { border-bottom: 0; padding-bottom: 4px; }
-.about-environment-list dt { color: var(--app-muted); }
-.about-environment-list dd { min-width: 0; text-align: right; overflow-wrap: anywhere; user-select: text; }
-.about-path { font-family: var(--font-mono); font-size: 12px; }
-.about-error { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; color: var(--app-danger-text); font-size: 13px; }
-.about-placeholder { color: var(--app-muted); }
 .about-release-notes { border-top: 1px solid var(--app-border); padding-top: 12px; }
 .about-release-notes summary { cursor: pointer; font-size: 13px; font-weight: 500; }
-.about-overview:has(.about-release-notes[open]) { align-items: start; }
 .about-diagnostics { padding-block: 0; }
 .about-diagnostics-heading { cursor: pointer; list-style: none; min-height: 64px; }
 .about-diagnostics-heading::-webkit-details-marker { display: none; }
@@ -102,11 +83,7 @@
 .about-diagnostics > div { margin-top: 0; }
 
 @media (max-width: 959px) {
-  .about-overview { grid-template-columns: minmax(0, 1fr); gap: 16px; }
   .about-settings { gap: 20px; }
-  .about-environment-list { flex: initial; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; gap: 4px 24px; }
-  .about-environment-list > div { grid-template-columns: minmax(0, 1fr); gap: 4px; border: 0; padding: 8px 0; }
-  .about-environment-list dd { text-align: left; }
 }
 @media (max-width: 540px) {
   .about-identity { gap: 12px; }
