@@ -43,8 +43,6 @@ function StrmQueuePanel({ kind }: { kind: 'download' | 'upload' }) {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [autoRefresh, setAutoRefresh] = useState(true)
   const [batchBusy, setBatchBusy] = useState(false)
   const { selectedIds, setSelectedIds, reset: clearSelection, toggleRow: toggleSelectRow, toggleAll: toggleAllIds } = useTaskSelection()
   const [detailTask, setDetailTask] = useState<StrmTask | null>(null)
@@ -56,8 +54,7 @@ function StrmQueuePanel({ kind }: { kind: 'download' | 'upload' }) {
   const Icon = isDownload ? Download : Upload
 
   const refresh = useCallback(
-    async (showLoading = false) => {
-      if (showLoading) setIsRefreshing(true)
+    async () => {
       const seq = ++refreshSeqRef.current
       try {
         const status = filter === 'all' ? undefined : filter
@@ -79,24 +76,19 @@ function StrmQueuePanel({ kind }: { kind: 'download' | 'upload' }) {
         if (seq === refreshSeqRef.current) setPollFailures((n) => n + 1)
       } finally {
         setLoading(false)
-        if (showLoading) setIsRefreshing(false)
       }
     },
     [isDownload, filter, page],
   )
 
   useEffect(() => {
-    refresh().catch(() => undefined)
-  }, [refresh])
-
-  useEffect(() => {
-    if (!autoRefresh) return
+    void refresh()
     const timer = setInterval(() => {
       if (document.hidden) return
-      refresh().catch(() => undefined)
+      void refresh()
     }, 3000)
     return () => clearInterval(timer)
-  }, [autoRefresh, refresh])
+  }, [refresh])
 
   // Clear selections when changing filter or page
   useEffect(() => {
@@ -218,170 +210,32 @@ function StrmQueuePanel({ kind }: { kind: 'download' | 'upload' }) {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary-400/30 bg-primary-400/10 text-brand-500 shadow-xs">
-            <Icon size={22} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display text-2xl font-bold text-ink-600 sm:text-3xl">
-                {isDownload ? '下载队列' : '上传队列'}
-              </h1>
-              {autoRefresh &&
-                (pollFailures >= 3 ? (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-rose-300/40 bg-rose-500/10 px-2 py-0.5 text-[11px] font-semibold text-rose-600">
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-rose-500" />
-                    连接失败，重试中
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-                    实时同步
-                  </span>
-                ))}
-            </div>
-            <p className="text-xs text-sand-500 mt-0.5">
-              {isDownload
-                ? 'STRM 媒体元数据下载队列（远端网盘 → 本地存储目录）'
-                : 'STRM 媒体元数据上传队列（本地存储目录 → 远端网盘）'}
-            </p>
-          </div>
+      <header className="flex items-center gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary-400/30 bg-primary-400/10 text-brand-500 shadow-xs">
+          <Icon size={22} />
         </div>
-
-        {/* Global actions */}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setAutoRefresh((v) => !v)}
-            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
-              autoRefresh
-                ? 'border-emerald-300/50 bg-emerald-50 text-emerald-700 hover:bg-emerald-100/70'
-                : 'border-gray-200 bg-white text-ink-50 hover:bg-gray-50'
-            }`}
-            title={autoRefresh ? '点击暂停自动刷新' : '点击开启 3 秒自动轮询'}
-          >
-            <Clock size={13} />
-            <span>自动刷新: {autoRefresh ? '开启' : '已暂停'}</span>
-          </button>
-
-          <button
-            type="button"
-            disabled={isRefreshing}
-            onClick={() => refresh(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-ink-100 shadow-xs transition hover:border-gray-300 hover:bg-gray-50"
-            title="手动刷新"
-          >
-            <RefreshCw size={13} className={isRefreshing ? 'animate-spin text-brand-500' : ''} />
-            <span>刷新</span>
-          </button>
-
-          {/* Quick Clean Actions */}
-          <details className="relative inline-block">
-            <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-ink-100 shadow-xs transition hover:border-gray-300 hover:bg-gray-50 [&::-webkit-details-marker]:hidden">
-              <Trash2 size={13} className="text-sand-500" />
-              <span>清理与重试</span>
-            </summary>
-            <div className="absolute right-0 top-10 z-30 min-w-44 rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl backdrop-blur-sm">
-              {failedCount > 0 && (
-                <button
-                  type="button"
-                  disabled={batchBusy}
-                  onClick={(e) => {
-                    e.currentTarget.closest('details')?.removeAttribute('open')
-                    runGlobalBatch(
-                      () =>
-                        isDownload
-                          ? strmAPI.retryFailedDownloads()
-                          : strmAPI.retryFailedUploads(),
-                      '确定重新入队所有失败任务？',
-                    )
-                  }}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-brand-500 hover:bg-brand-50"
-                >
-                  <RefreshCw size={13} />
-                  <span>重试所有失败 ({failedCount})</span>
-                </button>
-              )}
-              {activeTaskCount > 0 && (
-                <button
-                  type="button"
-                  disabled={batchBusy}
-                  onClick={(e) => {
-                    e.currentTarget.closest('details')?.removeAttribute('open')
-                    runGlobalBatch(
-                      () =>
-                        isDownload
-                          ? strmAPI.cancelPendingDownloads()
-                          : strmAPI.cancelPendingUploads(),
-                      '确定取消所有排队及进行中的任务？',
-                    )
-                  }}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-amber-600 hover:bg-amber-50"
-                >
-                  <Ban size={13} />
-                  <span>取消所有进行中 ({activeTaskCount})</span>
-                </button>
-              )}
-              <div className="my-1 border-t border-gray-100" />
-              <button
-                type="button"
-                disabled={batchBusy}
-                onClick={(e) => {
-                  e.currentTarget.closest('details')?.removeAttribute('open')
-                  runGlobalBatch(
-                    () =>
-                      isDownload
-                        ? strmAPI.clearDoneDownloads()
-                        : strmAPI.clearDoneUploads(),
-                    isDownload
-                      ? '确定清空所有已完成的下载记录？'
-                      : '确定清空所有已完成的上传记录？',
-                  )
-                }}
-                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-ink-100 hover:bg-gray-50"
-              >
-                <CheckCircle2 size={13} className="text-emerald-500" />
-                <span>清空已完成记录</span>
-              </button>
-              <button
-                type="button"
-                disabled={batchBusy}
-                onClick={(e) => {
-                  e.currentTarget.closest('details')?.removeAttribute('open')
-                  runGlobalBatch(
-                    () =>
-                      isDownload
-                        ? strmAPI.clearCanceledDownloads()
-                        : strmAPI.clearCanceledUploads(),
-                    '确定清空所有已取消的任务记录？',
-                  )
-                }}
-                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-ink-100 hover:bg-gray-50"
-              >
-                <Ban size={13} className="text-amber-500" />
-                <span>清空已取消记录</span>
-              </button>
-              <button
-                type="button"
-                disabled={batchBusy}
-                onClick={(e) => {
-                  e.currentTarget.closest('details')?.removeAttribute('open')
-                  runGlobalBatch(
-                    () =>
-                      isDownload
-                        ? strmAPI.clearFinishedDownloads()
-                        : strmAPI.clearFinishedUploads(),
-                    '确定清空所有已完成、失败及取消的历史记录？',
-                  )
-                }}
-                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-rose-500 hover:bg-rose-50"
-              >
-                <Trash2 size={13} />
-                <span>清空全部历史记录</span>
-              </button>
-            </div>
-          </details>
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="font-display text-2xl font-bold text-ink-600 sm:text-3xl">
+              {isDownload ? '下载队列' : '上传队列'}
+            </h1>
+            {pollFailures >= 3 ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-rose-300/40 bg-rose-500/10 px-2 py-0.5 text-[11px] font-semibold text-rose-600">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-rose-500" />
+                连接失败，重试中
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+                实时同步
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-sand-500 mt-0.5">
+            {isDownload
+              ? 'STRM 媒体元数据下载队列（远端网盘 → 本地存储目录）'
+              : 'STRM 媒体元数据上传队列（本地存储目录 → 远端网盘）'}
+          </p>
         </div>
       </header>
 

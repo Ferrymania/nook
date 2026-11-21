@@ -1,7 +1,7 @@
-import { useEffect, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react'
+import { useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Check, Copy, KeyRound, Loader2, Tv } from 'lucide-react'
+import { KeyRound, Loader2 } from 'lucide-react'
 
 import { authAPI } from '../api/auth'
 import { MyDevicesPanel } from '../components/MyDevicesPanel'
@@ -25,39 +25,13 @@ export function ProfilePage() {
   const location = useLocation()
   const navigate = useNavigate()
   const requestedTab = new URLSearchParams(location.search).get('tab')
-  const activeTab: ProfileTab = location.hash === '#tv-otp'
-    ? 'devices'
-    : PROFILE_TABS.find((tab) => tab.value === requestedTab)?.value ?? 'history'
+  const activeTab: ProfileTab = PROFILE_TABS.find((tab) => tab.value === requestedTab)?.value ?? 'history'
 
   const [editingProfile, setEditingProfile] = useState(false)
   const [oldPwd, setOldPwd] = useState('')
   const [newPwd, setNewPwd] = useState('')
   const [signOutDevices, setSignOutDevices] = useState(false)
   const [savingPassword, setSavingPassword] = useState(false)
-
-  const [otpCode, setOtpCode] = useState('')
-  const [otpExpiresIn, setOtpExpiresIn] = useState(0)
-  const [generatingOtp, setGeneratingOtp] = useState(false)
-  const [copiedOtp, setCopiedOtp] = useState(false)
-
-  useEffect(() => {
-    if (otpExpiresIn <= 0) return
-    const timer = setInterval(() => {
-      setOtpExpiresIn((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer)
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [otpExpiresIn])
-
-  useEffect(() => {
-    if (location.hash !== '#tv-otp') return
-    document.getElementById('tv-otp')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-  }, [location.hash])
 
   const changeTab = (tab: ProfileTab) => {
     const params = new URLSearchParams(location.search)
@@ -76,37 +50,6 @@ export function ProfilePage() {
     event.preventDefault()
     changeTab(PROFILE_TABS[next].value)
     document.getElementById(`profile-tab-${PROFILE_TABS[next].value}`)?.focus()
-  }
-
-  const onGenerateOTP = async () => {
-    if (generatingOtp) return
-    setGeneratingOtp(true)
-    try {
-      const res = await authAPI.createTemporaryPassword()
-      setOtpCode(res.code)
-      setOtpExpiresIn(res.expires_in)
-      setCopiedOtp(false)
-      toast.success('已生成 6 位临时登录码')
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-        '生成临时密码失败'
-      toast.error(msg)
-    } finally {
-      setGeneratingOtp(false)
-    }
-  }
-
-  const copyOTP = async () => {
-    if (!otpCode) return
-    try {
-      await navigator.clipboard.writeText(otpCode)
-      setCopiedOtp(true)
-      toast.success('已复制到剪贴板')
-      setTimeout(() => setCopiedOtp(false), 2000)
-    } catch {
-      toast.error('复制失败，请手动长按复制')
-    }
   }
 
   const onPwd = async (e: FormEvent) => {
@@ -215,64 +158,6 @@ export function ProfilePage() {
       </div>
 
       <div id="profile-panel-devices" role="tabpanel" aria-labelledby="profile-tab-devices" hidden={activeTab !== 'devices'} className="space-y-4">
-        <section id="tv-otp" className="space-y-3 rounded-xl bg-(--app-panel) p-4 sm:p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="flex items-center gap-2 text-base font-semibold">
-                <Tv size={18} />
-                电视端临时登录码
-              </h2>
-              <p className="mt-1 text-xs leading-5 text-(--app-muted)">
-                用于 Apple TV、电视盒子等设备上的 Emby / Infuse / Jellyfin 客户端快速登录。
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onGenerateOTP}
-              disabled={generatingOtp}
-              className="btn-outline shrink-0"
-            >
-              {generatingOtp ? <Loader2 size={16} className="animate-spin" /> : <KeyRound size={16} />}
-              {otpCode && otpExpiresIn > 0 ? '重新生成' : '获取登录码'}
-            </button>
-          </div>
-
-          {otpCode && otpExpiresIn > 0 ? (
-            <div className="space-y-3 rounded-xl border border-(--app-border) p-3">
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-(--app-muted)">
-                <div>
-                  <span>登录账号：</span>
-                  <span className="break-all font-medium text-(--app-text)">{user?.username}</span>
-                </div>
-                <div>
-                  <span>有效时间剩余：</span>
-                  <span className={`font-medium tabular-nums ${otpExpiresIn < 60 ? 'text-red-500' : 'text-(--app-text)'}`}>
-                    {Math.floor(otpExpiresIn / 60).toString().padStart(2, '0')}:{(otpExpiresIn % 60).toString().padStart(2, '0')}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-(--app-control-bg) p-3">
-                <div className="select-all text-2xl font-semibold tracking-widest tabular-nums">
-                  {otpCode}
-                </div>
-                <button
-                  type="button"
-                  onClick={copyOTP}
-                  className="btn-outline"
-                >
-                  {copiedOtp ? <Check size={14} /> : <Copy size={14} />}
-                  {copiedOtp ? '已复制' : '复制登录码'}
-                </button>
-              </div>
-
-              <p className="text-xs leading-5 text-(--app-muted)">
-                在客户端输入用户名和上方 6 位数字即可登录。登录码一次性使用，登录成功后立即失效。
-              </p>
-            </div>
-          ) : null}
-        </section>
-
         {activeTab === 'devices' && <MyDevicesPanel />}
       </div>
 

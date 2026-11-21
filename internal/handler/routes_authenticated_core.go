@@ -22,8 +22,6 @@ func registerAuthedUserAndLicenseRoutes(authed *gin.RouterGroup, svc *service.Co
 	authed.PUT("/me/library-tags", setLibraryTagsHandler(svc))
 	authed.POST("/me/password", changePasswordHandler(svc))
 	authed.POST("/me/logout", logoutHandler(svc))
-	authed.GET("/me/temporary-password", temporaryPasswordHandler(svc))
-	authed.POST("/me/temporary-password", temporaryPasswordHandler(svc))
 
 	// 设备管理：路由挂在 /me 下，用户 ID 一律取自会话，天然只能管自己的设备。
 	authed.GET("/me/devices", myDevicesHandler(svc))

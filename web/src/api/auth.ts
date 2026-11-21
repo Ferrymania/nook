@@ -21,7 +21,4 @@ export const authAPI = {
       .then((r) => r.data),
 
   logout: () => api.post('/me/logout'),
-
-  createTemporaryPassword: () =>
-    api.post<{ code: string; expires_in: number }>('/me/temporary-password').then((r) => r.data),
 }

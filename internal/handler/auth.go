@@ -150,22 +150,3 @@ func changePasswordHandler(svc *service.Container) gin.HandlerFunc {
 		c.Status(http.StatusNoContent)
 	}
 }
-
-func temporaryPasswordHandler(svc *service.Container) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		uid, ok := c.Get(middleware.CtxUserID)
-		if !ok || uid == nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-			return
-		}
-		code, expireSec, err := svc.Auth.CreateTemporaryPassword(c.Request.Context(), uid.(string), c.GetInt64(middleware.CtxSessionVersion))
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{
-			"code":       code,
-			"expires_in": expireSec,
-		})
-	}
-}

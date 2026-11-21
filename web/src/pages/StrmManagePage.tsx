@@ -228,43 +228,14 @@ export function StrmManagePage() {
           <div>
             <h1 className="font-display text-3xl font-bold text-ink-600">STRM 管理</h1>
             <p className="text-sm text-ink-50">
-              网盘目录同步生成 .strm 文件（Emby / Jellyfin 直接刮削播放），元数据经下载 / 上传队列双向同步
+              从网盘或本地目录生成 .strm 文件，供 Emby / Jellyfin 使用。网盘元数据可双向同步。
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={() => { setEditingAccount(null); setDialog('account') }} className="neon-button">
-            <Plus size={16} />
-            添加网盘账号
-          </button>
-          <button type="button" onClick={() => setDialog('settings')} className="neon-button">
-            <Settings size={16} />
-            STRM 设置
-          </button>
-          <div className="group relative">
-            <button
-              type="button"
-              aria-disabled={!canAddPath}
-              aria-describedby={addPathHint ? ADD_PATH_HINT_ID : undefined}
-              onClick={openAddPathDialog}
-              className="neon-button aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:bg-transparent"
-            >
-              <Plus size={16} />
-              添加同步目录
-            </button>
-            {addPathHint && (
-              <div
-                id={ADD_PATH_HINT_ID}
-                role="tooltip"
-                className="invisible absolute left-1/2 top-full z-10 w-max max-w-40 -translate-x-1/2 pt-2 group-hover:visible group-has-[:focus-visible]:visible"
-              >
-                <div className="rounded-lg border border-(--app-border) bg-(--app-panel-elevated) px-3 py-2 text-xs text-ink-600 shadow-sm">
-                  {addPathHint}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <button type="button" onClick={() => setDialog('settings')} className="neon-button">
+          <Settings size={16} />
+          STRM 设置
+        </button>
       </header>
 
       {loading ? (
@@ -376,14 +347,15 @@ function AccountSection({
           <button type="button" onClick={onEdit115Rate} className={iconButtonCls}>
             <Settings size={14} />115 接口速率
           </button>
-          <button type="button" onClick={onAdd} className="inline-flex items-center gap-1 text-sm font-semibold text-brand-500 hover:text-brand-600">
+          <button type="button" onClick={onAdd} aria-label="新建网盘账号"
+            className="inline-flex items-center gap-1 text-sm font-semibold text-brand-500 hover:text-brand-600">
             <Plus size={14} />新建
           </button>
         </div>
       </div>
       {accounts.length === 0 ? (
         <p className="rounded-xl bg-gray-50 px-4 py-6 text-center text-sm text-sand-500">
-          还没有网盘账号，点击「添加网盘账号」创建（115 网盘支持二维码登录）
+          还没有网盘账号。点击「新建」添加账号（115 网盘支持二维码登录）。
         </p>
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -498,14 +470,15 @@ function SyncPathSection({
         <button
           type="button"
           disabled={!canAddPath}
+          aria-label="新建同步目录"
           aria-describedby={addPathHint ? ADD_PATH_HINT_ID : undefined}
-          title={addPathHint || undefined}
           onClick={onAdd}
           className="inline-flex items-center gap-1 text-sm font-semibold text-brand-500 enabled:hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Plus size={14} />新建
         </button>
       </div>
+      {addPathHint && <p id={ADD_PATH_HINT_ID} className="text-xs text-ink-50">{addPathHint}</p>}
       {paths.length === 0 ? (
         <p className="rounded-xl bg-gray-50 px-4 py-6 text-center text-sm text-sand-500">
           还没有同步目录。添加后系统会把网盘 / 本地目录里的视频生成 .strm 文件到本地输出目录

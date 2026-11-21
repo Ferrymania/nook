@@ -3,13 +3,10 @@ package service
 
 import (
 	"context"
-	"crypto/rand"
 	"errors"
 	"fmt"
-	"math/big"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"go.uber.org/zap"
@@ -21,13 +18,6 @@ import (
 	"github.com/Ferrymania/nook/internal/repository"
 )
 
-type temporaryPasswordEntry struct {
-	userID         string
-	username       string
-	sessionVersion int64
-	expiresAt      time.Time
-}
-
 // AuthService handles registration, login, and JWT issuance.
 type AuthService struct {
 	cfg           *config.Config
@@ -35,9 +25,6 @@ type AuthService struct {
 	repo          *repository.Container
 	tokenSvc      *TokenService
 	permissionSvc *PermissionService
-
-	tempPassMu    sync.RWMutex
-	tempPasswords map[string]temporaryPasswordEntry
 }
 
 // NewAuthService is the constructor.
@@ -48,7 +35,6 @@ func NewAuthService(cfg *config.Config, log *zap.Logger, repo *repository.Contai
 		repo:          repo,
 		tokenSvc:      tokenSvc,
 		permissionSvc: permissionSvc,
-		tempPasswords: make(map[string]temporaryPasswordEntry),
 	}
 }
 
@@ -190,14 +176,9 @@ func (s *AuthService) Login(ctx context.Context, username, password string) (*Lo
 	return &LoginResponse{User: u, Tokens: tokens}, nil
 }
 
-// LoginEmby authenticates a compatible client with a password or a one-time code.
+// LoginEmby authenticates a compatible client with their account password.
 func (s *AuthService) LoginEmby(ctx context.Context, username, password string) (*model.User, string, error) {
 	u, err := s.authenticatePassword(ctx, username, password)
-	if errors.Is(err, ErrInvalidCredentials) {
-		if user, ok := s.VerifyAndConsumeTemporaryPassword(ctx, username, password); ok {
-			u, err = user, nil
-		}
-	}
 	if err != nil {
 		return nil, "", err
 	}
@@ -358,87 +339,4 @@ func hashPassword(p string) (string, error) {
 		return "", err
 	}
 	return string(h), nil
-}
-
-const temporaryPasswordTTL = 5 * time.Minute
-
-// CreateTemporaryPassword 为指定用户生成一个 6 位数字的临时登录密码（有效期 5 分钟），
-// 供 Emby 电视端/客户端进行无键盘或快速输入登录。
-func (s *AuthService) CreateTemporaryPassword(ctx context.Context, userID string, sessionVersion int64) (string, int, error) {
-	if s == nil || s.repo == nil {
-		return "", 0, errors.New("auth service unavailable")
-	}
-	user, err := s.repo.User.FindByID(ctx, userID)
-	if err != nil || user == nil || user.SessionVersion != sessionVersion {
-		return "", 0, ErrInvalidCredentials
-	}
-	if !user.IsActive {
-		return "", 0, ErrUserInactive
-	}
-	if user.ExpiredAt != nil && time.Now().After(*user.ExpiredAt) {
-		return "", 0, ErrUserExpired
-	}
-	if user.ForcePasswordReset {
-		return "", 0, ErrPasswordResetRequired
-	}
-
-	n, err := rand.Int(rand.Reader, big.NewInt(900000))
-	if err != nil {
-		return "", 0, err
-	}
-	code := fmt.Sprintf("%06d", n.Int64()+100000)
-
-	s.tempPassMu.Lock()
-	defer s.tempPassMu.Unlock()
-	now := time.Now()
-	for k, v := range s.tempPasswords {
-		if now.After(v.expiresAt) {
-			delete(s.tempPasswords, k)
-		}
-	}
-	s.tempPasswords[code] = temporaryPasswordEntry{
-		userID:         user.ID,
-		username:       user.Username,
-		sessionVersion: user.SessionVersion,
-		expiresAt:      now.Add(temporaryPasswordTTL),
-	}
-
-	return code, int(temporaryPasswordTTL.Seconds()), nil
-}
-
-// VerifyAndConsumeTemporaryPassword 校验并消费临时登录密码（阅后即焚）。
-func (s *AuthService) VerifyAndConsumeTemporaryPassword(ctx context.Context, username, code string) (*model.User, bool) {
-	if s == nil || s.repo == nil {
-		return nil, false
-	}
-	code = strings.TrimSpace(code)
-	if len(code) != 6 {
-		return nil, false
-	}
-	s.tempPassMu.Lock()
-	entry, ok := s.tempPasswords[code]
-	if ok {
-		delete(s.tempPasswords, code)
-	}
-	s.tempPassMu.Unlock()
-
-	if !ok || time.Now().After(entry.expiresAt) {
-		return nil, false
-	}
-
-	if strings.TrimSpace(username) != "" && !strings.EqualFold(strings.TrimSpace(username), entry.username) {
-		return nil, false
-	}
-
-	user, err := s.repo.User.FindByID(ctx, entry.userID)
-	if err != nil || user == nil || !user.IsActive || user.SessionVersion != entry.sessionVersion {
-		return nil, false
-	}
-	if user.ExpiredAt != nil && time.Now().After(*user.ExpiredAt) {
-		return nil, false
-	}
-	if user.ForcePasswordReset {
-		return nil, false
-	}
-	return user, true
 }

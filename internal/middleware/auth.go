@@ -136,7 +136,7 @@ func (claims *Claims) isLegacyEmbyToken() bool {
 }
 
 // PasswordResetRequestAllowed is an exact method/path allowlist. Profile
-// updates, OTP generation and administrator operations are deliberately absent.
+// updates and administrator operations are deliberately absent.
 func PasswordResetRequestAllowed(c *gin.Context) bool {
 	if c == nil || c.Request == nil {
 		return false
