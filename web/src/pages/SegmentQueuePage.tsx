@@ -1,10 +1,11 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { AlertCircle, CheckCircle2, ChevronDown, ChevronRight, Clock, Database, ListVideo, Loader2, MinusCircle, RefreshCw, Search, Trash2 } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
+import { AlertCircle, ArrowLeft, CheckCircle2, ChevronDown, ChevronRight, Clock, Database, ListVideo, Loader2, MinusCircle, RefreshCw, Search, Trash2 } from 'lucide-react'
 import clsx from 'clsx'
 import toast from 'react-hot-toast'
 
-import { segmentQueueAPI, type SegmentTask, type SegmentTaskCounts, type SegmentTaskStatus, type SegmentQueueSnapshot } from '../api/segments'
+import { segmentQueueAPI, type SegmentTask, type SegmentTaskStatus, type SegmentQueueSnapshot } from '../api/segments'
+import { resolveHeaderBack } from '../components/layoutNavigation'
 import { apiErrorMessage } from './StrmManagePage'
 
 const STATUS = {
@@ -30,7 +31,9 @@ function dateTime(raw?: string) {
   return raw ? new Date(raw).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : '—'
 }
 
-export function SegmentQueuePage({ onCountsChange }: { onCountsChange?: (counts: SegmentTaskCounts) => void }) {
+export function SegmentQueuePage() {
+  const { pathname, search, state } = useLocation()
+  const back = resolveHeaderBack(pathname, search, state?.segmentReturnTo)
   const [snapshot, setSnapshot] = useState<SegmentQueueSnapshot | null>(null)
   const [filter, setFilter] = useState<'all' | SegmentTaskStatus>('all')
   const [input, setInput] = useState('')
@@ -47,7 +50,6 @@ export function SegmentQueuePage({ onCountsChange }: { onCountsChange?: (counts:
     const timer = setTimeout(() => { setQuery(input.trim()); setPage(1) }, 300)
     return () => clearTimeout(timer)
   }, [input])
-  useEffect(() => { if (snapshot) onCountsChange?.(snapshot.counts) }, [snapshot, onCountsChange])
 
   const refresh = useCallback(async (manual = false) => {
     const current = ++sequence.current
@@ -101,6 +103,12 @@ export function SegmentQueuePage({ onCountsChange }: { onCountsChange?: (counts:
   const filters = [{ key: 'all' as const, label: '全部', icon: ListVideo, color: 'text-ink-600' }, ...Object.entries(STATUS).map(([key, value]) => ({ ...value, key: key as SegmentTaskStatus }))]
 
   return <section className="space-y-4" aria-label="片头片尾队列">
+    <header className="flex items-center justify-between gap-3">
+      <h1 className="font-display text-2xl font-bold text-ink-600 sm:text-3xl">片头片尾队列</h1>
+      {back && <div className="hidden lg:block">
+        <Link to={back.to} className="btn-outline"><ArrowLeft size={16} />{back.label}</Link>
+      </div>}
+    </header>
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
       {filters.map(item => <button key={item.key} type="button" aria-pressed={filter === item.key} onClick={() => { setFilter(item.key); setPage(1) }} className={clsx('glass-panel rounded-2xl border p-4 text-left transition', filter === item.key ? 'border-brand-500 ring-1 ring-brand-500/20' : 'border-sand-200 hover:border-brand-300')}>
         <div className="flex items-center justify-between gap-2 text-sm text-ink-50"><span>{item.label}</span><item.icon size={16} /></div>

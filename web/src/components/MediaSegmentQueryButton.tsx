@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { CircleCheck, Database, ListVideo, Loader2, RefreshCw, X } from 'lucide-react'
 
 import { playbackAPI, type MediaSegmentQueryResult } from '../api/playback'
@@ -23,6 +23,7 @@ export function MediaSegmentQueryButton({ media, episodes, disabled = false }: M
 }
 
 export function MediaSegmentQueryDialog({ media, episodes, onClose }: MediaSegmentQueryProps & { onClose: () => void }) {
+  const { pathname, search } = useLocation()
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<MediaSegmentQueryResult | null>(null)
   const [error, setError] = useState('')
@@ -127,7 +128,8 @@ export function MediaSegmentQueryDialog({ media, episodes, onClose }: MediaSegme
             </div>}
           </div>
           <footer className="flex shrink-0 flex-wrap justify-end gap-2 border-t border-(--app-border) bg-(--app-panel-soft) px-5 py-4">
-            <Link to="/queue?type=segments" onClick={close} className="mr-auto self-center text-xs text-brand-600 hover:underline">查看查询队列</Link>
+            <Link to="/segments/queue" state={{ segmentReturnTo: pathname + search }} onClick={close}
+              className="mr-auto self-center text-xs text-brand-600 hover:underline">查看查询队列</Link>
             <button type="button" disabled={loading} onClick={() => { void query() }} className="btn-outline px-3! py-2! text-xs"><RefreshCw size={13} />重新查询</button>
             <button type="button" onClick={close} className="btn-primary px-4! py-2! text-xs">{isBatch && loading ? '停止并关闭' : '关闭'}</button>
           </footer>

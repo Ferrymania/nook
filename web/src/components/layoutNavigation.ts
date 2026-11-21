@@ -6,7 +6,6 @@ import {
   Heart,
   Home,
   Library,
-  ListChecks,
   ListMusic,
   Settings,
   Tv,
@@ -40,7 +39,6 @@ export type MobileBottomNavItem = {
 export const LAYOUT_NAV_ITEMS: LayoutNavItem[] = [
   { to: '/profile', label: '个人主页', icon: User },
   { to: '/libraries?from=admin', label: '媒体库', icon: Library },
-  { to: '/queue', label: '任务队列', icon: ListChecks, adminOnly: true },
   { to: '/admin', label: '用户管理', icon: Users, adminOnly: true },
   { to: '/files', label: '文件管理', icon: FolderOpen, adminOnly: true },
   { to: '/emby-mount', label: 'Emby 挂载', icon: Tv, adminOnly: true },
@@ -126,7 +124,7 @@ export function isSidebarLinkActive(
   return end ? pathname === toPath : pathname === toPath || pathname.startsWith(`${toPath}/`)
 }
 
-export function resolveHeaderBack(pathname: string): HeaderBackTarget | null {
+export function resolveHeaderBack(pathname: string, search = '', segmentReturnTo?: unknown): HeaderBackTarget | null {
   if (pathname.startsWith('/library/')) {
     return { to: '/libraries', label: '媒体库' }
   }
@@ -143,8 +141,15 @@ export function resolveHeaderBack(pathname: string): HeaderBackTarget | null {
   if (pathname.startsWith('/media/')) {
     return null
   }
-  if (pathname === '/scraper/queue') {
-    return { to: '/queue', label: '任务队列' }
+  if (
+    pathname === '/segments/queue' &&
+    typeof segmentReturnTo === 'string' &&
+    /^\/(media|library)\/[^/?#]+(?:\?[^#]*)?$/.test(segmentReturnTo)
+  ) {
+    return { to: segmentReturnTo, label: segmentReturnTo.startsWith('/media/') ? '媒体详情' : '媒体库' }
+  }
+  if (pathname === '/scraper/queue' || pathname === '/segments/queue') {
+    return { to: isAdminEntrySearch(search) ? '/libraries?from=admin' : '/libraries', label: '媒体库' }
   }
   if (pathname === '/strm/downloads' || pathname === '/strm/uploads') {
     return { to: '/strm', label: 'STRM 管理' }
@@ -156,7 +161,6 @@ export function resolveHeaderBack(pathname: string): HeaderBackTarget | null {
     pathname === '/settings' ||
     pathname === '/admin' ||
     pathname === '/files' ||
-    pathname === '/queue' ||
     pathname === '/emby-mount' ||
     pathname === '/strm'
   ) {

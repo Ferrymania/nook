@@ -21,7 +21,7 @@ import {
 
 import { ARTWORK, imageURL } from '../api/client'
 import { scraperAPI } from '../api/scraper'
-import type { ScrapeQueueCounts, ScrapeQueueSnapshot, ScrapeTask, ScrapeTaskStatus } from '../types/scraper'
+import type { ScrapeQueueSnapshot, ScrapeTask, ScrapeTaskStatus } from '../types/scraper'
 import { apiErrorMessage, formatTime, taskStatusMeta } from './StrmManagePage'
 import { ScrapeDetailModal } from './scraper-queue/ScrapeDetailModal'
 import { PROVIDER_LABELS } from './scraper-queue/scrapeLabels'
@@ -44,13 +44,7 @@ const TYPE_ICONS: Record<string, ReactNode> = {
 
 const PAGE_SIZE = 50
 
-export function ScraperQueuePage({
-  embedded = false,
-  onCountsChange,
-}: {
-  embedded?: boolean
-  onCountsChange?: (counts: ScrapeQueueCounts) => void
-}) {
+export function ScraperQueuePage() {
   const [snapshot, setSnapshot] = useState<ScrapeQueueSnapshot | null>(null)
   const [filter, setFilter] = useState<'all' | ScrapeTaskStatus>('all')
   const [search, setSearch] = useState('')
@@ -63,10 +57,6 @@ export function ScraperQueuePage({
   // 轮询/翻页/切筛选并发时用递增序号丢弃过期响应
   const refreshSeqRef = useRef(0)
   const [pollFailures, setPollFailures] = useState(0)
-
-  useEffect(() => {
-    if (snapshot) onCountsChange?.(snapshot.counts)
-  }, [snapshot, onCountsChange])
 
   const refresh = useCallback(
     async () => {
@@ -220,32 +210,30 @@ export function ScraperQueuePage({
 
   return (
     <div className="space-y-6">
-      {!embedded && (
-        <header className="flex items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary-400/30 bg-primary-400/10 text-brand-500 shadow-xs">
-            <Sparkles size={22} />
+      <header className="flex items-center gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary-400/30 bg-primary-400/10 text-brand-500 shadow-xs">
+          <Sparkles size={22} />
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="font-display text-2xl font-bold text-ink-600 sm:text-3xl">刮削队列</h1>
+            {pollFailures >= 3 ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-rose-300/40 bg-rose-500/10 px-2 py-0.5 text-[11px] font-semibold text-rose-600">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-rose-500" />
+                连接失败，重试中
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+                实时同步
+              </span>
+            )}
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display text-2xl font-bold text-ink-600 sm:text-3xl">刮削队列</h1>
-              {pollFailures >= 3 ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-rose-300/40 bg-rose-500/10 px-2 py-0.5 text-[11px] font-semibold text-rose-600">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-rose-500" />
-                  连接失败，重试中
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-                  实时同步
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-sand-500 mt-0.5">
-              媒体元数据在线识别与海报/剧照下载进度（TMDb / Bangumi / TheTVDB）
-            </p>
-          </div>
-        </header>
-      )}
+          <p className="text-xs text-sand-500 mt-0.5">
+            媒体元数据在线识别与海报/剧照下载进度（TMDb / Bangumi / TheTVDB）
+          </p>
+        </div>
+      </header>
 
       {/* 2. Status Cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">

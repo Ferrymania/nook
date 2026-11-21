@@ -41,8 +41,9 @@ export function LayoutHeader({
   pathname = '',
 }: LayoutHeaderProps) {
   const navigate = useNavigate()
+  const { search, state } = useLocation()
   const [isProfileOpen, setIsProfileOpen] = useState(false)
-  const headerBack = resolveHeaderBack(pathname)
+  const headerBack = resolveHeaderBack(pathname, search, state?.segmentReturnTo)
 
   return (
     <header className="nook-header relative z-30 flex h-16 shrink-0 items-center justify-between gap-2 border-b border-(--app-border) bg-(--app-header-bg) px-3 sm:h-18 sm:gap-4 sm:px-4 md:px-8">

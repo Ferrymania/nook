@@ -88,10 +88,10 @@ export function useLibraryScrapeStatus({ libraryID = '', allLibraries = false, i
         ? await scraperAPI.enqueueAll(options)
         : await libraryAPI.scrape(libraryID, options)
       if (version !== generation.current) return
-      toast.success(result.enqueued > 0 ? `${allLibraries ? '全部' : ''}媒体库刮削已加入队列，可在任务队列查看进度` : '没有新增刮削任务，正在核对当前队列')
+      toast.success(result.enqueued > 0 ? `${allLibraries ? '全部' : ''}媒体库刮削已加入队列，可在刮削队列查看进度` : '没有新增刮削任务，正在核对当前队列')
     } catch {
       if (version !== generation.current) return
-      toast.error('刮削请求未确认，请查看任务队列')
+      toast.error('刮削请求未确认，请查看刮削队列')
     } finally {
       if (version === generation.current) {
         submitting.current = false
