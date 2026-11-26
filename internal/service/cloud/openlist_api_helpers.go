@@ -87,8 +87,10 @@ type openListListResponse struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 	Data    struct {
-		Content []openListListItem `json:"content"`
-		Total   int                `json:"total"`
+		Content            []openListListItem `json:"content"`
+		Total              int                `json:"total"`
+		Write              *bool              `json:"write"`
+		WriteContentBypass bool               `json:"write_content_bypass"`
 	} `json:"data"`
 }
 

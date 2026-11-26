@@ -21,8 +21,10 @@ func (p *openListProvider) Mkdir(ctx context.Context, parentDir, name string) (*
 	if err != nil {
 		return nil, err
 	}
-	parent := normalizeCloudDAVPath(parentDir)
-	target := joinOpenListAPIPath(parent, cleanName)
+	if !strings.HasPrefix(parentDir, "/") || path.Clean(parentDir) != parentDir || strings.Contains(parentDir, "\\") {
+		parentDir = normalizeCloudDAVPath(parentDir)
+	}
+	target := path.Join(parentDir, cleanName)
 	if err := p.openListAPIMkdir(ctx, target); err != nil {
 		return nil, err
 	}
@@ -88,7 +90,7 @@ func cleanCloudEntryName(name string) (string, error) {
 }
 
 func (p *openListProvider) openListAPIMkdir(ctx context.Context, target string) error {
-	return p.openListAPIPost(ctx, "/api/fs/mkdir", map[string]string{"path": normalizeCloudDAVPath(target)}, "mkdir")
+	return p.openListAPIPost(ctx, "/api/fs/mkdir", map[string]string{"path": target}, "mkdir")
 }
 
 func (p *openListProvider) openListAPIRename(ctx context.Context, source, name string) error {
@@ -136,11 +138,8 @@ func (p *openListProvider) openListAPIPost(ctx context.Context, apiPath string, 
 		return decorateDAVTransportError(p.name, p.openListAPIURL(apiPath), err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode == http.StatusUnauthorized {
-		return p.openListAPIStatusError(action, "", resp.StatusCode)
-	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("%s: api %s returned http %d", p.name, action, resp.StatusCode)
+		return p.openListFileError(action, "", resp.StatusCode, "")
 	}
 	var decoded struct {
 		Code    int    `json:"code"`
@@ -150,11 +149,7 @@ func (p *openListProvider) openListAPIPost(ctx context.Context, apiPath string, 
 		return fmt.Errorf("%s: decode api %s: %w", p.name, action, err)
 	}
 	if decoded.Code != 0 && decoded.Code != 200 {
-		msg := strings.TrimSpace(decoded.Message)
-		if msg == "" {
-			msg = fmt.Sprintf("code %d", decoded.Code)
-		}
-		return fmt.Errorf("%s: api %s failed: %s", p.name, action, msg)
+		return p.openListFileError(action, "", decoded.Code, decoded.Message)
 	}
 	return nil
 }

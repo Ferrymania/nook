@@ -13,38 +13,52 @@ import (
 
 // FetchUsername 使用已配置的 Token 查询 OpenList 当前用户，不调用登录接口。
 func (p *openListProvider) FetchUsername(ctx context.Context) (string, error) {
-	if err := p.validate(); err != nil {
+	user, err := p.fetchOpenListUser(ctx)
+	if err != nil {
 		return "", err
+	}
+	if strings.TrimSpace(user.Username) == "" {
+		return "", fmt.Errorf("openlist: 接口未返回用户名")
+	}
+	return strings.TrimSpace(user.Username), nil
+}
+
+type openListUser struct {
+	Username   string `json:"username"`
+	Permission *int32 `json:"permission"`
+}
+
+func (p *openListProvider) fetchOpenListUser(ctx context.Context) (openListUser, error) {
+	if err := p.validate(); err != nil {
+		return openListUser{}, err
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.openListAPIURL("/api/me"), nil)
 	if err != nil {
-		return "", err
+		return openListUser{}, err
 	}
 	req.Header.Set("Authorization", p.token)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", p.ua)
 	resp, err := p.client.Do(req)
 	if err != nil {
-		return "", decorateDAVTransportError(p.name, req.URL.String(), err)
+		return openListUser{}, decorateDAVTransportError(p.name, req.URL.String(), err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return "", p.openListAPIStatusError("user info", "", resp.StatusCode)
+		return openListUser{}, p.openListFileError("user info", "", resp.StatusCode, "")
 	}
 	var result struct {
-		Code    int    `json:"code"`
-		Message string `json:"message"`
-		Data    struct {
-			Username string `json:"username"`
-		} `json:"data"`
+		Code    int          `json:"code"`
+		Message string       `json:"message"`
+		Data    openListUser `json:"data"`
 	}
 	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&result); err != nil {
-		return "", fmt.Errorf("openlist: decode user info: %w", err)
+		return openListUser{}, fmt.Errorf("openlist: decode user info: %w", err)
 	}
-	if result.Code != http.StatusOK || strings.TrimSpace(result.Data.Username) == "" {
-		return "", fmt.Errorf("openlist: 获取用户名失败：%s", firstNonEmpty(result.Message, "接口未返回用户名"))
+	if result.Code != http.StatusOK {
+		return openListUser{}, p.openListFileError("user info", "", result.Code, result.Message)
 	}
-	return strings.TrimSpace(result.Data.Username), nil
+	return result.Data, nil
 }
 
 func (p *openListProvider) listOpenListAPI(ctx context.Context, dir string) ([]FileEntry, error) {
@@ -52,41 +66,9 @@ func (p *openListProvider) listOpenListAPI(ctx context.Context, dir string) ([]F
 	target := normalizeCloudDAVPath(dir)
 	out := make([]FileEntry, 0, pageSize)
 	for pageNum := 1; ; pageNum++ {
-		payload := map[string]any{
-			"path":     target,
-			"password": "",
-			"page":     pageNum,
-			"per_page": pageSize,
-			"refresh":  false,
-		}
-		body, _ := json.Marshal(payload)
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.openListAPIURL("/api/fs/list"), bytes.NewReader(body))
+		decoded, err := p.fetchOpenListPage(ctx, target, pageNum, pageSize)
 		if err != nil {
 			return nil, err
-		}
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Accept", "application/json")
-		req.Header.Set("User-Agent", p.ua)
-		req.Header.Set("Authorization", p.token)
-		resp, err := p.client.Do(req)
-		if err != nil {
-			return nil, decorateDAVTransportError(p.name, p.openListAPIURL("/api/fs/list"), err)
-		}
-		var decoded openListListResponse
-		decodeErr := json.NewDecoder(io.LimitReader(resp.Body, 32<<20)).Decode(&decoded)
-		resp.Body.Close()
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			return nil, p.openListAPIStatusError("list", target, resp.StatusCode)
-		}
-		if decodeErr != nil {
-			return nil, fmt.Errorf("%s: decode api list: %w", p.name, decodeErr)
-		}
-		if decoded.Code != 0 && decoded.Code != 200 {
-			msg := strings.TrimSpace(decoded.Message)
-			if msg == "" {
-				msg = fmt.Sprintf("code %d", decoded.Code)
-			}
-			return nil, fmt.Errorf("%s: api list %s failed: %s", p.name, target, msg)
 		}
 		for _, item := range decoded.Data.Content {
 			name := strings.TrimSpace(item.Name)
@@ -112,6 +94,37 @@ func (p *openListProvider) listOpenListAPI(ctx context.Context, dir string) ([]F
 		}
 	}
 	return out, nil
+}
+
+func (p *openListProvider) fetchOpenListPage(ctx context.Context, target string, page, pageSize int) (*openListListResponse, error) {
+	payload := map[string]any{
+		"path": target, "password": "", "page": page, "per_page": pageSize, "refresh": false,
+	}
+	body, _ := json.Marshal(payload)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.openListAPIURL("/api/fs/list"), bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", p.ua)
+	req.Header.Set("Authorization", p.token)
+	resp, err := p.client.Do(req)
+	if err != nil {
+		return nil, decorateDAVTransportError(p.name, req.URL.String(), err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, &openListListHTTPError{status: resp.StatusCode, error: p.openListAPIStatusError("list", target, resp.StatusCode)}
+	}
+	var decoded openListListResponse
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 32<<20)).Decode(&decoded); err != nil {
+		return nil, fmt.Errorf("%s: decode api list: %w", p.name, err)
+	}
+	if decoded.Code != 0 && decoded.Code != http.StatusOK {
+		return nil, p.openListFileError("list", target, decoded.Code, decoded.Message)
+	}
+	return &decoded, nil
 }
 
 func (p *openListProvider) resolveOpenListAPIDirect(ctx context.Context, fileRef string) (*DirectLink, error) {

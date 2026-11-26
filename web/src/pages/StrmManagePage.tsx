@@ -413,16 +413,16 @@ function AccountSection({
                   </div>
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-1.5 whitespace-nowrap">
+                  {(account.provider === 'cloud115' || account.provider === 'openlist') && (
+                    <button type="button" disabled={!account.enabled || !account.has_credential}
+                      onClick={() => onFiles(account)} className={iconButtonCls} aria-haspopup="dialog">
+                      <Folder size={14} />文件管理
+                    </button>
+                  )}
                   {account.provider === 'cloud115' && (
-                    <>
-                      <button type="button" disabled={!account.enabled || !account.has_credential}
-                        onClick={() => onFiles(account)} className={iconButtonCls}>
-                        <Folder size={14} />文件管理
-                      </button>
-                      <button type="button" onClick={() => onOpen115Monitor(account)} className={iconButtonCls} aria-haspopup="dialog">
-                        <Activity size={14} />接口监控
-                      </button>
-                    </>
+                    <button type="button" onClick={() => onOpen115Monitor(account)} className={iconButtonCls} aria-haspopup="dialog">
+                      <Activity size={14} />接口监控
+                    </button>
                   )}
                   <button type="button" disabled={testing} aria-busy={testing} onClick={() => onTest(account)} className={iconButtonCls}>
                     <RefreshCw size={14} className={testing ? 'animate-spin' : undefined} />

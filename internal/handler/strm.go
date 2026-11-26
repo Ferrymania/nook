@@ -15,6 +15,7 @@ import (
 
 	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/service"
+	"github.com/Ferrymania/nook/internal/service/cloud"
 )
 
 func getStrm115RequestStatsHandler(svc *service.Container) gin.HandlerFunc {
@@ -209,14 +210,15 @@ func listStrmRemoteDirHandler(svc *service.Container) gin.HandlerFunc {
 
 func listStrmAccountFilesHandler(svc *service.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		c.Header("Cache-Control", "no-store")
 		page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "页码无效"})
 			return
 		}
-		result, err := svc.Strm.ListAccountFiles(c.Request.Context(), c.Param("id"), c.DefaultQuery("parent_id", "0"), page)
+		result, err := svc.Strm.ListAccountFiles(c.Request.Context(), c.Param("id"), c.Query("parent_id"), page)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			respondStrmAccountFileError(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, result)
@@ -235,7 +237,7 @@ func createStrmAccountFolderHandler(svc *service.Container) gin.HandlerFunc {
 		}
 		id, err := svc.Strm.CreateAccountFolder(c.Request.Context(), c.Param("id"), req.ParentID, req.Name)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			respondStrmAccountFileError(c, err)
 			return
 		}
 		c.JSON(http.StatusCreated, gin.H{"id": id})
@@ -244,13 +246,25 @@ func createStrmAccountFolderHandler(svc *service.Container) gin.HandlerFunc {
 
 func deleteStrmAccountFileHandler(svc *service.Container) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		err := svc.Strm.DeleteAccountFile(c.Request.Context(), c.Param("id"), c.Query("parent_id"), c.Param("fileID"))
+		fileID := c.Param("fileID")
+		if fileID == "" {
+			fileID = c.Query("file_id")
+		}
+		err := svc.Strm.DeleteAccountFile(c.Request.Context(), c.Param("id"), c.Query("parent_id"), fileID)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			respondStrmAccountFileError(c, err)
 			return
 		}
 		c.Status(http.StatusAccepted)
 	}
+}
+
+func respondStrmAccountFileError(c *gin.Context, err error) {
+	status := http.StatusBadRequest
+	if errors.Is(err, cloud.ErrOpenListForbidden) {
+		status = http.StatusForbidden
+	}
+	c.JSON(status, gin.H{"error": err.Error()})
 }
 
 // resolveStrmRemoteDirHandler 按远端目录引用（115 为目录 ID）反查完整展示路径。
