@@ -5,6 +5,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -48,6 +49,27 @@ func createFolderHandler(svc *service.Container) gin.HandlerFunc {
 		}
 		res, err := svc.FileManager.CreateFolder(req.Path, req.Name)
 		writeFileManagerResponse(c, res, err)
+	}
+}
+
+func createStrmOutputFolderHandler(svc *service.Container) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req fileFolderReq
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "请填写文件夹名称"})
+			return
+		}
+		res, err := svc.FileManager.CreateOutputFolder(req.Path, req.Name)
+		switch {
+		case errors.Is(err, os.ErrExist):
+			c.JSON(http.StatusConflict, gin.H{"error": "已有同名文件或文件夹，请选择已有文件夹或换个名称。"})
+		case errors.Is(err, service.ErrPathOutOfBounds):
+			c.JSON(http.StatusForbidden, gin.H{"error": "请在已配置的存储目录内新建文件夹。"})
+		case errors.Is(err, os.ErrPermission):
+			c.JSON(http.StatusForbidden, gin.H{"error": "没有权限在此目录新建文件夹。"})
+		default:
+			writeFileManagerResponse(c, res, err)
+		}
 	}
 }
 

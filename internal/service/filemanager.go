@@ -158,6 +158,42 @@ func (s *FileManagerService) CreateFolder(parent, name string) (*FileOperationRe
 	return &FileOperationResult{Path: dst}, nil
 }
 
+// CreateOutputFolder creates one new folder in an existing allowed directory.
+func (s *FileManagerService) CreateOutputFolder(parent, name string) (*FileOperationResult, error) {
+	parent = strings.TrimSpace(parent)
+	name = strings.TrimSpace(name)
+	if !filepath.IsAbs(parent) {
+		return nil, errors.New("请先进入要新建文件夹的位置")
+	}
+	if name == "" || name != sanitizeFilename(name) || !filepath.IsLocal(name) || strings.HasPrefix(name, ".") {
+		return nil, errors.New("请输入有效且可见的文件夹名称")
+	}
+	parentPath, roots, err := s.requireAllowedPath(parent, false)
+	if err != nil {
+		return nil, err
+	}
+
+	var rootPath, relativeParent string
+	for _, allowed := range roots {
+		relative, err := filepath.Rel(allowed, parentPath)
+		if err == nil && filepath.IsLocal(relative) && len(allowed) > len(rootPath) {
+			rootPath, relativeParent = allowed, relative
+		}
+	}
+	if rootPath == "" {
+		return nil, ErrPathOutOfBounds
+	}
+	root, err := os.OpenRoot(rootPath)
+	if err != nil {
+		return nil, err
+	}
+	defer root.Close()
+	if err := root.Mkdir(filepath.Join(relativeParent, name), 0o755); err != nil {
+		return nil, err
+	}
+	return &FileOperationResult{Path: filepath.Join(parentPath, name)}, nil
+}
+
 func (s *FileManagerService) Rename(path, name string) (*FileOperationResult, error) {
 	src, roots, err := s.requireAllowedPath(path, true)
 	if err != nil {
