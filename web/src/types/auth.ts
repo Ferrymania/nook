@@ -1,5 +1,3 @@
-import type { LibraryTagSet } from './library'
-
 export interface User {
   id: string
   username: string
@@ -15,8 +13,6 @@ export interface User {
   web_access_disabled?: boolean
   allowed_library_ids?: string[]
   pinned_library_ids?: string[]
-  /** 当前用户维护的媒体库标签分组。 */
-  library_tags?: LibraryTagSet[]
   is_default_admin?: boolean
   is_protected?: boolean
   realtime_online?: boolean

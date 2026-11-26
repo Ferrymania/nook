@@ -6,10 +6,6 @@ import type { HistoryItem } from '../api/playback'
 import type { Library, Media } from '../types'
 import type { SeriesCard } from '../utils/groupSeries'
 import { fetchLibraries, peekLibraries } from '../utils/libraryCache'
-import { buildLibraryTagTabs, filterLibrariesByTag } from '../utils/libraryTags'
-import { LibraryTagBar } from '../components/LibraryTagBar'
-import { ManageLibraryTagsDialogView } from '../components/ManageLibraryTagsDialogView'
-import { useLibraryTags } from '../hooks/useLibraryTags'
 import { usePinnedLibraries } from '../hooks/usePinnedLibraries'
 import { useLibraryListSort } from '../hooks/useLibraryListSort'
 import { sortLibrariesByField } from '../utils/libraryListSort'
@@ -37,7 +33,6 @@ export function HomePage() {
   }, [])
   const { pinnedIds } = usePinnedLibraries()
   const { field: sortField, order: sortOrder } = useLibraryListSort()
-  const libraryTags = useLibraryTags()
 
   // 1. 媒体库元数据极速加载（不带 preview，毫秒级秒开首屏）。
   //    会话内已有缓存则先用缓存立即渲染，后台仍刷新一次兜底。
@@ -99,19 +94,6 @@ export function HomePage() {
     () => sortLibrariesByField(libraries, pinnedIds, sortField, sortOrder),
     [libraries, pinnedIds, sortField, sortOrder],
   )
-
-  // 标签过滤只作用于展示层：选中的标签栏决定哪部分媒体库参与轮播和入口网格。
-  const effectiveTagId = libraryTags.selectedTagId
-  const tagTabs = useMemo(
-    () => buildLibraryTagTabs(sortedLibraries, libraryTags.tags),
-    [sortedLibraries, libraryTags.tags],
-  )
-  const taggedLibraries = useMemo(
-    () => filterLibrariesByTag(sortedLibraries, libraryTags.tags, effectiveTagId),
-    [sortedLibraries, libraryTags.tags, effectiveTagId],
-  )
-
-  const [libraryTagsOpen, setLibraryTagsOpen] = useState(false)
 
   // 入口卡片按需加载 2 张封面，开启轮播的库预取 10 张；按数量去重。
   const fetchedPreviewLimitsRef = useRef<Map<string, number>>(new Map())
@@ -178,12 +160,11 @@ export function HomePage() {
 
   // 3. 首屏只预取轮播所需的预览；入口卡片进入视口后自行按批加载。
   useEffect(() => {
-    if (taggedLibraries.length === 0) return
-    const carouselLibIds = taggedLibraries
+    const carouselLibIds = sortedLibraries
       .filter((l) => l.carousel_enabled === true)
       .map((l) => l.id)
     void fetchPreviews(carouselLibIds, 10)
-  }, [taggedLibraries, fetchPreviews])
+  }, [sortedLibraries, fetchPreviews])
 
   // Quick lookup map for libraries
   const libraryMap = useMemo(() => {
@@ -204,8 +185,8 @@ export function HomePage() {
   }, [libraries, libraryData])
 
   const carouselItems = useMemo(
-    () => selectHomeCarouselMedia(taggedLibraries, libraryData),
-    [taggedLibraries, libraryData],
+    () => selectHomeCarouselMedia(sortedLibraries, libraryData),
+    [sortedLibraries, libraryData],
   )
 
   // 库列表还没回来先展示整页 loading；库为空时再等一下播放记录，
@@ -233,48 +214,14 @@ export function HomePage() {
       {historyLoading && <ContinueWatchingSkeleton />}
       {!historyLoading && history.length > 0 && <ContinueWatchingSection history={history} onHistoryChanged={removeHistoryItem} />}
 
-      {/* 3. 媒体库标签栏 + 卡片区（每页展示 20 个媒体库） */}
       {sortedLibraries.length > 0 && (
-        <section className="space-y-6">
-          <LibraryTagBar
-            tabs={tagTabs}
-            selectedTagId={effectiveTagId}
-            onSelect={libraryTags.setSelectedTagId}
-            onCreate={(name) => {
-              void libraryTags.createTag(name)
-            }}
-            onManage={() => setLibraryTagsOpen(true)}
-            busy={libraryTags.saving}
-          />
-          {libraryTagsOpen && (
-            <ManageLibraryTagsDialogView
-              tags={libraryTags.tags}
-              libraries={libraries}
-              saving={libraryTags.saving}
-              onCreate={libraryTags.createTag}
-              onRename={libraryTags.renameTag}
-              onRemove={libraryTags.removeTag}
-              onReorder={libraryTags.reorderTags}
-              onAssign={libraryTags.assignLibrary}
-              onAssignBatch={libraryTags.assignLibraries}
-              onClose={() => setLibraryTagsOpen(false)}
-            />
-          )}
-          {taggedLibraries.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-(--app-border) bg-(--app-panel) px-4 py-12 text-center text-sm text-(--app-muted)">
-              「{effectiveTagId}」标签下还没有媒体库，可在「管理标签」里把媒体库归入该标签。
-            </p>
-          ) : (
-            <HomeLibrariesSection
-              libraries={taggedLibraries}
-              libraryData={libraryData}
-              libraryCounts={libraryCounts}
-              onNeedPreviews={fetchPreviews}
-            />
-          )}
-        </section>
+        <HomeLibrariesSection
+          libraries={sortedLibraries}
+          libraryData={libraryData}
+          libraryCounts={libraryCounts}
+          onNeedPreviews={fetchPreviews}
+        />
       )}
-
     </div>
   )
 }

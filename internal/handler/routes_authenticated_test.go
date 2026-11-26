@@ -30,8 +30,6 @@ func TestAuthenticatedRouteSurfacesAreRegistered(t *testing.T) {
 		"GET /api/me",
 		"GET /api/me/pinned-libraries",
 		"PUT /api/me/pinned-libraries",
-		"GET /api/me/library-tags",
-		"PUT /api/me/library-tags",
 		"GET /api/auth/permissions",
 		"GET /api/libraries",
 		"GET /api/media",
@@ -63,6 +61,7 @@ func TestRetiredSystemCompatibilityAPIsAreUnavailable(t *testing.T) {
 		"/api/events",
 		"/api/public/ui-config",
 		"/api/admin/organize/sources",
+		"/api/me/library-tags",
 	}
 	for _, route := range router.Routes() {
 		for _, path := range retiredPaths {

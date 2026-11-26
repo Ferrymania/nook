@@ -6,51 +6,11 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/Ferrymania/nook/internal/middleware"
-	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/service"
 )
 
 type pinnedLibrariesReq struct {
 	LibraryIDs []string `json:"library_ids"`
-}
-
-type libraryTagsReq struct {
-	Tags []model.LibraryTagSet `json:"tags"`
-}
-
-func getLibraryTagsHandler(svc *service.Container) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		uid, _ := c.Get(middleware.CtxUserID)
-		tags, err := svc.Profile.GetLibraryTags(c.Request.Context(), uid.(string))
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		if tags == nil {
-			tags = []model.LibraryTagSet{}
-		}
-		c.JSON(http.StatusOK, gin.H{"tags": tags})
-	}
-}
-
-func setLibraryTagsHandler(svc *service.Container) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		var req libraryTagsReq
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		uid, _ := c.Get(middleware.CtxUserID)
-		tags, err := svc.Profile.SetLibraryTags(c.Request.Context(), uid.(string), req.Tags)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		if tags == nil {
-			tags = []model.LibraryTagSet{}
-		}
-		c.JSON(http.StatusOK, gin.H{"tags": tags})
-	}
 }
 
 func getPinnedLibrariesHandler(svc *service.Container) gin.HandlerFunc {

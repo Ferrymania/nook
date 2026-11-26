@@ -151,7 +151,7 @@ func (b *BackupService) dumpPostgresTable(ctx context.Context, m any, sch *schem
 // backupPersistableFields 返回真正对应数据库列的字段。
 //
 // GORM 的 Schema.Fields 里还带着 gorm:"-" 的字段（例如 User.AllowedLibraryList、
-// LibraryTagList），它们的 DBName 是空字符串。不过滤的话多个「列」会共用空键：
+// PinnedLibraryList），它们的 DBName 是空字符串。不过滤的话多个「列」会共用空键：
 // 编码时互相覆盖，解码时把某个字段的值写到另一个字段上，报出
 // 「cannot unmarshal number into Go value of type []string」这类与真实数据无关的错。
 func backupPersistableFields(sch *schema.Schema) []*schema.Field {

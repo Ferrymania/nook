@@ -1,19 +1,22 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { AlertCircle, ArrowLeft, CheckCircle2, ChevronDown, ChevronRight, Clock, Database, ListVideo, Loader2, MinusCircle, RefreshCw, Search, Trash2 } from 'lucide-react'
-import clsx from 'clsx'
+import { Link } from 'react-router-dom'
+import { AlertCircle, CheckCircle2, ChevronDown, ChevronRight, Clock, Database, ListVideo, Loader2, MinusCircle, RefreshCw, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 import { segmentQueueAPI, type SegmentTask, type SegmentTaskStatus, type SegmentQueueSnapshot } from '../api/segments'
-import { resolveHeaderBack } from '../components/layoutNavigation'
-import { apiErrorMessage } from './StrmManagePage'
+import { QueuePagination, QueueSearch, QueueStatusFilters, QueueTableMessage, type QueueFilter } from './LibraryQueueControls'
+import { apiErrorMessage, formatTime } from './StrmManagePage'
 
 const STATUS = {
-  running: { label: '查询中', icon: Loader2, color: 'text-brand-600 bg-brand-500/10' },
-  found: { label: '查到时间点', icon: CheckCircle2, color: 'text-emerald-600 bg-emerald-500/10' },
-  missing: { label: '暂无数据', icon: MinusCircle, color: 'text-ink-100 bg-sand-200/60' },
-  failed: { label: '查询失败', icon: AlertCircle, color: 'text-rose-600 bg-rose-500/10' },
+  running: { label: '查询中', icon: Loader2, tone: 'progress' },
+  found: { label: '查到时间点', icon: CheckCircle2, tone: 'success' },
+  missing: { label: '暂无数据', icon: MinusCircle, tone: 'muted' },
+  failed: { label: '查询失败', icon: AlertCircle, tone: 'danger' },
 } as const
+const FILTERS: QueueFilter<'all' | SegmentTaskStatus>[] = [
+  { key: 'all', label: '全部', icon: ListVideo, tone: 'neutral' },
+  ...Object.entries(STATUS).map(([key, value]) => ({ ...value, key: key as SegmentTaskStatus })),
+]
 const TRIGGERS: Record<string, string> = { manual: '手动查询', playback: '播放时查询', prewarm: '后台预取', retry: '重新查询', history: '历史查询' }
 const KINDS: Record<string, string> = { intro: '片头', credits: '片尾', recap: '前情回顾', preview: '预告' }
 
@@ -27,13 +30,8 @@ function timestamp(ms: number) {
 function spanText(span: NonNullable<SegmentTask['segments']>[number]) {
   return span.end_ms > 0 ? `${timestamp(span.start_ms)} – ${timestamp(span.end_ms)}` : `${timestamp(span.start_ms)} 至片尾`
 }
-function dateTime(raw?: string) {
-  return raw ? new Date(raw).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : '—'
-}
 
-export function SegmentQueuePage() {
-  const { pathname, search, state } = useLocation()
-  const back = resolveHeaderBack(pathname, search, state?.segmentReturnTo)
+export function SegmentQueuePanel() {
   const [snapshot, setSnapshot] = useState<SegmentQueueSnapshot | null>(null)
   const [filter, setFilter] = useState<'all' | SegmentTaskStatus>('all')
   const [input, setInput] = useState('')
@@ -100,53 +98,171 @@ export function SegmentQueuePage() {
   }
   const total = Object.values(snapshot?.counts ?? {}).reduce((sum, count) => sum + (count || 0), 0)
   const pages = Math.max(1, Math.ceil((snapshot?.total ?? 0) / 50))
-  const filters = [{ key: 'all' as const, label: '全部', icon: ListVideo, color: 'text-ink-600' }, ...Object.entries(STATUS).map(([key, value]) => ({ ...value, key: key as SegmentTaskStatus }))]
 
-  return <section className="space-y-4" aria-label="片头片尾队列">
-    <header className="flex items-center justify-between gap-3">
-      <h1 className="font-display text-2xl font-bold text-ink-600 sm:text-3xl">片头片尾队列</h1>
-      {back && <div className="hidden lg:block">
-        <Link to={back.to} className="btn-outline"><ArrowLeft size={16} />{back.label}</Link>
-      </div>}
-    </header>
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
-      {filters.map(item => <button key={item.key} type="button" aria-pressed={filter === item.key} onClick={() => { setFilter(item.key); setPage(1) }} className={clsx('glass-panel rounded-2xl border p-4 text-left transition', filter === item.key ? 'border-brand-500 ring-1 ring-brand-500/20' : 'border-sand-200 hover:border-brand-300')}>
-        <div className="flex items-center justify-between gap-2 text-sm text-ink-50"><span>{item.label}</span><item.icon size={16} /></div>
-        <div className="mt-3 text-2xl font-bold tabular-nums text-ink-600">{snapshot ? (item.key === 'all' ? total : snapshot.counts[item.key] ?? 0) : '—'}<span className="ml-1 text-xs font-normal text-ink-50">项</span></div>
-      </button>)}
-    </div>
-    <div className="flex flex-wrap items-center gap-3">
-      <label className="relative min-w-0 flex-1"><Search size={16} className="absolute left-3 top-3 text-ink-50" /><span className="sr-only">搜索片头片尾任务</span><input value={input} onChange={event => setInput(event.target.value)} maxLength={200} placeholder="搜索媒体标题、所属媒体库或失败原因…" className="input-field w-full pl-9 text-sm" /></label>
-      <button type="button" className="btn-outline px-3! py-2! text-xs" disabled={refreshing} onClick={() => { void refresh(true) }}><RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />刷新</button>
-      <button type="button" className="btn-outline px-3! py-2! text-xs" disabled={!!busy || total === 0} onClick={() => { void clear() }}><Trash2 size={14} />清理已结束记录</button>
-    </div>
-    <p className="text-xs leading-relaxed text-ink-50">记录向 TheIntroDB 发起的查询；使用本地缓存不会新增任务。暂无数据与查询失败分开显示，清理记录不会删除已保存的时间点。</p>
-    {error && <div role="alert" className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-3 text-sm text-rose-600">{snapshot ? '刷新失败，当前显示上次结果：' : '队列加载失败：'}{error}<button type="button" onClick={() => { void refresh(true) }} className="ml-3 underline">重试加载</button></div>}
-    <div className="glass-panel overflow-hidden rounded-2xl border border-sand-200">
-      <div className="overflow-x-auto"><table className="w-full min-w-[850px] text-left text-sm"><caption className="sr-only">片头片尾查询任务及所属媒体库</caption><thead className="border-b border-sand-200 bg-sand-50/50 text-xs text-ink-50"><tr>{['媒体文件', '所属媒体库', '触发方式', '查询结果', '状态', '时间', '操作'].map(label => <th key={label} className="px-4 py-3 font-medium">{label}</th>)}</tr></thead><tbody>
-        {!snapshot && !error && <tr><td colSpan={7} className="p-10 text-center text-ink-50"><Loader2 size={20} className="mx-auto mb-2 animate-spin" />正在读取查询记录…</td></tr>}
-        {snapshot?.tasks.length === 0 && <tr><td colSpan={7} className="p-12 text-center text-ink-50"><ListVideo size={28} className="mx-auto mb-3 opacity-60" />{filter !== 'all' || query ? '没有符合条件的查询记录' : '暂无查询记录，可在媒体详情页查询片头片尾，或在媒体库刮削设置中启用后台预取。'}</td></tr>}
-        {snapshot?.tasks.map(task => {
-          const meta = STATUS[task.status]
-          const opened = expanded === task.id
-          const spans = task.segments ?? []
-          return <Fragment key={task.id}><tr className="border-b border-sand-200/60 align-top hover:bg-sand-50/40">
-            <td className="max-w-[280px] px-4 py-4"><div className="flex items-start gap-2"><button type="button" aria-label={`查看${task.media_title || '媒体'}的查询详情`} aria-expanded={opened} aria-controls={`segment-task-${task.id}`} onClick={() => setExpanded(opened ? null : task.id)} className="mt-0.5 shrink-0 rounded-sm p-0.5 hover:bg-brand-50">{opened ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</button><div className="min-w-0"><Link to={`/media/${encodeURIComponent(task.media_id)}`} className="font-medium text-ink-600 hover:text-brand-600">{task.media_title || '未命名媒体'}</Link>{task.season_num > 0 && <span className="ml-1 text-xs text-ink-50">S{task.season_num}E{task.episode_num}</span>}<div className="mt-1 truncate font-mono text-[11px] text-ink-50" title={task.media_path}>{task.media_path}</div></div></div></td>
-            <td className="px-4 py-4"><span className="inline-block rounded-lg border border-sand-200 px-2 py-1 text-xs text-ink-100">{task.library_name || '原媒体库已移除'}</span></td>
-            <td className="whitespace-nowrap px-4 py-4 text-xs text-ink-100">{TRIGGERS[task.trigger] || '查询'}</td>
-            <td className="px-4 py-4 text-xs text-ink-100">{spans.length > 0 ? spans.filter(span => span.kind === 'intro' || span.kind === 'credits').map((span, index) => <div key={index} className="mb-1 whitespace-nowrap tabular-nums">{KINDS[span.kind]} {spanText(span)}</div>) : <span className="text-ink-50">—</span>}</td>
-            <td className="px-4 py-4"><span className={clsx('inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-1 text-xs', meta.color)}><meta.icon size={12} className={task.status === 'running' ? 'animate-spin' : ''} />{meta.label}</span></td>
-            <td className="whitespace-nowrap px-4 py-4 text-xs tabular-nums text-ink-50">{dateTime(task.finished_at || task.started_at || task.created_at)}</td>
-            <td className="px-4 py-4"><div className="flex gap-2"><button type="button" disabled={!!busy || task.status === 'running'} onClick={() => { void action(task, 'retry') }} className="btn-outline px-2! py-1! text-xs whitespace-nowrap"><RefreshCw size={12} className={busy === task.id ? 'animate-spin' : ''} />重新查询</button><button type="button" disabled={!!busy || task.status === 'running'} aria-label={`删除${task.media_title || '媒体'}的查询记录`} title="仅删除查询记录" onClick={() => { void action(task, 'remove') }} className="rounded-lg border border-sand-200 px-2 text-ink-50 hover:text-rose-600 disabled:opacity-40"><Trash2 size={13} /></button></div></td>
-          </tr>{opened && <tr id={`segment-task-${task.id}`} className="border-b border-sand-200 bg-sand-50/40"><td colSpan={7} className="px-6 py-4"><div className="space-y-3 text-xs text-ink-100">
-            <div className="flex flex-wrap items-center gap-4"><span>来源：TheIntroDB · {TRIGGERS[task.trigger] || '查询'}</span><span className="inline-flex items-center gap-1"><Clock size={12} />{task.started_at ? `开始 ${dateTime(task.started_at)}` : '历史记录未保存开始时间'}</span>{task.finished_at && <span>结束 {dateTime(task.finished_at)}</span>}</div>
-            {task.error && <p role="alert" className="rounded-lg bg-rose-500/10 p-3 text-rose-600">{task.error}</p>}
-            {spans.length > 0 && <div className="flex flex-wrap gap-3">{spans.map((span, index) => <span key={index} className="rounded-lg border border-sand-200 bg-surface px-3 py-2 tabular-nums">{KINDS[span.kind] || span.kind}：{spanText(span)}</span>)}</div>}
-            <p className="inline-flex items-center gap-1.5 text-ink-50"><Database size={13} />{task.status === 'found' ? '时间点已保存到数据库' : task.status === 'missing' ? 'TheIntroDB 暂无时间点，查询结果已记录' : task.status === 'running' ? '正在向 TheIntroDB 查询，不读取视频文件' : '本次查询失败，已有时间点保留'}</p>
-          </div></td></tr>}</Fragment>
-        })}
-      </tbody></table></div>
-      <div className="flex items-center justify-between gap-3 border-t border-sand-200 px-4 py-3 text-xs text-ink-50"><span>共 {snapshot?.total ?? 0} 条 · 第 {page} / {pages} 页</span><div className="flex gap-2"><button type="button" className="btn-outline px-3! py-1!" disabled={page <= 1} onClick={() => setPage(value => value - 1)}>上一页</button><button type="button" className="btn-outline px-3! py-1!" disabled={page >= pages} onClick={() => setPage(value => value + 1)}>下一页</button></div></div>
-    </div>
-  </section>
+  return (
+    <section className="space-y-6" aria-label="片头片尾队列">
+      <p className="library-queue-description">
+        记录向 TheIntroDB 发起的查询。使用本地缓存时无需新增任务，已保存的时间点在清理查询记录后仍可使用。
+      </p>
+
+      <QueueStatusFilters
+        filters={FILTERS}
+        selected={filter}
+        count={(key) => snapshot ? (key === 'all' ? total : snapshot.counts[key] ?? 0) : undefined}
+        onSelect={(key) => {
+          setFilter(key)
+          setPage(1)
+        }}
+      />
+
+      <div className="library-queue-toolbar">
+        <QueueSearch
+          label="搜索片头片尾任务"
+          placeholder="搜索媒体标题、所属媒体库或失败原因…"
+          maxLength={200}
+          value={input}
+          onChange={setInput}
+        />
+        <div className="library-queue-toolbar-actions">
+          <button type="button" className="library-queue-action" disabled={refreshing} onClick={() => { void refresh(true) }}>
+            <RefreshCw size={14} className={refreshing ? 'animate-spin' : undefined} />
+            刷新
+          </button>
+          <button type="button" className="library-queue-action" data-tone="danger" disabled={!!busy || total === 0} onClick={() => { void clear() }}>
+            <Trash2 size={14} />
+            清理已结束记录
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div role="alert" className="rounded-xl bg-(--app-danger-soft) p-3 text-sm text-(--app-danger-text)">
+          {snapshot ? '刷新失败，当前显示上次结果：' : '队列加载失败：'}{error}
+          <button type="button" onClick={() => { void refresh(true) }} className="ml-3 underline">重试加载</button>
+        </div>
+      )}
+
+      <div className="glass-panel overflow-hidden p-0! shadow-xs">
+        <div className="table-scroll">
+          <table className="library-queue-table">
+            <caption className="sr-only">片头片尾查询任务及所属媒体库</caption>
+            <thead className="border-b border-gray-200/80 bg-gray-50/50 text-[11px] font-bold tracking-wider text-sand-500">
+              <tr>
+                {['媒体文件', '所属媒体库', '触发方式', '查询结果', '状态', '时间'].map((label) => <th key={label} scope="col">{label}</th>)}
+                <th scope="col" className="text-right">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {snapshot?.tasks.map((task) => {
+                const meta = STATUS[task.status]
+                const opened = expanded === task.id
+                const spans = task.segments ?? []
+                const summarySpans = spans.filter((span) => span.kind === 'intro' || span.kind === 'credits')
+                const title = task.media_title || '未命名媒体'
+                const canModify = !busy && task.status !== 'running'
+
+                return (
+                  <Fragment key={task.id}>
+                    <tr className="library-queue-row">
+                      <td className="max-w-60">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            aria-label={`查看${task.media_title || '媒体'}的查询详情`}
+                            aria-expanded={opened}
+                            aria-controls={opened ? `segment-task-${task.id}` : undefined}
+                            onClick={() => setExpanded(opened ? null : task.id)}
+                            className="shrink-0 rounded p-1 text-(--app-muted) hover:bg-(--app-hover) hover:text-(--app-text)"
+                          >
+                            {opened ? <ChevronDown size={16} aria-hidden="true" /> : <ChevronRight size={16} aria-hidden="true" />}
+                          </button>
+                          <div className="min-w-0">
+                            <div className="flex min-w-0 items-baseline gap-1">
+                              <Link to={`/media/${encodeURIComponent(task.media_id)}`} title={title} className="min-w-0 truncate font-medium text-(--app-text) hover:text-(--app-brand-text) hover:underline">{title}</Link>
+                              {task.season_num > 0 && <span className="shrink-0 text-xs text-(--app-muted)">S{task.season_num}E{task.episode_num}</span>}
+                            </div>
+                            <div className="mt-0.5 truncate font-mono text-[11px] text-(--app-muted)" title={task.media_path}>{task.media_path}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td><span className="library-queue-badge">{task.library_name || '原媒体库已移除'}</span></td>
+                      <td className="whitespace-nowrap text-xs text-(--app-subtle)">{TRIGGERS[task.trigger] || '查询'}</td>
+                      <td className="whitespace-nowrap text-xs text-(--app-subtle) tabular-nums">
+                        {summarySpans.length === 0 ? '—' : summarySpans.map((span, index) => (
+                          <div key={index}>{KINDS[span.kind]} {spanText(span)}</div>
+                        ))}
+                      </td>
+                      <td>
+                        <span className="library-queue-badge library-queue-status" data-tone={meta.tone}>
+                          <meta.icon size={12} className={task.status === 'running' ? 'animate-spin' : undefined} aria-hidden="true" />
+                          {meta.label}
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap text-xs text-(--app-muted) tabular-nums">
+                        {formatTime(task.finished_at || task.started_at || task.created_at)}
+                      </td>
+                      <td>
+                        <div className="flex items-center justify-end gap-1">
+                          <button type="button" disabled={!canModify} onClick={() => { void action(task, 'retry') }} className="library-queue-action" data-compact data-tone="progress">
+                            <RefreshCw size={12} className={busy === task.id ? 'animate-spin' : undefined} />
+                            重新查询
+                          </button>
+                          <button
+                            type="button"
+                            disabled={!canModify}
+                            aria-label={`删除${task.media_title || '媒体'}的查询记录`}
+                            title="仅删除查询记录"
+                            onClick={() => { void action(task, 'remove') }}
+                            className="library-queue-action"
+                            data-icon
+                            data-tone="danger"
+                          >
+                            <Trash2 size={13} aria-hidden="true" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {opened && (
+                      <tr id={`segment-task-${task.id}`} className="library-queue-expanded">
+                        <td colSpan={7}>
+                          <div className="space-y-3 py-2 text-xs text-(--app-subtle)">
+                            <div className="flex flex-wrap items-center gap-4">
+                              <span>来源：TheIntroDB · {TRIGGERS[task.trigger] || '查询'}</span>
+                              <span className="inline-flex items-center gap-1">
+                                <Clock size={12} />
+                                {task.started_at ? `开始 ${formatTime(task.started_at)}` : '历史记录未保存开始时间'}
+                              </span>
+                              {task.finished_at && <span>结束 {formatTime(task.finished_at)}</span>}
+                            </div>
+                            {task.error && <p role="alert" className="rounded-lg bg-(--app-danger-soft) p-3 text-(--app-danger-text)">{task.error}</p>}
+                            {spans.length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {spans.map((span, index) => <span key={index} className="library-queue-badge tabular-nums">{KINDS[span.kind] || span.kind}：{spanText(span)}</span>)}
+                              </div>
+                            )}
+                            <p className="inline-flex items-center gap-1.5 text-(--app-muted)">
+                              <Database size={13} />
+                              {task.status === 'found' ? '时间点已保存到数据库' : task.status === 'missing' ? 'TheIntroDB 暂无时间点，查询结果已记录' : task.status === 'running' ? '正在向 TheIntroDB 查询，不读取视频文件' : '本次查询失败，已有时间点保留'}
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {!snapshot && !error && <QueueTableMessage loading>正在读取查询记录…</QueueTableMessage>}
+        {snapshot?.tasks.length === 0 && (
+          <QueueTableMessage>
+            {filter !== 'all' || query ? '没有符合条件的查询记录' : '暂无查询记录，可在媒体详情页查询片头片尾，或在媒体库刮削设置中启用后台预取。'}
+          </QueueTableMessage>
+        )}
+        {snapshot && <QueuePagination total={snapshot.total} page={page} pages={pages} onPageChange={setPage} />}
+      </div>
+    </section>
+  )
 }

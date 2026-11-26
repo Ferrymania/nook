@@ -1,6 +1,8 @@
 /* eslint-disable react-refresh/only-export-components */
 import { lazy, type ReactElement } from 'react'
-import { Navigate, useSearchParams } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
+
+import { LIBRARY_QUEUE_PATH, libraryQueueLocation, type LibraryQueueTab } from './utils/libraryQueueNavigation'
 
 const HomePageLoader = () => import('./pages/HomePage').then((m) => ({ default: m.HomePage }))
 const LibraryPageLoader = () => import('./pages/LibraryPage').then((m) => ({ default: m.LibraryPage }))
@@ -39,21 +41,26 @@ const StrmDownloadQueuePage = lazy(() =>
 const StrmUploadQueuePage = lazy(() =>
   import('./pages/StrmQueuePage').then((m) => ({ default: m.StrmUploadQueuePage })),
 )
-const ScraperQueuePage = lazy(() => import('./pages/ScraperQueuePage').then((m) => ({ default: m.ScraperQueuePage })))
-const SegmentQueuePage = lazy(() => import('./pages/SegmentQueuePage').then((m) => ({ default: m.SegmentQueuePage })))
+const LibraryQueuePage = lazy(() => import('./pages/LibraryQueuePage').then((m) => ({ default: m.LibraryQueuePage })))
+
+function LegacyLibraryQueueRedirect({ tab }: { tab: LibraryQueueTab }) {
+  const { search, hash, state } = useLocation()
+  return <Navigate to={{ ...libraryQueueLocation(tab, search), hash }} state={state} replace />
+}
 
 function LegacyTaskQueueRedirect() {
-  const [params] = useSearchParams()
+  const { search, hash, state } = useLocation()
+  const params = new URLSearchParams(search)
   const type = params.get('type')
+  params.delete('type')
   switch (type) {
     case 'scrape':
-      return <Navigate to="/scraper/queue" replace />
+    case 'segments':
+      return <Navigate to={{ ...libraryQueueLocation(type, params.toString()), hash }} state={state} replace />
     case 'download':
       return <Navigate to="/strm/downloads" replace />
     case 'upload':
       return <Navigate to="/strm/uploads" replace />
-    case 'segments':
-      return <Navigate to="/segments/queue" replace />
     default:
       return <Navigate to="/libraries" replace />
   }
@@ -125,8 +132,9 @@ export const appRoutes: AppRoute[] = [
   { path: 'strm', element: <StrmManagePage />, adminOnly: true },
   { path: 'strm/downloads', element: <StrmDownloadQueuePage />, adminOnly: true },
   { path: 'strm/uploads', element: <StrmUploadQueuePage />, adminOnly: true },
-  { path: 'scraper/queue', element: <ScraperQueuePage />, adminOnly: true },
-  { path: 'segments/queue', element: <SegmentQueuePage />, adminOnly: true },
+  { path: LIBRARY_QUEUE_PATH, element: <LibraryQueuePage />, adminOnly: true },
+  { path: 'scraper/queue', element: <LegacyLibraryQueueRedirect tab="scrape" />, adminOnly: true },
+  { path: 'segments/queue', element: <LegacyLibraryQueueRedirect tab="segments" />, adminOnly: true },
   { path: 'queue', element: <LegacyTaskQueueRedirect />, adminOnly: true },
   { path: 'admin', element: <AdminPage />, adminOnly: true },
 ]
