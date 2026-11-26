@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -52,6 +54,7 @@ func TestStrmAdminRoutesAreRegistered(t *testing.T) {
 		"POST /api/admin/strm/paths/:id/sync",
 		"POST /api/admin/strm/paths/:id/cancel",
 		"GET /api/admin/strm/records",
+		"POST /api/admin/strm/local-dirs",
 		"GET /api/admin/strm/downloads",
 		"POST /api/admin/strm/downloads/:id/cancel",
 		"POST /api/admin/strm/downloads/:id/retry",
@@ -83,6 +86,47 @@ func TestStrmAdminRoutesAreRegistered(t *testing.T) {
 	router.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/api/admin/strm/accounts/account-a/request-stats", nil))
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("unauthenticated request stats request = %d, want 401", w.Code)
+	}
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/api/admin/strm/local-dirs", nil))
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("unauthenticated output folder request = %d, want 401", w.Code)
+	}
+}
+
+func TestStrmOutputFolderCreation(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	cfg := &config.Config{}
+	cfg.App.DataDir = t.TempDir()
+	t.Setenv("NOOK_MEDIA_CONTAINER_DIR", cfg.App.DataDir)
+	outside := t.TempDir()
+	router := gin.New()
+	router.POST("/local-dirs", createStrmOutputFolderHandler(&service.Container{
+		FileManager: service.NewFileManagerService(cfg, zap.NewNop(), nil),
+	}))
+
+	for _, tc := range []struct {
+		path, name string
+		status     int
+	}{
+		{cfg.App.DataDir, "影视 STRM", http.StatusOK},
+		{cfg.App.DataDir, "影视 STRM", http.StatusConflict},
+		{outside, "影视 STRM", http.StatusForbidden},
+		{cfg.App.DataDir, "父目录/子目录", http.StatusBadRequest},
+	} {
+		body, err := json.Marshal(fileFolderReq{Path: tc.path, Name: tc.name})
+		if err != nil {
+			t.Fatal(err)
+		}
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/local-dirs", bytes.NewReader(body)))
+		if w.Code != tc.status {
+			t.Fatalf("creating %q in %q = %d, want %d: %s", tc.name, tc.path, w.Code, tc.status, w.Body)
+		}
+	}
+	created := filepath.Join(cfg.App.DataDir, "影视 STRM")
+	if info, err := os.Stat(created); err != nil || !info.IsDir() {
+		t.Fatalf("expected a folder at %q: %v", created, err)
 	}
 }
 

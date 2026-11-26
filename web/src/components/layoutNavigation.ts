@@ -2,7 +2,6 @@ import type { LucideIcon } from 'lucide-react'
 import {
   Clock,
   FileOutput,
-  FolderOpen,
   Heart,
   Home,
   Library,
@@ -40,7 +39,6 @@ export const LAYOUT_NAV_ITEMS: LayoutNavItem[] = [
   { to: '/profile', label: '个人主页', icon: User },
   { to: '/libraries?from=admin', label: '媒体库', icon: Library },
   { to: '/admin', label: '用户管理', icon: Users, adminOnly: true },
-  { to: '/files', label: '文件管理', icon: FolderOpen, adminOnly: true },
   { to: '/emby-mount', label: 'Emby 挂载', icon: Tv, adminOnly: true },
   { to: '/strm', label: 'STRM 管理', icon: FileOutput, adminOnly: true },
   { to: '/settings', label: '系统设置', icon: Settings, adminOnly: true },
@@ -160,7 +158,6 @@ export function resolveHeaderBack(pathname: string, search = '', segmentReturnTo
   if (
     pathname === '/settings' ||
     pathname === '/admin' ||
-    pathname === '/files' ||
     pathname === '/emby-mount' ||
     pathname === '/strm'
   ) {

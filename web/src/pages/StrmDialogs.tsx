@@ -30,7 +30,7 @@ import {
   normalizeEmbyRemoteLines,
   type EmbyRemoteLine,
 } from '../utils/embyRemoteLines'
-import { lastPathSegment, remoteTailNameOf, syncLocalPathWithRemote } from '../utils/strmPaths'
+import { appendRemoteTail, lastPathSegment, localOutputBase, remoteTailNameOf } from '../utils/strmPaths'
 
 // ─── 弹框外壳 ────────────────────────────────────────────────────────────────
 
@@ -737,8 +737,9 @@ export function StrmSettingsDialog({ onClose, onAddressChange }: { onClose: () =
 
 /** 推断已有配置当前实际拼在本地输出目录末尾的尾段（目录名或 115 目录 ID）。 */
 function initRemoteTail(existing: StrmSyncPath): string {
-  const cidTail = lastPathSegment(existing.remote_path)
-  const nameTail = existing.remote_display_path ? lastPathSegment(existing.remote_display_path) : ''
+  if (existing.provider === 'local') return ''
+  const cidTail = remoteTailNameOf(existing.remote_path)
+  const nameTail = lastPathSegment(existing.remote_display_path ?? '')
   if (nameTail && lastPathSegment(existing.local_path) === nameTail) return nameTail
   return cidTail
 }
@@ -772,13 +773,14 @@ export function StrmSyncPathDialog({
   onSaved: () => void
   onAddressMissing: () => void
 }) {
-  const [form, setForm] = useState<StrmSyncPathInput>(() => ({
+  const [form, setForm] = useState<StrmSyncPathInput & { outputBase: string }>(() => ({
     name: existing?.name ?? '',
     provider: existing?.provider ?? 'cloud115',
     account_id: existing?.account_id ?? '',
     remote_path: existing?.remote_path ?? '',
     remote_display_path: existing?.remote_display_path ?? '',
     local_path: existing?.local_path ?? '',
+    outputBase: existing ? localOutputBase(existing.local_path, initRemoteTail(existing)) : '',
     strm_base_url: existing?.strm_base_url ?? '',
     video_ext: existing?.video_ext ?? '',
     meta_ext: existing?.meta_ext ?? '',
@@ -798,9 +800,6 @@ export function StrmSyncPathDialog({
   const [addressMissing, setAddressMissing] = useState(false)
   const [browsing, setBrowsing] = useState(false)
   const [browsingLocal, setBrowsingLocal] = useState<null | 'remote_path' | 'local_path'>(null)
-  // prevRemoteTailRef 记录当前拼在本地输出目录末尾、由本弹窗管理的尾段。
-  // 兼容两类历史数据：新版保存的 local_path 末段是目录名，旧版是目录 ID。
-  const prevRemoteTailRef = useRef(existing ? initRemoteTail(existing) : '')
 
   useEffect(() => {
     if (existing) return
@@ -821,27 +820,20 @@ export function StrmSyncPathDialog({
   const updateRemotePath = (remotePath: string, displayPath?: string) => {
     setForm((f) => {
       const tail = remoteTailNameOf(remotePath, displayPath)
-      const synced = syncLocalPathWithRemote(f.local_path, remotePath, prevRemoteTailRef.current, tail)
-      prevRemoteTailRef.current = synced.remoteTail
       return {
         ...f,
         remote_path: remotePath,
         remote_display_path: displayPath ?? '',
-        local_path: synced.localPath,
+        local_path: appendRemoteTail(f.outputBase, tail),
       }
     })
   }
 
   const selectLocalOutputPath = (localPath: string) => {
     setForm((f) => {
-      if (f.provider === 'local') {
-        prevRemoteTailRef.current = ''
-        return { ...f, local_path: localPath }
-      }
-      const tail = remoteTailNameOf(f.remote_path, f.remote_display_path)
-      const synced = syncLocalPathWithRemote(localPath, f.remote_path, prevRemoteTailRef.current, tail)
-      prevRemoteTailRef.current = synced.remoteTail
-      return { ...f, local_path: synced.localPath }
+      const tail = f.provider === 'local' ? '' : remoteTailNameOf(f.remote_path, f.remote_display_path)
+      const output = appendRemoteTail(localPath, tail)
+      return { ...f, local_path: output, outputBase: localOutputBase(output, tail) }
     })
   }
 
@@ -849,6 +841,7 @@ export function StrmSyncPathDialog({
   const availableAccounts = accounts.filter((a) => a.provider === form.provider && a.has_credential)
   const remoteDisplayPath = isLocal ? '' : form.remote_display_path?.trim() ?? ''
   const remoteTail = isLocal ? '' : remoteTailNameOf(form.remote_path, remoteDisplayPath)
+  const outputLabel = remoteTail ? '本地输出父目录' : '本地输出目录'
   const sourceLabel = isLocal ? '本地源目录' : '远端目录'
   const remotePlaceholder = form.account_id ? '根目录（默认）' : '请先选择网盘账号'
   const sourcePath = remoteDisplayPath || form.remote_path || (isLocal ? '请选择本地源目录' : remotePlaceholder)
@@ -865,9 +858,11 @@ export function StrmSyncPathDialog({
         setForm((f) => {
           if (f.provider !== 'cloud115' || f.account_id !== accountId ||
               f.remote_path !== remotePath || f.remote_display_path) return f
-          const tail = lastPathSegment(fullPath)
-          if (tail && lastPathSegment(f.local_path) === tail) prevRemoteTailRef.current = tail
-          return { ...f, remote_display_path: fullPath }
+          return {
+            ...f,
+            outputBase: localOutputBase(f.local_path, initRemoteTail({ ...existing, remote_display_path: fullPath })),
+            remote_display_path: fullPath,
+          }
         })
       })
       .catch(() => undefined)
@@ -891,11 +886,12 @@ export function StrmSyncPathDialog({
         }
         setAddressMissing(false)
       }
+      const { outputBase: _outputBase, ...input } = form
       if (existing) {
-        await strmAPI.updatePath(existing.id, form)
+        await strmAPI.updatePath(existing.id, input)
         toast.success('同步目录已更新')
       } else {
-        await strmAPI.createPath(form)
+        await strmAPI.createPath(input)
         toast.success('同步目录已添加')
       }
       onSaved()
@@ -925,10 +921,14 @@ export function StrmSyncPathDialog({
               value={form.provider}
               onChange={(e) => {
                 const provider = e.target.value as StrmProvider
-                set('provider', provider)
-                set('account_id', '')
-                set('remote_path', '')
-                set('remote_display_path', '')
+                setForm((f) => ({
+                  ...f,
+                  provider,
+                  account_id: '',
+                  remote_path: '',
+                  remote_display_path: '',
+                  local_path: f.outputBase,
+                }))
               }}
             >
               <option value="cloud115">115 网盘</option>
@@ -941,7 +941,16 @@ export function StrmSyncPathDialog({
               <select
                 className={inputCls}
                 value={form.account_id ?? ''}
-                onChange={(e) => set('account_id', e.target.value)}
+                onChange={(e) => {
+                  const accountID = e.target.value
+                  setForm((f) => ({
+                    ...f,
+                    account_id: accountID,
+                    remote_path: '',
+                    remote_display_path: '',
+                    local_path: f.outputBase,
+                  }))
+                }}
                 disabled={availableAccounts.length === 0}
               >
                 <option value="">{availableAccounts.length === 0 ? '请先添加已授权的网盘账号' : '请选择账号'}</option>
@@ -969,14 +978,16 @@ export function StrmSyncPathDialog({
         </div>
 
         <div className="space-y-1">
-          <p className="text-sm font-medium text-ink-100">本地输出目录</p>
+          <p className="text-sm font-medium text-ink-100">{outputLabel}</p>
           <div className="flex items-stretch gap-2">
-            <p className={`${directoryDisplayCls} flex-1`}>{form.local_path || '请选择输出目录'}</p>
+            <p className={`${directoryDisplayCls} flex-1`}>{form.outputBase || '请选择输出目录'}</p>
             <BrowseDirectoryButton label="浏览本地输出目录" onClick={() => setBrowsingLocal('local_path')} />
           </div>
           {remoteTail && (
-            <p className="text-xs text-ink-50">
-              将自动拼接远端末级目录「{remoteTail}」。
+            <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-ink-50">
+              {form.local_path
+                ? <>最终输出路径 <code className="break-all text-ink-100">{form.local_path}</code></>
+                : <>选择父目录后，将在其中使用「{remoteTail}」作为输出目录。</>}
             </p>
           )}
         </div>
@@ -1066,7 +1077,9 @@ export function StrmSyncPathDialog({
 
       {browsingLocal && (
         <LocalDirBrowserDialog
-          initialDir={form[browsingLocal] || undefined}
+          initialDir={(browsingLocal === 'local_path' ? form.outputBase : form.remote_path) || undefined}
+          title={browsingLocal === 'local_path' ? `选择${outputLabel}` : '选择本地源目录'}
+          allowCreate={browsingLocal === 'local_path'}
           onSelect={(path) => {
             if (browsingLocal === 'local_path') {
               selectLocalOutputPath(path)

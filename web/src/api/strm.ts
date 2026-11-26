@@ -153,6 +153,9 @@ export const strmAPI = {
       .get<StrmLocalDirList>('/admin/strm/local-dirs', { params: path ? { path } : {} })
       .then((r) => r.data),
 
+  createOutputFolder: (path: string, name: string) =>
+    api.post<{ path: string }>('/admin/strm/local-dirs', { path, name }).then((r) => r.data),
+
   // ── 下载/上传队列 ───────────────────────────────────────
   downloads: (status?: string, page = 1, pageSize = 50) =>
     api

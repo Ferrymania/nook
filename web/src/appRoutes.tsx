@@ -27,9 +27,6 @@ const MediaDetailPage = lazy(MediaDetailPageLoader)
 const PlayerPage = lazy(PlayerPageLoader)
 const AdminPage = lazy(() => import('./pages/AdminPage').then((m) => ({ default: m.AdminPage })))
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then((m) => ({ default: m.ProfilePage })))
-const FileManagerPage = lazy(() =>
-  import('./pages/FileManagerPage').then((m) => ({ default: m.FileManagerPage })),
-)
 const WatchHistoryPage = lazy(WatchHistoryPageLoader)
 const WatchStatsPage = lazy(WatchStatsPageLoader)
 const PosterWallPage = lazy(() => import('./pages/PosterWallPage').then((m) => ({ default: m.PosterWallPage })))
@@ -122,7 +119,7 @@ export const appRoutes: AppRoute[] = [
   { path: 'history', element: <WatchHistoryPage /> },
   { path: 'history/stats', element: <WatchStatsPage /> },
   { path: 'poster-wall', element: <PosterWallPage /> },
-  { path: 'files', element: <FileManagerPage />, adminOnly: true },
+  { path: 'files', element: <Navigate to="/strm" replace />, adminOnly: true },
   { path: 'settings', element: <SettingsPage />, adminOnly: true },
   { path: 'emby-mount', element: <EmbyMountPage />, adminOnly: true },
   { path: 'strm', element: <StrmManagePage />, adminOnly: true },

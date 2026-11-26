@@ -85,6 +85,7 @@ func registerAdminStrmRoutes(admin *gin.RouterGroup, svc *service.Container) {
 	admin.DELETE("/strm/records/:id", deleteStrmSyncRecordHandler(svc))
 	admin.DELETE("/strm/records", clearStrmSyncRecordsHandler(svc))
 	admin.GET("/strm/local-dirs", listStrmLocalDirsHandler(svc))
+	admin.POST("/strm/local-dirs", createStrmOutputFolderHandler(svc))
 
 	admin.GET("/strm/downloads", downloadQueueHandler(svc))
 	admin.POST("/strm/downloads/:id/cancel", cancelStrmDownloadHandler(svc))
