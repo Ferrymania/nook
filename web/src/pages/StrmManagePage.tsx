@@ -56,6 +56,7 @@ const RECORD_STATUS_META: Record<string, { label: string; cls: string }> = {
 
 const iconButtonCls =
   'inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2 py-1 text-xs font-semibold text-ink-100 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50'
+const cardGridCls = 'grid grid-cols-[repeat(auto-fit,minmax(min(100%,24rem),1fr))] gap-2.5'
 
 export function StrmManagePage() {
   const [accounts, setAccounts] = useState<StrmAccount[]>([])
@@ -137,6 +138,15 @@ export function StrmManagePage() {
   const startSync = async (path: StrmSyncPath, mode: 'incremental' | 'full' = 'incremental') => {
     setActingPath(path.id)
     try {
+      if (mode === 'full') {
+        const confirmed = await confirmAction({
+          title: '确认全量同步',
+          message: `将重新扫描并比对「${path.name}」下的所有文件，可能比增量同步耗时更长。`,
+          confirmText: '开始全量同步',
+          danger: false,
+        })
+        if (!confirmed) return
+      }
       await strmAPI.startSync(path.id, mode)
       toast.success(`已开始${mode === 'full' ? '全量' : '增量'}同步「${path.name}」`)
       await refresh()
@@ -358,19 +368,19 @@ function AccountSection({
           还没有网盘账号。点击「新建」添加账号（115 网盘支持二维码登录）。
         </p>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className={cardGridCls}>
           {accounts.map((account) => {
             const testState = accountTests[account.id]
             const testing = testState?.pending ?? false
             const testError = testState?.error
             return (
-              <div key={account.id} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs">
+              <div key={account.id} className="min-w-0 rounded-2xl border border-gray-100 bg-white p-4 shadow-xs">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-500">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-500">
                       <Cloud size={18} />
                     </div>
-                    <div>
+                    <div className="min-w-0 wrap-anywhere">
                       <p className="font-semibold text-ink-600">{account.name}</p>
                       <p className="text-xs text-sand-500">
                         {account.provider_label}{account.username ? ` · ${account.username}` : ''}
@@ -379,7 +389,7 @@ function AccountSection({
                   </div>
                   <span
                     className={
-                      'rounded-full px-2 py-0.5 text-[11px] font-semibold ' +
+                      'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ' +
                       (account.enabled ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-200 text-gray-500')
                     }
                   >
@@ -402,7 +412,7 @@ function AccountSection({
                     </div>
                   </div>
                 )}
-                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                <div className="mt-3 flex flex-wrap items-center gap-1.5 whitespace-nowrap">
                   {account.provider === 'cloud115' && (
                     <>
                       <button type="button" disabled={!account.enabled || !account.has_credential}
@@ -484,36 +494,39 @@ function SyncPathSection({
           还没有同步目录。添加后系统会把网盘 / 本地目录里的视频生成 .strm 文件到本地输出目录
         </p>
       ) : (
-        <div className="space-y-2.5">
+        <div className={cardGridCls}>
           {paths.map((path) => {
             const status = STATUS_META[path.last_sync_status] ?? { label: '状态未知', cls: STATUS_META.idle.cls }
             const running = path.last_sync_status === 'running'
             return (
-              <div key={path.id} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xs">
-                <div className="flex flex-wrap items-center justify-between gap-3">
+              <div
+                key={path.id}
+                className="min-w-0 space-y-2.5 rounded-2xl border border-gray-100 bg-white p-4 shadow-xs"
+              >
+                <div className="space-y-2">
                   <div className="flex min-w-0 items-center gap-2.5">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-500">
                       <Folder size={18} />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold text-ink-600">
+                        <p className="min-w-0 wrap-anywhere font-semibold text-ink-600">
                           {path.name}
                           {!path.enabled && <span className="ml-2 text-xs text-gray-400">（已停用）</span>}
                         </p>
-                        <span className={'rounded-full px-2 py-0.5 text-[11px] font-semibold ' + status.cls}>
+                        <span className={'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ' + status.cls}>
                           {running && <Loader2 size={10} className="mr-0.5 inline animate-spin" />}
                           {status.label}
                         </span>
                       </div>
-                      <p className="mt-0.5 text-xs text-sand-500">
+                      <p className="mt-0.5 wrap-anywhere text-xs text-sand-500">
                         {STRM_PROVIDER_LABELS[path.provider]}
                         {path.account_name ? ` · ${path.account_name}` : ''}
                         {path.enable_cron && path.cron ? ` · 定时 ${path.cron}` : ''}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex max-w-full flex-wrap items-center gap-1.5 whitespace-nowrap">
                     {running ? (
                       <button type="button" onClick={() => onCancel(path)} className={`${iconButtonCls} text-amber-600`}>
                         <Ban size={14} />
@@ -525,7 +538,7 @@ function SyncPathSection({
                           type="button"
                           disabled={actingPath === path.id || !path.enabled}
                           onClick={() => onStart(path, 'incremental')}
-                          className={`${iconButtonCls} text-brand-600 font-medium disabled:opacity-40`}
+                          className={iconButtonCls}
                           title="增量同步：基于目录缓存快速同步新增与更新文件"
                         >
                           {actingPath === path.id ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
@@ -535,7 +548,7 @@ function SyncPathSection({
                           type="button"
                           disabled={actingPath === path.id || !path.enabled}
                           onClick={() => onStart(path, 'full')}
-                          className={`${iconButtonCls} text-sand-600 disabled:opacity-40`}
+                          className={iconButtonCls}
                           title="全量同步：重置目录缓存并全量比对所有文件"
                         >
                           <RefreshCw size={14} />
@@ -553,24 +566,26 @@ function SyncPathSection({
                     </button>
                   </div>
                 </div>
-                <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-ink-50">
-                  <span
-                    className="max-w-[45%] truncate"
-                    title={path.remote_display_path || path.remote_path || '（根目录）'}
-                  >
-                    {path.remote_display_path || path.remote_path || '（根目录）'}
-                  </span>
-                  <span className="text-sand-500">→</span>
-                  <span className="max-w-[45%] truncate">{path.local_path}</span>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 font-mono text-xs text-ink-50">
+                    <span
+                      className="min-w-0 truncate"
+                      title={path.remote_display_path || path.remote_path || '（根目录）'}
+                    >
+                      {path.remote_display_path || path.remote_path || '（根目录）'}
+                    </span>
+                    <span className="shrink-0 text-sand-500">→</span>
+                    <span className="min-w-0 truncate" title={path.local_path}>{path.local_path}</span>
+                  </div>
+                  {path.last_sync_at && (
+                    <p className="text-xs text-sand-500" title="该次同步的开始时间">
+                      最近同步：{formatTime(path.last_sync_at)}
+                    </p>
+                  )}
+                  {path.last_sync_message && (
+                    <p className="wrap-anywhere text-pretty text-xs text-sand-500">{path.last_sync_message}</p>
+                  )}
                 </div>
-                {path.last_sync_at && (
-                  <p className="mt-1.5 text-xs text-sand-500" title="该次同步的开始时间">
-                    最近同步：{formatTime(path.last_sync_at)}
-                  </p>
-                )}
-                {path.last_sync_message && (
-                  <p className="mt-1.5 text-xs text-sand-500">{path.last_sync_message}</p>
-                )}
               </div>
             )
           })}
