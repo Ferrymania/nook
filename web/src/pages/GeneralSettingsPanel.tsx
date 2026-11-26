@@ -34,11 +34,11 @@ export function GeneralSettingsPanel(props: Props) {
           showKey={false} showHint={false} layout="stacked" />
       </FFToolsPanel>
       <SettingsSection title="缓存管理" icon={Database}>
-        <div className="settings-fields">
+        <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
           {cacheSettings.map((setting) => (
             <SettingRow key={setting.key} def={{ ...setting, label: setting.label.replace(/ \((MB|小时)\)$/, '') }}
               value={values[setting.key] ?? setting.defaultValue ?? ''} onChange={(value) => onChange(setting.key, value)}
-              showKey={false} showHint={false} layout="stacked" disabled={saving}
+              showKey={false} showHint={false} layout="inline" disabled={saving}
               unit={setting.key.endsWith('_hours') ? '小时' : 'MB'} />
           ))}
         </div>
