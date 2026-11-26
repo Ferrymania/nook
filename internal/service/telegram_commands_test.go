@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -123,11 +124,11 @@ func telegramLocalSyncPath(t *testing.T, f *telegramControlFixture, name string)
 	return p
 }
 
-func TestTelegramLegacyBindCommandsIgnored(t *testing.T) {
+func TestTelegramRemovedCommandsIgnored(t *testing.T) {
 	t.Parallel()
 
 	f := newTelegramControlFixture(t)
-	for _, command := range []string{"/bind ABCDEF", "/bind@NookBot ABCDEF"} {
+	for _, command := range []string{"/bind ABCDEF", "/bind@NookBot ABCDEF", "/strm_inc", "/strm_inc@NookBot"} {
 		for _, chatID := range []int64{9, testTelegramAdminID} {
 			update := telegramAdminMessage(command)
 			update.Message.Chat.ID, update.Message.From.ID = chatID, chatID
@@ -135,27 +136,36 @@ func TestTelegramLegacyBindCommandsIgnored(t *testing.T) {
 		}
 	}
 	if calls := f.snapshot(); len(calls) != 0 {
-		t.Fatalf("removed bind command made Telegram API calls: %+v", calls)
+		t.Fatalf("removed command made Telegram API calls: %+v", calls)
 	}
 }
 
-func TestTelegramStartOnlyExplainsAdminSetup(t *testing.T) {
+func TestTelegramHelpForPrivateChats(t *testing.T) {
 	t.Parallel()
 
 	f := newTelegramControlFixture(t)
-	update := telegramAdminMessage("/start")
-	update.Message.Chat.ID, update.Message.From.ID = 9, 9
-	f.bot.handleUpdate(t.Context(), "test-token", update)
+	f.bot.SetStrmService(nil)
+	for _, command := range []string{"/help@NookBot", "/start"} {
+		update := telegramAdminMessage(command)
+		update.Message.Chat.ID, update.Message.From.ID = 9, 9
+		f.bot.handleUpdate(t.Context(), "test-token", update)
+	}
+	f.bot.handleUpdate(t.Context(), "test-token", telegramAdminMessage("/help"))
 	calls := f.snapshot()
-	if len(calls) != 1 || calls[0].Method != "sendMessage" {
-		t.Fatalf("start calls = %+v, want one setup reply", calls)
+	if len(calls) != 3 {
+		t.Fatalf("help calls = %+v, want two setup replies and one admin reply", calls)
 	}
-	text, _ := calls[0].Payload["text"].(string)
-	if strings.Contains(text, "/bind") || strings.Contains(text, "绑定码") || strings.Contains(text, "个人资料") {
-		t.Fatalf("start still advertises personal binding: %s", text)
+	for _, call := range calls[:2] {
+		text, _ := call.Payload["text"].(string)
+		if call.Method != "sendMessage" || !strings.Contains(text, "Chat ID：<code>9</code>") || strings.Contains(text, "/sync") {
+			t.Fatalf("unexpected setup reply: %+v", call)
+		}
 	}
-	if !strings.Contains(text, "管理员") || !strings.Contains(text, "Chat ID：<code>9</code>") {
-		t.Fatalf("start lost administrator setup guidance: %s", text)
+	adminHelp, _ := calls[2].Payload["text"].(string)
+	if calls[2].Method != "sendMessage" ||
+		!strings.Contains(adminHelp, "/sync") || !strings.Contains(adminHelp, "/download") ||
+		!strings.Contains(adminHelp, "Chat ID：<code>123456</code>") || strings.Contains(adminHelp, "/strm_inc") {
+		t.Fatalf("unexpected administrator help: %+v", calls[2])
 	}
 }
 
@@ -166,7 +176,7 @@ func TestTelegramControlRejectsUntrustedChatsAndRevokedConfig(t *testing.T) {
 		t.Run(test, func(t *testing.T) {
 			f := newTelegramControlFixture(t)
 			telegramLocalSyncPath(t, f, "电影")
-			u := telegramAdminMessage("/strm_inc")
+			u := telegramAdminMessage("/sync")
 			switch test {
 			case "other-user":
 				u.Message.Chat.ID, u.Message.From.ID = 9, 9
@@ -217,14 +227,17 @@ func TestTelegramAdminMenuRegistrationIsScopedAndRotates(t *testing.T) {
 		t.Fatalf("scope: %+v", scope)
 	}
 	commands := calls[1].Payload["commands"].([]any)
-	if len(commands) != 6 {
-		t.Fatalf("commands: %+v", commands)
-	}
+	var names []string
 	for _, raw := range commands {
 		command := raw.(map[string]any)
+		name, _ := command["command"].(string)
+		names = append(names, name)
 		if command["command"] == "status" && command["description"] != "查看媒体数量、用户数和正在播放人数" {
 			t.Fatalf("status description: %+v", command)
 		}
+	}
+	if want := []string{"help", "sync", "status", "cancel", "download"}; !slices.Equal(names, want) {
+		t.Fatalf("commands = %v, want %v", names, want)
 	}
 	cfg.AdminID = "-100123"
 	if err := f.bot.registerAdminCommands(t.Context(), cfg, "", ""); err != nil {
@@ -276,7 +289,7 @@ func TestTelegramIncrementalSyncUsesRealEngineAndReportsResults(t *testing.T) {
 	if err := f.strm.repo.StrmSyncPath.Update(t.Context(), disabled); err != nil {
 		t.Fatal(err)
 	}
-	f.bot.handleUpdate(t.Context(), "test-token", telegramAdminMessage("/strm_inc@NookBot"))
+	f.bot.handleUpdate(t.Context(), "test-token", telegramAdminCallback("nook:sync:all"))
 	f.waitMessage(t, "成功 2，失败/未启动 0")
 	f.waitIdle(t)
 	var records []model.StrmSyncRecord
@@ -328,7 +341,7 @@ func TestTelegramCancelBatchStopsRunningDirectoryAndPendingOnes(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Repository order is newest first, so the remote directory blocks the batch.
-	f.bot.handleUpdate(t.Context(), "test-token", telegramAdminMessage("/strm_inc"))
+	f.bot.handleUpdate(t.Context(), "test-token", telegramAdminCallback("nook:sync:all"))
 	select {
 	case <-entered:
 	case <-time.After(5 * time.Second):
@@ -382,7 +395,7 @@ func TestTelegramPollingDropsBacklogAndRequestsCallbacks(t *testing.T) {
 			if payload["offset"] != float64(41) {
 				t.Errorf("offset: %+v", payload)
 			}
-			fresh := telegramAdminMessage("/strm_inc")
+			fresh := telegramAdminCallback("nook:sync:all")
 			fresh.UpdateID = 41
 			return []telegramUpdate{fresh, fresh} // Duplicate delivery must not start twice.
 		}
@@ -447,7 +460,7 @@ func TestTelegramBatchContinuesPastFailedAndAlreadyRunningDirectories(t *testing
 	f.strm.mu.Lock()
 	f.strm.running[busy.ID] = func() { canceled = true }
 	f.strm.mu.Unlock()
-	f.bot.handleUpdate(t.Context(), "test-token", telegramAdminMessage("/strm_inc"))
+	f.bot.handleUpdate(t.Context(), "test-token", telegramAdminCallback("nook:sync:all"))
 	f.waitMessage(t, "成功 1，失败/未启动 2")
 	f.waitIdle(t)
 	if canceled {

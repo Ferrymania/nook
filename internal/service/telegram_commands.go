@@ -32,7 +32,7 @@ func telegramCommand(text string) string {
 
 func isTelegramControlCommand(text string) bool {
 	switch telegramCommand(text) {
-	case "/strm_inc", "/sync_all", "/sync", "/status", "/cancel", "/download":
+	case "/sync_all", "/sync", "/status", "/cancel", "/download":
 		return true
 	}
 	return false
@@ -71,8 +71,7 @@ func (s *TelegramService) registerAdminCommands(ctx context.Context, cfg telegra
 	return s.call(ctx, cfg.BotToken, "setMyCommands", map[string]any{
 		"scope": map[string]any{"type": "chat", "chat_id": id},
 		"commands": []map[string]string{
-			{"command": "start", "description": "查看 Nook 操作说明"},
-			{"command": "strm_inc", "description": "全部启用目录依次增量同步"},
+			{"command": "help", "description": "查看 Nook 操作说明"},
 			{"command": "sync", "description": "选择目录增量同步"},
 			{"command": "status", "description": "查看媒体数量、用户数和正在播放人数"},
 			{"command": "cancel", "description": "选择并取消同步任务"},
@@ -82,7 +81,17 @@ func (s *TelegramService) registerAdminCommands(ctx context.Context, cfg telegra
 }
 
 func (s *TelegramService) handleAdminCommand(ctx context.Context, token, chatID, command string) {
-	if command == "/status" {
+	switch command {
+	case "/help":
+		message := "Nook 管理员操作\n\n" +
+			"/sync — 选择目录增量同步\n" +
+			"/status — 查看媒体数量、用户数和正在播放人数\n" +
+			"/cancel — 选择并取消同步任务\n" +
+			"/download — 批量提交 115 云下载。可先发命令再发链接，也可一起发。每行一条 ED2K 文件链接。\n\n" +
+			"当前私聊 Chat ID：<code>" + chatID + "</code>"
+		s.controlReply(ctx, token, chatID, message, nil)
+		return
+	case "/status":
 		s.sendSiteStatus(ctx, token, chatID)
 		return
 	}
@@ -91,14 +100,12 @@ func (s *TelegramService) handleAdminCommand(ctx context.Context, token, chatID,
 		return
 	}
 	switch command {
-	case "/strm_inc", "/sync_all":
+	case "/sync_all":
 		s.startTelegramSync(ctx, token, chatID, "all")
 	case "/sync":
 		s.sendPathMenu(ctx, token, chatID, "sync", 0)
 	case "/cancel":
 		s.sendPathMenu(ctx, token, chatID, "cancel", 0)
-	default:
-		s.controlReply(ctx, token, chatID, "Nook 管理员操作\n\n/strm_inc — 全部目录依次增量同步\n/sync — 选择目录增量同步\n/status — 查看媒体数量、用户数和正在播放人数\n/cancel — 选择取消任务\n/download — 批量提交 115 云下载。可先发命令再发链接，也可一起发。每行一条 ED2K 文件链接。\n\n使用系统设置中的 Bot 和管理员私聊 ID，无需个人资料绑定。", nil)
 	}
 }
 
