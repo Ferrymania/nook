@@ -6,6 +6,7 @@ import { CircleCheck, Database, ListVideo, Loader2, RefreshCw, X } from 'lucide-
 import { playbackAPI, type MediaSegmentQueryResult } from '../api/playback'
 import type { Media, PlaybackSegmentKind } from '../types'
 import { formatEpisodeNumber } from '../utils/episodeNumber'
+import { libraryQueueLocation } from '../utils/libraryQueueNavigation'
 import { querySegmentBatch, segmentQueryError, segmentQueryTargets, type SegmentBatchResult } from '../utils/segmentQueryBatch'
 
 const KIND_LABELS: Record<PlaybackSegmentKind, string> = { intro: '片头', credits: '片尾', recap: '前情回顾', preview: '预告' }
@@ -128,7 +129,7 @@ export function MediaSegmentQueryDialog({ media, episodes, onClose }: MediaSegme
             </div>}
           </div>
           <footer className="flex shrink-0 flex-wrap justify-end gap-2 border-t border-(--app-border) bg-(--app-panel-soft) px-5 py-4">
-            <Link to="/segments/queue" state={{ segmentReturnTo: pathname + search }} onClick={close}
+            <Link to={libraryQueueLocation('segments')} state={{ segmentReturnTo: pathname + search }} onClick={close}
               className="mr-auto self-center text-xs text-brand-600 hover:underline">查看查询队列</Link>
             <button type="button" disabled={loading} onClick={() => { void query() }} className="btn-outline px-3! py-2! text-xs"><RefreshCw size={13} />重新查询</button>
             <button type="button" onClick={close} className="btn-primary px-4! py-2! text-xs">{isBatch && loading ? '停止并关闭' : '关闭'}</button>

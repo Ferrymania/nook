@@ -12,6 +12,8 @@ import {
   Users,
 } from 'lucide-react'
 
+import { LIBRARY_QUEUE_PATH } from '../utils/libraryQueueNavigation'
+
 export type LayoutNavItem = {
   to: string
   label: string
@@ -92,7 +94,7 @@ export function isAdminEntrySearch(search: string): boolean {
 }
 
 export function isLibraryPath(pathname: string): boolean {
-  return pathname === '/libraries' || pathname.startsWith('/library')
+  return pathname === '/libraries' || pathname === LIBRARY_QUEUE_PATH || pathname.startsWith('/library')
 }
 
 /**
@@ -139,14 +141,10 @@ export function resolveHeaderBack(pathname: string, search = '', segmentReturnTo
   if (pathname.startsWith('/media/')) {
     return null
   }
-  if (
-    pathname === '/segments/queue' &&
-    typeof segmentReturnTo === 'string' &&
-    /^\/(media|library)\/[^/?#]+(?:\?[^#]*)?$/.test(segmentReturnTo)
-  ) {
-    return { to: segmentReturnTo, label: segmentReturnTo.startsWith('/media/') ? '媒体详情' : '媒体库' }
-  }
-  if (pathname === '/scraper/queue' || pathname === '/segments/queue') {
+  if (pathname === LIBRARY_QUEUE_PATH) {
+    if (typeof segmentReturnTo === 'string' && /^\/(media|library)\/[^/?#]+(?:\?[^#]*)?$/.test(segmentReturnTo)) {
+      return { to: segmentReturnTo, label: segmentReturnTo.startsWith('/media/') ? '媒体详情' : '媒体库' }
+    }
     return { to: isAdminEntrySearch(search) ? '/libraries?from=admin' : '/libraries', label: '媒体库' }
   }
   if (pathname === '/strm/downloads' || pathname === '/strm/uploads') {

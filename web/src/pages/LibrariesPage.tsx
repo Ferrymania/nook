@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { libraryAPI } from '../api/library'
-import { LibraryTagBar } from '../components/LibraryTagBar'
-import { ManageLibraryTagsDialogView } from '../components/ManageLibraryTagsDialogView'
 import { openManageLibrariesDialog } from '../components/manageLibrariesDialog'
 import { useEpisodeArtworkPreference } from '../hooks/useEpisodeArtworkPreference'
-import { useLibraryTags } from '../hooks/useLibraryTags'
 import { usePinnedLibraries } from '../hooks/usePinnedLibraries'
 import { useLibraryListSort } from '../hooks/useLibraryListSort'
 import { useAuthStore } from '../stores/auth'
@@ -24,8 +21,6 @@ import {
   type LibraryListSortOrder,
 } from '../utils/libraryListSort'
 import { fetchLibraries, invalidateLibraries, peekLibraries } from '../utils/libraryCache'
-import { ALL_TAG_ID, buildLibraryTagTabs, filterLibrariesByTag } from '../utils/libraryTags'
-import type { LibraryTag } from '../utils/libraryTags'
 import { partitionPreviewIDs } from '../utils/remoteEmby'
 
 export function LibrariesPage() {
@@ -35,7 +30,6 @@ export function LibrariesPage() {
   const [libraries, setLibraries] = useState<Library[]>(() => peekLibraries() ?? [])
   const [libraryData, setLibraryData] = useState<Record<string, { cards: SeriesCard[]; total: number }>>({})
   const { pinnedIds, togglePin } = usePinnedLibraries()
-  const libraryTags = useLibraryTags()
   const [loading, setLoading] = useState(() => peekLibraries() === null)
   const [scrapeEpisodeArtwork] = useEpisodeArtworkPreference()
   const { field: sortField, order: sortOrder, setSort: setLibrarySort } = useLibraryListSort()
@@ -171,19 +165,9 @@ export function LibrariesPage() {
     void togglePin(libraryId)
   }, [togglePin])
 
-  const [libraryTagsOpen, setLibraryTagsOpen] = useState(false)
-  const effectiveTagId = libraryTags.selectedTagId
-  const tagTabs = useMemo(
-    () => buildLibraryTagTabs(sortedPreviews.map((preview) => preview.library), libraryTags.tags),
-    [sortedPreviews, libraryTags.tags],
-  )
-  const taggedPreviews = useMemo(
-    () => filterPreviewsByTag(sortedPreviews, libraryTags.tags, effectiveTagId),
-    [sortedPreviews, libraryTags.tags, effectiveTagId],
-  )
-  const taggedTotal = useMemo(
-    () => taggedPreviews.reduce((sum, preview) => sum + preview.total, 0),
-    [taggedPreviews],
+  const total = useMemo(
+    () => previews.reduce((sum, preview) => sum + preview.total, 0),
+    [previews],
   )
 
   if (loading) {
@@ -193,8 +177,8 @@ export function LibrariesPage() {
   return (
     <div className="space-y-8">
       <LibrariesHeader
-        previewCount={taggedPreviews.length}
-        total={taggedTotal}
+        previewCount={previews.length}
+        total={total}
         isAdmin={isAdmin}
         scraping={scraping}
         sortField={sortField}
@@ -204,41 +188,11 @@ export function LibrariesPage() {
         onManageLibraries={handleManageLibraries}
       />
 
-      <LibraryTagBar
-        tabs={tagTabs}
-        selectedTagId={effectiveTagId}
-        onSelect={libraryTags.setSelectedTagId}
-        onCreate={(name) => {
-          void libraryTags.createTag(name)
-        }}
-        onManage={() => setLibraryTagsOpen(true)}
-        busy={libraryTags.saving}
-      />
-
-      {libraryTagsOpen && (
-        <ManageLibraryTagsDialogView
-          tags={libraryTags.tags}
-          libraries={libraries}
-          saving={libraryTags.saving}
-          onCreate={libraryTags.createTag}
-          onRename={libraryTags.renameTag}
-          onRemove={libraryTags.removeTag}
-          onReorder={libraryTags.reorderTags}
-          onAssign={libraryTags.assignLibrary}
-          onAssignBatch={libraryTags.assignLibraries}
-          onClose={() => setLibraryTagsOpen(false)}
-        />
-      )}
-
       {previews.length === 0 ? (
         <LibrariesEmptyState isAdmin={isAdmin} />
-      ) : taggedPreviews.length === 0 ? (
-        <p className="rounded-3xl border border-dashed border-(--app-border) bg-(--app-panel) px-4 py-16 text-center text-sm text-(--app-muted)">
-          「{effectiveTagId}」标签下还没有媒体库，可在「管理标签」里把媒体库归入该标签。
-        </p>
       ) : (
         <LibrariesContent
-          previews={taggedPreviews}
+          previews={sortedPreviews}
           pinnedIds={pinnedIds}
           onTogglePin={handleTogglePin}
           onNeedPreviews={fetchPreviews}
@@ -246,19 +200,4 @@ export function LibrariesPage() {
       )}
     </div>
   )
-}
-
-/**
- * 按选中标签过滤媒体库预览：复用共享的成员筛选（保持输入顺序），
- * 这样排序下拉（含倒序）在标签页与「全部」页行为一致。
- */
-function filterPreviewsByTag(previews: LibraryPreview[], tags: LibraryTag[], tagId: string): LibraryPreview[] {
-  if (!tagId || tagId === ALL_TAG_ID) return previews
-  const byId = new Map(previews.map((preview) => [preview.library.id, preview]))
-  const kept: LibraryPreview[] = []
-  for (const library of filterLibrariesByTag(previews.map((preview) => preview.library), tags, tagId)) {
-    const preview = byId.get(library.id)
-    if (preview) kept.push(preview)
-  }
-  return kept
 }

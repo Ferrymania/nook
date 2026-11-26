@@ -6,6 +6,7 @@ import { LibraryListSortDropdown } from '../components/LibraryListSortDropdown'
 import { isAdminEntrySearch } from '../components/layoutNavigation'
 import { useRememberedListPosition } from '../hooks/useListPositionMemory'
 import type { LibraryListSortField, LibraryListSortOrder } from '../utils/libraryListSort'
+import { libraryQueueLocation } from '../utils/libraryQueueNavigation'
 import { HomeLibrariesSection, HomeLibraryRowSection } from './HomePageSections'
 import type { LibraryPreview } from './librariesPageModel'
 
@@ -53,20 +54,12 @@ export function LibrariesHeader({
               {scraping ? '正在刮削…' : '刮削全部媒体库'}
             </button>
             <Link
-              to={{ pathname: '/scraper/queue', search: queueSearch }}
+              to={libraryQueueLocation('scrape', queueSearch)}
               className="library-toolbar-button"
-              title="查看正在进行的刮削任务与进度"
-            >
-              <Sparkles size={16} />
-              <span>刮削队列</span>
-            </Link>
-            <Link
-              to={{ pathname: '/segments/queue', search: queueSearch }}
-              className="library-toolbar-button"
-              title="查看所有媒体的片头片尾查询记录"
+              title="查看刮削进度和片头片尾查询记录"
             >
               <ListVideo size={16} />
-              <span>片头片尾队列</span>
+              <span>任务队列</span>
             </Link>
             <button
               type="button"
