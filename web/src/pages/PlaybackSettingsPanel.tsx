@@ -42,14 +42,6 @@ export function PlaybackSettingsPanel({ values, saving = false, onChange }: Prop
         ))}
       </fieldset>
       {directOnly && <p className="settings-help-text">客户端不支持源格式时将无法播放。</p>}
-      <div className="settings-mode-row settings-disclosure-divided">
-        <div className="min-w-0">
-          <span>{proxyRemoteSetting.label}</span>
-          <p id={proxyDescriptionID} className="settings-help-text mt-1!">{proxyRemoteSetting.hint}</p>
-        </div>
-        <SettingsSwitch label={proxyRemoteSetting.label} checked={isOn(proxyRemoteSetting.key)} disabled={saving}
-          describedBy={proxyDescriptionID} onChange={(checked) => onChange(proxyRemoteSetting.key, String(checked))} />
-      </div>
       {!directOnly && <details className="settings-disclosure settings-disclosure-divided" open>
         <summary>转码参数</summary>
         <div className="settings-fields mt-4">
@@ -71,6 +63,14 @@ export function PlaybackSettingsPanel({ values, saving = false, onChange }: Prop
         </div>
         <p className="settings-help-text">NAS 建议并发 1、软件线程 1–2；硬件编码器需先开启硬件加速。按播放速度转码可降低 CPU 峰值，空闲超时后自动结束转码。</p>
       </details>}
+      <div className="settings-mode-row settings-disclosure-divided">
+        <div className="min-w-0">
+          <span>{proxyRemoteSetting.label}</span>
+          <p id={proxyDescriptionID} className="settings-help-text mt-1!">{proxyRemoteSetting.hint}</p>
+        </div>
+        <SettingsSwitch label={proxyRemoteSetting.label} checked={isOn(proxyRemoteSetting.key)} disabled={saving}
+          describedBy={proxyDescriptionID} onChange={(checked) => onChange(proxyRemoteSetting.key, String(checked))} />
+      </div>
     </SettingsSection>
   )
 }

@@ -342,9 +342,9 @@ func TestTelegramCloudDownloadBatchReportsMixedResults(t *testing.T) {
 	invalid := telegramAdminMessage(testED2K + "\n" + rejectedMagnet)
 	invalid.Message.MessageID = 197
 	f.bot.handleUpdate(ctx, token, invalid)
-	statusCommand := telegramAdminMessage("/start")
-	statusCommand.Message.MessageID = 198
-	f.bot.handleUpdate(ctx, token, statusCommand)
+	helpCommand := telegramAdminMessage("/help")
+	helpCommand.Message.MessageID = 198
+	f.bot.handleUpdate(ctx, token, helpCommand)
 	message := telegramAdminMessage(strings.Join([]string{testED2K, testED2KSecond, testED2KThird, testED2K}, "\n"))
 	message.Message.MessageID = 200
 	f.bot.handleUpdate(ctx, token, message)

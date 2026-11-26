@@ -22,7 +22,7 @@ export const deviceNotifySettingsGroup: SettingGroup = {
       label: '管理员 Chat ID',
       type: 'text',
       placeholder: '例如 123456789',
-      hint: '私聊发送 /start 获取 ID；群组仅接收通知。',
+      hint: '私聊发送 /help 获取 Chat ID。群组用于接收通知。',
     },
     {
       key: 'device.antishare_enabled',

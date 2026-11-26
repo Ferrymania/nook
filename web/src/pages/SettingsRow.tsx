@@ -17,16 +17,23 @@ type SettingsRowProps = {
   disabled?: boolean
   showKey?: boolean
   showHint?: boolean
-  layout?: 'horizontal' | 'stacked'
+  layout?: 'horizontal' | 'stacked' | 'inline'
   align?: 'start' | 'center'
   unit?: string
+}
+
+const layoutClasses = {
+  horizontal: 'items-start md:grid-cols-[280px_1fr]',
+  stacked: 'items-start',
+  inline: 'grid-cols-[minmax(0,1fr)_clamp(7rem,45%,9rem)] items-center',
 }
 
 export function SettingRow({ def, value, onChange, disabled = false, showKey = true, showHint = true, layout = 'horizontal', align = 'start', unit }: SettingsRowProps) {
   const controlID = useId()
   const toggleOn = value === 'true' || value === '1' || value === 'on'
+  const centered = layout === 'horizontal' && align === 'center'
   return (
-    <fieldset disabled={disabled} className={`grid min-w-0 items-start gap-2 ${layout === 'horizontal' ? `md:grid-cols-[280px_1fr] ${align === 'center' ? 'md:items-center' : ''}` : ''} ${disabled ? 'opacity-60' : ''}`}>
+    <fieldset disabled={disabled} className={`grid min-w-0 gap-2 ${layoutClasses[layout]} ${centered ? 'md:items-center' : ''} ${disabled ? 'opacity-60' : ''}`}>
       <label htmlFor={controlID} className="text-sm text-ink-100">
         <div className="font-medium">{def.label}</div>
         {showHint && def.hint && <div className="mt-0.5 text-xs text-sand-500">{def.hint}</div>}

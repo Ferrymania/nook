@@ -424,7 +424,10 @@ func (s *TelegramService) handleUpdate(ctx context.Context, token string, u tele
 	}
 
 	command := telegramCommand(text)
-	if isTelegramControlCommand(text) || command == "/start" {
+	if command == "/start" {
+		command = "/help" // Telegram 的首次「开始」按钮发送 /start。
+	}
+	if isTelegramControlCommand(text) || command == "/help" {
 		if s.adminControlAllowed(ctx, token, u.Message.Chat, u.Message.From.ID) {
 			if command == "/download" && s.strm != nil {
 				s.handleCloudDownloadCommand(ctx, token, u.Message, text)
@@ -438,7 +441,7 @@ func (s *TelegramService) handleUpdate(ctx context.Context, token string, u tele
 		s.handleCloudDownloadFollowUp(ctx, token, u.Message, text)
 		return
 	}
-	if command == "/start" {
+	if command == "/help" {
 		message := "Nook Bot 提供管理员运维通知与同步控制。"
 		if u.Message.Chat.Type == "private" {
 			message += "\n\n当前私聊 Chat ID：<code>" + chatID + "</code>。管理员可将此 ID 填入系统设置，使用同步控制命令。"
@@ -448,7 +451,7 @@ func (s *TelegramService) handleUpdate(ctx context.Context, token string, u tele
 			"text":       message,
 			"parse_mode": "HTML",
 		}, nil); err != nil {
-			s.warn("telegram /start reply failed", chatID, err)
+			s.warn("telegram help reply failed", chatID, err)
 		}
 	}
 }

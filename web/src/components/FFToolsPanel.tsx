@@ -101,12 +101,21 @@ export function FFToolsPanel({ values, savedValues, dirty, saving, statusRevisio
   return (
     <SettingsSection title="媒体工具" icon={Wrench}>
       <div className="settings-tool-status" role="status" aria-live="polite">
-        {TOOLS.map((tool) => <div key={tool}>
-          <span className="font-medium">{tool === 'ffmpeg' ? 'FFmpeg' : 'FFprobe'}</span>
-          <span className="text-(--app-muted)">
-            {dirty.has(`${tool}.path`) ? '待保存' : checking ? '检测中…' : statusError ? '状态未知' : status?.[tool]?.installed ? '可用' : '未检测到'}
-          </span>
-        </div>)}
+        {TOOLS.map((tool) => {
+          const info = status?.[tool]
+          const pending = dirty.has(`${tool}.path`)
+          const available = !checking && !statusError && Boolean(info?.installed)
+          const version = available ? info?.version?.trim().split(/\s+/)[2] : undefined
+          return <div key={tool}>
+            <div className="flex min-w-0 items-baseline gap-2">
+              <span className="shrink-0 font-medium">{tool === 'ffmpeg' ? 'FFmpeg' : 'FFprobe'}</span>
+              {version && <span className="min-w-0 truncate font-mono text-xs text-(--app-muted)" title={version}>{version}</span>}
+            </div>
+            <span className={available && !pending ? 'text-emerald-700 dark:text-emerald-400' : 'text-(--app-muted)'}>
+              {pending ? '待保存' : checking ? '检测中…' : statusError ? '状态未知' : available ? '可用' : '未检测到'}
+            </span>
+          </div>
+        })}
       </div>
       <details className="settings-disclosure mt-3" open={advancedOpen} onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}>
         <summary>高级设置</summary>
@@ -132,7 +141,6 @@ export function FFToolsPanel({ values, savedValues, dirty, saving, statusRevisio
           </div>
           <p className="settings-help-text">留空自动查找系统工具。FFprobe 并发建议为 1。</p>
           <p className="settings-help-text">可手动填写或自动检测容器内的程序路径，保存后生效。</p>
-          {TOOLS.map((tool) => status?.[tool]?.version && <p key={tool} className="settings-help-text wrap-break-word font-mono">{status[tool]!.version!.split(' Copyright')[0]}</p>)}
         </div>
       </details>
       {statusError && <div role="alert" className="flex flex-wrap items-center gap-2 text-xs text-red-600">

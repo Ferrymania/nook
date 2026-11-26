@@ -1,6 +1,6 @@
 # Telegram 通知
 
-在「系统设置 → 设备与通知」中启用 Telegram，填写 Bot Token 和管理员 Chat ID，保存后可发送测试消息。管理员私聊可使用 `/start` 查看说明，`/status` 查看站点统计，`/strm_inc`、`/sync` 和 `/cancel` 控制 STRM 同步；群组 Chat ID 只接收通知。
+在「系统设置 → 设备与通知」中启用 Telegram，填写 Bot Token 和管理员 Chat ID，保存后可发送测试消息。在私聊发送 `/help` 可查看当前 Chat ID，管理员也可查看操作说明。`/status` 查看站点统计，`/sync` 选择目录增量同步，`/cancel` 选择并取消同步任务。群组用于接收通知。
 
 ## 115 云下载
 
