@@ -119,25 +119,44 @@ func TestEmbyItemsFiltersFavorites(t *testing.T) {
 		t.Fatalf("create favorite: %v", err)
 	}
 
-	out, err := svc.Items(t.Context(), ItemsParams{
-		UserID:    viewer.ID,
-		Filters:   []string{"IsFavorite"},
-		Recursive: true,
-		Limit:     50,
-	})
-	if err != nil {
-		t.Fatalf("favorite items: %v", err)
-	}
-	if out["TotalRecordCount"] != int64(1) {
-		t.Fatalf("expected one favorite, got %#v", out)
-	}
-	items := out["Items"].([]map[string]any)
-	if len(items) != 1 || items[0]["Id"] != favorite.ID {
-		t.Fatalf("favorite filter returned wrong items: %#v", items)
-	}
-	userData := items[0]["UserData"].(map[string]any)
-	if userData["IsFavorite"] != true {
-		t.Fatalf("favorite payload should carry IsFavorite=true: %#v", userData)
+	for _, tc := range []struct {
+		name  string
+		types []string
+		want  int
+	}{
+		{name: "all", want: 1},
+		{name: "movie", types: []string{"Movie"}, want: 1},
+		{name: "series", types: []string{"Series"}},
+		{name: "season", types: []string{"Season"}},
+		{name: "episode", types: []string{"Episode"}},
+		{name: "mixed", types: []string{"Episode", "mOvIe"}, want: 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			out, err := svc.Items(t.Context(), ItemsParams{
+				UserID:           viewer.ID,
+				Filters:          []string{"IsFavorite"},
+				IncludeItemTypes: tc.types,
+				Recursive:        true,
+				Limit:            50,
+			})
+			if err != nil {
+				t.Fatalf("favorite items: %v", err)
+			}
+			items := out["Items"].([]map[string]any)
+			if out["TotalRecordCount"] != int64(tc.want) || len(items) != tc.want {
+				t.Fatalf("expected %d favorites, got %#v", tc.want, out)
+			}
+			if tc.want == 0 {
+				return
+			}
+			if items[0]["Id"] != favorite.ID || items[0]["Type"] != "Movie" {
+				t.Fatalf("favorite filter returned wrong items: %#v", items)
+			}
+			userData := items[0]["UserData"].(map[string]any)
+			if userData["IsFavorite"] != true {
+				t.Fatalf("favorite payload should carry IsFavorite=true: %#v", userData)
+			}
+		})
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -436,6 +437,13 @@ func (e *EmbyService) favoriteItems(ctx context.Context, p ItemsParams) (map[str
 		}
 		userData["IsFavorite"] = true
 		items = append(items, item)
+	}
+
+	if len(p.IncludeItemTypes) > 0 {
+		items = slices.DeleteFunc(items, func(item map[string]any) bool {
+			kind, _ := item["Type"].(string)
+			return !containsItemType(p.IncludeItemTypes, kind)
+		})
 	}
 
 	total := int64(len(items))
