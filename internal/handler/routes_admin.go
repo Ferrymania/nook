@@ -66,6 +66,7 @@ func registerAdminStrmRoutes(admin *gin.RouterGroup, svc *service.Container) {
 	admin.GET("/strm/accounts/:id/request-stats", getStrm115RequestStatsHandler(svc))
 	admin.GET("/strm/accounts/:id/files", listStrmAccountFilesHandler(svc))
 	admin.POST("/strm/accounts/:id/folders", createStrmAccountFolderHandler(svc))
+	admin.DELETE("/strm/accounts/:id/files", deleteStrmAccountFileHandler(svc))
 	admin.DELETE("/strm/accounts/:id/files/:fileID", deleteStrmAccountFileHandler(svc))
 	admin.GET("/strm/accounts/:id/resolve", resolveStrmRemoteDirHandler(svc))
 	admin.GET("/strm/115/sources", listStrm115SourcesHandler(svc))

@@ -19,6 +19,14 @@ export interface StrmRemoteEntry {
   pick_code?: string
 }
 
+export interface StrmAccountFilesPage {
+  entries: StrmRemoteEntry[]
+  has_more: boolean
+  can_create_folder: boolean
+  can_delete: boolean
+  read_only_reason?: string
+}
+
 export type Strm115AuthSource = 'built_in_appid' | 'custom_appid'
 
 export interface Strm115Source {
@@ -82,7 +90,7 @@ export const strmAPI = {
       .then((r) => r.data),
 
   listAccountFiles: (accountId: string, parentId: string, page: number, signal: AbortSignal) =>
-    api.get<{ entries: StrmRemoteEntry[]; has_more: boolean }>(`/admin/strm/accounts/${accountId}/files`, {
+    api.get<StrmAccountFilesPage>(`/admin/strm/accounts/${accountId}/files`, {
       params: { parent_id: parentId, page }, signal,
     }).then((r) => r.data),
 
@@ -90,7 +98,7 @@ export const strmAPI = {
     api.post(`/admin/strm/accounts/${accountId}/folders`, { parent_id: parentId, name }),
 
   deleteAccountFile: (accountId: string, parentId: string, fileId: string) =>
-    api.delete(`/admin/strm/accounts/${accountId}/files/${encodeURIComponent(fileId)}`, { params: { parent_id: parentId } }),
+    api.delete(`/admin/strm/accounts/${accountId}/files`, { params: { parent_id: parentId, file_id: fileId } }),
 
   // 按远端目录引用（115 为目录 ID）反查完整展示路径
   resolveRemoteDirPath: (accountId: string, dir: string) =>

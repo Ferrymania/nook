@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { isAxiosError } from 'axios'
 import { ChevronRight, File, Folder, FolderPlus, Loader2, RefreshCw, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { strmAPI, type StrmRemoteEntry } from '../../api/strm'
+import { strmAPI, type StrmAccountFilesPage, type StrmRemoteEntry } from '../../api/strm'
 import { confirmAction } from '../../components/confirmAction'
 import type { StrmAccount } from '../../types/strm'
 import { DialogShell } from '../StrmDialogs'
@@ -10,7 +11,7 @@ import { apiErrorMessage, formatBytes } from '../StrmManagePage'
 type Directory = { id: string; name: string }
 
 export function StrmAccountFilesDialog({ account, onClose }: { account: StrmAccount; onClose: () => void }) {
-  const [path, setPath] = useState<Directory[]>([{ id: '0', name: '根目录' }])
+  const [path, setPath] = useState<Directory[]>([{ id: account.provider === 'openlist' ? '/' : '0', name: '根目录' }])
   const [busy, setBusy] = useState(false)
   const directory = path[path.length - 1]
 
@@ -38,10 +39,16 @@ function DirectoryContents({ account, directory, enter, busy, setBusy }: {
 }) {
   const [page, setPage] = useState(1)
   const [revision, setRevision] = useState(0)
-  const [listing, setListing] = useState<{ entries: StrmRemoteEntry[]; has_more: boolean } | null>(null)
+  const [listing, setListing] = useState<StrmAccountFilesPage | null>(null)
   const [error, setError] = useState('')
   const [folderName, setFolderName] = useState<string | null>(null)
   const [pendingDeletes, setPendingDeletes] = useState<string[]>([])
+  const isOpenList = account.provider === 'openlist'
+  const canCreate = listing?.can_create_folder === true
+  const canDelete = listing?.can_delete === true
+  const createDenied = listing && !canCreate ? '当前 OpenList 账号没有新建文件夹权限' : undefined
+  const deleteDenied = listing && !canDelete ? '当前 OpenList 账号没有删除权限' : undefined
+  const permissionNotice = listing?.read_only_reason || [createDenied, deleteDenied].filter(Boolean).join('，')
   useEffect(() => {
     const controller = new AbortController()
     strmAPI.listAccountFiles(account.id, directory.id, page, controller.signal)
@@ -64,7 +71,7 @@ function DirectoryContents({ account, directory, enter, busy, setBusy }: {
   const create = async (event: FormEvent) => {
     event.preventDefault()
     const name = folderName?.trim()
-    if (!name || busy) return
+    if (!name || busy || !canCreate) return
     setBusy(true)
     try {
       await strmAPI.createAccountFolder(account.id, directory.id, name)
@@ -73,25 +80,28 @@ function DirectoryContents({ account, directory, enter, busy, setBusy }: {
       reload(1)
     } catch (err) {
       toast.error(apiErrorMessage(err))
+      if (isOpenList && isAxiosError(err) && err.response?.status === 403) reload()
     } finally {
       setBusy(false)
     }
   }
 
   const remove = async (entry: StrmRemoteEntry) => {
-    if (busy) return
+    if (busy || !canDelete) return
     setBusy(true)
     try {
-      const message = entry.is_dir
-        ? `将「${account.name}」中的文件夹「${entry.name}」及其全部内容移入 115 回收站？`
-        : `将「${account.name}」中的文件「${entry.name}」移入 115 回收站？`
-      if (!await confirmAction({ title: '删除网盘文件', message, confirmText: '移入回收站' })) return
-      await strmAPI.deleteAccountFile(account.id, directory.id, entry.id)
-      setPendingDeletes((ids) => [...ids, entry.id])
-      toast.success('115 已受理删除请求')
+      const target = entry.is_dir ? `文件夹「${entry.name}」及其全部内容` : `文件「${entry.name}」`
+      const message = isOpenList
+        ? `删除「${account.name}」中的${target}？能否恢复取决于 OpenList 挂载的存储。`
+        : `将「${account.name}」中的${target}移入 115 回收站？`
+      if (!await confirmAction({ title: '删除网盘文件', message, confirmText: isOpenList ? '删除' : '移入回收站' })) return
+      await strmAPI.deleteAccountFile(account.id, directory.id, isOpenList ? entry.name : entry.id)
+      if (!isOpenList) setPendingDeletes((ids) => [...ids, entry.id])
+      toast.success(isOpenList ? `已删除「${entry.name}」` : '115 已受理删除请求')
       reload()
     } catch (err) {
       toast.error(apiErrorMessage(err))
+      if (isOpenList && isAxiosError(err) && err.response?.status === 403) reload()
     } finally {
       setBusy(false)
     }
@@ -99,12 +109,14 @@ function DirectoryContents({ account, directory, enter, busy, setBusy }: {
 
   return <div className="space-y-3">
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <button type="button" className="neon-button" disabled={busy || !listing || folderName !== null}
+      <button type="button" className="neon-button" disabled={busy || !canCreate || folderName !== null}
+        title={listing?.read_only_reason || createDenied}
         onClick={() => setFolderName('')}><FolderPlus size={16} />新建文件夹</button>
       <button type="button" className="neon-button" disabled={busy || (!listing && !error)}
         onClick={() => reload()}><RefreshCw size={15} />刷新</button>
     </div>
-    {folderName !== null && <form onSubmit={create} className="flex flex-wrap items-center gap-2">
+    {permissionNotice && <p role="status" className="text-sm text-sand-500">{permissionNotice}</p>}
+    {canCreate && folderName !== null && <form onSubmit={create} className="flex flex-wrap items-center gap-2">
       <input autoFocus required aria-label="文件夹名称" placeholder="文件夹名称" className="input-base min-w-0 flex-1"
         value={folderName} disabled={busy} onChange={(e) => setFolderName(e.target.value)} />
       <button type="submit" className="neon-button" disabled={busy || !folderName.trim()}>创建</button>
@@ -129,8 +141,9 @@ function DirectoryContents({ account, directory, enter, busy, setBusy }: {
                   </span>}
               {!entry.is_dir && <span className="shrink-0 text-xs text-sand-500">{entry.size ? formatBytes(entry.size) : '0 B'}</span>}
               {pending ? <span className="text-xs text-sand-500">删除中</span>
-                : <button type="button" aria-label={`删除「${entry.name}」`} title="删除" disabled={busy}
-                    className="shrink-0 rounded-lg p-2 text-sand-500 hover:bg-rose-50 hover:text-rose-600"
+                : <button type="button" aria-label={`删除「${entry.name}」`} disabled={busy || !canDelete}
+                    title={listing.read_only_reason || deleteDenied || '删除'}
+                    className="shrink-0 rounded-lg p-2 text-sand-500 enabled:hover:bg-rose-50 enabled:hover:text-rose-600 disabled:opacity-40"
                     onClick={() => void remove(entry)}><Trash2 size={16} /></button>}
             </li>
           })}

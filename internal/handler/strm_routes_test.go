@@ -13,11 +13,13 @@ import (
 	"github.com/Ferrymania/nook/internal/testutil"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
 	"github.com/Ferrymania/nook/internal/config"
+	"github.com/Ferrymania/nook/internal/middleware"
 	"github.com/Ferrymania/nook/internal/model"
 	"github.com/Ferrymania/nook/internal/repository"
 	"github.com/Ferrymania/nook/internal/service"
@@ -42,6 +44,10 @@ func TestStrmAdminRoutesAreRegistered(t *testing.T) {
 		"DELETE /api/admin/strm/accounts/:id",
 		"POST /api/admin/strm/accounts/:id/test",
 		"GET /api/admin/strm/accounts/:id/list",
+		"GET /api/admin/strm/accounts/:id/files",
+		"POST /api/admin/strm/accounts/:id/folders",
+		"DELETE /api/admin/strm/accounts/:id/files",
+		"DELETE /api/admin/strm/accounts/:id/files/:fileID",
 		"GET /api/admin/strm/accounts/:id/request-stats",
 		"POST /api/admin/strm/accounts/:id/oauth/start",
 		"POST /api/admin/strm/accounts/:id/oauth/poll",
@@ -91,6 +97,31 @@ func TestStrmAdminRoutesAreRegistered(t *testing.T) {
 	router.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/api/admin/strm/local-dirs", nil))
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("unauthenticated output folder request = %d, want 401", w.Code)
+	}
+	userToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, middleware.Claims{UserID: "viewer", Role: "user"}).SignedString([]byte("test-secret"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const prefix = "/api/admin/strm/accounts/account-a"
+	for _, endpoint := range []struct{ method, path string }{
+		{http.MethodGet, "/files"},
+		{http.MethodPost, "/folders"},
+		{http.MethodDelete, "/files?parent_id=%2F&file_id=movie"},
+	} {
+		for _, tc := range []struct {
+			token string
+			want  int
+		}{{"", http.StatusUnauthorized}, {userToken, http.StatusForbidden}} {
+			req := httptest.NewRequest(endpoint.method, prefix+endpoint.path, nil)
+			if tc.token != "" {
+				req.Header.Set("Authorization", "Bearer "+tc.token)
+			}
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+			if w.Code != tc.want {
+				t.Fatalf("%s %s = %d, want %d: %s", endpoint.method, endpoint.path, w.Code, tc.want, w.Body)
+			}
+		}
 	}
 }
 
