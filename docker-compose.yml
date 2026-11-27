@@ -1,6 +1,6 @@
-# Nook 部署模板：没有 PostgreSQL，自动启动 Nook + PostgreSQL。
+# Nook 新安装模板：自动启动 Nook + PostgreSQL 18。
 # 已有独立 PostgreSQL 时，请使用 docker-compose.external-postgres.yml。
-# 旧版安装升级请保留原 PostgreSQL 用户、数据库、密码和 ./postgres 挂载。
+# 已用 PostgreSQL 16/17 的部署请继续使用原 Compose；迁移数据库至 18 后再切换。
 #
 # 新手建议：
 #   1. 不用 .env。
@@ -82,9 +82,9 @@ services:
         max-file: "3"
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     # 首次部署允许拉取；日常更新请只 pull nook。
-    # 如需升级 PostgreSQL，请先备份 ./postgres 后再手动调整镜像版本并拉取。
+    # 跨大版本升级 PostgreSQL 时，请先备份并迁移数据库。
     pull_policy: missing
     restart: unless-stopped
     environment:
@@ -93,8 +93,8 @@ services:
       POSTGRES_PASSWORD: nook
       TZ: Asia/Shanghai
     volumes:
-      # PostgreSQL 主数据目录。升级/重建容器时必须保留。
-      - ./postgres:/var/lib/postgresql/data
+      # PostgreSQL 18 在此挂载下使用 18/docker 保存数据。
+      - ./postgres:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U nook -d nook"]
       interval: 10s

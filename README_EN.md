@@ -21,7 +21,7 @@ A self-hosted media center for NAS and home theaters, bringing local media, clou
 
 ## Quick Start
 
-Nook ships Linux Docker images for amd64/arm64. Windows hosts can use Linux containers in Docker Desktop. This Compose template starts Nook and PostgreSQL together:
+Nook ships Linux Docker images for amd64/arm64. Windows hosts can use Linux containers in Docker Desktop. This Compose template starts Nook and PostgreSQL 18 for a new installation:
 
 ```bash
 mkdir -p nook && cd nook
@@ -38,7 +38,7 @@ docker compose up -d
 
 FFmpeg/FFprobe are bundled and updated with the image. Tool detection and executable paths remain available in settings.
 
-Keep existing database credentials and data mounts when upgrading. Detailed setup and maintenance instructions are in the Wiki below (in Chinese).
+Use your existing Compose configuration when updating Nook. If you run PostgreSQL 16 or 17, back up and migrate the database before switching to PostgreSQL 18. The new template mounts `./postgres` at `/var/lib/postgresql` and stores database files in `./postgres/18/docker`. See the [PostgreSQL 18 upgrade guide](https://www.postgresql.org/docs/18/upgrading.html) for migration options.
 
 ## Documentation
 
