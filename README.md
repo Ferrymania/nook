@@ -21,7 +21,7 @@
 
 ## 快速部署
 
-仅提供 Linux Docker 镜像，支持 amd64/arm64；Windows 可通过 Docker Desktop 的 Linux 容器运行。以下 Compose 模板会同时启动 Nook 和 PostgreSQL：
+仅提供 Linux Docker 镜像，支持 amd64/arm64；Windows 可通过 Docker Desktop 的 Linux 容器运行。以下新安装模板会同时启动 Nook 和 PostgreSQL 18：
 
 ```bash
 mkdir -p nook && cd nook
@@ -38,7 +38,7 @@ docker compose up -d
 
 镜像内置 FFmpeg/FFprobe，随镜像更新；设置中保留工具检测与程序路径配置。
 
-升级前保留现有数据库连接参数和数据挂载。部署、更新与备份步骤见下方文档。
+升级 Nook 时请使用现有 Compose 配置。已部署 PostgreSQL 16 或 17 的用户请先备份并迁移数据库，再切换到 PostgreSQL 18。新模板把 `./postgres` 挂载到 `/var/lib/postgresql`，数据库文件位于 `./postgres/18/docker`。数据库迁移方式见 [PostgreSQL 18 升级文档](https://www.postgresql.org/docs/18/upgrading.html)。
 
 ## 使用文档
 
